@@ -60,6 +60,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id3 -->
 
+<a class="method_anchor" id="torch_library_Library_define"></a>
+
 > <font size="3">define()</font>
 
 <div style="margin-left: 2em">
@@ -79,6 +81,8 @@
 <!-- end id6 -->
 
 </div>
+
+<a class="method_anchor" id="torch_library_Library_impl"></a>
 
 > <font size="3">impl()</font>
 

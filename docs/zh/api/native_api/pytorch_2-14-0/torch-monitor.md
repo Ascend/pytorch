@@ -40,6 +40,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id3 -->
 
+<a class="method_anchor" id="torch_monitor_Aggregation_name"></a>
+
 > <font size="3">name()</font>
 
 <div style="margin-left: 2em">
@@ -80,6 +82,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id9 -->
 
+<a class="method_anchor" id="torch_monitor_Stat___init__"></a>
+
 > <font size="3">\_\_init\_\_()</font>
 
 <div style="margin-left: 2em">
@@ -99,6 +103,8 @@
 <!-- end id12 -->
 
 </div>
+
+<a class="method_anchor" id="torch_monitor_Stat_add"></a>
 
 > <font size="3">add()</font>
 
@@ -120,6 +126,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_monitor_Stat_count"></a>
+
 > <font size="3">count()</font>
 
 <div style="margin-left: 2em">
@@ -140,6 +148,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_monitor_Stat_get"></a>
+
 > <font size="3">get()</font>
 
 <div style="margin-left: 2em">
@@ -159,6 +169,8 @@
 <!-- end id21 -->
 
 </div>
+
+<a class="method_anchor" id="torch_monitor_Stat_name"></a>
 
 > <font size="3">name()</font>
 
@@ -220,6 +232,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id27 -->
 
+<a class="method_anchor" id="torch_monitor_Event___init__"></a>
+
 > <font size="3">\_\_init\_\_()</font>
 
 <div style="margin-left: 2em">
@@ -239,6 +253,8 @@
 <!-- end id30 -->
 
 </div>
+
+<a class="method_anchor" id="torch_monitor_Event_data"></a>
 
 > <font size="3">data()</font>
 
@@ -260,6 +276,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_monitor_Event_name"></a>
+
 > <font size="3">name()</font>
 
 <div style="margin-left: 2em">
@@ -279,6 +297,8 @@
 <!-- end id36 -->
 
 </div>
+
+<a class="method_anchor" id="torch_monitor_Event_timestamp"></a>
 
 > <font size="3">timestamp()</font>
 
@@ -399,6 +419,8 @@
 <!-- npu="950" id54 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id54 -->
+
+<a class="method_anchor" id="torch_monitor_TensorboardEventHandler___init__"></a>
 
 > <font size="3">\_\_init\_\_()</font>
 

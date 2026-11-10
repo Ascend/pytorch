@@ -43,6 +43,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id3 -->
 
+<a class="method_anchor" id="torch_distributed_GradBucket_index"></a>
+
 > <font size="3">index()</font>
 
 <div style="margin-left: 2em">
@@ -64,6 +66,8 @@
 **限制与说明**：`input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_GradBucket_buffer"></a>
 
 > <font size="3">buffer()</font>
 
@@ -87,6 +91,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_GradBucket_gradients"></a>
+
 > <font size="3">gradients()</font>
 
 <div style="margin-left: 2em">
@@ -106,6 +112,8 @@
 <!-- end id12 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_GradBucket_is_last"></a>
 
 > <font size="3">is_last()</font>
 
@@ -127,6 +135,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_GradBucket_set_buffer"></a>
+
 > <font size="3">set_buffer()</font>
 
 <div style="margin-left: 2em">
@@ -146,6 +156,8 @@
 <!-- end id18 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_GradBucket_parameters"></a>
 
 > <font size="3">parameters()</font>
 
@@ -299,6 +311,8 @@
 <!-- npu="950" id39 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id39 -->
+
+<a class="method_anchor" id="torch_distributed_algorithms_ddp_comm_hooks_powerSGD_hook_PowerSGDState___getstate__"></a>
 
 > <font size="3">\_\_getstate\_\_()</font>
 

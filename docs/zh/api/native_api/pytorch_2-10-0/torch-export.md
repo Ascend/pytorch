@@ -140,6 +140,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id87 -->
 
+<a class="method_anchor" id="torch_export_decomp_utils_CustomDecompTable_copy"></a>
+
 > <font size="3">copy()</font>
 
 <div style="margin-left: 2em">
@@ -159,6 +161,8 @@
 <!-- end id36 -->
 
 </div>
+
+<a class="method_anchor" id="torch_export_decomp_utils_CustomDecompTable_items"></a>
 
 > <font size="3">items()</font>
 
@@ -180,6 +184,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_export_decomp_utils_CustomDecompTable_keys"></a>
+
 > <font size="3">keys()</font>
 
 <div style="margin-left: 2em">
@@ -199,6 +205,8 @@
 <!-- end id42 -->
 
 </div>
+
+<a class="method_anchor" id="torch_export_decomp_utils_CustomDecompTable_materialize"></a>
 
 > <font size="3">materialize()</font>
 
@@ -220,6 +228,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_export_decomp_utils_CustomDecompTable_pop"></a>
+
 > <font size="3">pop()</font>
 
 <div style="margin-left: 2em">
@@ -239,6 +249,8 @@
 <!-- end id48 -->
 
 </div>
+
+<a class="method_anchor" id="torch_export_decomp_utils_CustomDecompTable_update"></a>
 
 > <font size="3">update()</font>
 
@@ -459,6 +471,8 @@
 <!-- npu="950" id90 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id90 -->
+
+<a class="method_anchor" id="torch_export_unflatten_FlatArgsAdapter_adapt"></a>
 
 > <font size="3">adapt()</font>
 

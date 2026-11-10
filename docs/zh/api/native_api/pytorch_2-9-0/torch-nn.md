@@ -99,6 +99,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id9 -->
 
+<a class="method_anchor" id="torch_nn_parameter_UninitializedParameter_cls_to_become"></a>
+
 > <font size="3">cls_to_become()</font>
 
 <div style="margin-left: 2em">
@@ -163,6 +165,8 @@
 
 **限制与说明**： `input`仅支持fp32
 
+<a class="method_anchor" id="torch_nn_Module_add_module"></a>
+
 > <font size="3">add_module()</font>
 
 <div style="margin-left: 2em">
@@ -182,6 +186,8 @@
 <!-- end id21 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_Module_apply"></a>
 
 > <font size="3">apply()</font>
 
@@ -203,6 +209,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_bfloat16"></a>
+
 > <font size="3">bfloat16()</font>
 
 <div style="margin-left: 2em">
@@ -222,6 +230,8 @@
 <!-- end id27 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_Module_buffers"></a>
 
 > <font size="3">buffers()</font>
 
@@ -243,6 +253,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_children"></a>
+
 > <font size="3">children()</font>
 
 <div style="margin-left: 2em">
@@ -263,6 +275,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_compile"></a>
+
 > <font size="3">compile()</font>
 
 <div style="margin-left: 2em">
@@ -282,6 +296,8 @@
 <!-- end id36 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_Module_cpu"></a>
 
 > <font size="3">cpu()</font>
 
@@ -305,6 +321,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_cuda"></a>
+
 > <font size="3">cuda()</font>
 
 <div style="margin-left: 2em">
@@ -327,6 +345,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_double"></a>
+
 > <font size="3">double()</font>
 
 <div style="margin-left: 2em">
@@ -346,6 +366,8 @@
 <!-- end id45 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_Module_eval"></a>
 
 > <font size="3">eval()</font>
 
@@ -369,6 +391,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_extra_repr"></a>
+
 > <font size="3">extra_repr()</font>
 
 <div style="margin-left: 2em">
@@ -390,6 +414,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_Module_float"></a>
 
 > <font size="3">float()</font>
 
@@ -413,6 +439,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_forward"></a>
+
 > <font size="3">forward()</font>
 
 <div style="margin-left: 2em">
@@ -435,6 +463,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_get_buffer"></a>
+
 > <font size="3">get_buffer()</font>
 
 <div style="margin-left: 2em">
@@ -455,6 +485,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_get_extra_state"></a>
+
 > <font size="3">get_extra_state()</font>
 
 <div style="margin-left: 2em">
@@ -474,6 +506,8 @@
 <!-- end id63 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_Module_get_parameter"></a>
 
 > <font size="3">get_parameter()</font>
 
@@ -497,6 +531,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_get_submodule"></a>
+
 > <font size="3">get_submodule()</font>
 
 <div style="margin-left: 2em">
@@ -518,6 +554,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_Module_half"></a>
 
 > <font size="3">half()</font>
 
@@ -541,6 +579,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_load_state_dict"></a>
+
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -562,6 +602,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_Module_modules"></a>
 
 > <font size="3">modules()</font>
 
@@ -585,6 +627,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_named_buffers"></a>
+
 > <font size="3">named_buffers()</font>
 
 <div style="margin-left: 2em">
@@ -604,6 +648,8 @@
 <!-- end id84 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_Module_named_children"></a>
 
 > <font size="3">named_children()</font>
 
@@ -627,6 +673,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_named_modules"></a>
+
 > <font size="3">named_modules()</font>
 
 <div style="margin-left: 2em">
@@ -649,6 +697,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_named_parameters"></a>
+
 > <font size="3">named_parameters()</font>
 
 <div style="margin-left: 2em">
@@ -668,6 +718,8 @@
 <!-- end id93 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_Module_parameters"></a>
 
 > <font size="3">parameters()</font>
 
@@ -689,6 +741,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_register_backward_hook"></a>
+
 > <font size="3">register_backward_hook()</font>
 
 <div style="margin-left: 2em">
@@ -708,6 +762,8 @@
 <!-- end id99 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_Module_register_buffer"></a>
 
 > <font size="3">register_buffer()</font>
 
@@ -729,6 +785,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_register_forward_hook"></a>
+
 > <font size="3">register_forward_hook()</font>
 
 <div style="margin-left: 2em">
@@ -748,6 +806,8 @@
 <!-- end id105 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_Module_register_forward_pre_hook"></a>
 
 > <font size="3">register_forward_pre_hook()</font>
 
@@ -769,6 +829,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_register_full_backward_hook"></a>
+
 > <font size="3">register_full_backward_hook()</font>
 
 <div style="margin-left: 2em">
@@ -788,6 +850,8 @@
 <!-- end id111 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_Module_register_full_backward_pre_hook"></a>
 
 > <font size="3">register_full_backward_pre_hook()</font>
 
@@ -809,6 +873,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_register_load_state_dict_post_hook"></a>
+
 > <font size="3">register_load_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -828,6 +894,8 @@
 <!-- end id117 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_Module_register_load_state_dict_pre_hook"></a>
 
 > <font size="3">register_load_state_dict_pre_hook()</font>
 
@@ -849,6 +917,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_register_module"></a>
+
 > <font size="3">register_module()</font>
 
 <div style="margin-left: 2em">
@@ -868,6 +938,8 @@
 <!-- end id120 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_Module_register_parameter"></a>
 
 > <font size="3">register_parameter()</font>
 
@@ -889,6 +961,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_register_state_dict_post_hook"></a>
+
 > <font size="3">register_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -908,6 +982,8 @@
 <!-- end id1019 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_Module_register_state_dict_pre_hook"></a>
 
 > <font size="3">register_state_dict_pre_hook()</font>
 
@@ -929,6 +1005,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_requires_grad_"></a>
+
 > <font size="3">requires_grad_()</font>
 
 <div style="margin-left: 2em">
@@ -948,6 +1026,8 @@
 <!-- end id129 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_Module_set_extra_state"></a>
 
 > <font size="3">set_extra_state()</font>
 
@@ -969,6 +1049,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_set_submodule"></a>
+
 > <font size="3">set_submodule()</font>
 
 <div style="margin-left: 2em">
@@ -988,6 +1070,8 @@
 <!-- end id135 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_Module_state_dict"></a>
 
 > <font size="3">state_dict()</font>
 
@@ -1011,6 +1095,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_to"></a>
+
 > <font size="3">to()</font>
 
 <div style="margin-left: 2em">
@@ -1032,6 +1118,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_Module_to_empty"></a>
 
 > <font size="3">to_empty()</font>
 
@@ -1055,6 +1143,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_train"></a>
+
 > <font size="3">train()</font>
 
 <div style="margin-left: 2em">
@@ -1076,6 +1166,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_Module_type"></a>
 
 > <font size="3">type()</font>
 
@@ -1099,6 +1191,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_xpu"></a>
+
 > <font size="3">xpu()</font>
 
 <div style="margin-left: 2em">
@@ -1120,6 +1214,8 @@
 **限制与说明**： NPU形式名称为`torch.nn.Module.npu`
 
 </div>
+
+<a class="method_anchor" id="torch_nn_Module_zero_grad"></a>
 
 > <font size="3">zero_grad()</font>
 
@@ -1165,6 +1261,8 @@
 
 **限制与说明**： `input`仅支持fp32
 
+<a class="method_anchor" id="torch_nn_Sequential_append"></a>
+
 > <font size="3">append()</font>
 
 <div style="margin-left: 2em">
@@ -1209,6 +1307,8 @@
 
 **限制与说明**： `input`仅支持fp32
 
+<a class="method_anchor" id="torch_nn_ModuleList_append"></a>
+
 > <font size="3">append()</font>
 
 <div style="margin-left: 2em">
@@ -1231,6 +1331,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_ModuleList_extend"></a>
+
 > <font size="3">extend()</font>
 
 <div style="margin-left: 2em">
@@ -1252,6 +1354,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_ModuleList_insert"></a>
 
 > <font size="3">insert()</font>
 
@@ -1297,6 +1401,8 @@
 
 **限制与说明**： `input`仅支持fp32
 
+<a class="method_anchor" id="torch_nn_ModuleDict_clear"></a>
+
 > <font size="3">clear()</font>
 
 <div style="margin-left: 2em">
@@ -1318,6 +1424,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_ModuleDict_items"></a>
 
 > <font size="3">items()</font>
 
@@ -1341,6 +1449,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_ModuleDict_keys"></a>
+
 > <font size="3">keys()</font>
 
 <div style="margin-left: 2em">
@@ -1362,6 +1472,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_ModuleDict_pop"></a>
 
 > <font size="3">pop()</font>
 
@@ -1385,6 +1497,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_ModuleDict_update"></a>
+
 > <font size="3">update()</font>
 
 <div style="margin-left: 2em">
@@ -1406,6 +1520,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_ModuleDict_values"></a>
 
 > <font size="3">values()</font>
 
@@ -1451,6 +1567,8 @@
 
 **限制与说明**： `input`仅支持fp32
 
+<a class="method_anchor" id="torch_nn_ParameterList_append"></a>
+
 > <font size="3">append()</font>
 
 <div style="margin-left: 2em">
@@ -1472,6 +1590,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_ParameterList_extend"></a>
 
 > <font size="3">extend()</font>
 
@@ -1517,6 +1637,8 @@
 
 **限制与说明**： `input`仅支持fp32
 
+<a class="method_anchor" id="torch_nn_ParameterDict_clear"></a>
+
 > <font size="3">clear()</font>
 
 <div style="margin-left: 2em">
@@ -1538,6 +1660,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_ParameterDict_copy"></a>
 
 > <font size="3">copy()</font>
 
@@ -1561,6 +1685,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_ParameterDict_fromkeys"></a>
+
 > <font size="3">fromkeys()</font>
 
 <div style="margin-left: 2em">
@@ -1582,6 +1708,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_ParameterDict_get"></a>
 
 > <font size="3">get()</font>
 
@@ -1605,6 +1733,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_ParameterDict_items"></a>
+
 > <font size="3">items()</font>
 
 <div style="margin-left: 2em">
@@ -1626,6 +1756,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_ParameterDict_keys"></a>
 
 > <font size="3">keys()</font>
 
@@ -1649,6 +1781,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_ParameterDict_pop"></a>
+
 > <font size="3">pop()</font>
 
 <div style="margin-left: 2em">
@@ -1670,6 +1804,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_ParameterDict_popitem"></a>
 
 > <font size="3">popitem()</font>
 
@@ -1693,6 +1829,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_ParameterDict_setdefault"></a>
+
 > <font size="3">setdefault()</font>
 
 <div style="margin-left: 2em">
@@ -1715,6 +1853,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_ParameterDict_update"></a>
+
 > <font size="3">update()</font>
 
 <div style="margin-left: 2em">
@@ -1736,6 +1876,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_ParameterDict_values"></a>
 
 > <font size="3">values()</font>
 
@@ -2092,6 +2234,8 @@
 
 **限制与说明**： `input`仅支持fp16，fp32
 
+<a class="method_anchor" id="torch_nn_LazyConv1d_cls_to_become"></a>
+
 > <font size="3">cls_to_become()</font>
 
 <div style="margin-left: 2em">
@@ -2134,6 +2278,8 @@
 
 **限制与说明**： `input`仅支持fp16，fp32
 
+<a class="method_anchor" id="torch_nn_LazyConv2d_cls_to_become"></a>
+
 > <font size="3">cls_to_become()</font>
 
 <div style="margin-left: 2em">
@@ -2173,6 +2319,8 @@
 <!-- npu="950" id1114 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1114 -->
+
+<a class="method_anchor" id="torch_nn_LazyConv3d_cls_to_become"></a>
 
 > <font size="3">cls_to_become()</font>
 
@@ -2216,6 +2364,8 @@
 
 **限制与说明**： `input`仅支持fp16
 
+<a class="method_anchor" id="torch_nn_LazyConvTranspose1d_cls_to_become"></a>
+
 > <font size="3">cls_to_become()</font>
 
 <div style="margin-left: 2em">
@@ -2258,6 +2408,8 @@
 
 **限制与说明**： `input`仅支持fp16，fp32
 
+<a class="method_anchor" id="torch_nn_LazyConvTranspose2d_cls_to_become"></a>
+
 > <font size="3">cls_to_become()</font>
 
 <div style="margin-left: 2em">
@@ -2297,6 +2449,8 @@
 <!-- npu="950" id1117 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1117 -->
+
+<a class="method_anchor" id="torch_nn_LazyConvTranspose3d_cls_to_become"></a>
 
 > <font size="3">cls_to_become()</font>
 
@@ -3331,6 +3485,8 @@
 - 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
 <!-- end id1150 -->
 
+<a class="method_anchor" id="torch_nn_MultiheadAttention_forward"></a>
+
 > <font size="3">forward()</font>
 
 <div style="margin-left: 2em">
@@ -3847,6 +4003,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id506 -->
 
+<a class="method_anchor" id="torch_nn_AdaptiveLogSoftmaxWithLoss_log_prob"></a>
+
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -3866,6 +4024,8 @@
 <!-- end id509 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_AdaptiveLogSoftmaxWithLoss_predict"></a>
 
 > <font size="3">predict()</font>
 
@@ -3975,6 +4135,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1096 -->
 
+<a class="method_anchor" id="torch_nn_LazyBatchNorm1d_cls_to_become"></a>
+
 > <font size="3">cls_to_become()</font>
 
 <div style="margin-left: 2em">
@@ -4015,6 +4177,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1099 -->
 
+<a class="method_anchor" id="torch_nn_LazyBatchNorm2d_cls_to_become"></a>
+
 > <font size="3">cls_to_become()</font>
 
 <div style="margin-left: 2em">
@@ -4054,6 +4218,8 @@
 <!-- npu="950" id1120 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1120 -->
+
+<a class="method_anchor" id="torch_nn_LazyBatchNorm3d_cls_to_become"></a>
 
 > <font size="3">cls_to_become()</font>
 
@@ -4123,6 +4289,8 @@
 <!-- end id536 -->
 
 **限制与说明**： `input`仅支持fp16，fp32
+
+<a class="method_anchor" id="torch_nn_SyncBatchNorm_convert_sync_batchnorm"></a>
 
 > <font size="3">convert_sync_batchnorm()</font>
 
@@ -4224,6 +4392,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1102 -->
 
+<a class="method_anchor" id="torch_nn_LazyInstanceNorm1d_cls_to_become"></a>
+
 > <font size="3">cls_to_become()</font>
 
 <div style="margin-left: 2em">
@@ -4264,6 +4434,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1123 -->
 
+<a class="method_anchor" id="torch_nn_LazyInstanceNorm2d_cls_to_become"></a>
+
 > <font size="3">cls_to_become()</font>
 
 <div style="margin-left: 2em">
@@ -4303,6 +4475,8 @@
 <!-- npu="950" id1105 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1105 -->
+
+<a class="method_anchor" id="torch_nn_LazyInstanceNorm3d_cls_to_become"></a>
 
 > <font size="3">cls_to_become()</font>
 
@@ -4396,6 +4570,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1069 -->
 
+<a class="method_anchor" id="torch_nn_RMSNorm_forward"></a>
+
 > <font size="3">forward()</font>
 
 <div style="margin-left: 2em">
@@ -4415,6 +4591,8 @@
 <!-- end id1072 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_RMSNorm_reset_parameters"></a>
 
 > <font size="3">reset_parameters()</font>
 
@@ -4455,6 +4633,8 @@
 <!-- npu="950" id554 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id554 -->
+
+<a class="method_anchor" id="torch_nn_RNNBase_flatten_parameters"></a>
 
 > <font size="3">flatten_parameters()</font>
 
@@ -4637,6 +4817,8 @@
 
 **限制与说明**： `src`、`tgt`仅支持fp16，fp32
 
+<a class="method_anchor" id="torch_nn_Transformer_forward"></a>
+
 > <font size="3">forward()</font>
 
 <div style="margin-left: 2em">
@@ -4656,6 +4838,8 @@
 <!-- end id581 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_Transformer_generate_square_subsequent_mask"></a>
 
 > <font size="3">generate_square_subsequent_mask()</font>
 
@@ -4696,6 +4880,8 @@
 <!-- npu="950" id584 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id584 -->
+
+<a class="method_anchor" id="torch_nn_TransformerEncoder_forward"></a>
 
 > <font size="3">forward()</font>
 
@@ -4765,6 +4951,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1111 -->
 
+<a class="method_anchor" id="torch_nn_TransformerEncoderLayer_forward"></a>
+
 > <font size="3">forward()</font>
 
 <div style="margin-left: 2em">
@@ -4804,6 +4992,8 @@
 <!-- npu="950" id1108 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1108 -->
+
+<a class="method_anchor" id="torch_nn_TransformerDecoderLayer_forward"></a>
 
 > <font size="3">forward()</font>
 
@@ -4920,6 +5110,8 @@
 <!-- end id611 -->
 
 **限制与说明**： `input`仅支持fp16，fp32
+
+<a class="method_anchor" id="torch_nn_LazyLinear_cls_to_become"></a>
 
 > <font size="3">cls_to_become()</font>
 
@@ -5098,6 +5290,8 @@
 - `input`仅支持int32，int64
 - 属性`max_norm`仅支持非负值，不支持nan
 
+<a class="method_anchor" id="torch_nn_Embedding_from_pretrained"></a>
+
 > <font size="3">from_pretrained()</font>
 
 <div style="margin-left: 2em">
@@ -5145,6 +5339,8 @@
 - `input`仅支持int32，int64
 - 仅支持`max_norm`大于等于0
 
+<a class="method_anchor" id="torch_nn_EmbeddingBag_forward"></a>
+
 > <font size="3">forward()</font>
 
 <div style="margin-left: 2em">
@@ -5166,6 +5362,8 @@
 **限制与说明**： `input`、`offsets`仅支持int64
 
 </div>
+
+<a class="method_anchor" id="torch_nn_EmbeddingBag_from_pretrained"></a>
 
 > <font size="3">from_pretrained()</font>
 
@@ -5873,6 +6071,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id722 -->
 
+<a class="method_anchor" id="torch_nn_parallel_DistributedDataParallel_join"></a>
+
 > <font size="3">join()</font>
 
 <div style="margin-left: 2em">
@@ -5892,6 +6092,8 @@
 <!-- end id725 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_parallel_DistributedDataParallel_join_hook"></a>
 
 > <font size="3">join_hook()</font>
 
@@ -5913,6 +6115,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_parallel_DistributedDataParallel_no_sync"></a>
+
 > <font size="3">no_sync()</font>
 
 <div style="margin-left: 2em">
@@ -5932,6 +6136,8 @@
 <!-- end id731 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_parallel_DistributedDataParallel_register_comm_hook"></a>
 
 > <font size="3">register_comm_hook()</font>
 
@@ -6321,6 +6527,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id761 -->
 
+<a class="method_anchor" id="torch_nn_utils_prune_BasePruningMethod_apply"></a>
+
 > <font size="3">apply()</font>
 
 <div style="margin-left: 2em">
@@ -6340,6 +6548,8 @@
 <!-- end id764 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_utils_prune_BasePruningMethod_apply_mask"></a>
 
 > <font size="3">apply_mask()</font>
 
@@ -6363,6 +6573,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_utils_prune_BasePruningMethod_compute_mask"></a>
+
 > <font size="3">compute_mask()</font>
 
 <div style="margin-left: 2em">
@@ -6382,6 +6594,8 @@
 <!-- end id770 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_utils_prune_BasePruningMethod_prune"></a>
 
 > <font size="3">prune()</font>
 
@@ -6404,6 +6618,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_utils_prune_BasePruningMethod_remove"></a>
 
 > <font size="3">remove()</font>
 
@@ -6447,6 +6663,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id779 -->
 
+<a class="method_anchor" id="torch_nn_utils_prune_PruningContainer_add_pruning_method"></a>
+
 > <font size="3">add_pruning_method()</font>
 
 <div style="margin-left: 2em">
@@ -6466,6 +6684,8 @@
 <!-- end id782 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_utils_prune_PruningContainer_apply"></a>
 
 > <font size="3">apply()</font>
 
@@ -6487,6 +6707,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_utils_prune_PruningContainer_apply_mask"></a>
+
 > <font size="3">apply_mask()</font>
 
 <div style="margin-left: 2em">
@@ -6506,6 +6728,8 @@
 <!-- end id788 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_utils_prune_PruningContainer_compute_mask"></a>
 
 > <font size="3">compute_mask()</font>
 
@@ -6529,6 +6753,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_utils_prune_PruningContainer_prune"></a>
+
 > <font size="3">prune()</font>
 
 <div style="margin-left: 2em">
@@ -6550,6 +6776,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_utils_prune_PruningContainer_remove"></a>
 
 > <font size="3">remove()</font>
 
@@ -6583,6 +6811,8 @@
 
 **限制与说明**： `input`仅支持fp32
 
+<a class="method_anchor" id="torch_nn_utils_prune_Identity_apply"></a>
+
 > <font size="3">apply()</font>
 
 <div style="margin-left: 2em">
@@ -6604,6 +6834,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_utils_prune_Identity_apply_mask"></a>
 
 > <font size="3">apply_mask()</font>
 
@@ -6627,6 +6859,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_utils_prune_Identity_prune"></a>
+
 > <font size="3">prune()</font>
 
 <div style="margin-left: 2em">
@@ -6648,6 +6882,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_utils_prune_Identity_remove"></a>
 
 > <font size="3">remove()</font>
 
@@ -6693,6 +6929,8 @@
 
 **限制与说明**： `input`仅支持fp32
 
+<a class="method_anchor" id="torch_nn_utils_prune_RandomUnstructured_apply"></a>
+
 > <font size="3">apply()</font>
 
 <div style="margin-left: 2em">
@@ -6714,6 +6952,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_utils_prune_RandomUnstructured_apply_mask"></a>
 
 > <font size="3">apply_mask()</font>
 
@@ -6737,6 +6977,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_utils_prune_RandomUnstructured_prune"></a>
+
 > <font size="3">prune()</font>
 
 <div style="margin-left: 2em">
@@ -6758,6 +7000,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_utils_prune_RandomUnstructured_remove"></a>
 
 > <font size="3">remove()</font>
 
@@ -6801,6 +7045,8 @@
 
 **限制与说明**： `input`仅支持fp32
 
+<a class="method_anchor" id="torch_nn_utils_prune_L1Unstructured_apply"></a>
+
 > <font size="3">apply()</font>
 
 <div style="margin-left: 2em">
@@ -6822,6 +7068,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_utils_prune_L1Unstructured_apply_mask"></a>
 
 > <font size="3">apply_mask()</font>
 
@@ -6845,6 +7093,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_utils_prune_L1Unstructured_prune"></a>
+
 > <font size="3">prune()</font>
 
 <div style="margin-left: 2em">
@@ -6866,6 +7116,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_utils_prune_L1Unstructured_remove"></a>
 
 > <font size="3">remove()</font>
 
@@ -6911,6 +7163,8 @@
 
 **限制与说明**： `input`仅支持fp32
 
+<a class="method_anchor" id="torch_nn_utils_prune_RandomStructured_apply"></a>
+
 > <font size="3">apply()</font>
 
 <div style="margin-left: 2em">
@@ -6932,6 +7186,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_utils_prune_RandomStructured_apply_mask"></a>
 
 > <font size="3">apply_mask()</font>
 
@@ -6955,6 +7211,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_utils_prune_RandomStructured_compute_mask"></a>
+
 > <font size="3">compute_mask()</font>
 
 <div style="margin-left: 2em">
@@ -6977,6 +7235,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_utils_prune_RandomStructured_prune"></a>
+
 > <font size="3">prune()</font>
 
 <div style="margin-left: 2em">
@@ -6996,6 +7256,8 @@
 <!-- end id857 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_utils_prune_RandomStructured_remove"></a>
 
 > <font size="3">remove()</font>
 
@@ -7039,6 +7301,8 @@
 
 **限制与说明**： `input`仅支持fp32
 
+<a class="method_anchor" id="torch_nn_utils_prune_LnStructured_apply"></a>
+
 > <font size="3">apply()</font>
 
 <div style="margin-left: 2em">
@@ -7060,6 +7324,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_utils_prune_LnStructured_apply_mask"></a>
 
 > <font size="3">apply_mask()</font>
 
@@ -7083,6 +7349,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_utils_prune_LnStructured_compute_mask"></a>
+
 > <font size="3">compute_mask()</font>
 
 <div style="margin-left: 2em">
@@ -7105,6 +7373,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_utils_prune_LnStructured_prune"></a>
+
 > <font size="3">prune()</font>
 
 <div style="margin-left: 2em">
@@ -7126,6 +7396,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_utils_prune_LnStructured_remove"></a>
 
 > <font size="3">remove()</font>
 
@@ -7171,6 +7443,8 @@
 
 **限制与说明**： `input`仅支持int64
 
+<a class="method_anchor" id="torch_nn_utils_prune_CustomFromMask_apply"></a>
+
 > <font size="3">apply()</font>
 
 <div style="margin-left: 2em">
@@ -7193,6 +7467,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_utils_prune_CustomFromMask_apply_mask"></a>
+
 > <font size="3">apply_mask()</font>
 
 <div style="margin-left: 2em">
@@ -7213,6 +7489,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_utils_prune_CustomFromMask_prune"></a>
+
 > <font size="3">prune()</font>
 
 <div style="margin-left: 2em">
@@ -7232,6 +7510,8 @@
 <!-- end id890 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_utils_prune_CustomFromMask_remove"></a>
 
 > <font size="3">remove()</font>
 
@@ -7596,6 +7876,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id941 -->
 
+<a class="method_anchor" id="torch_nn_utils_parametrize_ParametrizationList_right_inverse"></a>
+
 > <font size="3">right_inverse()</font>
 
 <div style="margin-left: 2em">
@@ -7660,6 +7942,8 @@
 
 **限制与说明**： `input`仅支持fp32，int64
 
+<a class="method_anchor" id="torch_nn_utils_rnn_PackedSequence_batch_sizes"></a>
+
 > <font size="3">batch_sizes()</font>
 
 <div style="margin-left: 2em">
@@ -7679,6 +7963,8 @@
 <!-- end id953 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_utils_rnn_PackedSequence_count"></a>
 
 > <font size="3">count()</font>
 
@@ -7702,6 +7988,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_utils_rnn_PackedSequence_data"></a>
+
 > <font size="3">data()</font>
 
 <div style="margin-left: 2em">
@@ -7721,6 +8009,8 @@
 <!-- end id959 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_utils_rnn_PackedSequence_index"></a>
 
 > <font size="3">index()</font>
 
@@ -7744,6 +8034,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_utils_rnn_PackedSequence_is_cuda"></a>
+
 > <font size="3">is_cuda()</font>
 
 <div style="margin-left: 2em">
@@ -7763,6 +8055,8 @@
 <!-- end id965 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_utils_rnn_PackedSequence_is_pinned"></a>
 
 > <font size="3">is_pinned()</font>
 
@@ -7784,6 +8078,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_utils_rnn_PackedSequence_sorted_indices"></a>
+
 > <font size="3">sorted_indices()</font>
 
 <div style="margin-left: 2em">
@@ -7803,6 +8099,8 @@
 <!-- end id971 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_utils_rnn_PackedSequence_to"></a>
 
 > <font size="3">to()</font>
 
@@ -7825,6 +8123,8 @@
 **限制与说明**： `self`仅支持fp32，int64
 
 </div>
+
+<a class="method_anchor" id="torch_nn_utils_rnn_PackedSequence_unsorted_indices"></a>
 
 > <font size="3">unsorted_indices()</font>
 
@@ -8012,6 +8312,8 @@
 
 **限制与说明**： `input`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
+<a class="method_anchor" id="torch_nn_Unflatten_NamedShape"></a>
+
 > <font size="3">NamedShape()</font>
 
 <div style="margin-left: 2em">
@@ -8056,6 +8358,8 @@
 
 **限制与说明**： `input`仅支持fp32
 
+<a class="method_anchor" id="torch_nn_modules_lazy_LazyModuleMixin_has_uninitialized_params"></a>
+
 > <font size="3">has_uninitialized_params()</font>
 
 <div style="margin-left: 2em">
@@ -8077,6 +8381,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_nn_modules_lazy_LazyModuleMixin_initialize_parameters"></a>
 
 > <font size="3">initialize_parameters()</font>
 

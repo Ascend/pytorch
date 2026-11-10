@@ -318,6 +318,8 @@
 <!-- end id35 -->
 
 <!-- npu="910b,A3" id250 -->
+<a class="method_anchor" id="torch_distributed_Backend_register_backend"></a>
+
 > <font size="3">register_backend()</font>
 
 <div style="margin-left: 2em">
@@ -445,6 +447,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id54 -->
 
+<a class="method_anchor" id="torch_distributed_device_mesh_DeviceMesh_from_group"></a>
+
 > <font size="3">from_group()</font>
 
 <div style="margin-left: 2em">
@@ -464,6 +468,8 @@
 <!-- end id57 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_device_mesh_DeviceMesh_get_all_groups"></a>
 
 > <font size="3">get_all_groups()</font>
 
@@ -485,6 +491,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_device_mesh_DeviceMesh_get_coordinate"></a>
+
 > <font size="3">get_coordinate()</font>
 
 <div style="margin-left: 2em">
@@ -504,6 +512,8 @@
 <!-- end id63 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_device_mesh_DeviceMesh_get_group"></a>
 
 > <font size="3">get_group()</font>
 
@@ -525,6 +535,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_device_mesh_DeviceMesh_get_local_rank"></a>
+
 > <font size="3">get_local_rank()</font>
 
 <div style="margin-left: 2em">
@@ -544,6 +556,8 @@
 <!-- end id69 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_device_mesh_DeviceMesh_get_rank"></a>
 
 > <font size="3">get_rank()</font>
 
@@ -1087,6 +1101,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id296 -->
 
+<a class="method_anchor" id="torch_distributed_Work_boxed"></a>
+
 > <font size="3">boxed()</font>
 
 <div style="margin-left: 2em">
@@ -1106,6 +1122,8 @@
 <!-- end id299 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_Work_exception"></a>
 
 > <font size="3">exception()</font>
 
@@ -1127,6 +1145,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_Work_get_future"></a>
+
 > <font size="3">get_future()</font>
 
 <div style="margin-left: 2em">
@@ -1146,6 +1166,8 @@
 <!-- end id305 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_Work_is_completed"></a>
 
 > <font size="3">is_completed()</font>
 
@@ -1167,6 +1189,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_Work_source_rank"></a>
+
 > <font size="3">source_rank()</font>
 
 <div style="margin-left: 2em">
@@ -1187,6 +1211,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_Work_synchronize"></a>
+
 > <font size="3">synchronize()</font>
 
 <div style="margin-left: 2em">
@@ -1206,6 +1232,8 @@
 <!-- end id314 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_Work_wait"></a>
 
 > <font size="3">wait()</font>
 
@@ -1296,6 +1324,8 @@
 <!-- end id143 -->
 
 <!-- npu="910b,A3" id254 -->
+<a class="method_anchor" id="torch_distributed_PrefixStore___init__"></a>
+
 > <font size="3">\_\_init\_\_()</font>
 
 <div style="margin-left: 2em">
@@ -1317,6 +1347,8 @@
 <!-- end id255 -->
 
 <!-- npu="910b,A3" id256 -->
+<a class="method_anchor" id="torch_distributed_PrefixStore_underlying_store"></a>
+
 > <font size="3">underlying_store()</font>
 
 <div style="margin-left: 2em">
@@ -1359,6 +1391,8 @@
 <!-- end id153 -->
 
 <!-- npu="910b,A3" id258 -->
+<a class="method_anchor" id="torch_distributed_Store___init__"></a>
+
 > <font size="3">\_\_init\_\_()</font>
 
 <div style="margin-left: 2em">
@@ -1378,6 +1412,8 @@
 <!-- npu="910b,A3" id259 -->
 </div>
 <!-- end id259 -->
+
+<a class="method_anchor" id="torch_distributed_Store_add"></a>
 
 > <font size="3">add()</font>
 
@@ -1400,6 +1436,8 @@
 </div>
 
 <!-- npu="910b,A3" id260 -->
+<a class="method_anchor" id="torch_distributed_Store_append"></a>
+
 > <font size="3">append()</font>
 
 <div style="margin-left: 2em">
@@ -1421,6 +1459,8 @@
 <!-- end id261 -->
 
 <!-- npu="910b,A3" id262 -->
+<a class="method_anchor" id="torch_distributed_Store_check"></a>
+
 > <font size="3">check()</font>
 
 <div style="margin-left: 2em">
@@ -1440,6 +1480,8 @@
 <!-- npu="910b,A3" id263 -->
 </div>
 <!-- end id263 -->
+
+<a class="method_anchor" id="torch_distributed_Store_compare_set"></a>
 
 > <font size="3">compare_set()</font>
 
@@ -1461,6 +1503,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_Store_delete_key"></a>
+
 > <font size="3">delete_key()</font>
 
 <div style="margin-left: 2em">
@@ -1480,6 +1524,8 @@
 <!-- end id177 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_Store_get"></a>
 
 > <font size="3">get()</font>
 
@@ -1502,6 +1548,8 @@
 </div>
 
 <!-- npu="910b,A3" id264 -->
+<a class="method_anchor" id="torch_distributed_Store_has_extended_api"></a>
+
 > <font size="3">has_extended_api()</font>
 
 <div style="margin-left: 2em">
@@ -1523,6 +1571,8 @@
 <!-- end id265 -->
 
 <!-- npu="910b,A3" id268 -->
+<a class="method_anchor" id="torch_distributed_Store_multi_get"></a>
+
 > <font size="3">multi_get()</font>
 
 <div style="margin-left: 2em">
@@ -1544,6 +1594,8 @@
 <!-- end id269 -->
 
 <!-- npu="910b,A3" id266 -->
+<a class="method_anchor" id="torch_distributed_Store_multi_set"></a>
+
 > <font size="3">multi_set()</font>
 
 <div style="margin-left: 2em">
@@ -1563,6 +1615,8 @@
 <!-- npu="910b,A3" id267 -->
 </div>
 <!-- end id267 -->
+
+<a class="method_anchor" id="torch_distributed_Store_num_keys"></a>
 
 > <font size="3">num_keys()</font>
 
@@ -1584,6 +1638,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_Store_set"></a>
+
 > <font size="3">set()</font>
 
 <div style="margin-left: 2em">
@@ -1603,6 +1659,8 @@
 <!-- end id159 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_Store_set_timeout"></a>
 
 > <font size="3">set_timeout()</font>
 
@@ -1625,6 +1683,8 @@
 </div>
 
 <!-- npu="910b,A3" id270 -->
+<a class="method_anchor" id="torch_distributed_Store_timeout"></a>
+
 > <font size="3">timeout()</font>
 
 <div style="margin-left: 2em">
@@ -1644,6 +1704,8 @@
 <!-- npu="910b,A3" id271 -->
 </div>
 <!-- end id271 -->
+
+<a class="method_anchor" id="torch_distributed_Store_wait"></a>
 
 > <font size="3">wait()</font>
 
@@ -1686,6 +1748,8 @@
 <!-- end id201 -->
 
 <!-- npu="910b,A3" id272 -->
+<a class="method_anchor" id="torch_distributed_TCPStore___init__"></a>
+
 > <font size="3">\_\_init\_\_()</font>
 
 <div style="margin-left: 2em">
@@ -1707,6 +1771,8 @@
 <!-- end id273 -->
 
 <!-- npu="910b,A3" id274 -->
+<a class="method_anchor" id="torch_distributed_TCPStore_host"></a>
+
 > <font size="3">host()</font>
 
 <div style="margin-left: 2em">
@@ -1728,6 +1794,8 @@
 <!-- end id275 -->
 
 <!-- npu="910b,A3" id276 -->
+<a class="method_anchor" id="torch_distributed_TCPStore_libuvBackend"></a>
+
 > <font size="3">libuvBackend()</font>
 
 <div style="margin-left: 2em">
@@ -1749,6 +1817,8 @@
 <!-- end id277 -->
 
 <!-- npu="910b,A3" id278 -->
+<a class="method_anchor" id="torch_distributed_TCPStore_port"></a>
+
 > <font size="3">port()</font>
 
 <div style="margin-left: 2em">
@@ -1792,6 +1862,8 @@
 <!-- end id215 -->
 
 <!-- npu="910b,A3" id282 -->
+<a class="method_anchor" id="torch_distributed_HashStore___init__"></a>
+
 > <font size="3">\_\_init\_\_()</font>
 
 <div style="margin-left: 2em">
@@ -1834,6 +1906,8 @@
 <!-- end id222 -->
 
 <!-- npu="910b,A3" id284 -->
+<a class="method_anchor" id="torch_distributed_FileStore___init__"></a>
+
 > <font size="3">\_\_init\_\_()</font>
 
 <div style="margin-left: 2em">
@@ -1855,6 +1929,8 @@
 <!-- end id285 -->
 
 <!-- npu="910b,A3" id286 -->
+<a class="method_anchor" id="torch_distributed_FileStore_path"></a>
+
 > <font size="3">path()</font>
 
 <div style="margin-left: 2em">

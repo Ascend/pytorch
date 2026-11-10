@@ -230,6 +230,8 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id23 -->
 
+<a class="method_anchor" id="torch_onnx_ONNXProgram_compute_values"></a>
+
 > <font size="3">compute_values()</font>
 
 <div style="margin-left: 2em">
@@ -249,6 +251,8 @@
 <!-- end id114 -->
 
 </div>
+
+<a class="method_anchor" id="torch_onnx_ONNXProgram_model_proto"></a>
 
 > <font size="3">model_proto()</font>
 
@@ -270,6 +274,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_onnx_ONNXProgram_save"></a>
+
 > <font size="3">save()</font>
 
 <div style="margin-left: 2em">
@@ -289,6 +295,8 @@
 <!-- end id30 -->
 
 </div>
+
+<a class="method_anchor" id="torch_onnx_ONNXProgram_initialize_inference_session"></a>
 
 > <font size="3">initialize_inference_session()</font>
 
@@ -310,6 +318,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_onnx_ONNXProgram_release"></a>
+
 > <font size="3">release()</font>
 
 <div style="margin-left: 2em">
@@ -329,6 +339,8 @@
 <!-- end id117 -->
 
 </div>
+
+<a class="method_anchor" id="torch_onnx_ONNXProgram_optimize"></a>
 
 > <font size="3">optimize()</font>
 
@@ -410,6 +422,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id45 -->
 
+<a class="method_anchor" id="torch_onnx_OnnxRegistry_get_op_functions"></a>
+
 > <font size="3">get_op_functions()</font>
 
 <div style="margin-left: 2em">
@@ -429,6 +443,8 @@
 <!-- end id48 -->
 
 </div>
+
+<a class="method_anchor" id="torch_onnx_OnnxRegistry_is_registered_op"></a>
 
 > <font size="3">is_registered_op()</font>
 
@@ -450,6 +466,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_onnx_OnnxRegistry_opset_version"></a>
+
 > <font size="3"><code><i>property</i></code> opset_version</font>
 
 <div style="margin-left: 2em">
@@ -469,6 +487,8 @@
 <!-- end id54 -->
 
 </div>
+
+<a class="method_anchor" id="torch_onnx_OnnxRegistry_register_op"></a>
 
 > <font size="3">register_op()</font>
 
@@ -625,6 +645,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id78 -->
 
+<a class="method_anchor" id="torch_onnx_JitScalarType_dtype"></a>
+
 > <font size="3">dtype()</font>
 
 <div style="margin-left: 2em">
@@ -644,6 +666,8 @@
 <!-- end id81 -->
 
 </div>
+
+<a class="method_anchor" id="torch_onnx_JitScalarType_from_dtype"></a>
 
 > <font size="3">from_dtype()</font>
 
@@ -667,6 +691,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_onnx_JitScalarType_from_onnx_type"></a>
+
 > <font size="3">from_onnx_type()</font>
 
 <div style="margin-left: 2em">
@@ -686,6 +712,8 @@
 <!-- end id114 -->
 
 </div>
+
+<a class="method_anchor" id="torch_onnx_JitScalarType_from_value"></a>
 
 > <font size="3">from_value()</font>
 
@@ -707,6 +735,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_onnx_JitScalarType_onnx_compatible"></a>
+
 > <font size="3">onnx_compatible()</font>
 
 <div style="margin-left: 2em">
@@ -726,6 +756,8 @@
 <!-- end id90 -->
 
 </div>
+
+<a class="method_anchor" id="torch_onnx_JitScalarType_onnx_type"></a>
 
 > <font size="3">onnx_type()</font>
 
@@ -747,6 +779,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_onnx_JitScalarType_scalar_name"></a>
+
 > <font size="3">scalar_name()</font>
 
 <div style="margin-left: 2em">
@@ -766,6 +800,8 @@
 <!-- end id96 -->
 
 </div>
+
+<a class="method_anchor" id="torch_onnx_JitScalarType_torch_name"></a>
 
 > <font size="3">torch_name()</font>
 
@@ -792,6 +828,8 @@
 ### <code><i>class</i></code> torch.onnx.ONNXProgram
 
 <div style="margin-left: 2em">
+
+<a class="method_anchor" id="torch_onnx_ONNXProgram_apply_weights"></a>
 
 > <font size="3">apply_weights()</font>
 
@@ -852,6 +890,8 @@
 <!-- npu="950" id127 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id127 -->
+
+<a class="method_anchor" id="torch_onnx_verification_VerificationInfo_from_tensors"></a>
 
 > <font size="3"><code><i>classmethod</i></code> from_tensors()</font>
 

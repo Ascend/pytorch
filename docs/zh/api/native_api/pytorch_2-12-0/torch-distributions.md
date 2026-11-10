@@ -70,6 +70,8 @@
 
 <div style="margin-left: 2em">
 
+<a class="method_anchor" id="torch_distributions_distribution_Distribution_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -89,6 +91,8 @@
 <!-- end id3 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_distribution_Distribution_batch_shape"></a>
 
 > <font size="3">batch_shape()</font>
 
@@ -110,6 +114,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_distribution_Distribution_cdf"></a>
+
 > <font size="3">cdf()</font>
 
 <div style="margin-left: 2em">
@@ -129,6 +135,8 @@
 <!-- end id1618 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_distribution_Distribution_entropy"></a>
 
 > <font size="3">entropy()</font>
 
@@ -150,6 +158,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_distribution_Distribution_enumerate_support"></a>
+
 > <font size="3">enumerate_support()</font>
 
 <div style="margin-left: 2em">
@@ -169,6 +179,8 @@
 <!-- end id1624 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_distribution_Distribution_event_shape"></a>
 
 > <font size="3">event_shape()</font>
 
@@ -190,6 +202,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_Distribution_expand"></a>
+
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -209,6 +223,8 @@
 <!-- end id1648 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_Distribution_icdf"></a>
 
 > <font size="3">icdf()</font>
 
@@ -230,6 +246,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_distribution_Distribution_log_prob"></a>
+
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -249,6 +267,8 @@
 <!-- end id1627 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_distribution_Distribution_mean"></a>
 
 > <font size="3">mean()</font>
 
@@ -270,6 +290,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_distribution_Distribution_mode"></a>
+
 > <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
@@ -289,6 +311,8 @@
 <!-- end id15 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_Distribution_perplexity"></a>
 
 > <font size="3">perplexity()</font>
 
@@ -310,6 +334,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_Distribution_rsample"></a>
+
 > <font size="3">rsample()</font>
 
 <div style="margin-left: 2em">
@@ -329,6 +355,8 @@
 <!-- end id1657 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_distribution_Distribution_set_default_validate_args"></a>
 
 > <font size="3">set_default_validate_args()</font>
 
@@ -350,6 +378,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_distribution_Distribution_stddev"></a>
+
 > <font size="3">stddev()</font>
 
 <div style="margin-left: 2em">
@@ -370,6 +400,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_distribution_Distribution_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -389,6 +421,8 @@
 <!-- end id24 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_distribution_Distribution_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -432,6 +466,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1642 -->
 
+<a class="method_anchor" id="torch_distributions_exp_family_ExponentialFamily_entropy"></a>
+
 > <font size="3">entropy()</font>
 
 <div style="margin-left: 2em">
@@ -474,6 +510,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id33 -->
 
+<a class="method_anchor" id="torch_distributions_bernoulli_Bernoulli_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -493,6 +531,8 @@
 <!-- end id36 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_bernoulli_Bernoulli_entropy"></a>
 
 > <font size="3">entropy()</font>
 
@@ -514,6 +554,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_bernoulli_Bernoulli_enumerate_support"></a>
+
 > <font size="3">enumerate_support()</font>
 
 <div style="margin-left: 2em">
@@ -533,6 +575,8 @@
 <!-- end id1612 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_bernoulli_Bernoulli_expand"></a>
 
 > <font size="3">expand()</font>
 
@@ -554,6 +598,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_bernoulli_Bernoulli_has_enumerate_support"></a>
+
 > <font size="3">has_enumerate_support()</font>
 
 <div style="margin-left: 2em">
@@ -573,6 +619,8 @@
 <!-- end id45 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_bernoulli_Bernoulli_log_prob"></a>
 
 > <font size="3">log_prob()</font>
 
@@ -594,6 +642,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_bernoulli_Bernoulli_logits"></a>
+
 > <font size="3">logits()</font>
 
 <div style="margin-left: 2em">
@@ -613,6 +663,8 @@
 <!-- end id51 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_bernoulli_Bernoulli_mean"></a>
 
 > <font size="3">mean()</font>
 
@@ -635,6 +687,8 @@
 </div>
 
 <!-- npu="910b,A3" id1436 -->
+<a class="method_anchor" id="torch_distributions_bernoulli_Bernoulli_mode"></a>
+
 > <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
@@ -654,6 +708,8 @@
 <!-- npu="910b,A3" id1437 -->
 </div>
 <!-- end id1437 -->
+
+<a class="method_anchor" id="torch_distributions_bernoulli_Bernoulli_param_shape"></a>
 
 > <font size="3">param_shape()</font>
 
@@ -675,6 +731,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_bernoulli_Bernoulli_probs"></a>
+
 > <font size="3">probs()</font>
 
 <div style="margin-left: 2em">
@@ -694,6 +752,8 @@
 <!-- end id63 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_bernoulli_Bernoulli_sample"></a>
 
 > <font size="3">sample()</font>
 
@@ -716,6 +776,8 @@
 </div>
 
 <!-- npu="910b,A3" id1438 -->
+<a class="method_anchor" id="torch_distributions_bernoulli_Bernoulli_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -735,6 +797,8 @@
 <!-- npu="910b,A3" id1439 -->
 </div>
 <!-- end id1439 -->
+
+<a class="method_anchor" id="torch_distributions_bernoulli_Bernoulli_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -778,6 +842,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id75 -->
 
+<a class="method_anchor" id="torch_distributions_beta_Beta_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -797,6 +863,8 @@
 <!-- end id78 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_beta_Beta_concentration0"></a>
 
 > <font size="3">concentration0()</font>
 
@@ -818,6 +886,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_beta_Beta_concentration1"></a>
+
 > <font size="3">concentration1()</font>
 
 <div style="margin-left: 2em">
@@ -837,6 +907,8 @@
 <!-- end id84 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_beta_Beta_entropy"></a>
 
 > <font size="3">entropy()</font>
 
@@ -859,6 +931,8 @@
 </div>
 
 <!-- npu="910b,A3" id1440 -->
+<a class="method_anchor" id="torch_distributions_beta_Beta_expand"></a>
+
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -878,6 +952,8 @@
 <!-- npu="910b,A3" id1441 -->
 </div>
 <!-- end id1441 -->
+
+<a class="method_anchor" id="torch_distributions_beta_Beta_has_rsample"></a>
 
 > <font size="3">has_rsample()</font>
 
@@ -899,6 +975,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_beta_Beta_log_prob"></a>
+
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -918,6 +996,8 @@
 <!-- end id96 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_beta_Beta_mean"></a>
 
 > <font size="3">mean()</font>
 
@@ -939,6 +1019,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_beta_Beta_mode"></a>
+
 > <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
@@ -958,6 +1040,8 @@
 <!-- end id102 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_beta_Beta_rsample"></a>
 
 > <font size="3">rsample()</font>
 
@@ -979,6 +1063,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_beta_Beta_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -998,6 +1084,8 @@
 <!-- end id108 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_beta_Beta_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -1043,6 +1131,8 @@
 
 **限制与说明**：可能回退至CPU执行
 
+<a class="method_anchor" id="torch_distributions_binomial_Binomial_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -1062,6 +1152,8 @@
 <!-- end id117 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_binomial_Binomial_entropy"></a>
 
 > <font size="3">entropy()</font>
 
@@ -1083,6 +1175,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_Binomial_enumerate_support"></a>
+
 > <font size="3">enumerate_support()</font>
 
 <div style="margin-left: 2em">
@@ -1102,6 +1196,8 @@
 <!-- end id1663 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_binomial_Binomial_expand"></a>
 
 > <font size="3">expand()</font>
 
@@ -1123,6 +1219,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_binomial_Binomial_has_enumerate_support"></a>
+
 > <font size="3">has_enumerate_support()</font>
 
 <div style="margin-left: 2em">
@@ -1142,6 +1240,8 @@
 <!-- end id126 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_binomial_Binomial_log_prob"></a>
 
 > <font size="3">log_prob()</font>
 
@@ -1165,6 +1265,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_binomial_Binomial_logits"></a>
+
 > <font size="3">logits()</font>
 
 <div style="margin-left: 2em">
@@ -1184,6 +1286,8 @@
 <!-- end id132 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_binomial_Binomial_mean"></a>
 
 > <font size="3">mean()</font>
 
@@ -1205,6 +1309,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_binomial_Binomial_mode"></a>
+
 > <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
@@ -1224,6 +1330,8 @@
 <!-- end id138 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_binomial_Binomial_param_shape"></a>
 
 > <font size="3">param_shape()</font>
 
@@ -1245,6 +1353,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_binomial_Binomial_probs"></a>
+
 > <font size="3">probs()</font>
 
 <div style="margin-left: 2em">
@@ -1264,6 +1374,8 @@
 <!-- end id144 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_binomial_Binomial_sample"></a>
 
 > <font size="3">sample()</font>
 
@@ -1285,6 +1397,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_binomial_Binomial_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -1304,6 +1418,8 @@
 <!-- end id150 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_binomial_Binomial_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -1347,6 +1463,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id156 -->
 
+<a class="method_anchor" id="torch_distributions_categorical_Categorical_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -1366,6 +1484,8 @@
 <!-- end id159 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_categorical_Categorical_entropy"></a>
 
 > <font size="3">entropy()</font>
 
@@ -1387,6 +1507,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_categorical_Categorical_enumerate_support"></a>
+
 > <font size="3">enumerate_support()</font>
 
 <div style="margin-left: 2em">
@@ -1406,6 +1528,8 @@
 <!-- end id1615 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_categorical_Categorical_expand"></a>
 
 > <font size="3">expand()</font>
 
@@ -1427,6 +1551,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_categorical_Categorical_has_enumerate_support"></a>
+
 > <font size="3">has_enumerate_support()</font>
 
 <div style="margin-left: 2em">
@@ -1446,6 +1572,8 @@
 <!-- end id168 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_categorical_Categorical_log_prob"></a>
 
 > <font size="3">log_prob()</font>
 
@@ -1467,6 +1595,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_categorical_Categorical_logits"></a>
+
 > <font size="3">logits()</font>
 
 <div style="margin-left: 2em">
@@ -1486,6 +1616,8 @@
 <!-- end id174 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_categorical_Categorical_mean"></a>
 
 > <font size="3">mean()</font>
 
@@ -1507,6 +1639,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_categorical_Categorical_mode"></a>
+
 > <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
@@ -1527,6 +1661,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_categorical_Categorical_param_shape"></a>
+
 > <font size="3">param_shape()</font>
 
 <div style="margin-left: 2em">
@@ -1546,6 +1682,8 @@
 <!-- end id183 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_categorical_Categorical_probs"></a>
 
 > <font size="3">probs()</font>
 
@@ -1568,6 +1706,8 @@
 </div>
 
 <!-- npu="910b,A3" id1442 -->
+<a class="method_anchor" id="torch_distributions_categorical_Categorical_sample"></a>
+
 > <font size="3">sample()</font>
 
 <div style="margin-left: 2em">
@@ -1588,6 +1728,8 @@
 </div>
 <!-- end id1443 -->
 
+<a class="method_anchor" id="torch_distributions_categorical_Categorical_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -1607,6 +1749,8 @@
 <!-- end id192 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_categorical_Categorical_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -1650,6 +1794,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id198 -->
 
+<a class="method_anchor" id="torch_distributions_cauchy_Cauchy_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -1669,6 +1815,8 @@
 <!-- end id201 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_cauchy_Cauchy_cdf"></a>
 
 > <font size="3">cdf()</font>
 
@@ -1690,6 +1838,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_cauchy_Cauchy_entropy"></a>
+
 > <font size="3">entropy()</font>
 
 <div style="margin-left: 2em">
@@ -1709,6 +1859,8 @@
 <!-- end id207 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_cauchy_Cauchy_expand"></a>
 
 > <font size="3">expand()</font>
 
@@ -1730,6 +1882,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_cauchy_Cauchy_has_rsample"></a>
+
 > <font size="3">has_rsample()</font>
 
 <div style="margin-left: 2em">
@@ -1750,6 +1904,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_cauchy_Cauchy_icdf"></a>
+
 > <font size="3">icdf()</font>
 
 <div style="margin-left: 2em">
@@ -1769,6 +1925,8 @@
 <!-- end id216 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_cauchy_Cauchy_log_prob"></a>
 
 > <font size="3">log_prob()</font>
 
@@ -1792,6 +1950,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_cauchy_Cauchy_mean"></a>
+
 > <font size="3">mean()</font>
 
 <div style="margin-left: 2em">
@@ -1812,6 +1972,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_cauchy_Cauchy_mode"></a>
+
 > <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
@@ -1831,6 +1993,8 @@
 <!-- end id225 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_cauchy_Cauchy_rsample"></a>
 
 > <font size="3">rsample()</font>
 
@@ -1855,6 +2019,8 @@
 </div>
 
 <!-- npu="910b,A3" id1444 -->
+<a class="method_anchor" id="torch_distributions_cauchy_Cauchy_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -1876,6 +2042,8 @@
 <!-- end id1445 -->
 
 <!-- npu="910b,A3" id1446 -->
+<a class="method_anchor" id="torch_distributions_cauchy_Cauchy_variance"></a>
+
 > <font size="3">variance()</font>
 
 <div style="margin-left: 2em">
@@ -1920,6 +2088,8 @@
 
 **限制与说明**：可能回退至CPU执行
 
+<a class="method_anchor" id="torch_distributions_chi2_Chi2_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -1940,6 +2110,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_chi2_Chi2_df"></a>
+
 > <font size="3">df()</font>
 
 <div style="margin-left: 2em">
@@ -1959,6 +2131,8 @@
 <!-- end id243 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_chi2_Chi2_expand"></a>
 
 > <font size="3">expand()</font>
 
@@ -2002,6 +2176,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id249 -->
 
+<a class="method_anchor" id="torch_distributions_continuous_bernoulli_ContinuousBernoulli_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -2021,6 +2197,8 @@
 <!-- end id252 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_continuous_bernoulli_ContinuousBernoulli_cdf"></a>
 
 > <font size="3">cdf()</font>
 
@@ -2042,6 +2220,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_continuous_bernoulli_ContinuousBernoulli_entropy"></a>
+
 > <font size="3">entropy()</font>
 
 <div style="margin-left: 2em">
@@ -2061,6 +2241,8 @@
 <!-- end id258 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_continuous_bernoulli_ContinuousBernoulli_expand"></a>
 
 > <font size="3">expand()</font>
 
@@ -2082,6 +2264,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_continuous_bernoulli_ContinuousBernoulli_has_rsample"></a>
+
 > <font size="3">has_rsample()</font>
 
 <div style="margin-left: 2em">
@@ -2101,6 +2285,8 @@
 <!-- end id264 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_continuous_bernoulli_ContinuousBernoulli_icdf"></a>
 
 > <font size="3">icdf()</font>
 
@@ -2122,6 +2308,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_continuous_bernoulli_ContinuousBernoulli_log_prob"></a>
+
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -2141,6 +2329,8 @@
 <!-- end id270 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_continuous_bernoulli_ContinuousBernoulli_logits"></a>
 
 > <font size="3">logits()</font>
 
@@ -2162,6 +2352,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_continuous_bernoulli_ContinuousBernoulli_mean"></a>
+
 > <font size="3">mean()</font>
 
 <div style="margin-left: 2em">
@@ -2181,6 +2373,8 @@
 <!-- end id276 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_continuous_bernoulli_ContinuousBernoulli_param_shape"></a>
 
 > <font size="3">param_shape()</font>
 
@@ -2202,6 +2396,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_continuous_bernoulli_ContinuousBernoulli_probs"></a>
+
 > <font size="3">probs()</font>
 
 <div style="margin-left: 2em">
@@ -2221,6 +2417,8 @@
 <!-- end id282 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_continuous_bernoulli_ContinuousBernoulli_rsample"></a>
 
 > <font size="3">rsample()</font>
 
@@ -2242,6 +2440,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_continuous_bernoulli_ContinuousBernoulli_sample"></a>
+
 > <font size="3">sample()</font>
 
 <div style="margin-left: 2em">
@@ -2261,6 +2461,8 @@
 <!-- end id288 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_continuous_bernoulli_ContinuousBernoulli_stddev"></a>
 
 > <font size="3">stddev()</font>
 
@@ -2282,6 +2484,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_continuous_bernoulli_ContinuousBernoulli_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -2301,6 +2505,8 @@
 <!-- end id294 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_continuous_bernoulli_ContinuousBernoulli_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -2346,6 +2552,8 @@
 
 **限制与说明**：可能回退至CPU执行
 
+<a class="method_anchor" id="torch_distributions_dirichlet_Dirichlet_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -2365,6 +2573,8 @@
 <!-- end id303 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_dirichlet_Dirichlet_entropy"></a>
 
 > <font size="3">entropy()</font>
 
@@ -2386,6 +2596,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_dirichlet_Dirichlet_expand"></a>
+
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -2406,6 +2618,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_dirichlet_Dirichlet_has_rsample"></a>
+
 > <font size="3">has_rsample()</font>
 
 <div style="margin-left: 2em">
@@ -2425,6 +2639,8 @@
 <!-- end id312 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_dirichlet_Dirichlet_log_prob"></a>
 
 > <font size="3">log_prob()</font>
 
@@ -2448,6 +2664,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_dirichlet_Dirichlet_mean"></a>
+
 > <font size="3">mean()</font>
 
 <div style="margin-left: 2em">
@@ -2468,6 +2686,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_dirichlet_Dirichlet_mode"></a>
+
 > <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
@@ -2487,6 +2707,8 @@
 <!-- end id321 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_dirichlet_Dirichlet_rsample"></a>
 
 > <font size="3">rsample()</font>
 
@@ -2510,6 +2732,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_dirichlet_Dirichlet_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -2529,6 +2753,8 @@
 <!-- end id327 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_dirichlet_Dirichlet_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -2576,6 +2802,8 @@
 **限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1433 -->
 
+<a class="method_anchor" id="torch_distributions_exponential_Exponential_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -2595,6 +2823,8 @@
 <!-- end id336 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_exponential_Exponential_cdf"></a>
 
 > <font size="3">cdf()</font>
 
@@ -2616,6 +2846,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_exponential_Exponential_entropy"></a>
+
 > <font size="3">entropy()</font>
 
 <div style="margin-left: 2em">
@@ -2635,6 +2867,8 @@
 <!-- end id342 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_exponential_Exponential_expand"></a>
 
 > <font size="3">expand()</font>
 
@@ -2656,6 +2890,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_exponential_Exponential_has_rsample"></a>
+
 > <font size="3">has_rsample()</font>
 
 <div style="margin-left: 2em">
@@ -2675,6 +2911,8 @@
 <!-- end id348 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_exponential_Exponential_icdf"></a>
 
 > <font size="3">icdf()</font>
 
@@ -2696,6 +2934,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_exponential_Exponential_log_prob"></a>
+
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -2715,6 +2955,8 @@
 <!-- end id354 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_exponential_Exponential_mean"></a>
 
 > <font size="3">mean()</font>
 
@@ -2736,6 +2978,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_exponential_Exponential_mode"></a>
+
 > <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
@@ -2755,6 +2999,8 @@
 <!-- end id360 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_exponential_Exponential_rsample"></a>
 
 > <font size="3">rsample()</font>
 
@@ -2776,6 +3022,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_exponential_Exponential_stddev"></a>
+
 > <font size="3">stddev()</font>
 
 <div style="margin-left: 2em">
@@ -2796,6 +3044,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_exponential_Exponential_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -2815,6 +3065,8 @@
 <!-- end id369 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_exponential_Exponential_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -2860,6 +3112,8 @@
 
 **限制与说明**：可能回退至CPU执行
 
+<a class="method_anchor" id="torch_distributions_fishersnedecor_FisherSnedecor_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -2879,6 +3133,8 @@
 <!-- end id378 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_fishersnedecor_FisherSnedecor_expand"></a>
 
 > <font size="3">expand()</font>
 
@@ -2900,6 +3156,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_fishersnedecor_FisherSnedecor_has_rsample"></a>
+
 > <font size="3">has_rsample()</font>
 
 <div style="margin-left: 2em">
@@ -2919,6 +3177,8 @@
 <!-- end id384 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_fishersnedecor_FisherSnedecor_log_prob"></a>
 
 > <font size="3">log_prob()</font>
 
@@ -2941,6 +3201,8 @@
 </div>
 
 <!-- npu="910b,A3" id1448 -->
+<a class="method_anchor" id="torch_distributions_fishersnedecor_FisherSnedecor_mean"></a>
+
 > <font size="3">mean()</font>
 
 <div style="margin-left: 2em">
@@ -2962,6 +3224,8 @@
 <!-- end id1449 -->
 
 <!-- npu="910b,A3" id1450 -->
+<a class="method_anchor" id="torch_distributions_fishersnedecor_FisherSnedecor_mode"></a>
+
 > <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
@@ -2981,6 +3245,8 @@
 <!-- npu="910b,A3" id1451 -->
 </div>
 <!-- end id1451 -->
+
+<a class="method_anchor" id="torch_distributions_fishersnedecor_FisherSnedecor_rsample"></a>
 
 > <font size="3">rsample()</font>
 
@@ -3002,6 +3268,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_fishersnedecor_FisherSnedecor_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -3021,6 +3289,8 @@
 <!-- end id399 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_fishersnedecor_FisherSnedecor_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -3067,6 +3337,8 @@
 **限制与说明**：可能回退至CPU执行
 
 <!-- npu="910b,A3" id1452 -->
+<a class="method_anchor" id="torch_distributions_gamma_Gamma_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -3086,6 +3358,8 @@
 <!-- npu="910b,A3" id1453 -->
 </div>
 <!-- end id1453 -->
+
+<a class="method_anchor" id="torch_distributions_gamma_Gamma_cdf"></a>
 
 > <font size="3">cdf()</font>
 
@@ -3109,6 +3383,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_gamma_Gamma_entropy"></a>
+
 > <font size="3">entropy()</font>
 
 <div style="margin-left: 2em">
@@ -3130,6 +3406,8 @@
 </div>
 
 <!-- npu="910b,A3" id1454 -->
+<a class="method_anchor" id="torch_distributions_gamma_Gamma_expand"></a>
+
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -3150,6 +3428,8 @@
 </div>
 <!-- end id1455 -->
 
+<a class="method_anchor" id="torch_distributions_gamma_Gamma_has_rsample"></a>
+
 > <font size="3">has_rsample()</font>
 
 <div style="margin-left: 2em">
@@ -3169,6 +3449,8 @@
 <!-- end id420 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_gamma_Gamma_log_prob"></a>
 
 > <font size="3">log_prob()</font>
 
@@ -3192,6 +3474,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_gamma_Gamma_mean"></a>
+
 > <font size="3">mean()</font>
 
 <div style="margin-left: 2em">
@@ -3211,6 +3495,8 @@
 <!-- end id426 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_gamma_Gamma_mode"></a>
 
 > <font size="3">mode()</font>
 
@@ -3233,6 +3519,8 @@
 </div>
 
 <!-- npu="910b,A3" id1456 -->
+<a class="method_anchor" id="torch_distributions_gamma_Gamma_rsample"></a>
+
 > <font size="3">rsample()</font>
 
 <div style="margin-left: 2em">
@@ -3253,6 +3541,8 @@
 </div>
 <!-- end id1457 -->
 
+<a class="method_anchor" id="torch_distributions_gamma_Gamma_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -3272,6 +3562,8 @@
 <!-- end id435 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_gamma_Gamma_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -3316,6 +3608,8 @@
 <!-- end id441 -->
 
 <!-- npu="910b,A3" id1458 -->
+<a class="method_anchor" id="torch_distributions_geometric_Geometric_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -3336,6 +3630,8 @@
 </div>
 <!-- end id1459 -->
 
+<a class="method_anchor" id="torch_distributions_geometric_Geometric_entropy"></a>
+
 > <font size="3">entropy()</font>
 
 <div style="margin-left: 2em">
@@ -3355,6 +3651,8 @@
 <!-- end id447 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_geometric_Geometric_expand"></a>
 
 > <font size="3">expand()</font>
 
@@ -3377,6 +3675,8 @@
 </div>
 
 <!-- npu="910b,A3" id1460 -->
+<a class="method_anchor" id="torch_distributions_geometric_Geometric_log_prob"></a>
+
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -3396,6 +3696,8 @@
 <!-- npu="910b,A3" id1461 -->
 </div>
 <!-- end id1461 -->
+
+<a class="method_anchor" id="torch_distributions_geometric_Geometric_logits"></a>
 
 > <font size="3">logits()</font>
 
@@ -3417,6 +3719,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_geometric_Geometric_mean"></a>
+
 > <font size="3">mean()</font>
 
 <div style="margin-left: 2em">
@@ -3436,6 +3740,8 @@
 <!-- end id459 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_geometric_Geometric_mode"></a>
 
 > <font size="3">mode()</font>
 
@@ -3457,6 +3763,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_geometric_Geometric_probs"></a>
+
 > <font size="3">probs()</font>
 
 <div style="margin-left: 2em">
@@ -3476,6 +3784,8 @@
 <!-- end id465 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_geometric_Geometric_sample"></a>
 
 > <font size="3">sample()</font>
 
@@ -3497,6 +3807,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_geometric_Geometric_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -3516,6 +3828,8 @@
 <!-- end id471 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_geometric_Geometric_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -3559,6 +3873,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id477 -->
 
+<a class="method_anchor" id="torch_distributions_gumbel_Gumbel_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -3578,6 +3894,8 @@
 <!-- end id480 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_gumbel_Gumbel_entropy"></a>
 
 > <font size="3">entropy()</font>
 
@@ -3600,6 +3918,8 @@
 </div>
 
 <!-- npu="910b,A3" id1462 -->
+<a class="method_anchor" id="torch_distributions_gumbel_Gumbel_expand"></a>
+
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -3619,6 +3939,8 @@
 <!-- npu="910b,A3" id1463 -->
 </div>
 <!-- end id1463 -->
+
+<a class="method_anchor" id="torch_distributions_gumbel_Gumbel_log_prob"></a>
 
 > <font size="3">log_prob()</font>
 
@@ -3640,6 +3962,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_gumbel_Gumbel_mean"></a>
+
 > <font size="3">mean()</font>
 
 <div style="margin-left: 2em">
@@ -3659,6 +3983,8 @@
 <!-- end id492 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_gumbel_Gumbel_mode"></a>
 
 > <font size="3">mode()</font>
 
@@ -3680,6 +4006,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_gumbel_Gumbel_stddev"></a>
+
 > <font size="3">stddev()</font>
 
 <div style="margin-left: 2em">
@@ -3700,6 +4028,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_gumbel_Gumbel_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -3719,6 +4049,8 @@
 <!-- end id501 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_gumbel_Gumbel_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -3764,6 +4096,8 @@
 
 **限制与说明**：可能回退至CPU执行
 
+<a class="method_anchor" id="torch_distributions_half_cauchy_HalfCauchy_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -3784,6 +4118,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_half_cauchy_HalfCauchy_cdf"></a>
+
 > <font size="3">cdf()</font>
 
 <div style="margin-left: 2em">
@@ -3803,6 +4139,8 @@
 <!-- end id513 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_half_cauchy_HalfCauchy_entropy"></a>
 
 > <font size="3">entropy()</font>
 
@@ -3825,6 +4163,8 @@
 </div>
 
 <!-- npu="910b,A3" id1464 -->
+<a class="method_anchor" id="torch_distributions_half_cauchy_HalfCauchy_expand"></a>
+
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -3844,6 +4184,8 @@
 <!-- npu="910b,A3" id1465 -->
 </div>
 <!-- end id1465 -->
+
+<a class="method_anchor" id="torch_distributions_half_cauchy_HalfCauchy_has_rsample"></a>
 
 > <font size="3">has_rsample()</font>
 
@@ -3865,6 +4207,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_half_cauchy_HalfCauchy_icdf"></a>
+
 > <font size="3">icdf()</font>
 
 <div style="margin-left: 2em">
@@ -3884,6 +4228,8 @@
 <!-- end id525 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_half_cauchy_HalfCauchy_log_prob"></a>
 
 > <font size="3">log_prob()</font>
 
@@ -3905,6 +4251,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_half_cauchy_HalfCauchy_mean"></a>
+
 > <font size="3">mean()</font>
 
 <div style="margin-left: 2em">
@@ -3924,6 +4272,8 @@
 <!-- end id531 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_half_cauchy_HalfCauchy_mode"></a>
 
 > <font size="3">mode()</font>
 
@@ -3945,6 +4295,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_half_cauchy_HalfCauchy_scale"></a>
+
 > <font size="3">scale()</font>
 
 <div style="margin-left: 2em">
@@ -3965,6 +4317,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_half_cauchy_HalfCauchy_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -3984,6 +4338,8 @@
 <!-- end id540 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_half_cauchy_HalfCauchy_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -4029,6 +4385,8 @@
 
 **限制与说明**：可能回退至CPU执行
 
+<a class="method_anchor" id="torch_distributions_half_normal_HalfNormal_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -4048,6 +4406,8 @@
 <!-- end id549 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_half_normal_HalfNormal_cdf"></a>
 
 > <font size="3">cdf()</font>
 
@@ -4069,6 +4429,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_half_normal_HalfNormal_entropy"></a>
+
 > <font size="3">entropy()</font>
 
 <div style="margin-left: 2em">
@@ -4088,6 +4450,8 @@
 <!-- end id555 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_half_normal_HalfNormal_expand"></a>
 
 > <font size="3">expand()</font>
 
@@ -4109,6 +4473,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_half_normal_HalfNormal_has_rsample"></a>
+
 > <font size="3">has_rsample()</font>
 
 <div style="margin-left: 2em">
@@ -4128,6 +4494,8 @@
 <!-- end id561 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_half_normal_HalfNormal_icdf"></a>
 
 > <font size="3">icdf()</font>
 
@@ -4149,6 +4517,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_half_normal_HalfNormal_log_prob"></a>
+
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -4168,6 +4538,8 @@
 <!-- end id567 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_half_normal_HalfNormal_mean"></a>
 
 > <font size="3">mean()</font>
 
@@ -4189,6 +4561,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_half_normal_HalfNormal_mode"></a>
+
 > <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
@@ -4209,6 +4583,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_half_normal_HalfNormal_scale"></a>
+
 > <font size="3">scale()</font>
 
 <div style="margin-left: 2em">
@@ -4228,6 +4604,8 @@
 <!-- end id576 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_half_normal_HalfNormal_support"></a>
 
 > <font size="3">support()</font>
 
@@ -4250,6 +4628,8 @@
 </div>
 
 <!-- npu="910b,A3" id1466 -->
+<a class="method_anchor" id="torch_distributions_half_normal_HalfNormal_variance"></a>
+
 > <font size="3">variance()</font>
 
 <div style="margin-left: 2em">
@@ -4292,6 +4672,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id585 -->
 
+<a class="method_anchor" id="torch_distributions_independent_Independent_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -4312,6 +4694,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_independent_Independent_entropy"></a>
+
 > <font size="3">entropy()</font>
 
 <div style="margin-left: 2em">
@@ -4331,6 +4715,8 @@
 <!-- end id591 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_Independent_enumerate_support"></a>
 
 > <font size="3">enumerate_support()</font>
 
@@ -4353,6 +4739,8 @@
 </div>
 
 <!-- npu="910b,A3" id1667 -->
+<a class="method_anchor" id="torch_distributions_independent_Independent_expand"></a>
+
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -4374,6 +4762,8 @@
 <!-- end id1469 -->
 
 <!-- npu="910b,A3" id1470 -->
+<a class="method_anchor" id="torch_distributions_independent_Independent_has_enumerate_support"></a>
+
 > <font size="3">has_enumerate_support()</font>
 
 <div style="margin-left: 2em">
@@ -4395,6 +4785,8 @@
 <!-- end id1471 -->
 
 <!-- npu="910b,A3" id1472 -->
+<a class="method_anchor" id="torch_distributions_independent_Independent_has_rsample"></a>
+
 > <font size="3">has_rsample()</font>
 
 <div style="margin-left: 2em">
@@ -4414,6 +4806,8 @@
 <!-- npu="910b,A3" id1473 -->
 </div>
 <!-- end id1473 -->
+
+<a class="method_anchor" id="torch_distributions_independent_Independent_log_prob"></a>
 
 > <font size="3">log_prob()</font>
 
@@ -4435,6 +4829,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_independent_Independent_mean"></a>
+
 > <font size="3">mean()</font>
 
 <div style="margin-left: 2em">
@@ -4455,6 +4851,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_independent_Independent_mode"></a>
+
 > <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
@@ -4474,6 +4872,8 @@
 <!-- end id609 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_independent_Independent_rsample"></a>
 
 > <font size="3">rsample()</font>
 
@@ -4496,6 +4896,8 @@
 </div>
 
 <!-- npu="910b,A3" id1474 -->
+<a class="method_anchor" id="torch_distributions_independent_Independent_sample"></a>
+
 > <font size="3">sample()</font>
 
 <div style="margin-left: 2em">
@@ -4516,6 +4918,8 @@
 </div>
 <!-- end id1475 -->
 
+<a class="method_anchor" id="torch_distributions_independent_Independent_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -4535,6 +4939,8 @@
 <!-- end id618 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_independent_Independent_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -4578,6 +4984,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1585 -->
 
+<a class="method_anchor" id="torch_distributions_inverse_gamma_InverseGamma_arg_constraints"></a>
+
 > <font size="3">arg_constraints</font>
 
 <div style="margin-left: 2em">
@@ -4597,6 +5005,8 @@
 <!-- end id1588 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_InverseGamma_concentration"></a>
 
 > <font size="3">concentration</font>
 
@@ -4618,6 +5028,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_inverse_gamma_InverseGamma_entropy"></a>
+
 > <font size="3">entropy()</font>
 
 <div style="margin-left: 2em">
@@ -4637,6 +5049,8 @@
 <!-- end id1591 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_InverseGamma_expand"></a>
 
 > <font size="3">expand()</font>
 
@@ -4658,6 +5072,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_InverseGamma_has_rsample"></a>
+
 > <font size="3">has_rsample</font>
 
 <div style="margin-left: 2em">
@@ -4677,6 +5093,8 @@
 <!-- end id1676 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_InverseGamma_mean"></a>
 
 > <font size="3">mean</font>
 
@@ -4698,6 +5116,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_inverse_gamma_InverseGamma_mode"></a>
+
 > <font size="3">mode</font>
 
 <div style="margin-left: 2em">
@@ -4717,6 +5137,8 @@
 <!-- end id1594 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_InverseGamma_rate"></a>
 
 > <font size="3">rate</font>
 
@@ -4738,6 +5160,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_inverse_gamma_InverseGamma_support"></a>
+
 > <font size="3">support</font>
 
 <div style="margin-left: 2em">
@@ -4757,6 +5181,8 @@
 <!-- end id1597 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_inverse_gamma_InverseGamma_variance"></a>
 
 > <font size="3">variance</font>
 
@@ -4800,6 +5226,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id624 -->
 
+<a class="method_anchor" id="torch_distributions_kumaraswamy_Kumaraswamy_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -4819,6 +5247,8 @@
 <!-- end id627 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_kumaraswamy_Kumaraswamy_entropy"></a>
 
 > <font size="3">entropy()</font>
 
@@ -4842,6 +5272,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_kumaraswamy_Kumaraswamy_expand"></a>
+
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -4861,6 +5293,8 @@
 <!-- end id633 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_kumaraswamy_Kumaraswamy_has_rsample"></a>
 
 > <font size="3">has_rsample()</font>
 
@@ -4882,6 +5316,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_kumaraswamy_Kumaraswamy_mean"></a>
+
 > <font size="3">mean()</font>
 
 <div style="margin-left: 2em">
@@ -4901,6 +5337,8 @@
 <!-- end id639 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_kumaraswamy_Kumaraswamy_mode"></a>
 
 > <font size="3">mode()</font>
 
@@ -4922,6 +5360,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_kumaraswamy_Kumaraswamy_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -4941,6 +5381,8 @@
 <!-- end id645 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_kumaraswamy_Kumaraswamy_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -4987,6 +5429,8 @@
 **限制与说明**：可能回退至CPU执行
 
 <!-- npu="910b,A3" id1476 -->
+<a class="method_anchor" id="torch_distributions_lkj_cholesky_LKJCholesky_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -5008,6 +5452,8 @@
 <!-- end id1477 -->
 
 <!-- npu="910b,A3" id1478 -->
+<a class="method_anchor" id="torch_distributions_lkj_cholesky_LKJCholesky_expand"></a>
+
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -5029,6 +5475,8 @@
 <!-- end id1479 -->
 
 <!-- npu="910b,A3" id1480 -->
+<a class="method_anchor" id="torch_distributions_lkj_cholesky_LKJCholesky_log_prob"></a>
+
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -5050,6 +5498,8 @@
 <!-- end id1481 -->
 
 <!-- npu="910b,A3" id1482 -->
+<a class="method_anchor" id="torch_distributions_lkj_cholesky_LKJCholesky_sample"></a>
+
 > <font size="3">sample()</font>
 
 <div style="margin-left: 2em">
@@ -5071,6 +5521,8 @@
 <!-- end id1483 -->
 
 <!-- npu="910b,A3" id1484 -->
+<a class="method_anchor" id="torch_distributions_lkj_cholesky_LKJCholesky_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -5113,6 +5565,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id669 -->
 
+<a class="method_anchor" id="torch_distributions_laplace_Laplace_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -5133,6 +5587,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_laplace_Laplace_cdf"></a>
+
 > <font size="3">cdf()</font>
 
 <div style="margin-left: 2em">
@@ -5152,6 +5608,8 @@
 <!-- end id675 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_laplace_Laplace_entropy"></a>
 
 > <font size="3">entropy()</font>
 
@@ -5174,6 +5632,8 @@
 </div>
 
 <!-- npu="910b,A3" id1486 -->
+<a class="method_anchor" id="torch_distributions_laplace_Laplace_expand"></a>
+
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -5194,6 +5654,8 @@
 </div>
 <!-- end id1487 -->
 
+<a class="method_anchor" id="torch_distributions_laplace_Laplace_has_rsample"></a>
+
 > <font size="3">has_rsample()</font>
 
 <div style="margin-left: 2em">
@@ -5213,6 +5675,8 @@
 <!-- end id684 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_laplace_Laplace_icdf"></a>
 
 > <font size="3">icdf()</font>
 
@@ -5236,6 +5700,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_laplace_Laplace_log_prob"></a>
+
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -5255,6 +5721,8 @@
 <!-- end id690 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_laplace_Laplace_mean"></a>
 
 > <font size="3">mean()</font>
 
@@ -5276,6 +5744,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_laplace_Laplace_mode"></a>
+
 > <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
@@ -5295,6 +5765,8 @@
 <!-- end id696 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_laplace_Laplace_rsample"></a>
 
 > <font size="3">rsample()</font>
 
@@ -5317,6 +5789,8 @@
 </div>
 
 <!-- npu="910b,A3" id1488 -->
+<a class="method_anchor" id="torch_distributions_laplace_Laplace_stddev"></a>
+
 > <font size="3">stddev()</font>
 
 <div style="margin-left: 2em">
@@ -5336,6 +5810,8 @@
 <!-- npu="910b,A3" id1489 -->
 </div>
 <!-- end id1489 -->
+
+<a class="method_anchor" id="torch_distributions_laplace_Laplace_support"></a>
 
 > <font size="3">support()</font>
 
@@ -5358,6 +5834,8 @@
 </div>
 
 <!-- npu="910b,A3" id1490 -->
+<a class="method_anchor" id="torch_distributions_laplace_Laplace_variance"></a>
+
 > <font size="3">variance()</font>
 
 <div style="margin-left: 2em">
@@ -5400,6 +5878,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id711 -->
 
+<a class="method_anchor" id="torch_distributions_log_normal_LogNormal_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -5419,6 +5899,8 @@
 <!-- end id714 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_log_normal_LogNormal_entropy"></a>
 
 > <font size="3">entropy()</font>
 
@@ -5443,6 +5925,8 @@
 </div>
 
 <!-- npu="910b,A3" id1492 -->
+<a class="method_anchor" id="torch_distributions_log_normal_LogNormal_expand"></a>
+
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -5464,6 +5948,8 @@
 <!-- end id1493 -->
 
 <!-- npu="910b,A3" id1494 -->
+<a class="method_anchor" id="torch_distributions_log_normal_LogNormal_has_rsample"></a>
+
 > <font size="3">has_rsample()</font>
 
 <div style="margin-left: 2em">
@@ -5483,6 +5969,8 @@
 <!-- npu="910b,A3" id1495 -->
 </div>
 <!-- end id1495 -->
+
+<a class="method_anchor" id="torch_distributions_log_normal_LogNormal_loc"></a>
 
 > <font size="3">loc()</font>
 
@@ -5504,6 +5992,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_log_normal_LogNormal_mean"></a>
+
 > <font size="3">mean()</font>
 
 <div style="margin-left: 2em">
@@ -5523,6 +6013,8 @@
 <!-- end id729 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_log_normal_LogNormal_mode"></a>
 
 > <font size="3">mode()</font>
 
@@ -5545,6 +6037,8 @@
 </div>
 
 <!-- npu="910b,A3" id1496 -->
+<a class="method_anchor" id="torch_distributions_log_normal_LogNormal_scale"></a>
+
 > <font size="3">scale()</font>
 
 <div style="margin-left: 2em">
@@ -5565,6 +6059,8 @@
 </div>
 <!-- end id1497 -->
 
+<a class="method_anchor" id="torch_distributions_log_normal_LogNormal_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -5584,6 +6080,8 @@
 <!-- end id738 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_log_normal_LogNormal_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -5627,6 +6125,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id744 -->
 
+<a class="method_anchor" id="torch_distributions_lowrank_multivariate_normal_LowRankMultivariateNormal_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -5646,6 +6146,8 @@
 <!-- end id747 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_lowrank_multivariate_normal_LowRankMultivariateNormal_covariance_matrix"></a>
 
 > <font size="3">covariance_matrix()</font>
 
@@ -5668,6 +6170,8 @@
 </div>
 
 <!-- npu="910b,A3" id1498 -->
+<a class="method_anchor" id="torch_distributions_lowrank_multivariate_normal_LowRankMultivariateNormal_entropy"></a>
+
 > <font size="3">entropy()</font>
 
 <div style="margin-left: 2em">
@@ -5689,6 +6193,8 @@
 <!-- end id1499 -->
 
 <!-- npu="910b,A3" id1500 -->
+<a class="method_anchor" id="torch_distributions_lowrank_multivariate_normal_LowRankMultivariateNormal_expand"></a>
+
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -5710,6 +6216,8 @@
 <!-- end id1501 -->
 
 <!-- npu="910b,A3" id1502 -->
+<a class="method_anchor" id="torch_distributions_lowrank_multivariate_normal_LowRankMultivariateNormal_has_rsample"></a>
+
 > <font size="3">has_rsample()</font>
 
 <div style="margin-left: 2em">
@@ -5731,6 +6239,8 @@
 <!-- end id1503 -->
 
 <!-- npu="910b,A3" id1504 -->
+<a class="method_anchor" id="torch_distributions_lowrank_multivariate_normal_LowRankMultivariateNormal_log_prob"></a>
+
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -5750,6 +6260,8 @@
 <!-- npu="910b,A3" id1505 -->
 </div>
 <!-- end id1505 -->
+
+<a class="method_anchor" id="torch_distributions_lowrank_multivariate_normal_LowRankMultivariateNormal_mean"></a>
 
 > <font size="3">mean()</font>
 
@@ -5771,6 +6283,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_lowrank_multivariate_normal_LowRankMultivariateNormal_mode"></a>
+
 > <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
@@ -5791,6 +6305,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_lowrank_multivariate_normal_LowRankMultivariateNormal_precision_matrix"></a>
+
 > <font size="3">precision_matrix()</font>
 
 <div style="margin-left: 2em">
@@ -5810,6 +6326,8 @@
 <!-- end id771 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_lowrank_multivariate_normal_LowRankMultivariateNormal_rsample"></a>
 
 > <font size="3">rsample()</font>
 
@@ -5832,6 +6350,8 @@
 </div>
 
 <!-- npu="910b,A3" id1506 -->
+<a class="method_anchor" id="torch_distributions_lowrank_multivariate_normal_LowRankMultivariateNormal_scale_tril"></a>
+
 > <font size="3">scale_tril()</font>
 
 <div style="margin-left: 2em">
@@ -5851,6 +6371,8 @@
 <!-- npu="910b,A3" id1507 -->
 </div>
 <!-- end id1507 -->
+
+<a class="method_anchor" id="torch_distributions_lowrank_multivariate_normal_LowRankMultivariateNormal_support"></a>
 
 > <font size="3">support()</font>
 
@@ -5873,6 +6395,8 @@
 </div>
 
 <!-- npu="910b,A3" id1508 -->
+<a class="method_anchor" id="torch_distributions_lowrank_multivariate_normal_LowRankMultivariateNormal_variance"></a>
+
 > <font size="3">variance()</font>
 
 <div style="margin-left: 2em">
@@ -5915,6 +6439,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id786 -->
 
+<a class="method_anchor" id="torch_distributions_mixture_same_family_MixtureSameFamily_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -5935,6 +6461,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_mixture_same_family_MixtureSameFamily_cdf"></a>
+
 > <font size="3">cdf()</font>
 
 <div style="margin-left: 2em">
@@ -5954,6 +6482,8 @@
 <!-- end id792 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_mixture_same_family_MixtureSameFamily_component_distribution"></a>
 
 > <font size="3">component_distribution()</font>
 
@@ -5976,6 +6506,8 @@
 </div>
 
 <!-- npu="910b,A3" id1510 -->
+<a class="method_anchor" id="torch_distributions_mixture_same_family_MixtureSameFamily_expand"></a>
+
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -5997,6 +6529,8 @@
 <!-- end id1511 -->
 
 <!-- npu="910b,A3" id1512 -->
+<a class="method_anchor" id="torch_distributions_mixture_same_family_MixtureSameFamily_has_rsample"></a>
+
 > <font size="3">has_rsample()</font>
 
 <div style="margin-left: 2em">
@@ -6016,6 +6550,8 @@
 <!-- npu="910b,A3" id1513 -->
 </div>
 <!-- end id1513 -->
+
+<a class="method_anchor" id="torch_distributions_mixture_same_family_MixtureSameFamily_log_prob"></a>
 
 > <font size="3">log_prob()</font>
 
@@ -6038,6 +6574,8 @@
 </div>
 
 <!-- npu="910b,A3" id1514 -->
+<a class="method_anchor" id="torch_distributions_mixture_same_family_MixtureSameFamily_mean"></a>
+
 > <font size="3">mean()</font>
 
 <div style="margin-left: 2em">
@@ -6057,6 +6595,8 @@
 <!-- npu="910b,A3" id1515 -->
 </div>
 <!-- end id1515 -->
+
+<a class="method_anchor" id="torch_distributions_mixture_same_family_MixtureSameFamily_mixture_distribution"></a>
 
 > <font size="3">mixture_distribution()</font>
 
@@ -6079,6 +6619,8 @@
 </div>
 
 <!-- npu="910b,A3" id1516 -->
+<a class="method_anchor" id="torch_distributions_mixture_same_family_MixtureSameFamily_sample"></a>
+
 > <font size="3">sample()</font>
 
 <div style="margin-left: 2em">
@@ -6099,6 +6641,8 @@
 </div>
 <!-- end id1517 -->
 
+<a class="method_anchor" id="torch_distributions_mixture_same_family_MixtureSameFamily_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -6118,6 +6662,8 @@
 <!-- end id816 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_mixture_same_family_MixtureSameFamily_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -6161,6 +6707,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id822 -->
 
+<a class="method_anchor" id="torch_distributions_multinomial_Multinomial_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -6181,6 +6729,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_multinomial_Multinomial_entropy"></a>
+
 > <font size="3">entropy()</font>
 
 <div style="margin-left: 2em">
@@ -6200,6 +6750,8 @@
 <!-- end id828 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_multinomial_Multinomial_expand"></a>
 
 > <font size="3">expand()</font>
 
@@ -6222,6 +6774,8 @@
 </div>
 
 <!-- npu="910b,A3" id1518 -->
+<a class="method_anchor" id="torch_distributions_multinomial_Multinomial_log_prob"></a>
+
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -6243,6 +6797,8 @@
 <!-- end id1519 -->
 
 <!-- npu="910b,A3" id1520 -->
+<a class="method_anchor" id="torch_distributions_multinomial_Multinomial_logits"></a>
+
 > <font size="3">logits()</font>
 
 <div style="margin-left: 2em">
@@ -6262,6 +6818,8 @@
 <!-- npu="910b,A3" id1521 -->
 </div>
 <!-- end id1521 -->
+
+<a class="method_anchor" id="torch_distributions_multinomial_Multinomial_mean"></a>
 
 > <font size="3">mean()</font>
 
@@ -6283,6 +6841,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_multinomial_Multinomial_param_shape"></a>
+
 > <font size="3">param_shape()</font>
 
 <div style="margin-left: 2em">
@@ -6302,6 +6862,8 @@
 <!-- end id843 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_multinomial_Multinomial_probs"></a>
 
 > <font size="3">probs()</font>
 
@@ -6324,6 +6886,8 @@
 </div>
 
 <!-- npu="910b,A3" id1522 -->
+<a class="method_anchor" id="torch_distributions_multinomial_Multinomial_sample"></a>
+
 > <font size="3">sample()</font>
 
 <div style="margin-left: 2em">
@@ -6343,6 +6907,8 @@
 <!-- npu="910b,A3" id1523 -->
 </div>
 <!-- end id1523 -->
+
+<a class="method_anchor" id="torch_distributions_multinomial_Multinomial_support"></a>
 
 > <font size="3">support()</font>
 
@@ -6364,6 +6930,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_multinomial_Multinomial_total_count"></a>
+
 > <font size="3">total_count()</font>
 
 <div style="margin-left: 2em">
@@ -6383,6 +6951,8 @@
 <!-- end id855 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_multinomial_Multinomial_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -6426,6 +6996,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id861 -->
 
+<a class="method_anchor" id="torch_distributions_multivariate_normal_MultivariateNormal_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -6445,6 +7017,8 @@
 <!-- end id864 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_multivariate_normal_MultivariateNormal_covariance_matrix"></a>
 
 > <font size="3">covariance_matrix()</font>
 
@@ -6469,6 +7043,8 @@
 </div>
 
 <!-- npu="910b,A3" id1524 -->
+<a class="method_anchor" id="torch_distributions_multivariate_normal_MultivariateNormal_entropy"></a>
+
 > <font size="3">entropy()</font>
 
 <div style="margin-left: 2em">
@@ -6488,6 +7064,8 @@
 <!-- npu="910b,A3" id1525 -->
 </div>
 <!-- end id1525 -->
+
+<a class="method_anchor" id="torch_distributions_multivariate_normal_MultivariateNormal_expand"></a>
 
 > <font size="3">expand()</font>
 
@@ -6509,6 +7087,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_multivariate_normal_MultivariateNormal_has_rsample"></a>
+
 > <font size="3">has_rsample()</font>
 
 <div style="margin-left: 2em">
@@ -6528,6 +7108,8 @@
 <!-- end id876 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_multivariate_normal_MultivariateNormal_log_prob"></a>
 
 > <font size="3">log_prob()</font>
 
@@ -6551,6 +7133,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_multivariate_normal_MultivariateNormal_mean"></a>
+
 > <font size="3">mean()</font>
 
 <div style="margin-left: 2em">
@@ -6570,6 +7154,8 @@
 <!-- end id882 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_multivariate_normal_MultivariateNormal_mode"></a>
 
 > <font size="3">mode()</font>
 
@@ -6591,6 +7177,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_multivariate_normal_MultivariateNormal_precision_matrix"></a>
+
 > <font size="3">precision_matrix()</font>
 
 <div style="margin-left: 2em">
@@ -6610,6 +7198,8 @@
 <!-- end id888 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_multivariate_normal_MultivariateNormal_rsample"></a>
 
 > <font size="3">rsample()</font>
 
@@ -6633,6 +7223,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_multivariate_normal_MultivariateNormal_scale_tril"></a>
+
 > <font size="3">scale_tril()</font>
 
 <div style="margin-left: 2em">
@@ -6654,6 +7246,8 @@
 </div>
 
 <!-- npu="910b,A3" id1526 -->
+<a class="method_anchor" id="torch_distributions_multivariate_normal_MultivariateNormal_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -6673,6 +7267,8 @@
 <!-- npu="910b,A3" id1527 -->
 </div>
 <!-- end id1527 -->
+
+<a class="method_anchor" id="torch_distributions_multivariate_normal_MultivariateNormal_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -6718,6 +7314,8 @@
 
 **限制与说明**：可能回退至CPU执行
 
+<a class="method_anchor" id="torch_distributions_negative_binomial_NegativeBinomial_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -6737,6 +7335,8 @@
 <!-- end id906 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_negative_binomial_NegativeBinomial_expand"></a>
 
 > <font size="3">expand()</font>
 
@@ -6758,6 +7358,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_negative_binomial_NegativeBinomial_log_prob"></a>
+
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -6777,6 +7379,8 @@
 <!-- end id912 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_negative_binomial_NegativeBinomial_logits"></a>
 
 > <font size="3">logits()</font>
 
@@ -6798,6 +7402,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_negative_binomial_NegativeBinomial_mean"></a>
+
 > <font size="3">mean()</font>
 
 <div style="margin-left: 2em">
@@ -6817,6 +7423,8 @@
 <!-- end id918 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_negative_binomial_NegativeBinomial_mode"></a>
 
 > <font size="3">mode()</font>
 
@@ -6838,6 +7446,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_negative_binomial_NegativeBinomial_param_shape"></a>
+
 > <font size="3">param_shape()</font>
 
 <div style="margin-left: 2em">
@@ -6858,6 +7468,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_negative_binomial_NegativeBinomial_probs"></a>
+
 > <font size="3">probs()</font>
 
 <div style="margin-left: 2em">
@@ -6877,6 +7489,8 @@
 <!-- end id927 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_negative_binomial_NegativeBinomial_sample"></a>
 
 > <font size="3">sample()</font>
 
@@ -6901,6 +7515,8 @@
 </div>
 
 <!-- npu="910b,A3" id1528 -->
+<a class="method_anchor" id="torch_distributions_negative_binomial_NegativeBinomial_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -6920,6 +7536,8 @@
 <!-- npu="910b,A3" id1529 -->
 </div>
 <!-- end id1529 -->
+
+<a class="method_anchor" id="torch_distributions_negative_binomial_NegativeBinomial_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -6967,6 +7585,8 @@
 **限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1434 -->
 
+<a class="method_anchor" id="torch_distributions_normal_Normal_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -6986,6 +7606,8 @@
 <!-- end id939 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_normal_Normal_cdf"></a>
 
 > <font size="3">cdf()</font>
 
@@ -7007,6 +7629,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_normal_Normal_entropy"></a>
+
 > <font size="3">entropy()</font>
 
 <div style="margin-left: 2em">
@@ -7026,6 +7650,8 @@
 <!-- end id945 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_normal_Normal_expand"></a>
 
 > <font size="3">expand()</font>
 
@@ -7047,6 +7673,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_normal_Normal_has_rsample"></a>
+
 > <font size="3">has_rsample()</font>
 
 <div style="margin-left: 2em">
@@ -7066,6 +7694,8 @@
 <!-- end id951 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_normal_Normal_icdf"></a>
 
 > <font size="3">icdf()</font>
 
@@ -7087,6 +7717,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_normal_Normal_log_prob"></a>
+
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -7106,6 +7738,8 @@
 <!-- end id957 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_normal_Normal_mean"></a>
 
 > <font size="3">mean()</font>
 
@@ -7127,6 +7761,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_normal_Normal_mode"></a>
+
 > <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
@@ -7146,6 +7782,8 @@
 <!-- end id963 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_normal_Normal_rsample"></a>
 
 > <font size="3">rsample()</font>
 
@@ -7168,6 +7806,8 @@
 </div>
 
 <!-- npu="910b,A3" id1530 -->
+<a class="method_anchor" id="torch_distributions_normal_Normal_sample"></a>
+
 > <font size="3">sample()</font>
 
 <div style="margin-left: 2em">
@@ -7187,6 +7827,8 @@
 <!-- npu="910b,A3" id1531 -->
 </div>
 <!-- end id1531 -->
+
+<a class="method_anchor" id="torch_distributions_normal_Normal_stddev"></a>
 
 > <font size="3">stddev()</font>
 
@@ -7208,6 +7850,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_normal_Normal_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -7227,6 +7871,8 @@
 <!-- end id975 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_normal_Normal_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -7270,6 +7916,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id981 -->
 
+<a class="method_anchor" id="torch_distributions_one_hot_categorical_OneHotCategorical_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -7290,6 +7938,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_one_hot_categorical_OneHotCategorical_entropy"></a>
+
 > <font size="3">entropy()</font>
 
 <div style="margin-left: 2em">
@@ -7309,6 +7959,8 @@
 <!-- end id987 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_one_hot_categorical_OneHotCategorical_enumerate_support"></a>
 
 > <font size="3">enumerate_support()</font>
 
@@ -7331,6 +7983,8 @@
 </div>
 
 <!-- npu="910b,A3" id1532 -->
+<a class="method_anchor" id="torch_distributions_one_hot_categorical_OneHotCategorical_expand"></a>
+
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -7350,6 +8004,8 @@
 <!-- npu="910b,A3" id1533 -->
 </div>
 <!-- end id1533 -->
+
+<a class="method_anchor" id="torch_distributions_one_hot_categorical_OneHotCategorical_has_enumerate_support"></a>
 
 > <font size="3">has_enumerate_support()</font>
 
@@ -7371,6 +8027,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_one_hot_categorical_OneHotCategorical_log_prob"></a>
+
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -7390,6 +8048,8 @@
 <!-- end id996 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_one_hot_categorical_OneHotCategorical_logits"></a>
 
 > <font size="3">logits()</font>
 
@@ -7411,6 +8071,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_one_hot_categorical_OneHotCategorical_mean"></a>
+
 > <font size="3">mean()</font>
 
 <div style="margin-left: 2em">
@@ -7430,6 +8092,8 @@
 <!-- end id1002 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_one_hot_categorical_OneHotCategorical_mode"></a>
 
 > <font size="3">mode()</font>
 
@@ -7451,6 +8115,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_one_hot_categorical_OneHotCategorical_param_shape"></a>
+
 > <font size="3">param_shape()</font>
 
 <div style="margin-left: 2em">
@@ -7470,6 +8136,8 @@
 <!-- end id1008 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_one_hot_categorical_OneHotCategorical_probs"></a>
 
 > <font size="3">probs()</font>
 
@@ -7491,6 +8159,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_one_hot_categorical_OneHotCategorical_sample"></a>
+
 > <font size="3">sample()</font>
 
 <div style="margin-left: 2em">
@@ -7511,6 +8181,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_one_hot_categorical_OneHotCategorical_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -7530,6 +8202,8 @@
 <!-- end id1017 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_one_hot_categorical_OneHotCategorical_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -7573,6 +8247,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1023 -->
 
+<a class="method_anchor" id="torch_distributions_pareto_Pareto_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -7592,6 +8268,8 @@
 <!-- end id1026 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_pareto_Pareto_entropy"></a>
 
 > <font size="3">entropy()</font>
 
@@ -7614,6 +8292,8 @@
 </div>
 
 <!-- npu="910b,A3" id1534 -->
+<a class="method_anchor" id="torch_distributions_pareto_Pareto_expand"></a>
+
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -7633,6 +8313,8 @@
 <!-- npu="910b,A3" id1535 -->
 </div>
 <!-- end id1535 -->
+
+<a class="method_anchor" id="torch_distributions_pareto_Pareto_mean"></a>
 
 > <font size="3">mean()</font>
 
@@ -7654,6 +8336,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_pareto_Pareto_mode"></a>
+
 > <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
@@ -7674,6 +8358,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_pareto_Pareto_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -7693,6 +8379,8 @@
 <!-- end id1041 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_pareto_Pareto_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -7738,6 +8426,8 @@
 
 **限制与说明**：可能回退至CPU执行
 
+<a class="method_anchor" id="torch_distributions_poisson_Poisson_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -7757,6 +8447,8 @@
 <!-- end id1050 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_poisson_Poisson_expand"></a>
 
 > <font size="3">expand()</font>
 
@@ -7778,6 +8470,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_poisson_Poisson_log_prob"></a>
+
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -7797,6 +8491,8 @@
 <!-- end id1056 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_poisson_Poisson_mean"></a>
 
 > <font size="3">mean()</font>
 
@@ -7818,6 +8514,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_poisson_Poisson_mode"></a>
+
 > <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
@@ -7837,6 +8535,8 @@
 <!-- end id1062 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_poisson_Poisson_sample"></a>
 
 > <font size="3">sample()</font>
 
@@ -7858,6 +8558,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_poisson_Poisson_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -7877,6 +8579,8 @@
 <!-- end id1068 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_poisson_Poisson_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -7920,6 +8624,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1074 -->
 
+<a class="method_anchor" id="torch_distributions_relaxed_bernoulli_RelaxedBernoulli_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -7941,6 +8647,8 @@
 </div>
 
 <!-- npu="910b,A3" id1536 -->
+<a class="method_anchor" id="torch_distributions_relaxed_bernoulli_RelaxedBernoulli_expand"></a>
+
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -7960,6 +8668,8 @@
 <!-- npu="910b,A3" id1537 -->
 </div>
 <!-- end id1537 -->
+
+<a class="method_anchor" id="torch_distributions_relaxed_bernoulli_RelaxedBernoulli_has_rsample"></a>
 
 > <font size="3">has_rsample()</font>
 
@@ -7981,6 +8691,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_relaxed_bernoulli_RelaxedBernoulli_logits"></a>
+
 > <font size="3">logits()</font>
 
 <div style="margin-left: 2em">
@@ -8000,6 +8712,8 @@
 <!-- end id1086 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_relaxed_bernoulli_RelaxedBernoulli_probs"></a>
 
 > <font size="3">probs()</font>
 
@@ -8021,6 +8735,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_relaxed_bernoulli_RelaxedBernoulli_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -8040,6 +8756,8 @@
 <!-- end id1092 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_relaxed_bernoulli_RelaxedBernoulli_temperature"></a>
 
 > <font size="3">temperature()</font>
 
@@ -8083,6 +8801,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1098 -->
 
+<a class="method_anchor" id="torch_distributions_relaxed_bernoulli_LogitRelaxedBernoulli_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -8102,6 +8822,8 @@
 <!-- end id1101 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_relaxed_bernoulli_LogitRelaxedBernoulli_expand"></a>
 
 > <font size="3">expand()</font>
 
@@ -8123,6 +8845,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_relaxed_bernoulli_LogitRelaxedBernoulli_log_prob"></a>
+
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -8142,6 +8866,8 @@
 <!-- end id1107 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_relaxed_bernoulli_LogitRelaxedBernoulli_logits"></a>
 
 > <font size="3">logits()</font>
 
@@ -8163,6 +8889,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_relaxed_bernoulli_LogitRelaxedBernoulli_param_shape"></a>
+
 > <font size="3">param_shape()</font>
 
 <div style="margin-left: 2em">
@@ -8182,6 +8910,8 @@
 <!-- end id1113 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_relaxed_bernoulli_LogitRelaxedBernoulli_probs"></a>
 
 > <font size="3">probs()</font>
 
@@ -8203,6 +8933,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_relaxed_bernoulli_LogitRelaxedBernoulli_rsample"></a>
+
 > <font size="3">rsample()</font>
 
 <div style="margin-left: 2em">
@@ -8222,6 +8954,8 @@
 <!-- end id1119 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_relaxed_bernoulli_LogitRelaxedBernoulli_support"></a>
 
 > <font size="3">support()</font>
 
@@ -8267,6 +9001,8 @@
 
 **限制与说明**：可能回退至CPU执行
 
+<a class="method_anchor" id="torch_distributions_relaxed_categorical_RelaxedOneHotCategorical_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -8286,6 +9022,8 @@
 <!-- end id1128 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_relaxed_categorical_RelaxedOneHotCategorical_expand"></a>
 
 > <font size="3">expand()</font>
 
@@ -8307,6 +9045,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_relaxed_categorical_RelaxedOneHotCategorical_has_rsample"></a>
+
 > <font size="3">has_rsample()</font>
 
 <div style="margin-left: 2em">
@@ -8326,6 +9066,8 @@
 <!-- end id1134 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_relaxed_categorical_RelaxedOneHotCategorical_logits"></a>
 
 > <font size="3">logits()</font>
 
@@ -8347,6 +9089,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_relaxed_categorical_RelaxedOneHotCategorical_probs"></a>
+
 > <font size="3">probs()</font>
 
 <div style="margin-left: 2em">
@@ -8366,6 +9110,8 @@
 <!-- end id1140 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_relaxed_categorical_RelaxedOneHotCategorical_support"></a>
 
 > <font size="3">support()</font>
 
@@ -8388,6 +9134,8 @@
 </div>
 
 <!-- npu="910b,A3" id1538 -->
+<a class="method_anchor" id="torch_distributions_relaxed_categorical_RelaxedOneHotCategorical_temperature"></a>
+
 > <font size="3">temperature()</font>
 
 <div style="margin-left: 2em">
@@ -8432,6 +9180,8 @@
 
 **限制与说明**：可能回退至CPU执行
 
+<a class="method_anchor" id="torch_distributions_studentT_StudentT_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -8452,6 +9202,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_studentT_StudentT_entropy"></a>
+
 > <font size="3">entropy()</font>
 
 <div style="margin-left: 2em">
@@ -8471,6 +9223,8 @@
 <!-- end id1155 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_studentT_StudentT_expand"></a>
 
 > <font size="3">expand()</font>
 
@@ -8493,6 +9247,8 @@
 </div>
 
 <!-- npu="910b,A3" id1540 -->
+<a class="method_anchor" id="torch_distributions_studentT_StudentT_has_rsample"></a>
+
 > <font size="3">has_rsample()</font>
 
 <div style="margin-left: 2em">
@@ -8512,6 +9268,8 @@
 <!-- npu="910b,A3" id1541 -->
 </div>
 <!-- end id1541 -->
+
+<a class="method_anchor" id="torch_distributions_studentT_StudentT_log_prob"></a>
 
 > <font size="3">log_prob()</font>
 
@@ -8534,6 +9292,8 @@
 </div>
 
 <!-- npu="910b,A3" id1542 -->
+<a class="method_anchor" id="torch_distributions_studentT_StudentT_mean"></a>
+
 > <font size="3">mean()</font>
 
 <div style="margin-left: 2em">
@@ -8553,6 +9313,8 @@
 <!-- npu="910b,A3" id1543 -->
 </div>
 <!-- end id1543 -->
+
+<a class="method_anchor" id="torch_distributions_studentT_StudentT_mode"></a>
 
 > <font size="3">mode()</font>
 
@@ -8574,6 +9336,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_studentT_StudentT_rsample"></a>
+
 > <font size="3">rsample()</font>
 
 <div style="margin-left: 2em">
@@ -8593,6 +9357,8 @@
 <!-- end id1173 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_studentT_StudentT_support"></a>
 
 > <font size="3">support()</font>
 
@@ -8615,6 +9381,8 @@
 </div>
 
 <!-- npu="910b,A3" id1544 -->
+<a class="method_anchor" id="torch_distributions_studentT_StudentT_variance"></a>
+
 > <font size="3">variance()</font>
 
 <div style="margin-left: 2em">
@@ -8658,6 +9426,8 @@
 <!-- end id1182 -->
 
 <!-- npu="910b,A3" id1546 -->
+<a class="method_anchor" id="torch_distributions_transformed_distribution_TransformedDistribution_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -8677,6 +9447,8 @@
 <!-- npu="910b,A3" id1547 -->
 </div>
 <!-- end id1547 -->
+
+<a class="method_anchor" id="torch_distributions_transformed_distribution_TransformedDistribution_cdf"></a>
 
 > <font size="3">cdf()</font>
 
@@ -8699,6 +9471,8 @@
 </div>
 
 <!-- npu="910b,A3" id1548 -->
+<a class="method_anchor" id="torch_distributions_transformed_distribution_TransformedDistribution_expand"></a>
+
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -8718,6 +9492,8 @@
 <!-- npu="910b,A3" id1549 -->
 </div>
 <!-- end id1549 -->
+
+<a class="method_anchor" id="torch_distributions_transformed_distribution_TransformedDistribution_has_rsample"></a>
 
 > <font size="3">has_rsample()</font>
 
@@ -8739,6 +9515,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_transformed_distribution_TransformedDistribution_icdf"></a>
+
 > <font size="3">icdf()</font>
 
 <div style="margin-left: 2em">
@@ -8759,6 +9537,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_transformed_distribution_TransformedDistribution_log_prob"></a>
+
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -8778,6 +9558,8 @@
 <!-- end id1200 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_transformed_distribution_TransformedDistribution_rsample"></a>
 
 > <font size="3">rsample()</font>
 
@@ -8800,6 +9582,8 @@
 </div>
 
 <!-- npu="910b,A3" id1550 -->
+<a class="method_anchor" id="torch_distributions_transformed_distribution_TransformedDistribution_sample"></a>
+
 > <font size="3">sample()</font>
 
 <div style="margin-left: 2em">
@@ -8819,6 +9603,8 @@
 <!-- npu="910b,A3" id1551 -->
 </div>
 <!-- end id1551 -->
+
+<a class="method_anchor" id="torch_distributions_transformed_distribution_TransformedDistribution_support"></a>
 
 > <font size="3">support()</font>
 
@@ -8866,6 +9652,8 @@
 **限制与说明**： 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同。
 <!-- end id1435 -->
 
+<a class="method_anchor" id="torch_distributions_uniform_Uniform_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -8885,6 +9673,8 @@
 <!-- end id1212 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_uniform_Uniform_cdf"></a>
 
 > <font size="3">cdf()</font>
 
@@ -8906,6 +9696,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_uniform_Uniform_entropy"></a>
+
 > <font size="3">entropy()</font>
 
 <div style="margin-left: 2em">
@@ -8925,6 +9717,8 @@
 <!-- end id1218 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_uniform_Uniform_expand"></a>
 
 > <font size="3">expand()</font>
 
@@ -8946,6 +9740,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_uniform_Uniform_has_rsample"></a>
+
 > <font size="3">has_rsample()</font>
 
 <div style="margin-left: 2em">
@@ -8965,6 +9761,8 @@
 <!-- end id1224 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_uniform_Uniform_icdf"></a>
 
 > <font size="3">icdf()</font>
 
@@ -8986,6 +9784,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_uniform_Uniform_log_prob"></a>
+
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -9005,6 +9805,8 @@
 <!-- end id1230 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_uniform_Uniform_mean"></a>
 
 > <font size="3">mean()</font>
 
@@ -9026,6 +9828,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_uniform_Uniform_mode"></a>
+
 > <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
@@ -9045,6 +9849,8 @@
 <!-- end id1236 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_uniform_Uniform_rsample"></a>
 
 > <font size="3">rsample()</font>
 
@@ -9066,6 +9872,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_uniform_Uniform_stddev"></a>
+
 > <font size="3">stddev()</font>
 
 <div style="margin-left: 2em">
@@ -9086,6 +9894,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_uniform_Uniform_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -9105,6 +9915,8 @@
 <!-- end id1245 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_uniform_Uniform_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -9148,6 +9960,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1251 -->
 
+<a class="method_anchor" id="torch_distributions_von_mises_VonMises_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -9169,6 +9983,8 @@
 </div>
 
 <!-- npu="910b,A3" id1552 -->
+<a class="method_anchor" id="torch_distributions_von_mises_VonMises_expand"></a>
+
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -9188,6 +10004,8 @@
 <!-- npu="910b,A3" id1553 -->
 </div>
 <!-- end id1553 -->
+
+<a class="method_anchor" id="torch_distributions_von_mises_VonMises_has_rsample"></a>
 
 > <font size="3">has_rsample()</font>
 
@@ -9209,6 +10027,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_von_mises_VonMises_log_prob"></a>
+
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -9228,6 +10048,8 @@
 <!-- end id1263 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_von_mises_VonMises_mean"></a>
 
 > <font size="3">mean()</font>
 
@@ -9249,6 +10071,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_von_mises_VonMises_mode"></a>
+
 > <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
@@ -9268,6 +10092,8 @@
 <!-- end id1269 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_von_mises_VonMises_sample"></a>
 
 > <font size="3">sample()</font>
 
@@ -9289,6 +10115,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_von_mises_VonMises_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -9308,6 +10136,8 @@
 <!-- end id1275 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_von_mises_VonMises_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -9351,6 +10181,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1281 -->
 
+<a class="method_anchor" id="torch_distributions_weibull_Weibull_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -9370,6 +10202,8 @@
 <!-- end id1284 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_weibull_Weibull_entropy"></a>
 
 > <font size="3">entropy()</font>
 
@@ -9392,6 +10226,8 @@
 </div>
 
 <!-- npu="910b,A3" id1554 -->
+<a class="method_anchor" id="torch_distributions_weibull_Weibull_expand"></a>
+
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -9411,6 +10247,8 @@
 <!-- npu="910b,A3" id1555 -->
 </div>
 <!-- end id1555 -->
+
+<a class="method_anchor" id="torch_distributions_weibull_Weibull_mean"></a>
 
 > <font size="3">mean()</font>
 
@@ -9432,6 +10270,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_weibull_Weibull_mode"></a>
+
 > <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
@@ -9452,6 +10292,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_weibull_Weibull_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -9471,6 +10313,8 @@
 <!-- end id1299 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_weibull_Weibull_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -9515,6 +10359,8 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1304 -->
 
+<a class="method_anchor" id="torch_distributions_wishart_Wishart_arg_constraints"></a>
+
 > <font size="3">arg_constraints()</font>
 
 <div style="margin-left: 2em">
@@ -9534,6 +10380,8 @@
 <!-- end id1308 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_wishart_Wishart_covariance_matrix"></a>
 
 > <font size="3">covariance_matrix()</font>
 
@@ -9555,6 +10403,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_wishart_Wishart_entropy"></a>
+
 > <font size="3">entropy()</font>
 
 <div style="margin-left: 2em">
@@ -9575,6 +10425,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_wishart_Wishart_expand"></a>
+
 > <font size="3">expand()</font>
 
 <div style="margin-left: 2em">
@@ -9594,6 +10446,8 @@
 <!-- end id1317 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_wishart_Wishart_has_rsample"></a>
 
 > <font size="3">has_rsample()</font>
 
@@ -9616,6 +10470,8 @@
 </div>
 
 <!-- npu="910b,A3" id1558 -->
+<a class="method_anchor" id="torch_distributions_wishart_Wishart_log_prob"></a>
+
 > <font size="3">log_prob()</font>
 
 <div style="margin-left: 2em">
@@ -9635,6 +10491,8 @@
 <!-- npu="910b,A3" id1559 -->
 </div>
 <!-- end id1559 -->
+
+<a class="method_anchor" id="torch_distributions_wishart_Wishart_mean"></a>
 
 > <font size="3">mean()</font>
 
@@ -9657,6 +10515,8 @@
 </div>
 
 <!-- npu="910b,A3" id1560 -->
+<a class="method_anchor" id="torch_distributions_wishart_Wishart_mode"></a>
+
 > <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
@@ -9678,6 +10538,8 @@
 <!-- end id1561 -->
 
 <!-- npu="910b,A3" id1562 -->
+<a class="method_anchor" id="torch_distributions_wishart_Wishart_precision_matrix"></a>
+
 > <font size="3">precision_matrix()</font>
 
 <div style="margin-left: 2em">
@@ -9699,6 +10561,8 @@
 <!-- end id1563 -->
 
 <!-- npu="910b,A3" id1564 -->
+<a class="method_anchor" id="torch_distributions_wishart_Wishart_rsample"></a>
+
 > <font size="3">rsample()</font>
 
 <div style="margin-left: 2em">
@@ -9720,6 +10584,8 @@
 <!-- end id1565 -->
 
 <!-- npu="910b,A3" id1566 -->
+<a class="method_anchor" id="torch_distributions_wishart_Wishart_scale_tril"></a>
+
 > <font size="3">scale_tril()</font>
 
 <div style="margin-left: 2em">
@@ -9741,6 +10607,8 @@
 <!-- end id1567 -->
 
 <!-- npu="910b,A3" id1568 -->
+<a class="method_anchor" id="torch_distributions_wishart_Wishart_support"></a>
+
 > <font size="3">support()</font>
 
 <div style="margin-left: 2em">
@@ -9760,6 +10628,8 @@
 <!-- npu="910b,A3" id1569 -->
 </div>
 <!-- end id1569 -->
+
+<a class="method_anchor" id="torch_distributions_wishart_Wishart_variance"></a>
 
 > <font size="3">variance()</font>
 
@@ -10210,6 +11080,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1636 -->
 
+<a class="method_anchor" id="torch_distributions_transforms_Transform_inv"></a>
+
 > <font size="3">inv()</font>
 
 <div style="margin-left: 2em">
@@ -10229,6 +11101,8 @@
 <!-- end id1395 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_transforms_Transform_sign"></a>
 
 > <font size="3">sign()</font>
 
@@ -10250,6 +11124,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_transforms_Transform_log_abs_det_jacobian"></a>
+
 > <font size="3">log_abs_det_jacobian()</font>
 
 <div style="margin-left: 2em">
@@ -10270,6 +11146,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributions_transforms_Transform_forward_shape"></a>
+
 > <font size="3">forward_shape()</font>
 
 <div style="margin-left: 2em">
@@ -10289,6 +11167,8 @@
 <!-- end id1404 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributions_transforms_Transform_inverse_shape"></a>
 
 > <font size="3">inverse_shape()</font>
 
@@ -10331,6 +11211,8 @@
 <!-- npu="950" id1576 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1576 -->
+
+<a class="method_anchor" id="torch_distributions_constraints_Constraint_check"></a>
 
 > <font size="3">check()</font>
 
@@ -10515,6 +11397,8 @@
 <!-- end id1428 -->
 
 <!-- npu="910b,A3" id1572 -->
+<a class="method_anchor" id="torch_distributions_constraint_registry_ConstraintRegistry_register"></a>
+
 > <font size="3">register()</font>
 
 <div style="margin-left: 2em">

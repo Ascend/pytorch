@@ -31,6 +31,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id3 -->
 
+<a class="method_anchor" id="torch_futures_Future_add_done_callback"></a>
+
 > <font size="3">add_done_callback()</font>
 
 <div style="margin-left: 2em">
@@ -50,6 +52,8 @@
 <!-- end id6 -->
 
 </div>
+
+<a class="method_anchor" id="torch_futures_Future_done"></a>
 
 > <font size="3">done()</font>
 
@@ -71,6 +75,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_futures_Future_set_exception"></a>
+
 > <font size="3">set_exception()</font>
 
 <div style="margin-left: 2em">
@@ -90,6 +96,8 @@
 <!-- end id12 -->
 
 </div>
+
+<a class="method_anchor" id="torch_futures_Future_set_result"></a>
 
 > <font size="3">set_result()</font>
 
@@ -111,6 +119,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_futures_Future_then"></a>
+
 > <font size="3">then()</font>
 
 <div style="margin-left: 2em">
@@ -131,6 +141,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_futures_Future_value"></a>
+
 > <font size="3">value()</font>
 
 <div style="margin-left: 2em">
@@ -150,6 +162,8 @@
 <!-- end id21 -->
 
 </div>
+
+<a class="method_anchor" id="torch_futures_Future_wait"></a>
 
 > <font size="3">wait()</font>
 

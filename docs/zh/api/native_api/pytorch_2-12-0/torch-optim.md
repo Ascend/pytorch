@@ -44,6 +44,8 @@
 <!-- end id3 -->
 
 <!-- npu="910b,A3" id653 -->
+<a class="method_anchor" id="torch_optim_Optimizer_add_param_group"></a>
+
 > <font size="3">add_param_group()</font>
 
 <div style="margin-left: 2em">
@@ -63,6 +65,8 @@
 <!-- npu="910b,A3" id654 -->
 </div>
 <!-- end id654 -->
+
+<a class="method_anchor" id="torch_optim_Optimizer_load_state_dict"></a>
 
 > <font size="3">load_state_dict()</font>
 
@@ -85,6 +89,8 @@
 </div>
 
 <!-- npu="910b,A3" id655 -->
+<a class="method_anchor" id="torch_optim_Optimizer_state_dict"></a>
+
 > <font size="3">state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -105,6 +111,8 @@
 </div>
 <!-- end id656 -->
 
+<a class="method_anchor" id="torch_optim_Optimizer_step"></a>
+
 > <font size="3">step()</font>
 
 <div style="margin-left: 2em">
@@ -124,6 +132,8 @@
 <!-- end id15 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Optimizer_zero_grad"></a>
 
 > <font size="3">zero_grad()</font>
 
@@ -177,6 +187,8 @@
   optimizer = torch.optim.Adadelta(model.parameters(), lr=1e-3, foreach=False)
   ```
 
+<a class="method_anchor" id="torch_optim_Adadelta_add_param_group"></a>
+
 > <font size="3">add_param_group()</font>
 
 <div style="margin-left: 2em">
@@ -196,6 +208,8 @@
 <!-- end id24 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Adadelta_load_state_dict"></a>
 
 > <font size="3">load_state_dict()</font>
 
@@ -217,6 +231,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Adadelta_register_load_state_dict_post_hook"></a>
+
 > <font size="3">register_load_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -236,6 +252,8 @@
 <!-- end id30 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Adadelta_register_load_state_dict_pre_hook"></a>
 
 > <font size="3">register_load_state_dict_pre_hook()</font>
 
@@ -257,6 +275,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Adadelta_register_state_dict_post_hook"></a>
+
 > <font size="3">register_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -276,6 +296,8 @@
 <!-- end id36 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Adadelta_register_state_dict_pre_hook"></a>
 
 > <font size="3">register_state_dict_pre_hook()</font>
 
@@ -297,6 +319,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Adadelta_register_step_post_hook"></a>
+
 > <font size="3">register_step_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -316,6 +340,8 @@
 <!-- end id42 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Adadelta_register_step_pre_hook"></a>
 
 > <font size="3">register_step_pre_hook()</font>
 
@@ -337,6 +363,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Adadelta_state_dict"></a>
+
 > <font size="3">state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -357,6 +385,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Adadelta_step"></a>
+
 > <font size="3">step()</font>
 
 <div style="margin-left: 2em">
@@ -376,6 +406,8 @@
 <!-- end id51 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Adadelta_zero_grad"></a>
 
 > <font size="3">zero_grad()</font>
 
@@ -416,6 +448,8 @@
 <!-- npu="950" id722 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id722 -->
+
+<a class="method_anchor" id="torch_optim_Adafactor_step"></a>
 
 > <font size="3">step()</font>
 
@@ -467,6 +501,8 @@
   optimizer = torch.optim.Adagrad(model.parameters(), lr=1e-3, foreach=False)
   ```
 
+<a class="method_anchor" id="torch_optim_Adagrad_add_param_group"></a>
+
 > <font size="3">add_param_group()</font>
 
 <div style="margin-left: 2em">
@@ -486,6 +522,8 @@
 <!-- end id60 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Adagrad_load_state_dict"></a>
 
 > <font size="3">load_state_dict()</font>
 
@@ -507,6 +545,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Adagrad_register_load_state_dict_post_hook"></a>
+
 > <font size="3">register_load_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -526,6 +566,8 @@
 <!-- end id66 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Adagrad_register_load_state_dict_pre_hook"></a>
 
 > <font size="3">register_load_state_dict_pre_hook()</font>
 
@@ -547,6 +589,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Adagrad_register_state_dict_post_hook"></a>
+
 > <font size="3">register_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -566,6 +610,8 @@
 <!-- end id72 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Adagrad_register_state_dict_pre_hook"></a>
 
 > <font size="3">register_state_dict_pre_hook()</font>
 
@@ -587,6 +633,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Adagrad_register_step_post_hook"></a>
+
 > <font size="3">register_step_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -606,6 +654,8 @@
 <!-- end id78 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Adagrad_register_step_pre_hook"></a>
 
 > <font size="3">register_step_pre_hook()</font>
 
@@ -627,6 +677,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Adagrad_state_dict"></a>
+
 > <font size="3">state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -647,6 +699,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Adagrad_step"></a>
+
 > <font size="3">step()</font>
 
 <div style="margin-left: 2em">
@@ -666,6 +720,8 @@
 <!-- end id87 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Adagrad_zero_grad"></a>
 
 > <font size="3">zero_grad()</font>
 
@@ -722,6 +778,8 @@
 - <term>Atlas A2训练系列产品</term>和<term>Atlas A3训练系列产品</term>暂不支持将`fused`设置为`True`。
 <!-- end id652 -->
 
+<a class="method_anchor" id="torch_optim_Adam_add_param_group"></a>
+
 > <font size="3">add_param_group()</font>
 
 <div style="margin-left: 2em">
@@ -741,6 +799,8 @@
 <!-- end id96 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Adam_load_state_dict"></a>
 
 > <font size="3">load_state_dict()</font>
 
@@ -762,6 +822,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Adam_register_load_state_dict_post_hook"></a>
+
 > <font size="3">register_load_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -781,6 +843,8 @@
 <!-- end id102 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Adam_register_load_state_dict_pre_hook"></a>
 
 > <font size="3">register_load_state_dict_pre_hook()</font>
 
@@ -802,6 +866,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Adam_register_state_dict_post_hook"></a>
+
 > <font size="3">register_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -821,6 +887,8 @@
 <!-- end id108 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Adam_register_state_dict_pre_hook"></a>
 
 > <font size="3">register_state_dict_pre_hook()</font>
 
@@ -842,6 +910,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Adam_register_step_post_hook"></a>
+
 > <font size="3">register_step_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -861,6 +931,8 @@
 <!-- end id114 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Adam_register_step_pre_hook"></a>
 
 > <font size="3">register_step_pre_hook()</font>
 
@@ -882,6 +954,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Adam_state_dict"></a>
+
 > <font size="3">state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -902,6 +976,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Adam_step"></a>
+
 > <font size="3">step()</font>
 
 <div style="margin-left: 2em">
@@ -921,6 +997,8 @@
 <!-- end id123 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Adam_zero_grad"></a>
 
 > <font size="3">zero_grad()</font>
 
@@ -974,6 +1052,8 @@
 
 - 优化器在启动`fused`的情况下（`fused=True`），暂不支持`grad_scale`和`found_inf`参数。对标`_single_tensor_adamw`实现，fp32与cpu/cuda一致，fp16和bf16采用升精度实现，与cpu/cuda不一致
 
+<a class="method_anchor" id="torch_optim_AdamW_add_param_group"></a>
+
 > <font size="3">add_param_group()</font>
 
 <div style="margin-left: 2em">
@@ -993,6 +1073,8 @@
 <!-- end id132 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_AdamW_load_state_dict"></a>
 
 > <font size="3">load_state_dict()</font>
 
@@ -1014,6 +1096,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_AdamW_register_load_state_dict_post_hook"></a>
+
 > <font size="3">register_load_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -1033,6 +1117,8 @@
 <!-- end id138 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_AdamW_register_load_state_dict_pre_hook"></a>
 
 > <font size="3">register_load_state_dict_pre_hook()</font>
 
@@ -1054,6 +1140,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_AdamW_register_state_dict_post_hook"></a>
+
 > <font size="3">register_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -1073,6 +1161,8 @@
 <!-- end id144 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_AdamW_register_state_dict_pre_hook"></a>
 
 > <font size="3">register_state_dict_pre_hook()</font>
 
@@ -1094,6 +1184,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_AdamW_register_step_post_hook"></a>
+
 > <font size="3">register_step_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -1113,6 +1205,8 @@
 <!-- end id150 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_AdamW_register_step_pre_hook"></a>
 
 > <font size="3">register_step_pre_hook()</font>
 
@@ -1134,6 +1228,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_AdamW_state_dict"></a>
+
 > <font size="3">state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -1153,6 +1249,8 @@
 <!-- end id156 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_AdamW_step"></a>
 
 > <font size="3">step()</font>
 
@@ -1175,6 +1273,8 @@
 **限制与说明**：`params`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_optim_AdamW_zero_grad"></a>
 
 > <font size="3">zero_grad()</font>
 
@@ -1218,6 +1318,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id725 -->
 
+<a class="method_anchor" id="torch_optim_SparseAdam_add_param_group"></a>
+
 > <font size="3">add_param_group()</font>
 
 <div style="margin-left: 2em">
@@ -1237,6 +1339,8 @@
 <!-- end id165 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_SparseAdam_load_state_dict"></a>
 
 > <font size="3">load_state_dict()</font>
 
@@ -1258,6 +1362,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_SparseAdam_register_load_state_dict_post_hook"></a>
+
 > <font size="3">register_load_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -1277,6 +1383,8 @@
 <!-- end id171 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_SparseAdam_register_load_state_dict_pre_hook"></a>
 
 > <font size="3">register_load_state_dict_pre_hook()</font>
 
@@ -1298,6 +1406,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_SparseAdam_register_state_dict_post_hook"></a>
+
 > <font size="3">register_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -1317,6 +1427,8 @@
 <!-- end id177 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_SparseAdam_register_state_dict_pre_hook"></a>
 
 > <font size="3">register_state_dict_pre_hook()</font>
 
@@ -1338,6 +1450,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_SparseAdam_register_step_post_hook"></a>
+
 > <font size="3">register_step_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -1357,6 +1471,8 @@
 <!-- end id183 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_SparseAdam_register_step_pre_hook"></a>
 
 > <font size="3">register_step_pre_hook()</font>
 
@@ -1378,6 +1494,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_SparseAdam_step"></a>
+
 > <font size="3">step()</font>
 
 <div style="margin-left: 2em">
@@ -1397,6 +1515,8 @@
 <!-- end id189 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_SparseAdam_zero_grad"></a>
 
 > <font size="3">zero_grad()</font>
 
@@ -1448,6 +1568,8 @@
   optimizer = torch.optim.Adamax(model.parameters(), lr=1e-3, foreach=False)
   ```
 
+<a class="method_anchor" id="torch_optim_Adamax_add_param_group"></a>
+
 > <font size="3">add_param_group()</font>
 
 <div style="margin-left: 2em">
@@ -1469,6 +1591,8 @@
 **限制与说明**：`params`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Adamax_load_state_dict"></a>
 
 > <font size="3">load_state_dict()</font>
 
@@ -1492,6 +1616,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Adamax_register_load_state_dict_post_hook"></a>
+
 > <font size="3">register_load_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -1511,6 +1637,8 @@
 <!-- end id204 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Adamax_register_load_state_dict_pre_hook"></a>
 
 > <font size="3">register_load_state_dict_pre_hook()</font>
 
@@ -1532,6 +1660,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Adamax_register_state_dict_post_hook"></a>
+
 > <font size="3">register_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -1551,6 +1681,8 @@
 <!-- end id210 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Adamax_register_state_dict_pre_hook"></a>
 
 > <font size="3">register_state_dict_pre_hook()</font>
 
@@ -1572,6 +1704,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Adamax_register_step_post_hook"></a>
+
 > <font size="3">register_step_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -1592,6 +1726,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Adamax_register_step_pre_hook"></a>
+
 > <font size="3">register_step_pre_hook()</font>
 
 <div style="margin-left: 2em">
@@ -1611,6 +1747,8 @@
 <!-- end id219 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Adamax_state_dict"></a>
 
 > <font size="3">state_dict()</font>
 
@@ -1634,6 +1772,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Adamax_step"></a>
+
 > <font size="3">step()</font>
 
 <div style="margin-left: 2em">
@@ -1655,6 +1795,8 @@
 **限制与说明**：`params`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Adamax_zero_grad"></a>
 
 > <font size="3">zero_grad()</font>
 
@@ -1700,6 +1842,8 @@
 
 **限制与说明**：`params`仅支持fp16，fp32
 
+<a class="method_anchor" id="torch_optim_ASGD_add_param_group"></a>
+
 > <font size="3">add_param_group()</font>
 
 <div style="margin-left: 2em">
@@ -1721,6 +1865,8 @@
 **限制与说明**：`params`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_optim_ASGD_load_state_dict"></a>
 
 > <font size="3">load_state_dict()</font>
 
@@ -1744,6 +1890,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_ASGD_register_load_state_dict_post_hook"></a>
+
 > <font size="3">register_load_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -1763,6 +1911,8 @@
 <!-- end id240 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_ASGD_register_load_state_dict_pre_hook"></a>
 
 > <font size="3">register_load_state_dict_pre_hook()</font>
 
@@ -1784,6 +1934,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_ASGD_register_state_dict_post_hook"></a>
+
 > <font size="3">register_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -1803,6 +1955,8 @@
 <!-- end id246 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_ASGD_register_state_dict_pre_hook"></a>
 
 > <font size="3">register_state_dict_pre_hook()</font>
 
@@ -1824,6 +1978,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_ASGD_register_step_post_hook"></a>
+
 > <font size="3">register_step_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -1844,6 +2000,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_ASGD_register_step_pre_hook"></a>
+
 > <font size="3">register_step_pre_hook()</font>
 
 <div style="margin-left: 2em">
@@ -1863,6 +2021,8 @@
 <!-- end id255 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_ASGD_state_dict"></a>
 
 > <font size="3">state_dict()</font>
 
@@ -1886,6 +2046,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_ASGD_step"></a>
+
 > <font size="3">step()</font>
 
 <div style="margin-left: 2em">
@@ -1907,6 +2069,8 @@
 **限制与说明**：`params`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_optim_ASGD_zero_grad"></a>
 
 > <font size="3">zero_grad()</font>
 
@@ -1950,6 +2114,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id267 -->
 
+<a class="method_anchor" id="torch_optim_LBFGS_add_param_group"></a>
+
 > <font size="3">add_param_group()</font>
 
 <div style="margin-left: 2em">
@@ -1969,6 +2135,8 @@
 <!-- end id270 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_LBFGS_load_state_dict"></a>
 
 > <font size="3">load_state_dict()</font>
 
@@ -1990,6 +2158,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_LBFGS_register_load_state_dict_post_hook"></a>
+
 > <font size="3">register_load_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -2009,6 +2179,8 @@
 <!-- end id276 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_LBFGS_register_load_state_dict_pre_hook"></a>
 
 > <font size="3">register_load_state_dict_pre_hook()</font>
 
@@ -2030,6 +2202,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_LBFGS_register_state_dict_post_hook"></a>
+
 > <font size="3">register_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -2049,6 +2223,8 @@
 <!-- end id282 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_LBFGS_register_state_dict_pre_hook"></a>
 
 > <font size="3">register_state_dict_pre_hook()</font>
 
@@ -2070,6 +2246,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_LBFGS_register_step_post_hook"></a>
+
 > <font size="3">register_step_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -2089,6 +2267,8 @@
 <!-- end id288 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_LBFGS_register_step_pre_hook"></a>
 
 > <font size="3">register_step_pre_hook()</font>
 
@@ -2110,6 +2290,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_LBFGS_state_dict"></a>
+
 > <font size="3">state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -2130,6 +2312,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_LBFGS_step"></a>
+
 > <font size="3">step()</font>
 
 <div style="margin-left: 2em">
@@ -2149,6 +2333,8 @@
 <!-- end id297 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_LBFGS_zero_grad"></a>
 
 > <font size="3">zero_grad()</font>
 
@@ -2200,6 +2386,8 @@
   optimizer = torch.optim.NAdam(model.parameters(), lr=1e-3, foreach=False)
   ```
 
+<a class="method_anchor" id="torch_optim_NAdam_add_param_group"></a>
+
 > <font size="3">add_param_group()</font>
 
 <div style="margin-left: 2em">
@@ -2221,6 +2409,8 @@
 **限制与说明**：`params`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_optim_NAdam_load_state_dict"></a>
 
 > <font size="3">load_state_dict()</font>
 
@@ -2244,6 +2434,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_NAdam_register_load_state_dict_post_hook"></a>
+
 > <font size="3">register_load_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -2263,6 +2455,8 @@
 <!-- end id312 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_NAdam_register_load_state_dict_pre_hook"></a>
 
 > <font size="3">register_load_state_dict_pre_hook()</font>
 
@@ -2284,6 +2478,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_NAdam_register_state_dict_post_hook"></a>
+
 > <font size="3">register_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -2303,6 +2499,8 @@
 <!-- end id318 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_NAdam_register_state_dict_pre_hook"></a>
 
 > <font size="3">register_state_dict_pre_hook()</font>
 
@@ -2324,6 +2522,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_NAdam_register_step_post_hook"></a>
+
 > <font size="3">register_step_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -2344,6 +2544,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_NAdam_register_step_pre_hook"></a>
+
 > <font size="3">register_step_pre_hook()</font>
 
 <div style="margin-left: 2em">
@@ -2363,6 +2565,8 @@
 <!-- end id327 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_NAdam_state_dict"></a>
 
 > <font size="3">state_dict()</font>
 
@@ -2386,6 +2590,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_NAdam_step"></a>
+
 > <font size="3">step()</font>
 
 <div style="margin-left: 2em">
@@ -2407,6 +2613,8 @@
 **限制与说明**：`params`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_optim_NAdam_zero_grad"></a>
 
 > <font size="3">zero_grad()</font>
 
@@ -2460,6 +2668,8 @@
   optimizer = torch.optim.RAdam(model.parameters(), lr=1e-3, foreach=False)
   ```
 
+<a class="method_anchor" id="torch_optim_RAdam_add_param_group"></a>
+
 > <font size="3">add_param_group()</font>
 
 <div style="margin-left: 2em">
@@ -2481,6 +2691,8 @@
 **限制与说明**：`params`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_optim_RAdam_load_state_dict"></a>
 
 > <font size="3">load_state_dict()</font>
 
@@ -2504,6 +2716,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_RAdam_register_load_state_dict_post_hook"></a>
+
 > <font size="3">register_load_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -2523,6 +2737,8 @@
 <!-- end id348 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_RAdam_register_load_state_dict_pre_hook"></a>
 
 > <font size="3">register_load_state_dict_pre_hook()</font>
 
@@ -2544,6 +2760,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_RAdam_register_state_dict_post_hook"></a>
+
 > <font size="3">register_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -2563,6 +2781,8 @@
 <!-- end id354 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_RAdam_register_state_dict_pre_hook"></a>
 
 > <font size="3">register_state_dict_pre_hook()</font>
 
@@ -2584,6 +2804,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_RAdam_register_step_post_hook"></a>
+
 > <font size="3">register_step_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -2604,6 +2826,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_RAdam_register_step_pre_hook"></a>
+
 > <font size="3">register_step_pre_hook()</font>
 
 <div style="margin-left: 2em">
@@ -2623,6 +2847,8 @@
 <!-- end id363 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_RAdam_state_dict"></a>
 
 > <font size="3">state_dict()</font>
 
@@ -2646,6 +2872,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_RAdam_step"></a>
+
 > <font size="3">step()</font>
 
 <div style="margin-left: 2em">
@@ -2667,6 +2895,8 @@
 **限制与说明**：`params`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_optim_RAdam_zero_grad"></a>
 
 > <font size="3">zero_grad()</font>
 
@@ -2720,6 +2950,8 @@
   optimizer = torch.optim.RMSprop(model.parameters(), lr=1e-3, foreach=False)
   ```
 
+<a class="method_anchor" id="torch_optim_RMSprop_add_param_group"></a>
+
 > <font size="3">add_param_group()</font>
 
 <div style="margin-left: 2em">
@@ -2739,6 +2971,8 @@
 <!-- end id378 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_RMSprop_load_state_dict"></a>
 
 > <font size="3">load_state_dict()</font>
 
@@ -2760,6 +2994,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_RMSprop_register_load_state_dict_post_hook"></a>
+
 > <font size="3">register_load_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -2779,6 +3015,8 @@
 <!-- end id384 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_RMSprop_register_load_state_dict_pre_hook"></a>
 
 > <font size="3">register_load_state_dict_pre_hook()</font>
 
@@ -2800,6 +3038,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_RMSprop_register_state_dict_post_hook"></a>
+
 > <font size="3">register_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -2819,6 +3059,8 @@
 <!-- end id390 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_RMSprop_register_state_dict_pre_hook"></a>
 
 > <font size="3">register_state_dict_pre_hook()</font>
 
@@ -2840,6 +3082,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_RMSprop_register_step_post_hook"></a>
+
 > <font size="3">register_step_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -2859,6 +3103,8 @@
 <!-- end id396 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_RMSprop_register_step_pre_hook"></a>
 
 > <font size="3">register_step_pre_hook()</font>
 
@@ -2880,6 +3126,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_RMSprop_state_dict"></a>
+
 > <font size="3">state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -2900,6 +3148,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_RMSprop_step"></a>
+
 > <font size="3">step()</font>
 
 <div style="margin-left: 2em">
@@ -2919,6 +3169,8 @@
 <!-- end id405 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_RMSprop_zero_grad"></a>
 
 > <font size="3">zero_grad()</font>
 
@@ -2960,6 +3212,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id411 -->
 
+<a class="method_anchor" id="torch_optim_Rprop_add_param_group"></a>
+
 > <font size="3">add_param_group()</font>
 
 <div style="margin-left: 2em">
@@ -2981,6 +3235,8 @@
 **限制与说明**：`params`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Rprop_load_state_dict"></a>
 
 > <font size="3">load_state_dict()</font>
 
@@ -3004,6 +3260,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Rprop_register_load_state_dict_post_hook"></a>
+
 > <font size="3">register_load_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -3023,6 +3281,8 @@
 <!-- end id420 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Rprop_register_load_state_dict_pre_hook"></a>
 
 > <font size="3">register_load_state_dict_pre_hook()</font>
 
@@ -3044,6 +3304,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Rprop_register_state_dict_post_hook"></a>
+
 > <font size="3">register_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -3063,6 +3325,8 @@
 <!-- end id426 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Rprop_register_state_dict_pre_hook"></a>
 
 > <font size="3">register_state_dict_pre_hook()</font>
 
@@ -3084,6 +3348,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Rprop_register_step_post_hook"></a>
+
 > <font size="3">register_step_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -3104,6 +3370,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Rprop_register_step_pre_hook"></a>
+
 > <font size="3">register_step_pre_hook()</font>
 
 <div style="margin-left: 2em">
@@ -3123,6 +3391,8 @@
 <!-- end id435 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Rprop_state_dict"></a>
 
 > <font size="3">state_dict()</font>
 
@@ -3146,6 +3416,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_Rprop_step"></a>
+
 > <font size="3">step()</font>
 
 <div style="margin-left: 2em">
@@ -3167,6 +3439,8 @@
 **限制与说明**：`params`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_optim_Rprop_zero_grad"></a>
 
 > <font size="3">zero_grad()</font>
 
@@ -3222,6 +3496,8 @@
 
 - 优化器支持启动`fused`，即(`fused=True`)。
 
+<a class="method_anchor" id="torch_optim_SGD_add_param_group"></a>
+
 > <font size="3">add_param_group()</font>
 
 <div style="margin-left: 2em">
@@ -3243,6 +3519,8 @@
 **限制与说明**：`params`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_optim_SGD_load_state_dict"></a>
 
 > <font size="3">load_state_dict()</font>
 
@@ -3266,6 +3544,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_SGD_register_load_state_dict_post_hook"></a>
+
 > <font size="3">register_load_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -3285,6 +3565,8 @@
 <!-- end id456 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_SGD_register_load_state_dict_pre_hook"></a>
 
 > <font size="3">register_load_state_dict_pre_hook()</font>
 
@@ -3306,6 +3588,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_SGD_register_state_dict_post_hook"></a>
+
 > <font size="3">register_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -3325,6 +3609,8 @@
 <!-- end id462 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_SGD_register_state_dict_pre_hook"></a>
 
 > <font size="3">register_state_dict_pre_hook()</font>
 
@@ -3346,6 +3632,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_SGD_register_step_post_hook"></a>
+
 > <font size="3">register_step_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -3366,6 +3654,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_SGD_register_step_pre_hook"></a>
+
 > <font size="3">register_step_pre_hook()</font>
 
 <div style="margin-left: 2em">
@@ -3385,6 +3675,8 @@
 <!-- end id471 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_SGD_state_dict"></a>
 
 > <font size="3">state_dict()</font>
 
@@ -3408,6 +3700,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_SGD_step"></a>
+
 > <font size="3">step()</font>
 
 <div style="margin-left: 2em">
@@ -3429,6 +3723,8 @@
 **限制与说明**：`params`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_optim_SGD_zero_grad"></a>
 
 > <font size="3">zero_grad()</font>
 
@@ -3474,6 +3770,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id662 -->
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_LRScheduler_get_last_lr"></a>
+
 > <font size="3">get_last_lr()</font>
 
 <div style="margin-left: 2em">
@@ -3493,6 +3791,8 @@
 <!-- end id713 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_LRScheduler_get_lr"></a>
 
 > <font size="3">get_lr()</font>
 
@@ -3514,6 +3814,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_LRScheduler_load_state_dict"></a>
+
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -3534,6 +3836,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_LRScheduler_state_dict"></a>
+
 > <font size="3">state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -3553,6 +3857,8 @@
 <!-- end id743 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_LRScheduler_step"></a>
 
 > <font size="3">step()</font>
 
@@ -3594,6 +3900,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id483 -->
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_LambdaLR_get_last_lr"></a>
+
 > <font size="3">get_last_lr()</font>
 
 <div style="margin-left: 2em">
@@ -3613,6 +3921,8 @@
 <!-- end id486 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_LambdaLR_get_lr"></a>
 
 > <font size="3">get_lr()</font>
 
@@ -3634,6 +3944,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_LambdaLR_load_state_dict"></a>
+
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -3653,6 +3965,8 @@
 <!-- end id489 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_LambdaLR_state_dict"></a>
 
 > <font size="3">state_dict()</font>
 
@@ -3694,6 +4008,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id495 -->
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_MultiplicativeLR_get_last_lr"></a>
+
 > <font size="3">get_last_lr()</font>
 
 <div style="margin-left: 2em">
@@ -3716,6 +4032,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_MultiplicativeLR_get_lr"></a>
+
 > <font size="3">get_lr()</font>
 
 <div style="margin-left: 2em">
@@ -3735,6 +4053,8 @@
 <!-- end id692 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_MultiplicativeLR_load_state_dict"></a>
 
 > <font size="3">load_state_dict()</font>
 
@@ -3757,6 +4077,8 @@
 **限制与说明**： `lr`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_MultiplicativeLR_state_dict"></a>
 
 > <font size="3">state_dict()</font>
 
@@ -3800,6 +4122,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id507 -->
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_StepLR_get_last_lr"></a>
+
 > <font size="3">get_last_lr()</font>
 
 <div style="margin-left: 2em">
@@ -3822,6 +4146,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_StepLR_get_lr"></a>
+
 > <font size="3">get_lr()</font>
 
 <div style="margin-left: 2em">
@@ -3841,6 +4167,8 @@
 <!-- end id749 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_StepLR_load_state_dict"></a>
 
 > <font size="3">load_state_dict()</font>
 
@@ -3863,6 +4191,8 @@
 **限制与说明**：`lr`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_StepLR_state_dict"></a>
 
 > <font size="3">state_dict()</font>
 
@@ -3906,6 +4236,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id519 -->
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_MultiStepLR_get_last_lr"></a>
+
 > <font size="3">get_last_lr()</font>
 
 <div style="margin-left: 2em">
@@ -3928,6 +4260,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_MultiStepLR_get_lr"></a>
+
 > <font size="3">get_lr()</font>
 
 <div style="margin-left: 2em">
@@ -3947,6 +4281,8 @@
 <!-- end id695 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_MultiStepLR_load_state_dict"></a>
 
 > <font size="3">load_state_dict()</font>
 
@@ -3969,6 +4305,8 @@
 **限制与说明**：`lr`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_MultiStepLR_state_dict"></a>
 
 > <font size="3">state_dict()</font>
 
@@ -4012,6 +4350,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id531 -->
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_ConstantLR_get_last_lr"></a>
+
 > <font size="3">get_last_lr()</font>
 
 <div style="margin-left: 2em">
@@ -4034,6 +4374,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_ConstantLR_get_lr"></a>
+
 > <font size="3">get_lr()</font>
 
 <div style="margin-left: 2em">
@@ -4053,6 +4395,8 @@
 <!-- end id737 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_ConstantLR_load_state_dict"></a>
 
 > <font size="3">load_state_dict()</font>
 
@@ -4075,6 +4419,8 @@
 **限制与说明**： `lr`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_ConstantLR_state_dict"></a>
 
 > <font size="3">state_dict()</font>
 
@@ -4118,6 +4464,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id543 -->
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_LinearLR_get_last_lr"></a>
+
 > <font size="3">get_last_lr()</font>
 
 <div style="margin-left: 2em">
@@ -4137,6 +4485,8 @@
 <!-- end id546 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_LinearLR_get_lr"></a>
 
 > <font size="3">get_lr()</font>
 
@@ -4158,6 +4508,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_LinearLR_load_state_dict"></a>
+
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -4177,6 +4529,8 @@
 <!-- end id549 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_LinearLR_state_dict"></a>
 
 > <font size="3">state_dict()</font>
 
@@ -4218,6 +4572,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id555 -->
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_ExponentialLR_get_last_lr"></a>
+
 > <font size="3">get_last_lr()</font>
 
 <div style="margin-left: 2em">
@@ -4237,6 +4593,8 @@
 <!-- end id558 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_ExponentialLR_get_lr"></a>
 
 > <font size="3">get_lr()</font>
 
@@ -4258,6 +4616,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_ExponentialLR_load_state_dict"></a>
+
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -4277,6 +4637,8 @@
 <!-- end id561 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_ExponentialLR_state_dict"></a>
 
 > <font size="3">state_dict()</font>
 
@@ -4318,6 +4680,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id567 -->
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_PolynomialLR_get_last_lr"></a>
+
 > <font size="3">get_last_lr()</font>
 
 <div style="margin-left: 2em">
@@ -4337,6 +4701,8 @@
 <!-- end id570 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_PolynomialLR_get_lr"></a>
 
 > <font size="3">get_lr()</font>
 
@@ -4358,6 +4724,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_PolynomialLR_load_state_dict"></a>
+
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -4377,6 +4745,8 @@
 <!-- end id573 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_PolynomialLR_state_dict"></a>
 
 > <font size="3">state_dict()</font>
 
@@ -4418,6 +4788,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id579 -->
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_CosineAnnealingLR_get_last_lr"></a>
+
 > <font size="3">get_last_lr()</font>
 
 <div style="margin-left: 2em">
@@ -4437,6 +4809,8 @@
 <!-- end id582 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_CosineAnnealingLR_get_lr"></a>
 
 > <font size="3">get_lr()</font>
 
@@ -4458,6 +4832,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_CosineAnnealingLR_load_state_dict"></a>
+
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -4477,6 +4853,8 @@
 <!-- end id585 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_CosineAnnealingLR_state_dict"></a>
 
 > <font size="3">state_dict()</font>
 
@@ -4518,6 +4896,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id591 -->
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_ChainedScheduler_get_last_lr"></a>
+
 > <font size="3">get_last_lr()</font>
 
 <div style="margin-left: 2em">
@@ -4537,6 +4917,8 @@
 <!-- end id594 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_ChainedScheduler_load_state_dict"></a>
 
 > <font size="3">load_state_dict()</font>
 
@@ -4558,6 +4940,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_ChainedScheduler_state_dict"></a>
+
 > <font size="3">state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -4577,6 +4961,8 @@
 <!-- end id600 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_ChainedScheduler_step"></a>
 
 > <font size="3">step()</font>
 
@@ -4618,6 +5004,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id603 -->
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_SequentialLR_get_last_lr"></a>
+
 > <font size="3">get_last_lr()</font>
 
 <div style="margin-left: 2em">
@@ -4637,6 +5025,8 @@
 <!-- end id606 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_SequentialLR_load_state_dict"></a>
 
 > <font size="3">load_state_dict()</font>
 
@@ -4658,6 +5048,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_SequentialLR_recursive_undo"></a>
+
 > <font size="3">recursive_undo()</font>
 
 <div style="margin-left: 2em">
@@ -4678,6 +5070,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_SequentialLR_state_dict"></a>
+
 > <font size="3">state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -4697,6 +5091,8 @@
 <!-- end id612 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_SequentialLR_step"></a>
 
 > <font size="3">step()</font>
 
@@ -4738,6 +5134,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id615 -->
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_ReduceLROnPlateau_load_state_dict"></a>
+
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -4757,6 +5155,8 @@
 <!-- end id704 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_ReduceLROnPlateau_step"></a>
 
 > <font size="3">step()</font>
 
@@ -4798,6 +5198,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id618 -->
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_CyclicLR_get_last_lr"></a>
+
 > <font size="3">get_last_lr()</font>
 
 <div style="margin-left: 2em">
@@ -4818,6 +5220,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_CyclicLR_get_lr"></a>
+
 > <font size="3">get_lr()</font>
 
 <div style="margin-left: 2em">
@@ -4837,6 +5241,8 @@
 <!-- end id624 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_CyclicLR_scale_fn"></a>
 
 > <font size="3">scale_fn()</font>
 
@@ -4878,6 +5284,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id627 -->
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_OneCycleLR_get_last_lr"></a>
+
 > <font size="3">get_last_lr()</font>
 
 <div style="margin-left: 2em">
@@ -4897,6 +5305,8 @@
 <!-- end id630 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_OneCycleLR_get_lr"></a>
 
 > <font size="3">get_lr()</font>
 
@@ -4918,6 +5328,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_OneCycleLR_load_state_dict"></a>
+
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -4937,6 +5349,8 @@
 <!-- end id633 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_OneCycleLR_state_dict"></a>
 
 > <font size="3">state_dict()</font>
 
@@ -4978,6 +5392,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id639 -->
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_CosineAnnealingWarmRestarts_get_last_lr"></a>
+
 > <font size="3">get_last_lr()</font>
 
 <div style="margin-left: 2em">
@@ -4997,6 +5413,8 @@
 <!-- end id642 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_CosineAnnealingWarmRestarts_get_lr"></a>
 
 > <font size="3">get_lr()</font>
 
@@ -5018,6 +5436,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_CosineAnnealingWarmRestarts_load_state_dict"></a>
+
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -5038,6 +5458,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_optim_lr_scheduler_CosineAnnealingWarmRestarts_state_dict"></a>
+
 > <font size="3">state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -5057,6 +5479,8 @@
 <!-- end id648 -->
 
 </div>
+
+<a class="method_anchor" id="torch_optim_lr_scheduler_CosineAnnealingWarmRestarts_step"></a>
 
 > <font size="3">step()</font>
 
@@ -5100,6 +5524,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id728 -->
 
+<a class="method_anchor" id="torch_optim_swa_utils_AveragedModel_forward"></a>
+
 > <font size="3">forward()</font>
 
 <div style="margin-left: 2em">
@@ -5139,6 +5565,8 @@
 <!-- npu="950" id668 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id668 -->
+
+<a class="method_anchor" id="torch_optim_swa_utils_SWALR_load_state_dict"></a>
 
 > <font size="3">load_state_dict()</font>
 

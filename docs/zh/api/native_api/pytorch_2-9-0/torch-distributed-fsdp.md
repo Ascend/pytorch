@@ -36,6 +36,8 @@
 - `input`仅支持bf16，fp16，fp32
 - 在昇腾NPU场景中使用FSDP，推荐传入`device_id=torch.device("npu:0")`设备相关参数
 
+<a class="method_anchor" id="torch_distributed_fsdp_FullyShardedDataParallel_apply"></a>
+
 > <font size="3">apply()</font>
 
 <div style="margin-left: 2em">
@@ -57,6 +59,8 @@
 </div>
 
 <!-- npu="910b,A3" id108 -->
+<a class="method_anchor" id="torch_distributed_fsdp_FullyShardedDataParallel_check_is_root"></a>
+
 > <font size="3">check_is_root()</font>
 
 <div style="margin-left: 2em">
@@ -77,6 +81,8 @@
 </div>
 <!-- end id109 -->
 
+<a class="method_anchor" id="torch_distributed_fsdp_FullyShardedDataParallel_clip_grad_norm_"></a>
+
 > <font size="3">clip_grad_norm_()</font>
 
 <div style="margin-left: 2em">
@@ -96,6 +102,8 @@
 <!-- end id12 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_fsdp_FullyShardedDataParallel_forward"></a>
 
 > <font size="3">forward()</font>
 
@@ -118,6 +126,8 @@
 </div>
 
 <!-- npu="910b,A3" id110 -->
+<a class="method_anchor" id="torch_distributed_fsdp_FullyShardedDataParallel_fsdp_modules"></a>
+
 > <font size="3">fsdp_modules()</font>
 
 <div style="margin-left: 2em">
@@ -139,6 +149,8 @@
 <!-- end id111 -->
 
 <!-- npu="910b,A3" id112 -->
+<a class="method_anchor" id="torch_distributed_fsdp_FullyShardedDataParallel_full_optim_state_dict"></a>
+
 > <font size="3">full_optim_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -158,6 +170,8 @@
 <!-- npu="910b,A3" id113 -->
 </div>
 <!-- end id113 -->
+
+<a class="method_anchor" id="torch_distributed_fsdp_FullyShardedDataParallel_named_buffers"></a>
 
 > <font size="3">named_buffers()</font>
 
@@ -179,6 +193,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_fsdp_FullyShardedDataParallel_named_parameters"></a>
+
 > <font size="3">named_parameters()</font>
 
 <div style="margin-left: 2em">
@@ -198,6 +214,8 @@
 <!-- end id36 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_fsdp_FullyShardedDataParallel_no_sync"></a>
 
 > <font size="3">no_sync()</font>
 
@@ -220,6 +238,8 @@
 </div>
 
 <!-- npu="910b,A3" id114 -->
+<a class="method_anchor" id="torch_distributed_fsdp_FullyShardedDataParallel_optim_state_dict_to_load"></a>
+
 > <font size="3">optim_state_dict_to_load()</font>
 
 <div style="margin-left: 2em">
@@ -239,6 +259,8 @@
 <!-- npu="910b,A3" id115 -->
 </div>
 <!-- end id115 -->
+
+<a class="method_anchor" id="torch_distributed_fsdp_FullyShardedDataParallel_register_comm_hook"></a>
 
 > <font size="3">register_comm_hook()</font>
 
@@ -261,6 +283,8 @@
 </div>
 
 <!-- npu="910b,A3" id116 -->
+<a class="method_anchor" id="torch_distributed_fsdp_FullyShardedDataParallel_state_dict_type"></a>
+
 > <font size="3">state_dict_type()</font>
 
 <div style="margin-left: 2em">

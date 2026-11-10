@@ -76,6 +76,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id3 -->
 
+<a class="method_anchor" id="torch_distributed_elastic_agent_server_ElasticAgent_get_worker_group"></a>
+
 > <font size="3">get_worker_group()</font>
 
 <div style="margin-left: 2em">
@@ -95,6 +97,8 @@
 <!-- end id6 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_elastic_agent_server_ElasticAgent_run"></a>
 
 > <font size="3">run()</font>
 
@@ -136,6 +140,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id12 -->
 
+<a class="method_anchor" id="torch_distributed_elastic_agent_server_WorkerSpec_get_entrypoint_name"></a>
+
 > <font size="3">get_entrypoint_name()</font>
 
 <div style="margin-left: 2em">
@@ -175,6 +181,8 @@
 <!-- npu="950" id18 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id18 -->
+
+<a class="method_anchor" id="torch_distributed_elastic_agent_server_WorkerState_is_running"></a>
 
 > <font size="3">is_running()</font>
 
@@ -276,6 +284,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id33 -->
 
+<a class="method_anchor" id="torch_distributed_elastic_agent_server_SimpleElasticAgent__assign_worker_ranks"></a>
+
 > <font size="3">_assign_worker_ranks()</font>
 
 <div style="margin-left: 2em">
@@ -295,6 +305,8 @@
 <!-- end id36 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_elastic_agent_server_SimpleElasticAgent__exit_barrier"></a>
 
 > <font size="3">_exit_barrier()</font>
 
@@ -316,6 +328,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_elastic_agent_server_SimpleElasticAgent__initialize_workers"></a>
+
 > <font size="3">_initialize_workers()</font>
 
 <div style="margin-left: 2em">
@@ -335,6 +349,8 @@
 <!-- end id42 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_elastic_agent_server_SimpleElasticAgent__monitor_workers"></a>
 
 > <font size="3">_monitor_workers()</font>
 
@@ -356,6 +372,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_elastic_agent_server_SimpleElasticAgent__rendezvous"></a>
+
 > <font size="3">_rendezvous()</font>
 
 <div style="margin-left: 2em">
@@ -375,6 +393,8 @@
 <!-- end id48 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_elastic_agent_server_SimpleElasticAgent__restart_workers"></a>
 
 > <font size="3">_restart_workers()</font>
 
@@ -396,6 +416,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_elastic_agent_server_SimpleElasticAgent__shutdown"></a>
+
 > <font size="3">_shutdown()</font>
 
 <div style="margin-left: 2em">
@@ -416,6 +438,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_elastic_agent_server_SimpleElasticAgent__start_workers"></a>
+
 > <font size="3">_start_workers()</font>
 
 <div style="margin-left: 2em">
@@ -435,6 +459,8 @@
 <!-- end id57 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_elastic_agent_server_SimpleElasticAgent__stop_workers"></a>
 
 > <font size="3">_stop_workers()</font>
 
@@ -520,6 +546,8 @@
 <!-- end id68 -->
 
 <!-- npu="910b,A3" id367 -->
+<a class="method_anchor" id="torch_distributed_elastic_agent_server_health_check_server_HealthCheckServer_start"></a>
+
 > <font size="3">start()</font>
 
 <div style="margin-left: 2em">
@@ -541,6 +569,8 @@
 <!-- end id368 -->
 
 <!-- npu="910b,A3" id369 -->
+<a class="method_anchor" id="torch_distributed_elastic_agent_server_health_check_server_HealthCheckServer_stop"></a>
+
 > <font size="3">stop()</font>
 
 <div style="margin-left: 2em">
@@ -687,6 +717,8 @@
 <!-- end id92 -->
 
 <!-- npu="910b,A3" id373 -->
+<a class="method_anchor" id="torch_distributed_elastic_multiprocessing_api_DefaultLogsSpecs_reify"></a>
+
 > <font size="3">reify()</font>
 
 <div style="margin-left: 2em">
@@ -752,6 +784,8 @@
 <!-- end id101 -->
 
 <!-- npu="910b,A3" id379 -->
+<a class="method_anchor" id="torch_distributed_elastic_multiprocessing_api_LogsSpecs_reify"></a>
+
 > <font size="3">reify()</font>
 
 <div style="margin-left: 2em">
@@ -877,6 +911,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id120 -->
 
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_RendezvousParameters_get"></a>
+
 > <font size="3">get()</font>
 
 <div style="margin-left: 2em">
@@ -897,6 +933,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_RendezvousParameters_get_as_bool"></a>
+
 > <font size="3">get_as_bool()</font>
 
 <div style="margin-left: 2em">
@@ -916,6 +954,8 @@
 <!-- end id126 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_RendezvousParameters_get_as_int"></a>
 
 > <font size="3">get_as_int()</font>
 
@@ -1124,6 +1164,8 @@
 <!-- end id155 -->
 
 <!-- npu="910b,A3" id391 -->
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_etcd_store_EtcdStore_add"></a>
+
 > <font size="3">add()</font>
 
 <div style="margin-left: 2em">
@@ -1145,6 +1187,8 @@
 <!-- end id392 -->
 
 <!-- npu="910b,A3" id393 -->
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_etcd_store_EtcdStore_check"></a>
+
 > <font size="3">check()</font>
 
 <div style="margin-left: 2em">
@@ -1166,6 +1210,8 @@
 <!-- end id394 -->
 
 <!-- npu="910b,A3" id395 -->
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_etcd_store_EtcdStore_get"></a>
+
 > <font size="3">get()</font>
 
 <div style="margin-left: 2em">
@@ -1187,6 +1233,8 @@
 <!-- end id396 -->
 
 <!-- npu="910b,A3" id397 -->
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_etcd_store_EtcdStore_set"></a>
+
 > <font size="3">set()</font>
 
 <div style="margin-left: 2em">
@@ -1208,6 +1256,8 @@
 <!-- end id398 -->
 
 <!-- npu="910b,A3" id399 -->
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_etcd_store_EtcdStore_wait"></a>
+
 > <font size="3">wait()</font>
 
 <div style="margin-left: 2em">
@@ -1249,6 +1299,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id177 -->
 
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_RendezvousHandler_get_backend"></a>
+
 > <font size="3">get_backend()</font>
 
 <div style="margin-left: 2em">
@@ -1268,6 +1320,8 @@
 <!-- end id180 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_RendezvousHandler_get_run_id"></a>
 
 > <font size="3">get_run_id()</font>
 
@@ -1289,6 +1343,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_RendezvousHandler_is_closed"></a>
+
 > <font size="3">is_closed()</font>
 
 <div style="margin-left: 2em">
@@ -1308,6 +1364,8 @@
 <!-- end id186 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_RendezvousHandler_next_rendezvous"></a>
 
 > <font size="3">next_rendezvous()</font>
 
@@ -1329,6 +1387,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_RendezvousHandler_num_nodes_waiting"></a>
+
 > <font size="3">num_nodes_waiting()</font>
 
 <div style="margin-left: 2em">
@@ -1349,6 +1409,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_RendezvousHandler_set_closed"></a>
+
 > <font size="3">set_closed()</font>
 
 <div style="margin-left: 2em">
@@ -1368,6 +1430,8 @@
 <!-- end id195 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_RendezvousHandler_shutdown"></a>
 
 > <font size="3">shutdown()</font>
 
@@ -1390,6 +1454,8 @@
 </div>
 
 <!-- npu="910b,A3" id401 -->
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_RendezvousHandler_use_agent_store"></a>
+
 > <font size="3">use_agent_store()</font>
 
 <div style="margin-left: 2em">
@@ -1538,6 +1604,8 @@
 <!-- end id218 -->
 
 <!-- npu="910b,A3" id415 -->
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_api_RendezvousStoreInfo_build"></a>
+
 > <font size="3">build()</font>
 
 <div style="margin-left: 2em">
@@ -1579,6 +1647,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id225 -->
 
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_dynamic_rendezvous_DynamicRendezvousHandler_from_backend"></a>
+
 > <font size="3">from_backend()</font>
 
 <div style="margin-left: 2em">
@@ -1619,6 +1689,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id231 -->
 
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_dynamic_rendezvous_RendezvousBackend_get_state"></a>
+
 > <font size="3">get_state()</font>
 
 <div style="margin-left: 2em">
@@ -1639,6 +1711,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_dynamic_rendezvous_RendezvousBackend_name"></a>
+
 > <font size="3">name()</font>
 
 <div style="margin-left: 2em">
@@ -1658,6 +1732,8 @@
 <!-- end id237 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_dynamic_rendezvous_RendezvousBackend_set_state"></a>
 
 > <font size="3">set_state()</font>
 
@@ -1699,6 +1775,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id243 -->
 
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_dynamic_rendezvous_RendezvousTimeout_close"></a>
+
 > <font size="3">close()</font>
 
 <div style="margin-left: 2em">
@@ -1718,6 +1796,8 @@
 <!-- end id246 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_dynamic_rendezvous_RendezvousTimeout_heartbeat"></a>
 
 > <font size="3">heartbeat()</font>
 
@@ -1739,6 +1819,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_dynamic_rendezvous_RendezvousTimeout_join"></a>
+
 > <font size="3">join()</font>
 
 <div style="margin-left: 2em">
@@ -1758,6 +1840,8 @@
 <!-- end id252 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_dynamic_rendezvous_RendezvousTimeout_last_call"></a>
 
 > <font size="3">last_call()</font>
 
@@ -1799,6 +1883,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id258 -->
 
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_c10d_rendezvous_backend_C10dRendezvousBackend_get_state"></a>
+
 > <font size="3">get_state()</font>
 
 <div style="margin-left: 2em">
@@ -1819,6 +1905,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_c10d_rendezvous_backend_C10dRendezvousBackend_name"></a>
+
 > <font size="3">name()</font>
 
 <div style="margin-left: 2em">
@@ -1838,6 +1926,8 @@
 <!-- end id264 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_c10d_rendezvous_backend_C10dRendezvousBackend_set_state"></a>
 
 > <font size="3">set_state()</font>
 
@@ -1882,6 +1972,8 @@
 <!-- end id269 -->
 
 <!-- npu="910b,A3" id419 -->
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_etcd_rendezvous_backend_EtcdRendezvousBackend_get_state"></a>
+
 > <font size="3">get_state()</font>
 
 <div style="margin-left: 2em">
@@ -1903,6 +1995,8 @@
 <!-- end id420 -->
 
 <!-- npu="910b,A3" id421 -->
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_etcd_rendezvous_backend_EtcdRendezvousBackend_name"></a>
+
 > <font size="3">name()</font>
 
 <div style="margin-left: 2em">
@@ -1924,6 +2018,8 @@
 <!-- end id422 -->
 
 <!-- npu="910b,A3" id423 -->
+<a class="method_anchor" id="torch_distributed_elastic_rendezvous_etcd_rendezvous_backend_EtcdRendezvousBackend_set_state"></a>
+
 > <font size="3">set_state()</font>
 
 <div style="margin-left: 2em">
@@ -2127,6 +2223,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id306 -->
 
+<a class="method_anchor" id="torch_distributed_elastic_timer_TimerServer_clear_timers"></a>
+
 > <font size="3">clear_timers()</font>
 
 <div style="margin-left: 2em">
@@ -2147,6 +2245,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_elastic_timer_TimerServer_get_expired_timers"></a>
+
 > <font size="3">get_expired_timers()</font>
 
 <div style="margin-left: 2em">
@@ -2166,6 +2266,8 @@
 <!-- end id312 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_elastic_timer_TimerServer_register_timers"></a>
 
 > <font size="3">register_timers()</font>
 
@@ -2207,6 +2309,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id318 -->
 
+<a class="method_anchor" id="torch_distributed_elastic_timer_TimerClient_acquire"></a>
+
 > <font size="3">acquire()</font>
 
 <div style="margin-left: 2em">
@@ -2226,6 +2330,8 @@
 <!-- end id321 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_elastic_timer_TimerClient_release"></a>
 
 > <font size="3">release()</font>
 

@@ -27,6 +27,8 @@
 <div style="margin-left: 2em">
 
 <!-- npu="910b,A3" id45 -->
+<a class="method_anchor" id="torch_Tensor_is_sparse_csr"></a>
+
 > <font size="3">is_sparse_csr()</font>
 
 <div style="margin-left: 2em">
@@ -48,6 +50,8 @@
 <!-- end id46 -->
 
 <!-- npu="910b,A3" id47 -->
+<a class="method_anchor" id="torch_Tensor_to_sparse_coo"></a>
+
 > <font size="3">to_sparse_coo()</font>
 
 <div style="margin-left: 2em">
@@ -67,6 +71,8 @@
 <!-- npu="910b,A3" id48 -->
 </div>
 <!-- end id48 -->
+
+<a class="method_anchor" id="torch_Tensor_coalesce"></a>
 
 > <font size="3">coalesce()</font>
 
@@ -88,6 +94,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_sparse_resize_"></a>
+
 > <font size="3">sparse_resize_()</font>
 
 <div style="margin-left: 2em">
@@ -108,6 +116,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_sparse_resize_and_clear_"></a>
+
 > <font size="3">sparse_resize_and_clear_()</font>
 
 <div style="margin-left: 2em">
@@ -127,6 +137,8 @@
 <!-- end id15 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_is_coalesced"></a>
 
 > <font size="3">is_coalesced()</font>
 
@@ -149,6 +161,8 @@
 </div>
 
 <!-- npu="910b,A3" id49 -->
+<a class="method_anchor" id="torch_Tensor_crow_indices"></a>
+
 > <font size="3">crow_indices()</font>
 
 <div style="margin-left: 2em">
@@ -170,6 +184,8 @@
 <!-- end id50 -->
 
 <!-- npu="910b,A3" id51 -->
+<a class="method_anchor" id="torch_Tensor_col_indices"></a>
+
 > <font size="3">col_indices()</font>
 
 <div style="margin-left: 2em">
@@ -191,6 +207,8 @@
 <!-- end id52 -->
 
 <!-- npu="910b,A3" id53 -->
+<a class="method_anchor" id="torch_Tensor_row_indices"></a>
+
 > <font size="3">row_indices()</font>
 
 <div style="margin-left: 2em">
@@ -212,6 +230,8 @@
 <!-- end id54 -->
 
 <!-- npu="910b,A3" id55 -->
+<a class="method_anchor" id="torch_Tensor_ccol_indices"></a>
+
 > <font size="3">ccol_indices()</font>
 
 <div style="margin-left: 2em">
@@ -313,6 +333,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id33 -->
 
+<a class="method_anchor" id="torch_sparse_check_sparse_tensor_invariants_disable"></a>
+
 > <font size="3">disable()</font>
 
 <div style="margin-left: 2em">
@@ -333,6 +355,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_sparse_check_sparse_tensor_invariants_enable"></a>
+
 > <font size="3">enable()</font>
 
 <div style="margin-left: 2em">
@@ -352,6 +376,8 @@
 <!-- end id39 -->
 
 </div>
+
+<a class="method_anchor" id="torch_sparse_check_sparse_tensor_invariants_is_enabled"></a>
 
 > <font size="3">is_enabled()</font>
 

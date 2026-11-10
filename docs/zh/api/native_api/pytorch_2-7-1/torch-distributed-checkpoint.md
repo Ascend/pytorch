@@ -143,6 +143,8 @@
 <!-- end id11 -->
 
 <!-- npu="910b,A3" id224 -->
+<a class="method_anchor" id="torch_distributed_checkpoint_stateful_Stateful_load_state_dict"></a>
+
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -164,6 +166,8 @@
 <!-- end id225 -->
 
 <!-- npu="910b,A3" id226 -->
+<a class="method_anchor" id="torch_distributed_checkpoint_stateful_Stateful_state_dict"></a>
+
 > <font size="3">state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -205,6 +209,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id111 -->
 
+<a class="method_anchor" id="torch_distributed_checkpoint_StorageReader_prepare_global_plan"></a>
+
 > <font size="3">prepare_global_plan()</font>
 
 <div style="margin-left: 2em">
@@ -224,6 +230,8 @@
 <!-- end id114 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_checkpoint_StorageReader_prepare_local_plan"></a>
 
 > <font size="3">prepare_local_plan()</font>
 
@@ -245,6 +253,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_checkpoint_StorageReader_read_data"></a>
+
 > <font size="3">read_data()</font>
 
 <div style="margin-left: 2em">
@@ -264,6 +274,8 @@
 <!-- end id120 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_checkpoint_StorageReader_read_metadata"></a>
 
 > <font size="3">read_metadata()</font>
 
@@ -285,6 +297,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_checkpoint_StorageReader_reset"></a>
+
 > <font size="3">reset()</font>
 
 <div style="margin-left: 2em">
@@ -304,6 +318,8 @@
 <!-- end id126 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_checkpoint_StorageReader_set_up_storage_reader"></a>
 
 > <font size="3">set_up_storage_reader()</font>
 
@@ -326,6 +342,8 @@
 </div>
 
 <!-- npu="910b,A3" id270 -->
+<a class="method_anchor" id="torch_distributed_checkpoint_StorageReader_validate_checkpoint_id"></a>
+
 > <font size="3">validate_checkpoint_id()</font>
 
 <div style="margin-left: 2em">
@@ -366,6 +384,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id135 -->
 
+<a class="method_anchor" id="torch_distributed_checkpoint_StorageWriter_finish"></a>
+
 > <font size="3">finish()</font>
 
 <div style="margin-left: 2em">
@@ -385,6 +405,8 @@
 <!-- end id138 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_checkpoint_StorageWriter_prepare_global_plan"></a>
 
 > <font size="3">prepare_global_plan()</font>
 
@@ -406,6 +428,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_checkpoint_StorageWriter_prepare_local_plan"></a>
+
 > <font size="3">prepare_local_plan()</font>
 
 <div style="margin-left: 2em">
@@ -425,6 +449,8 @@
 <!-- end id144 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_checkpoint_StorageWriter_reset"></a>
 
 > <font size="3">reset()</font>
 
@@ -446,6 +472,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_checkpoint_StorageWriter_set_up_storage_writer"></a>
+
 > <font size="3">set_up_storage_writer()</font>
 
 <div style="margin-left: 2em">
@@ -465,6 +493,8 @@
 <!-- end id150 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_checkpoint_StorageWriter_storage_meta"></a>
 
 > <font size="3">storage_meta()</font>
 
@@ -487,6 +517,8 @@
 </div>
 
 <!-- npu="910b,A3" id272 -->
+<a class="method_anchor" id="torch_distributed_checkpoint_StorageWriter_validate_checkpoint_id"></a>
+
 > <font size="3">validate_checkpoint_id()</font>
 
 <div style="margin-left: 2em">
@@ -506,6 +538,8 @@
 <!-- npu="910b,A3" id273 -->
 </div>
 <!-- end id273 -->
+
+<a class="method_anchor" id="torch_distributed_checkpoint_StorageWriter_write_data"></a>
 
 > <font size="3">write_data()</font>
 
@@ -550,6 +584,8 @@
 <!-- end id26 -->
 
 <!-- npu="910b,A3" id230 -->
+<a class="method_anchor" id="torch_distributed_checkpoint_staging_AsyncStager_should_synchronize_after_execute"></a>
+
 > <font size="3">should_synchronize_after_execute()</font>
 
 <div style="margin-left: 2em">
@@ -571,6 +607,8 @@
 <!-- end id231 -->
 
 <!-- npu="910b,A3" id232 -->
+<a class="method_anchor" id="torch_distributed_checkpoint_staging_AsyncStager_stage"></a>
+
 > <font size="3">stage()</font>
 
 <div style="margin-left: 2em">
@@ -592,6 +630,8 @@
 <!-- end id233 -->
 
 <!-- npu="910b,A3" id234 -->
+<a class="method_anchor" id="torch_distributed_checkpoint_staging_AsyncStager_synchronize_staging"></a>
+
 > <font size="3">synchronize_staging()</font>
 
 <div style="margin-left: 2em">
@@ -636,6 +676,8 @@
 <!-- end id38 -->
 
 <!-- npu="910b,A3" id238 -->
+<a class="method_anchor" id="torch_distributed_checkpoint_staging_BlockingAsyncStager_stage"></a>
+
 > <font size="3">stage()</font>
 
 <div style="margin-left: 2em">
@@ -657,6 +699,8 @@
 <!-- end id239 -->
 
 <!-- npu="910b,A3" id240 -->
+<a class="method_anchor" id="torch_distributed_checkpoint_staging_BlockingAsyncStager_synchronize_staging"></a>
+
 > <font size="3">synchronize_staging()</font>
 
 <div style="margin-left: 2em">
@@ -698,6 +742,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id162 -->
 
+<a class="method_anchor" id="torch_distributed_checkpoint_LoadPlanner_commit_tensor"></a>
+
 > <font size="3">commit_tensor()</font>
 
 <div style="margin-left: 2em">
@@ -717,6 +763,8 @@
 <!-- end id165 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_checkpoint_LoadPlanner_create_global_plan"></a>
 
 > <font size="3">create_global_plan()</font>
 
@@ -738,6 +786,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_checkpoint_LoadPlanner_create_local_plan"></a>
+
 > <font size="3">create_local_plan()</font>
 
 <div style="margin-left: 2em">
@@ -757,6 +807,8 @@
 <!-- end id171 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_checkpoint_LoadPlanner_finish_plan"></a>
 
 > <font size="3">finish_plan()</font>
 
@@ -778,6 +830,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_checkpoint_LoadPlanner_load_bytes"></a>
+
 > <font size="3">load_bytes()</font>
 
 <div style="margin-left: 2em">
@@ -798,6 +852,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_checkpoint_LoadPlanner_resolve_tensor"></a>
+
 > <font size="3">resolve_tensor()</font>
 
 <div style="margin-left: 2em">
@@ -817,6 +873,8 @@
 <!-- end id180 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_checkpoint_LoadPlanner_set_up_planner"></a>
 
 > <font size="3">set_up_planner()</font>
 
@@ -900,6 +958,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id195 -->
 
+<a class="method_anchor" id="torch_distributed_checkpoint_SavePlanner_create_global_plan"></a>
+
 > <font size="3">create_global_plan()</font>
 
 <div style="margin-left: 2em">
@@ -919,6 +979,8 @@
 <!-- end id198 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_checkpoint_SavePlanner_create_local_plan"></a>
 
 > <font size="3">create_local_plan()</font>
 
@@ -940,6 +1002,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_checkpoint_SavePlanner_finish_plan"></a>
+
 > <font size="3">finish_plan()</font>
 
 <div style="margin-left: 2em">
@@ -960,6 +1024,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_checkpoint_SavePlanner_resolve_data"></a>
+
 > <font size="3">resolve_data()</font>
 
 <div style="margin-left: 2em">
@@ -979,6 +1045,8 @@
 <!-- end id207 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_checkpoint_SavePlanner_set_up_planner"></a>
 
 > <font size="3">set_up_planner()</font>
 
@@ -1081,6 +1149,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id48 -->
 
+<a class="method_anchor" id="torch_distributed_checkpoint_DefaultSavePlanner_lookup_object"></a>
+
 > <font size="3">lookup_object()</font>
 
 <div style="margin-left: 2em">
@@ -1100,6 +1170,8 @@
 <!-- end id51 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_checkpoint_DefaultSavePlanner_transform_object"></a>
 
 > <font size="3">transform_object()</font>
 
@@ -1141,6 +1213,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id57 -->
 
+<a class="method_anchor" id="torch_distributed_checkpoint_DefaultLoadPlanner_lookup_tensor"></a>
+
 > <font size="3">lookup_tensor()</font>
 
 <div style="margin-left: 2em">
@@ -1160,6 +1234,8 @@
 <!-- end id60 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_checkpoint_DefaultLoadPlanner_transform_tensor"></a>
 
 > <font size="3">transform_tensor()</font>
 
@@ -1224,6 +1300,8 @@
 <!-- end id83 -->
 
 <!-- npu="910b,A3" id256 -->
+<a class="method_anchor" id="torch_distributed_checkpoint_format_utils_BroadcastingTorchSaveReader_read_metadata"></a>
+
 > <font size="3">read_metadata()</font>
 
 <div style="margin-left: 2em">
@@ -1245,6 +1323,8 @@
 <!-- end id257 -->
 
 <!-- npu="910b,A3" id258 -->
+<a class="method_anchor" id="torch_distributed_checkpoint_format_utils_BroadcastingTorchSaveReader_prepare_local_plan"></a>
+
 > <font size="3">prepare_local_plan()</font>
 
 <div style="margin-left: 2em">
@@ -1266,6 +1346,8 @@
 <!-- end id259 -->
 
 <!-- npu="910b,A3" id260 -->
+<a class="method_anchor" id="torch_distributed_checkpoint_format_utils_BroadcastingTorchSaveReader_prepare_global_plan"></a>
+
 > <font size="3">prepare_global_plan()</font>
 
 <div style="margin-left: 2em">
@@ -1285,6 +1367,8 @@
 <!-- npu="910b,A3" id261 -->
 </div>
 <!-- end id261 -->
+
+<a class="method_anchor" id="torch_distributed_checkpoint_format_utils_BroadcastingTorchSaveReader_read_data"></a>
 
 > <font size="3">read_data()</font>
 
@@ -1307,6 +1391,8 @@
 </div>
 
 <!-- npu="910b,A3" id262 -->
+<a class="method_anchor" id="torch_distributed_checkpoint_format_utils_BroadcastingTorchSaveReader_reset"></a>
+
 > <font size="3">reset()</font>
 
 <div style="margin-left: 2em">
@@ -1328,6 +1414,8 @@
 <!-- end id263 -->
 
 <!-- npu="910b,A3" id264 -->
+<a class="method_anchor" id="torch_distributed_checkpoint_format_utils_BroadcastingTorchSaveReader_set_up_storage_reader"></a>
+
 > <font size="3">set_up_storage_reader()</font>
 
 <div style="margin-left: 2em">
@@ -1349,6 +1437,8 @@
 <!-- end id265 -->
 
 <!-- npu="910b,A3" id266 -->
+<a class="method_anchor" id="torch_distributed_checkpoint_format_utils_BroadcastingTorchSaveReader_validate_checkpoint_id"></a>
+
 > <font size="3">validate_checkpoint_id()</font>
 
 <div style="margin-left: 2em">
@@ -1578,6 +1668,8 @@
 <!-- end id215 -->
 
 <!-- npu="910b,A3" id282 -->
+<a class="method_anchor" id="torch_distributed_checkpoint_planner_WriteItem_tensor_storage_size"></a>
+
 > <font size="3">tensor_storage_size()</font>
 
 <div style="margin-left: 2em">

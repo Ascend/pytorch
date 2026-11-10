@@ -31,6 +31,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id9 -->
 
+<a class="method_anchor" id="torch_distributed_optim_PostLocalSGDOptimizer_load_state_dict"></a>
+
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -51,6 +53,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_optim_PostLocalSGDOptimizer_state_dict"></a>
+
 > <font size="3">state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -70,6 +74,8 @@
 <!-- end id15 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_optim_PostLocalSGDOptimizer_step"></a>
 
 > <font size="3">step()</font>
 
@@ -116,6 +122,8 @@
 - 支持的输入类型为`torch.nn.Optimizer`对象
 - 不支持NPU融合优化器对象
 
+<a class="method_anchor" id="torch_distributed_optim_ZeroRedundancyOptimizer_add_param_group"></a>
+
 > <font size="3">add_param_group()</font>
 
 <div style="margin-left: 2em">
@@ -135,6 +143,8 @@
 <!-- end id24 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_optim_ZeroRedundancyOptimizer_consolidate_state_dict"></a>
 
 > <font size="3">consolidate_state_dict()</font>
 
@@ -157,6 +167,8 @@
 </div>
 
 <!-- npu="910b,A3" id45 -->
+<a class="method_anchor" id="torch_distributed_optim_ZeroRedundancyOptimizer_join_device"></a>
+
 > <font size="3">join_device()</font>
 
 <div style="margin-left: 2em">
@@ -178,6 +190,8 @@
 <!-- end id46 -->
 
 <!-- npu="910b,A3" id47 -->
+<a class="method_anchor" id="torch_distributed_optim_ZeroRedundancyOptimizer_join_hook"></a>
+
 > <font size="3">join_hook()</font>
 
 <div style="margin-left: 2em">
@@ -199,6 +213,8 @@
 <!-- end id48 -->
 
 <!-- npu="910b,A3" id49 -->
+<a class="method_anchor" id="torch_distributed_optim_ZeroRedundancyOptimizer_join_process_group"></a>
+
 > <font size="3">join_process_group()</font>
 
 <div style="margin-left: 2em">
@@ -220,6 +236,8 @@
 <!-- end id50 -->
 
 <!-- npu="910b,A3" id51 -->
+<a class="method_anchor" id="torch_distributed_optim_ZeroRedundancyOptimizer_load_state_dict"></a>
+
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -239,6 +257,8 @@
 <!-- npu="910b,A3" id52 -->
 </div>
 <!-- end id52 -->
+
+<a class="method_anchor" id="torch_distributed_optim_ZeroRedundancyOptimizer_state_dict"></a>
 
 > <font size="3">state_dict()</font>
 
@@ -261,6 +281,8 @@
 </div>
 
 <!-- npu="910b,A3" id53 -->
+<a class="method_anchor" id="torch_distributed_optim_ZeroRedundancyOptimizer_step"></a>
+
 > <font size="3">step()</font>
 
 <div style="margin-left: 2em">

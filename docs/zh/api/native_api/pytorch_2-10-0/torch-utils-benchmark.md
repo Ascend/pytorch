@@ -31,6 +31,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id3 -->
 
+<a class="method_anchor" id="torch_utils_benchmark_Timer_adaptive_autorange"></a>
+
 > <font size="3">adaptive_autorange()</font>
 
 <div style="margin-left: 2em">
@@ -50,6 +52,8 @@
 <!-- end id6 -->
 
 </div>
+
+<a class="method_anchor" id="torch_utils_benchmark_Timer_blocked_autorange"></a>
 
 > <font size="3">blocked_autorange()</font>
 
@@ -71,6 +75,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_utils_benchmark_Timer_collect_callgrind"></a>
+
 > <font size="3">collect_callgrind()</font>
 
 <div style="margin-left: 2em">
@@ -90,6 +96,8 @@
 <!-- end id12 -->
 
 </div>
+
+<a class="method_anchor" id="torch_utils_benchmark_Timer_timeit"></a>
 
 > <font size="3">timeit()</font>
 
@@ -131,6 +139,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id18 -->
 
+<a class="method_anchor" id="torch_utils_benchmark_Measurement_merge"></a>
+
 > <font size="3">merge()</font>
 
 <div style="margin-left: 2em">
@@ -150,6 +160,8 @@
 <!-- end id57 -->
 
 </div>
+
+<a class="method_anchor" id="torch_utils_benchmark_Measurement_significant_figures"></a>
 
 > <font size="3">significant_figures</font>
 
@@ -191,6 +203,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id21 -->
 
+<a class="method_anchor" id="torch_utils_benchmark_CallgrindStats_as_standardized"></a>
+
 > <font size="3">as_standardized()</font>
 
 <div style="margin-left: 2em">
@@ -210,6 +224,8 @@
 <!-- end id24 -->
 
 </div>
+
+<a class="method_anchor" id="torch_utils_benchmark_CallgrindStats_counts"></a>
 
 > <font size="3">counts()</font>
 
@@ -231,6 +247,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_utils_benchmark_CallgrindStats_delta"></a>
+
 > <font size="3">delta()</font>
 
 <div style="margin-left: 2em">
@@ -250,6 +268,8 @@
 <!-- end id30 -->
 
 </div>
+
+<a class="method_anchor" id="torch_utils_benchmark_CallgrindStats_stats"></a>
 
 > <font size="3">stats()</font>
 
@@ -291,6 +311,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id36 -->
 
+<a class="method_anchor" id="torch_utils_benchmark_FunctionCounts_denoise"></a>
+
 > <font size="3">denoise()</font>
 
 <div style="margin-left: 2em">
@@ -311,6 +333,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_utils_benchmark_FunctionCounts_filter"></a>
+
 > <font size="3">filter()</font>
 
 <div style="margin-left: 2em">
@@ -330,6 +354,8 @@
 <!-- end id42 -->
 
 </div>
+
+<a class="method_anchor" id="torch_utils_benchmark_FunctionCounts_transform"></a>
 
 > <font size="3">transform()</font>
 
@@ -371,6 +397,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id48 -->
 
+<a class="method_anchor" id="torch_utils_benchmark_Compare_colorize"></a>
+
 > <font size="3">colorize()</font>
 
 <div style="margin-left: 2em">
@@ -390,6 +418,8 @@
 <!-- end id51 -->
 
 </div>
+
+<a class="method_anchor" id="torch_utils_benchmark_Compare_extend_results"></a>
 
 > <font size="3">extend_results()</font>
 
@@ -411,6 +441,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_utils_benchmark_Compare_highlight_warnings"></a>
+
 > <font size="3">highlight_warnings()</font>
 
 <div style="margin-left: 2em">
@@ -431,6 +463,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_utils_benchmark_Compare_print"></a>
+
 > <font size="3">print()</font>
 
 <div style="margin-left: 2em">
@@ -450,6 +484,8 @@
 <!-- end id69 -->
 
 </div>
+
+<a class="method_anchor" id="torch_utils_benchmark_Compare_trim_significant_figures"></a>
 
 > <font size="3">trim_significant_figures()</font>
 

@@ -727,6 +727,8 @@
 
 <div style="margin-left: 2em">
 
+<a class="method_anchor" id="torch_cuda_MemPoolContext_active_pool"></a>
+
 > <font size="3">active_pool()</font>
 
 <div style="margin-left: 2em">
@@ -1111,6 +1113,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id105 -->
 
+<a class="method_anchor" id="torch_cuda_Stream_query"></a>
+
 > <font size="3">query()</font>
 
 <div style="margin-left: 2em">
@@ -1130,6 +1134,8 @@
 <!-- end id292 -->
 
 </div>
+
+<a class="method_anchor" id="torch_cuda_Stream_record_event"></a>
 
 > <font size="3">record_event()</font>
 
@@ -1151,6 +1157,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_cuda_Stream_synchronize"></a>
+
 > <font size="3">synchronize()</font>
 
 <div style="margin-left: 2em">
@@ -1170,6 +1178,8 @@
 <!-- end id298 -->
 
 </div>
+
+<a class="method_anchor" id="torch_cuda_Stream_wait_event"></a>
 
 > <font size="3">wait_event()</font>
 
@@ -1192,6 +1202,8 @@
 </div>
 
 <!-- npu="910b,A3" id243 -->
+<a class="method_anchor" id="torch_cuda_Stream_wait_stream"></a>
+
 > <font size="3">wait_stream()</font>
 
 <div style="margin-left: 2em">
@@ -1254,6 +1266,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id111 -->
 
+<a class="method_anchor" id="torch_cuda_Event_elapsed_time"></a>
+
 > <font size="3">elapsed_time()</font>
 
 <div style="margin-left: 2em">
@@ -1273,6 +1287,8 @@
 <!-- end id114 -->
 
 </div>
+
+<a class="method_anchor" id="torch_cuda_Event_from_ipc_handle"></a>
 
 > <font size="3">from_ipc_handle()</font>
 
@@ -1294,6 +1310,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_cuda_Event_ipc_handle"></a>
+
 > <font size="3">ipc_handle()</font>
 
 <div style="margin-left: 2em">
@@ -1313,6 +1331,8 @@
 <!-- end id120 -->
 
 </div>
+
+<a class="method_anchor" id="torch_cuda_Event_query"></a>
 
 > <font size="3">query()</font>
 
@@ -1334,6 +1354,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_cuda_Event_record"></a>
+
 > <font size="3">record()</font>
 
 <div style="margin-left: 2em">
@@ -1354,6 +1376,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_cuda_Event_synchronize"></a>
+
 > <font size="3">synchronize()</font>
 
 <div style="margin-left: 2em">
@@ -1373,6 +1397,8 @@
 <!-- end id286 -->
 
 </div>
+
+<a class="method_anchor" id="torch_cuda_Event_wait"></a>
 
 > <font size="3">wait()</font>
 
@@ -1466,6 +1492,8 @@
 
 **限制与说明**： 当前仅支持推理场景，不支持训练场景
 
+<a class="method_anchor" id="torch_cuda_CUDAGraph_capture_begin"></a>
+
 > <font size="3">capture_begin()</font>
 
 <div style="margin-left: 2em">
@@ -1487,6 +1515,8 @@
 **限制与说明**： 当前仅支持推理场景，不支持训练场景
 
 </div>
+
+<a class="method_anchor" id="torch_cuda_CUDAGraph_capture_end"></a>
 
 > <font size="3">capture_end()</font>
 
@@ -1511,6 +1541,8 @@
 </div>
 
 <!-- npu="910b,A3" id144 -->
+<a class="method_anchor" id="torch_cuda_CUDAGraph_debug_dump"></a>
+
 > <font size="3">debug_dump()</font>
 
 <div style="margin-left: 2em">
@@ -1534,6 +1566,8 @@
 </div>
 <!-- end id144 -->
 
+<a class="method_anchor" id="torch_cuda_CUDAGraph_enable_debug_mode"></a>
+
 > <font size="3">enable_debug_mode()</font>
 
 <div style="margin-left: 2em">
@@ -1555,6 +1589,8 @@
 </div>
 
 <!-- npu="910b,A3" id147 -->
+<a class="method_anchor" id="torch_cuda_CUDAGraph_pool"></a>
+
 > <font size="3">pool()</font>
 
 <div style="margin-left: 2em">
@@ -1574,6 +1610,8 @@
 
 </div>
 <!-- end id147 -->
+
+<a class="method_anchor" id="torch_cuda_CUDAGraph_replay"></a>
 
 > <font size="3">replay()</font>
 
@@ -1596,6 +1634,8 @@
 **限制与说明**： 当前仅支持推理场景，不支持训练场景
 
 </div>
+
+<a class="method_anchor" id="torch_cuda_CUDAGraph_reset"></a>
 
 > <font size="3">reset()</font>
 
@@ -2235,6 +2275,8 @@
 - Ascend 950DT系列产品支持使用默认NPU缓存分配器创建内存池，不支持通过`allocator`参数指定`NPUPluggableAllocator`。
 <!-- end id238 -->
 
+<a class="method_anchor" id="torch_cuda_MemPool_allocator"></a>
+
 > <font size="3">allocator</font>
 
 <div style="margin-left: 2em">
@@ -2254,6 +2296,8 @@
 <!-- end id289 -->
 
 </div>
+
+<a class="method_anchor" id="torch_cuda_MemPool_id"></a>
 
 > <font size="3">id</font>
 
@@ -2275,6 +2319,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_cuda_MemPool_snapshot"></a>
+
 > <font size="3">snapshot()</font>
 
 <div style="margin-left: 2em">
@@ -2294,6 +2340,8 @@
 <!-- end id331 -->
 
 </div>
+
+<a class="method_anchor" id="torch_cuda_MemPool_use_count"></a>
 
 > <font size="3">use_count()</font>
 
@@ -2607,6 +2655,8 @@
 
 <div style="margin-left: 2em">
 
+<a class="method_anchor" id="torch_cuda_gds_GdsFile_deregister_handle"></a>
+
 > <font size="3">deregister_handle()</font>
 
 <div style="margin-left: 2em">
@@ -2627,6 +2677,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_cuda_gds_GdsFile_register_handle"></a>
+
 > <font size="3">register_handle()</font>
 
 <div style="margin-left: 2em">
@@ -2646,6 +2698,8 @@
 <!-- end id343 -->
 
 </div>
+
+<a class="method_anchor" id="torch_cuda_gds_GdsFile_save_storage"></a>
 
 > <font size="3">save_storage()</font>
 

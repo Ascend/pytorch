@@ -46,6 +46,8 @@
 <!-- end id2 -->
 
 <!-- npu="910b,A3" id224 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_add_backed_var_to_val"></a>
+
 > <font size="3">add_backed_var_to_val()</font>
 
 <div style="margin-left: 2em">
@@ -67,6 +69,8 @@
 <!-- end id225 -->
 
 <!-- npu="910b,A3" id226 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_format_guards"></a>
+
 > <font size="3">format_guards()</font>
 
 <div style="margin-left: 2em">
@@ -88,6 +92,8 @@
 <!-- end id227 -->
 
 <!-- npu="910b,A3" id228 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_freeze"></a>
+
 > <font size="3">freeze()</font>
 
 <div style="margin-left: 2em">
@@ -109,6 +115,8 @@
 <!-- end id229 -->
 
 <!-- npu="910b,A3" id230 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_freeze_runtime_asserts"></a>
+
 > <font size="3">freeze_runtime_asserts()</font>
 
 <div style="margin-left: 2em">
@@ -130,6 +138,8 @@
 <!-- end id231 -->
 
 <!-- npu="910b,A3" id232 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_get_axioms"></a>
+
 > <font size="3">get_axioms()</font>
 
 <div style="margin-left: 2em">
@@ -151,6 +161,8 @@
 <!-- end id233 -->
 
 <!-- npu="910b,A3" id234 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_get_implications"></a>
+
 > <font size="3">get_implications()</font>
 
 <div style="margin-left: 2em">
@@ -172,6 +184,8 @@
 <!-- end id235 -->
 
 <!-- npu="910b,A3" id236 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_create_symbolic_sizes_strides_storage_offset"></a>
+
 > <font size="3">create_symbolic_sizes_strides_storage_offset()</font>
 
 <div style="margin-left: 2em">
@@ -193,6 +207,8 @@
 <!-- end id237 -->
 
 <!-- npu="910b,A3" id238 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_create_symboolnode"></a>
+
 > <font size="3">create_symboolnode()</font>
 
 <div style="margin-left: 2em">
@@ -214,6 +230,8 @@
 <!-- end id239 -->
 
 <!-- npu="910b,A3" id240 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_create_symfloatnode"></a>
+
 > <font size="3">create_symfloatnode()</font>
 
 <div style="margin-left: 2em">
@@ -235,6 +253,8 @@
 <!-- end id241 -->
 
 <!-- npu="910b,A3" id242 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_create_symintnode"></a>
+
 > <font size="3">create_symintnode()</font>
 
 <div style="margin-left: 2em">
@@ -256,6 +276,8 @@
 <!-- end id243 -->
 
 <!-- npu="910b,A3" id244 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_create_unbacked_symbool"></a>
+
 > <font size="3">create_unbacked_symbool()</font>
 
 <div style="margin-left: 2em">
@@ -277,6 +299,8 @@
 <!-- end id245 -->
 
 <!-- npu="910b,A3" id246 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_deserialize_symexpr"></a>
+
 > <font size="3">deserialize_symexpr()</font>
 
 <div style="margin-left: 2em">
@@ -298,6 +322,8 @@
 <!-- end id247 -->
 
 <!-- npu="910b,A3" id248 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_evaluate_guards_expression"></a>
+
 > <font size="3">evaluate_guards_expression()</font>
 
 <div style="margin-left: 2em">
@@ -319,6 +345,8 @@
 <!-- end id249 -->
 
 <!-- npu="910b,A3" id250 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_evaluate_guards_for_args"></a>
+
 > <font size="3">evaluate_guards_for_args()</font>
 
 <div style="margin-left: 2em">
@@ -340,6 +368,8 @@
 <!-- end id251 -->
 
 <!-- npu="910b,A3" id252 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_evaluate_sym_node"></a>
+
 > <font size="3">evaluate_sym_node()</font>
 
 <div style="margin-left: 2em">
@@ -361,6 +391,8 @@
 <!-- end id253 -->
 
 <!-- npu="910b,A3" id254 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_evaluate_symexpr"></a>
+
 > <font size="3">evaluate_symexpr()</font>
 
 <div style="margin-left: 2em">
@@ -382,6 +414,8 @@
 <!-- end id255 -->
 
 <!-- npu="910b,A3" id256 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_size_hint"></a>
+
 > <font size="3">size_hint()</font>
 
 <div style="margin-left: 2em">
@@ -403,6 +437,8 @@
 <!-- end id257 -->
 
 <!-- npu="910b,A3" id258 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_suppress_guards"></a>
+
 > <font size="3">suppress_guards()</font>
 
 <div style="margin-left: 2em">
@@ -424,6 +460,8 @@
 <!-- end id259 -->
 
 <!-- npu="910b,A3" id260 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_produce_guards_expression"></a>
+
 > <font size="3">produce_guards_expression()</font>
 
 <div style="margin-left: 2em">
@@ -447,6 +485,8 @@
 <!-- end id261 -->
 
 <!-- npu="910b,A3" id262 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_replace"></a>
+
 > <font size="3">replace()</font>
 
 <div style="margin-left: 2em">
@@ -468,6 +508,8 @@
 <!-- end id263 -->
 
 <!-- npu="910b,A3" id264 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_simplify"></a>
+
 > <font size="3">simplify()</font>
 
 <div style="margin-left: 2em">
@@ -489,6 +531,8 @@
 <!-- end id265 -->
 
 <!-- npu="910b,A3" id266 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_create_symbol"></a>
+
 > <font size="3">create_symbol()</font>
 
 <div style="margin-left: 2em">
@@ -510,6 +554,8 @@
 <!-- end id267 -->
 
 <!-- npu="910b,A3" id268 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_bound_sympy"></a>
+
 > <font size="3">bound_sympy()</font>
 
 <div style="margin-left: 2em">
@@ -531,6 +577,8 @@
 <!-- end id269 -->
 
 <!-- npu="910b,A3" id270 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_check_equal"></a>
+
 > <font size="3">check_equal()</font>
 
 <div style="margin-left: 2em">
@@ -552,6 +600,8 @@
 <!-- end id271 -->
 
 <!-- npu="910b,A3" id272 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_cleanup"></a>
+
 > <font size="3">cleanup()</font>
 
 <div style="margin-left: 2em">
@@ -571,6 +621,8 @@
 <!-- npu="910b,A3" id273 -->
 </div>
 <!-- end id273 -->
+
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ShapeEnv_bind_symbols"></a>
 
 > <font size="3">bind_symbols()</font>
 
@@ -705,6 +757,8 @@
 <div style="margin-left: 2em">
 
 <!-- npu="910b,A3" id340 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_DimConstraints_forced_specializations"></a>
+
 > <font size="3">forced_specializations()</font>
 
 <div style="margin-left: 2em">
@@ -726,6 +780,8 @@
 <!-- end id341 -->
 
 <!-- npu="910b,A3" id342 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_DimConstraints_prettify_results"></a>
+
 > <font size="3">prettify_results()</font>
 
 <div style="margin-left: 2em">
@@ -747,6 +803,8 @@
 <!-- end id343 -->
 
 <!-- npu="910b,A3" id344 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_DimConstraints_rewrite_with_congruences"></a>
+
 > <font size="3">rewrite_with_congruences()</font>
 
 <div style="margin-left: 2em">
@@ -768,6 +826,8 @@
 <!-- end id345 -->
 
 <!-- npu="910b,A3" id346 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_DimConstraints_solve"></a>
+
 > <font size="3">solve()</font>
 
 <div style="margin-left: 2em">
@@ -818,6 +878,8 @@
 <div style="margin-left: 2em">
 
 <!-- npu="910b,A3" id314 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_PropagateUnbackedSymInts_boxed_run"></a>
+
 > <font size="3">boxed_run()</font>
 
 <div style="margin-left: 2em">
@@ -839,6 +901,8 @@
 <!-- end id315 -->
 
 <!-- npu="910b,A3" id316 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_PropagateUnbackedSymInts_call_function"></a>
+
 > <font size="3">call_function()</font>
 
 <div style="margin-left: 2em">
@@ -860,6 +924,8 @@
 <!-- end id317 -->
 
 <!-- npu="910b,A3" id318 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_PropagateUnbackedSymInts_call_method"></a>
+
 > <font size="3">call_method()</font>
 
 <div style="margin-left: 2em">
@@ -881,6 +947,8 @@
 <!-- end id319 -->
 
 <!-- npu="910b,A3" id320 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_PropagateUnbackedSymInts_call_module"></a>
+
 > <font size="3">call_module()</font>
 
 <div style="margin-left: 2em">
@@ -902,6 +970,8 @@
 <!-- end id321 -->
 
 <!-- npu="910b,A3" id322 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_PropagateUnbackedSymInts_fetch_args_kwargs_from_env"></a>
+
 > <font size="3">fetch_args_kwargs_from_env()</font>
 
 <div style="margin-left: 2em">
@@ -923,6 +993,8 @@
 <!-- end id323 -->
 
 <!-- npu="910b,A3" id324 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_PropagateUnbackedSymInts_fetch_attr"></a>
+
 > <font size="3">fetch_attr()</font>
 
 <div style="margin-left: 2em">
@@ -944,6 +1016,8 @@
 <!-- end id325 -->
 
 <!-- npu="910b,A3" id326 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_PropagateUnbackedSymInts_get_attr"></a>
+
 > <font size="3">get_attr()</font>
 
 <div style="margin-left: 2em">
@@ -965,6 +1039,8 @@
 <!-- end id327 -->
 
 <!-- npu="910b,A3" id328 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_PropagateUnbackedSymInts_map_nodes_to_values"></a>
+
 > <font size="3">map_nodes_to_values()</font>
 
 <div style="margin-left: 2em">
@@ -1051,6 +1127,8 @@
 <!-- end id116 -->
 
 <!-- npu="910b,A3" id296 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_StrictMinMaxConstraint_render"></a>
+
 > <font size="3">render()</font>
 
 <div style="margin-left: 2em">
@@ -1158,6 +1236,8 @@
 <!-- end id131 -->
 
 <!-- npu="910b,A3" id306 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_DivideByKey_get"></a>
+
 > <font size="3">get()</font>
 
 <div style="margin-left: 2em">
@@ -1353,6 +1433,8 @@
 <!-- end id179 -->
 
 <!-- npu="910b,A3" id338 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_ConvertIntKey_get"></a>
+
 > <font size="3">get()</font>
 
 <div style="margin-left: 2em">
@@ -1439,6 +1521,8 @@
 <!-- end id200 -->
 
 <!-- npu="910b,A3" id352 -->
+<a class="method_anchor" id="torch_fx_experimental_symbolic_shapes_CallMethodKey_get"></a>
+
 > <font size="3">get()</font>
 
 <div style="margin-left: 2em">

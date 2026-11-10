@@ -45,6 +45,8 @@
 
 **限制与说明**：`input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
+<a class="method_anchor" id="torch_distributed_tensor_DTensor_from_local"></a>
+
 > <font size="3">from_local()</font>
 
 <div style="margin-left: 2em">
@@ -67,6 +69,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_tensor_DTensor_full_tensor"></a>
+
 > <font size="3">full_tensor()</font>
 
 <div style="margin-left: 2em">
@@ -86,6 +90,8 @@
 <!-- end id39 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_tensor_DTensor_redistribute"></a>
 
 > <font size="3">redistribute()</font>
 
@@ -109,6 +115,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_tensor_DTensor_to_local"></a>
+
 > <font size="3">to_local()</font>
 
 <div style="margin-left: 2em">
@@ -130,6 +138,8 @@
 </div>
 
 <!-- npu="910b,A3" id46 -->
+<a class="method_anchor" id="torch_distributed_tensor_DTensor_placements"></a>
+
 > <font size="3">placements</font>
 
 <div style="margin-left: 2em">
@@ -234,6 +244,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id18 -->
 
+<a class="method_anchor" id="torch_distributed_tensor_placement_types_Placement_is_replicate"></a>
+
 > <font size="3">is_replicate()</font>
 
 <div style="margin-left: 2em">
@@ -253,6 +265,8 @@
 <!-- end id21 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_tensor_placement_types_Placement_is_shard"></a>
 
 > <font size="3">is_shard()</font>
 

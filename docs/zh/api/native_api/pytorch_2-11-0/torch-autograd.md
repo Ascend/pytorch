@@ -162,6 +162,8 @@
 
 <div style="margin-left: 2em">
 
+<a class="method_anchor" id="torch_autograd_forward_ad_UnpackedDualTensor_primal"></a>
+
 > <font size="3">primal</font>
 
 <div style="margin-left: 2em">
@@ -324,6 +326,8 @@
 
 <div style="margin-left: 2em">
 
+<a class="method_anchor" id="torch_autograd_function_BackwardCFunction_apply"></a>
+
 > <font size="3">apply()</font>
 
 <div style="margin-left: 2em">
@@ -365,6 +369,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id75 -->
 
+<a class="method_anchor" id="torch_autograd_Function_forward"></a>
+
 > <font size="3">forward()</font>
 
 <div style="margin-left: 2em">
@@ -384,6 +390,8 @@
 <!-- end id78 -->
 
 </div>
+
+<a class="method_anchor" id="torch_autograd_Function_backward"></a>
 
 > <font size="3">backward()</font>
 
@@ -406,6 +414,8 @@
 </div>
 
 <!-- npu="910b,A3" id254 -->
+<a class="method_anchor" id="torch_autograd_Function_jvp"></a>
+
 > <font size="3">jvp()</font>
 
 <div style="margin-left: 2em">
@@ -425,6 +435,8 @@
 <!-- npu="910b,A3" id255 -->
 </div>
 <!-- end id255 -->
+
+<a class="method_anchor" id="torch_autograd_Function_vmap"></a>
 
 > <font size="3">vmap()</font>
 
@@ -454,6 +466,8 @@
 
 <div style="margin-left: 2em">
 
+<a class="method_anchor" id="torch_autograd_function_FunctionCtx_mark_dirty"></a>
+
 > <font size="3">mark_dirty()</font>
 
 <div style="margin-left: 2em">
@@ -473,6 +487,8 @@
 <!-- end id90 -->
 
 </div>
+
+<a class="method_anchor" id="torch_autograd_function_FunctionCtx_mark_non_differentiable"></a>
 
 > <font size="3">mark_non_differentiable()</font>
 
@@ -494,6 +510,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_autograd_function_FunctionCtx_save_for_backward"></a>
+
 > <font size="3">save_for_backward()</font>
 
 <div style="margin-left: 2em">
@@ -513,6 +531,8 @@
 <!-- end id96 -->
 
 </div>
+
+<a class="method_anchor" id="torch_autograd_function_FunctionCtx_set_materialize_grads"></a>
 
 > <font size="3">set_materialize_grads()</font>
 
@@ -560,6 +580,8 @@
 
 <div style="margin-left: 2em">
 
+<a class="method_anchor" id="torch_autograd_function_InplaceFunction_save_for_forward"></a>
+
 > <font size="3">save_for_forward()</font>
 
 <div style="margin-left: 2em">
@@ -602,6 +624,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id108 -->
 
+<a class="method_anchor" id="torch_autograd_function_NestedIOFunction_forward"></a>
+
 > <font size="3">forward()</font>
 
 <div style="margin-left: 2em">
@@ -621,6 +645,8 @@
 <!-- end id111 -->
 
 </div>
+
+<a class="method_anchor" id="torch_autograd_function_NestedIOFunction_forward_extended"></a>
 
 > <font size="3">forward_extended()</font>
 
@@ -642,6 +668,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_autograd_function_NestedIOFunction_mark_dirty"></a>
+
 > <font size="3">mark_dirty()</font>
 
 <div style="margin-left: 2em">
@@ -662,6 +690,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_autograd_function_NestedIOFunction_save_for_backward"></a>
+
 > <font size="3">save_for_backward()</font>
 
 <div style="margin-left: 2em">
@@ -681,6 +711,8 @@
 <!-- end id219 -->
 
 </div>
+
+<a class="method_anchor" id="torch_autograd_function_NestedIOFunction_vmap"></a>
 
 > <font size="3">vmap()</font>
 
@@ -932,6 +964,8 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id147 -->
 
+<a class="method_anchor" id="torch_autograd_profiler_KinetoStepTracker_increment_step"></a>
+
 > <font size="3">increment_step()</font>
 
 <div style="margin-left: 2em">
@@ -951,6 +985,8 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 <!-- end id150 -->
 
 </div>
+
+<a class="method_anchor" id="torch_autograd_profiler_KinetoStepTracker_current_step"></a>
 
 > <font size="3">current_step()</font>
 
@@ -992,6 +1028,8 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id243 -->
 
+<a class="method_anchor" id="torch_autograd_profiler_util_Interval_elapsed_us"></a>
+
 > <font size="3">elapsed_us()</font>
 
 <div style="margin-left: 2em">
@@ -1032,6 +1070,8 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id234 -->
 
+<a class="method_anchor" id="torch_autograd_profiler_util_Kernel_count"></a>
+
 > <font size="3">count</font>
 
 <div style="margin-left: 2em">
@@ -1052,6 +1092,8 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 
 </div>
 
+<a class="method_anchor" id="torch_autograd_profiler_util_Kernel_name"></a>
+
 > <font size="3">name</font>
 
 <div style="margin-left: 2em">
@@ -1071,6 +1113,8 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 <!-- end id201 -->
 
 </div>
+
+<a class="method_anchor" id="torch_autograd_profiler_util_Kernel_duration"></a>
 
 > <font size="3">duration</font>
 
@@ -1112,6 +1156,8 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id240 -->
 
+<a class="method_anchor" id="torch_autograd_profiler_util_StringTable_values"></a>
+
 > <font size="3">values()</font>
 
 <div style="margin-left: 2em">
@@ -1131,6 +1177,8 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 <!-- end id156 -->
 
 </div>
+
+<a class="method_anchor" id="torch_autograd_profiler_util_StringTable_fromkeys"></a>
 
 > <font size="3">fromkeys()</font>
 
@@ -1152,6 +1200,8 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 
 </div>
 
+<a class="method_anchor" id="torch_autograd_profiler_util_StringTable_get"></a>
+
 > <font size="3">get()</font>
 
 <div style="margin-left: 2em">
@@ -1172,6 +1222,8 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 
 </div>
 
+<a class="method_anchor" id="torch_autograd_profiler_util_StringTable_keys"></a>
+
 > <font size="3">keys()</font>
 
 <div style="margin-left: 2em">
@@ -1191,6 +1243,8 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 <!-- end id210 -->
 
 </div>
+
+<a class="method_anchor" id="torch_autograd_profiler_util_StringTable_update"></a>
 
 > <font size="3">update()</font>
 
@@ -1284,6 +1338,8 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 <div style="margin-left: 2em">
 
 <!-- npu="910b,A3" id260 -->
+<a class="method_anchor" id="torch_autograd_graph_Node_name"></a>
+
 > <font size="3">name()</font>
 
 <div style="margin-left: 2em">
@@ -1305,6 +1361,8 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 <!-- end id261 -->
 
 <!-- npu="910b,A3" id262 -->
+<a class="method_anchor" id="torch_autograd_graph_Node_metadata"></a>
+
 > <font size="3">metadata()</font>
 
 <div style="margin-left: 2em">
@@ -1326,6 +1384,8 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 <!-- end id263 -->
 
 <!-- npu="910b,A3" id264 -->
+<a class="method_anchor" id="torch_autograd_graph_Node_next_functions"></a>
+
 > <font size="3">next_functions()</font>
 
 <div style="margin-left: 2em">
@@ -1346,6 +1406,8 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 </div>
 <!-- end id265 -->
 
+<a class="method_anchor" id="torch_autograd_graph_Node_register_hook"></a>
+
 > <font size="3">register_hook()</font>
 
 <div style="margin-left: 2em">
@@ -1365,6 +1427,8 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 <!-- end id177 -->
 
 </div>
+
+<a class="method_anchor" id="torch_autograd_graph_Node_register_prehook"></a>
 
 > <font size="3">register_prehook()</font>
 

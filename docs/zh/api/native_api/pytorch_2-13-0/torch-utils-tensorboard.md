@@ -31,6 +31,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id3 -->
 
+<a class="method_anchor" id="torch_utils_tensorboard_writer_SummaryWriter___init__"></a>
+
 > <font size="3">\_\_init\_\_()</font>
 
 <div style="margin-left: 2em">
@@ -50,6 +52,8 @@
 <!-- end id6 -->
 
 </div>
+
+<a class="method_anchor" id="torch_utils_tensorboard_writer_SummaryWriter_add_scalar"></a>
 
 > <font size="3">add_scalar()</font>
 
@@ -71,6 +75,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_utils_tensorboard_writer_SummaryWriter_add_scalars"></a>
+
 > <font size="3">add_scalars()</font>
 
 <div style="margin-left: 2em">
@@ -91,6 +97,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_utils_tensorboard_writer_SummaryWriter_add_histogram"></a>
+
 > <font size="3">add_histogram()</font>
 
 <div style="margin-left: 2em">
@@ -110,6 +118,8 @@
 <!-- end id15 -->
 
 </div>
+
+<a class="method_anchor" id="torch_utils_tensorboard_writer_SummaryWriter_add_image"></a>
 
 > <font size="3">add_image()</font>
 
@@ -133,6 +143,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_utils_tensorboard_writer_SummaryWriter_add_images"></a>
+
 > <font size="3">add_images()</font>
 
 <div style="margin-left: 2em">
@@ -155,6 +167,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_utils_tensorboard_writer_SummaryWriter_add_figure"></a>
+
 > <font size="3">add_figure()</font>
 
 <div style="margin-left: 2em">
@@ -174,6 +188,8 @@
 <!-- end id24 -->
 
 </div>
+
+<a class="method_anchor" id="torch_utils_tensorboard_writer_SummaryWriter_add_video"></a>
 
 > <font size="3">add_video()</font>
 
@@ -197,6 +213,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_utils_tensorboard_writer_SummaryWriter_add_audio"></a>
+
 > <font size="3">add_audio()</font>
 
 <div style="margin-left: 2em">
@@ -219,6 +237,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_utils_tensorboard_writer_SummaryWriter_add_text"></a>
+
 > <font size="3">add_text()</font>
 
 <div style="margin-left: 2em">
@@ -238,6 +258,8 @@
 <!-- end id33 -->
 
 </div>
+
+<a class="method_anchor" id="torch_utils_tensorboard_writer_SummaryWriter_add_graph"></a>
 
 > <font size="3">add_graph()</font>
 
@@ -261,6 +283,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_utils_tensorboard_writer_SummaryWriter_add_embedding"></a>
+
 > <font size="3">add_embedding()</font>
 
 <div style="margin-left: 2em">
@@ -282,6 +306,8 @@
 **限制与说明**：`mat`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_utils_tensorboard_writer_SummaryWriter_add_pr_curve"></a>
 
 > <font size="3">add_pr_curve()</font>
 
@@ -305,6 +331,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_utils_tensorboard_writer_SummaryWriter_add_custom_scalars"></a>
+
 > <font size="3">add_custom_scalars()</font>
 
 <div style="margin-left: 2em">
@@ -324,6 +352,8 @@
 <!-- end id45 -->
 
 </div>
+
+<a class="method_anchor" id="torch_utils_tensorboard_writer_SummaryWriter_add_mesh"></a>
 
 > <font size="3">add_mesh()</font>
 
@@ -347,6 +377,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_utils_tensorboard_writer_SummaryWriter_add_hparams"></a>
+
 > <font size="3">add_hparams()</font>
 
 <div style="margin-left: 2em">
@@ -367,6 +399,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_utils_tensorboard_writer_SummaryWriter_flush"></a>
+
 > <font size="3">flush()</font>
 
 <div style="margin-left: 2em">
@@ -386,6 +420,8 @@
 <!-- end id54 -->
 
 </div>
+
+<a class="method_anchor" id="torch_utils_tensorboard_writer_SummaryWriter_close"></a>
 
 > <font size="3">close()</font>
 

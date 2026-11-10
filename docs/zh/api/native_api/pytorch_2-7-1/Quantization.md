@@ -388,6 +388,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id18 -->
 
+<a class="method_anchor" id="torch_ao_quantization_qconfig_mapping_QConfigMapping_from_dict"></a>
+
 > <font size="3">from_dict()</font>
 
 <div style="margin-left: 2em">
@@ -407,6 +409,8 @@
 <!-- end id21 -->
 
 </div>
+
+<a class="method_anchor" id="torch_ao_quantization_qconfig_mapping_QConfigMapping_set_global"></a>
 
 > <font size="3">set_global()</font>
 
@@ -429,6 +433,8 @@
 </div>
 
 <!-- npu="910b,A3" id27 -->
+<a class="method_anchor" id="torch_ao_quantization_qconfig_mapping_QConfigMapping_set_module_name"></a>
+
 > <font size="3">set_module_name()</font>
 
 <div style="margin-left: 2em">
@@ -446,6 +452,8 @@
 
 </div>
 <!-- end id27 -->
+
+<a class="method_anchor" id="torch_ao_quantization_qconfig_mapping_QConfigMapping_set_module_name_object_type_order"></a>
 
 > <font size="3">set_module_name_object_type_order()</font>
 
@@ -467,6 +475,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_ao_quantization_qconfig_mapping_QConfigMapping_set_module_name_regex"></a>
+
 > <font size="3">set_module_name_regex()</font>
 
 <div style="margin-left: 2em">
@@ -487,6 +497,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_ao_quantization_qconfig_mapping_QConfigMapping_set_object_type"></a>
+
 > <font size="3">set_object_type()</font>
 
 <div style="margin-left: 2em">
@@ -506,6 +518,8 @@
 <!-- end id36 -->
 
 </div>
+
+<a class="method_anchor" id="torch_ao_quantization_qconfig_mapping_QConfigMapping_to_dict"></a>
 
 > <font size="3">to_dict()</font>
 
@@ -589,6 +603,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id48 -->
 
+<a class="method_anchor" id="torch_ao_quantization_backend_config_BackendConfig_configs"></a>
+
 > <font size="3">configs()</font>
 
 <div style="margin-left: 2em">
@@ -608,6 +624,8 @@
 <!-- end id51 -->
 
 </div>
+
+<a class="method_anchor" id="torch_ao_quantization_backend_config_BackendConfig_from_dict"></a>
 
 > <font size="3">from_dict()</font>
 
@@ -629,6 +647,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_ao_quantization_backend_config_BackendConfig_set_backend_pattern_config"></a>
+
 > <font size="3">set_backend_pattern_config()</font>
 
 <div style="margin-left: 2em">
@@ -648,6 +668,8 @@
 <!-- end id57 -->
 
 </div>
+
+<a class="method_anchor" id="torch_ao_quantization_backend_config_BackendConfig_set_backend_pattern_configs"></a>
 
 > <font size="3">set_backend_pattern_configs()</font>
 
@@ -669,6 +691,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_ao_quantization_backend_config_BackendConfig_set_name"></a>
+
 > <font size="3">set_name()</font>
 
 <div style="margin-left: 2em">
@@ -688,6 +712,8 @@
 <!-- end id63 -->
 
 </div>
+
+<a class="method_anchor" id="torch_ao_quantization_backend_config_BackendConfig_to_dict"></a>
 
 > <font size="3">to_dict()</font>
 
@@ -729,6 +755,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id69 -->
 
+<a class="method_anchor" id="torch_ao_quantization_backend_config_BackendPatternConfig_add_dtype_config"></a>
+
 > <font size="3">add_dtype_config()</font>
 
 <div style="margin-left: 2em">
@@ -748,6 +776,8 @@
 <!-- end id72 -->
 
 </div>
+
+<a class="method_anchor" id="torch_ao_quantization_backend_config_BackendPatternConfig_from_dict"></a>
 
 > <font size="3">from_dict()</font>
 
@@ -769,6 +799,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_ao_quantization_backend_config_BackendPatternConfig_set_dtype_configs"></a>
+
 > <font size="3">set_dtype_configs()</font>
 
 <div style="margin-left: 2em">
@@ -788,6 +820,8 @@
 <!-- end id78 -->
 
 </div>
+
+<a class="method_anchor" id="torch_ao_quantization_backend_config_BackendPatternConfig_set_fused_module"></a>
 
 > <font size="3">set_fused_module()</font>
 
@@ -809,6 +843,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_ao_quantization_backend_config_BackendPatternConfig_set_fuser_method"></a>
+
 > <font size="3">set_fuser_method()</font>
 
 <div style="margin-left: 2em">
@@ -828,6 +864,8 @@
 <!-- end id84 -->
 
 </div>
+
+<a class="method_anchor" id="torch_ao_quantization_backend_config_BackendPatternConfig_set_observation_type"></a>
 
 > <font size="3">set_observation_type()</font>
 
@@ -849,6 +887,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_ao_quantization_backend_config_BackendPatternConfig_set_pattern"></a>
+
 > <font size="3">set_pattern()</font>
 
 <div style="margin-left: 2em">
@@ -868,6 +908,8 @@
 <!-- end id90 -->
 
 </div>
+
+<a class="method_anchor" id="torch_ao_quantization_backend_config_BackendPatternConfig_set_qat_module"></a>
 
 > <font size="3">set_qat_module()</font>
 
@@ -889,6 +931,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_ao_quantization_backend_config_BackendPatternConfig_set_reference_quantized_module"></a>
+
 > <font size="3">set_reference_quantized_module()</font>
 
 <div style="margin-left: 2em">
@@ -909,6 +953,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_ao_quantization_backend_config_BackendPatternConfig_set_root_module"></a>
+
 > <font size="3">set_root_module()</font>
 
 <div style="margin-left: 2em">
@@ -928,6 +974,8 @@
 <!-- end id99 -->
 
 </div>
+
+<a class="method_anchor" id="torch_ao_quantization_backend_config_BackendPatternConfig_to_dict"></a>
 
 > <font size="3">to_dict()</font>
 
@@ -969,6 +1017,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id105 -->
 
+<a class="method_anchor" id="torch_ao_quantization_backend_config_DTypeConfig_from_dict"></a>
+
 > <font size="3">from_dict()</font>
 
 <div style="margin-left: 2em">
@@ -988,6 +1038,8 @@
 <!-- end id108 -->
 
 </div>
+
+<a class="method_anchor" id="torch_ao_quantization_backend_config_DTypeConfig_to_dict"></a>
 
 > <font size="3">to_dict()</font>
 
@@ -1049,6 +1101,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id117 -->
 
+<a class="method_anchor" id="torch_ao_quantization_backend_config_ObservationType_INPUT_OUTPUT_NOT_OBSERVED"></a>
+
 > <font size="3">INPUT_OUTPUT_NOT_OBSERVED()</font>
 
 <div style="margin-left: 2em">
@@ -1069,6 +1123,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_ao_quantization_backend_config_ObservationType_OUTPUT_SHARE_OBSERVER_WITH_INPUT"></a>
+
 > <font size="3">OUTPUT_SHARE_OBSERVER_WITH_INPUT()</font>
 
 <div style="margin-left: 2em">
@@ -1088,6 +1144,8 @@
 <!-- end id123 -->
 
 </div>
+
+<a class="method_anchor" id="torch_ao_quantization_backend_config_ObservationType_OUTPUT_USE_DIFFERENT_OBSERVER_AS_INPUT"></a>
 
 > <font size="3">OUTPUT_USE_DIFFERENT_OBSERVER_AS_INPUT()</font>
 
@@ -1131,6 +1189,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id129 -->
 
+<a class="method_anchor" id="torch_ao_quantization_fx_custom_config_FuseCustomConfig_from_dict"></a>
+
 > <font size="3">from_dict()</font>
 
 <div style="margin-left: 2em">
@@ -1151,6 +1211,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_ao_quantization_fx_custom_config_FuseCustomConfig_set_preserved_attributes"></a>
+
 > <font size="3">set_preserved_attributes()</font>
 
 <div style="margin-left: 2em">
@@ -1170,6 +1232,8 @@
 <!-- end id135 -->
 
 </div>
+
+<a class="method_anchor" id="torch_ao_quantization_fx_custom_config_FuseCustomConfig_to_dict"></a>
 
 > <font size="3">to_dict()</font>
 
@@ -1211,6 +1275,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id141 -->
 
+<a class="method_anchor" id="torch_ao_quantization_fx_custom_config_PrepareCustomConfig_from_dict"></a>
+
 > <font size="3">from_dict()</font>
 
 <div style="margin-left: 2em">
@@ -1230,6 +1296,8 @@
 <!-- end id144 -->
 
 </div>
+
+<a class="method_anchor" id="torch_ao_quantization_fx_custom_config_PrepareCustomConfig_set_float_to_observed_mapping"></a>
 
 > <font size="3">set_float_to_observed_mapping()</font>
 
@@ -1251,6 +1319,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_ao_quantization_fx_custom_config_PrepareCustomConfig_set_input_quantized_indexes"></a>
+
 > <font size="3">set_input_quantized_indexes()</font>
 
 <div style="margin-left: 2em">
@@ -1270,6 +1340,8 @@
 <!-- end id150 -->
 
 </div>
+
+<a class="method_anchor" id="torch_ao_quantization_fx_custom_config_PrepareCustomConfig_set_non_traceable_module_classes"></a>
 
 > <font size="3">set_non_traceable_module_classes()</font>
 
@@ -1291,6 +1363,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_ao_quantization_fx_custom_config_PrepareCustomConfig_set_non_traceable_module_names"></a>
+
 > <font size="3">set_non_traceable_module_names()</font>
 
 <div style="margin-left: 2em">
@@ -1310,6 +1384,8 @@
 <!-- end id156 -->
 
 </div>
+
+<a class="method_anchor" id="torch_ao_quantization_fx_custom_config_PrepareCustomConfig_set_output_quantized_indexes"></a>
 
 > <font size="3">set_output_quantized_indexes()</font>
 
@@ -1331,6 +1407,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_ao_quantization_fx_custom_config_PrepareCustomConfig_set_preserved_attributes"></a>
+
 > <font size="3">set_preserved_attributes()</font>
 
 <div style="margin-left: 2em">
@@ -1350,6 +1428,8 @@
 <!-- end id162 -->
 
 </div>
+
+<a class="method_anchor" id="torch_ao_quantization_fx_custom_config_PrepareCustomConfig_set_standalone_module_class"></a>
 
 > <font size="3">set_standalone_module_class()</font>
 
@@ -1371,6 +1451,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_ao_quantization_fx_custom_config_PrepareCustomConfig_set_standalone_module_name"></a>
+
 > <font size="3">set_standalone_module_name()</font>
 
 <div style="margin-left: 2em">
@@ -1390,6 +1472,8 @@
 <!-- end id168 -->
 
 </div>
+
+<a class="method_anchor" id="torch_ao_quantization_fx_custom_config_PrepareCustomConfig_to_dict"></a>
 
 > <font size="3">to_dict()</font>
 
@@ -1431,6 +1515,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id174 -->
 
+<a class="method_anchor" id="torch_ao_quantization_fx_custom_config_ConvertCustomConfig_from_dict"></a>
+
 > <font size="3">from_dict()</font>
 
 <div style="margin-left: 2em">
@@ -1450,6 +1536,8 @@
 <!-- end id177 -->
 
 </div>
+
+<a class="method_anchor" id="torch_ao_quantization_fx_custom_config_ConvertCustomConfig_set_observed_to_quantized_mapping"></a>
 
 > <font size="3">set_observed_to_quantized_mapping()</font>
 
@@ -1471,6 +1559,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_ao_quantization_fx_custom_config_ConvertCustomConfig_set_preserved_attributes"></a>
+
 > <font size="3">set_preserved_attributes()</font>
 
 <div style="margin-left: 2em">
@@ -1490,6 +1580,8 @@
 <!-- end id183 -->
 
 </div>
+
+<a class="method_anchor" id="torch_ao_quantization_fx_custom_config_ConvertCustomConfig_to_dict"></a>
 
 > <font size="3">to_dict()</font>
 
@@ -1655,6 +1747,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id192 -->
 
+<a class="method_anchor" id="torch_ao_quantization_observer_ObserverBase_with_args"></a>
+
 > <font size="3">with_args()</font>
 
 <div style="margin-left: 2em">
@@ -1674,6 +1768,8 @@
 <!-- end id195 -->
 
 </div>
+
+<a class="method_anchor" id="torch_ao_quantization_observer_ObserverBase_with_callable_args"></a>
 
 > <font size="3">with_callable_args()</font>
 
@@ -1715,6 +1811,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id201 -->
 
+<a class="method_anchor" id="torch_ao_quantization_observer_MinMaxObserver_calculate_qparams"></a>
+
 > <font size="3">calculate_qparams()</font>
 
 <div style="margin-left: 2em">
@@ -1735,6 +1833,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_ao_quantization_observer_MinMaxObserver_forward"></a>
+
 > <font size="3">forward()</font>
 
 <div style="margin-left: 2em">
@@ -1754,6 +1854,8 @@
 <!-- end id207 -->
 
 </div>
+
+<a class="method_anchor" id="torch_ao_quantization_observer_MinMaxObserver_reset_min_max_vals"></a>
 
 > <font size="3">reset_min_max_vals()</font>
 
@@ -1814,6 +1916,8 @@
 <!-- npu="950" id216 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id216 -->
+
+<a class="method_anchor" id="torch_ao_quantization_observer_PerChannelMinMaxObserver_reset_min_max_vals"></a>
 
 > <font size="3">reset_min_max_vals()</font>
 
@@ -2319,6 +2423,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id539 -->
 
+<a class="method_anchor" id="torch_ao_quantization_observer_AffineQuantizedObserverBase_calculate_qparams"></a>
+
 > <font size="3">calculate_qparams()</font>
 
 <div style="margin-left: 2em">
@@ -2339,6 +2445,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_ao_quantization_observer_AffineQuantizedObserverBase_forward"></a>
+
 > <font size="3">forward()</font>
 
 <div style="margin-left: 2em">
@@ -2358,6 +2466,8 @@
 <!-- end id530 -->
 
 </div>
+
+<a class="method_anchor" id="torch_ao_quantization_observer_AffineQuantizedObserverBase_with_args"></a>
 
 > <font size="3">with_args()</font>
 
@@ -3562,6 +3672,8 @@
 
 <!-- end id793 -->
 
+<a class="method_anchor" id="torch_ao_nn_qat_Linear_from_float"></a>
+
 > <font size="3">from_float()</font>
 
 <div style="margin-left: 2em">
@@ -3733,6 +3845,8 @@
 
 <div style="margin-left: 2em">
 
+<a class="method_anchor" id="torch_ao_nn_quantized_Conv2d_from_float"></a>
+
 > <font size="3">from_float()</font>
 
 <div style="margin-left: 2em">
@@ -3832,6 +3946,8 @@
 <!-- npu="950" id673 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id673 -->
+
+<a class="method_anchor" id="torch_ao_nn_quantized_Embedding_from_float"></a>
 
 > <font size="3">from_float()</font>
 
@@ -4313,6 +4429,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id512 -->
 
+<a class="method_anchor" id="torch_ao_nn_quantizable_MultiheadAttention_forward"></a>
+
 > <font size="3">forward()</font>
 
 <div style="margin-left: 2em">
@@ -4505,6 +4623,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id378 -->
 
+<a class="method_anchor" id="torch_ao_ns__numeric_suite_Logger_forward"></a>
+
 > <font size="3">forward()</font>
 
 <div style="margin-left: 2em">
@@ -4544,6 +4664,8 @@
 <!-- npu="950" id384 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id384 -->
+
+<a class="method_anchor" id="torch_ao_ns__numeric_suite_ShadowLogger_forward"></a>
 
 > <font size="3">forward()</font>
 
@@ -4585,6 +4707,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id390 -->
 
+<a class="method_anchor" id="torch_ao_ns__numeric_suite_OutputLogger_forward"></a>
+
 > <font size="3">forward()</font>
 
 <div style="margin-left: 2em">
@@ -4625,6 +4749,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id396 -->
 
+<a class="method_anchor" id="torch_ao_ns__numeric_suite_Shadow_forward"></a>
+
 > <font size="3">forward()</font>
 
 <div style="margin-left: 2em">
@@ -4644,6 +4770,8 @@
 <!-- end id399 -->
 
 </div>
+
+<a class="method_anchor" id="torch_ao_ns__numeric_suite_Shadow_add"></a>
 
 > <font size="3">add()</font>
 
@@ -4666,6 +4794,8 @@
 **限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_ao_ns__numeric_suite_Shadow_add_scalar"></a>
 
 > <font size="3">add_scalar()</font>
 
@@ -4690,6 +4820,8 @@
 </div>
 
 <!-- npu="910b,A3" id492 -->
+<a class="method_anchor" id="torch_ao_ns__numeric_suite_Shadow_mul"></a>
+
 > <font size="3">mul()</font>
 
 <div style="margin-left: 2em">
@@ -4713,6 +4845,8 @@
 <!-- end id493 -->
 
 <!-- npu="910b,A3" id494 -->
+<a class="method_anchor" id="torch_ao_ns__numeric_suite_Shadow_mul_scalar"></a>
+
 > <font size="3">mul_scalar()</font>
 
 <div style="margin-left: 2em">
@@ -4735,6 +4869,8 @@
 </div>
 <!-- end id495 -->
 
+<a class="method_anchor" id="torch_ao_ns__numeric_suite_Shadow_cat"></a>
+
 > <font size="3">cat()</font>
 
 <div style="margin-left: 2em">
@@ -4756,6 +4892,8 @@
 **限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_ao_ns__numeric_suite_Shadow_add_relu"></a>
 
 > <font size="3">add_relu()</font>
 
@@ -4899,6 +5037,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id435 -->
 
+<a class="method_anchor" id="torch_ao_ns__numeric_suite_fx_OutputLogger_forward"></a>
+
 > <font size="3">forward()</font>
 
 <div style="margin-left: 2em">
@@ -4939,6 +5079,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id441 -->
 
+<a class="method_anchor" id="torch_ao_ns__numeric_suite_fx_OutputComparisonLogger_forward"></a>
+
 > <font size="3">forward()</font>
 
 <div style="margin-left: 2em">
@@ -4978,6 +5120,8 @@
 <!-- npu="950" id447 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id447 -->
+
+<a class="method_anchor" id="torch_ao_ns__numeric_suite_fx_NSTracer_is_leaf_module"></a>
 
 > <font size="3">is_leaf_module()</font>
 

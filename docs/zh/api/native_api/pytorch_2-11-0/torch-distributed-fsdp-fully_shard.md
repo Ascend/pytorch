@@ -51,6 +51,8 @@
 
 <div style="margin-left: 2em">
 
+<a class="method_anchor" id="torch_distributed_fsdp_FSDPModule_unshard"></a>
+
 > <font size="3">unshard()</font>
 
 <div style="margin-left: 2em">

@@ -42,6 +42,8 @@
 <!-- end id2 -->
 
 <!-- npu="910b,A3" id1415 -->
+<a class="method_anchor" id="torch_Tensor_T"></a>
+
 > <font size="3">T</font>
 
 <div style="margin-left: 2em">
@@ -64,6 +66,8 @@
 </div>
 <!-- end id1416 -->
 
+<a class="method_anchor" id="torch_Tensor_H"></a>
+
 > <font size="3">H</font>
 
 <div style="margin-left: 2em">
@@ -83,6 +87,8 @@
 <!-- end id9 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_bitwise_left_shift_"></a>
 
 > <font size="3">bitwise_left_shift_()</font>
 
@@ -104,6 +110,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_bitwise_right_shift"></a>
+
 > <font size="3">bitwise_right_shift()</font>
 
 <div style="margin-left: 2em">
@@ -123,6 +131,8 @@
 <!-- end id1530 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_bitwise_right_shift_"></a>
 
 > <font size="3">bitwise_right_shift_()</font>
 
@@ -144,6 +154,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_cholesky_solve"></a>
+
 > <font size="3">cholesky_solve()</font>
 
 <div style="margin-left: 2em">
@@ -163,6 +175,8 @@
 <!-- end id1536 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_conj_physical"></a>
 
 > <font size="3">conj_physical()</font>
 
@@ -184,6 +198,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_conj_physical_"></a>
+
 > <font size="3">conj_physical_()</font>
 
 <div style="margin-left: 2em">
@@ -203,6 +219,8 @@
 <!-- end id1542 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_det"></a>
 
 > <font size="3">det()</font>
 
@@ -224,6 +242,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_digamma"></a>
+
 > <font size="3">digamma()</font>
 
 <div style="margin-left: 2em">
@@ -243,6 +263,8 @@
 <!-- end id1548 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_frexp"></a>
 
 > <font size="3">frexp()</font>
 
@@ -264,6 +286,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_gcd"></a>
+
 > <font size="3">gcd()</font>
 
 <div style="margin-left: 2em">
@@ -283,6 +307,8 @@
 <!-- end id1554 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_gcd_"></a>
 
 > <font size="3">gcd_()</font>
 
@@ -304,6 +330,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_geqrf"></a>
+
 > <font size="3">geqrf()</font>
 
 <div style="margin-left: 2em">
@@ -323,6 +351,8 @@
 <!-- end id1560 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_histogram"></a>
 
 > <font size="3">histogram()</font>
 
@@ -344,6 +374,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_hypot"></a>
+
 > <font size="3">hypot()</font>
 
 <div style="margin-left: 2em">
@@ -363,6 +395,8 @@
 <!-- end id1566 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_lcm_"></a>
 
 > <font size="3">lcm_()</font>
 
@@ -384,6 +418,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_log_normal_"></a>
+
 > <font size="3">log_normal_()</font>
 
 <div style="margin-left: 2em">
@@ -403,6 +439,8 @@
 <!-- end id1572 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_logdet"></a>
 
 > <font size="3">logdet()</font>
 
@@ -424,6 +462,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_mT"></a>
+
 > <font size="3">mT</font>
 
 <div style="margin-left: 2em">
@@ -443,6 +483,8 @@
 <!-- end id12 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_mH"></a>
 
 > <font size="3">mH</font>
 
@@ -464,6 +506,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_matrix_exp"></a>
+
 > <font size="3">matrix_exp()</font>
 
 <div style="margin-left: 2em">
@@ -483,6 +527,8 @@
 <!-- end id1578 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_module_load"></a>
 
 > <font size="3">module_load()</font>
 
@@ -504,6 +550,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_mvlgamma"></a>
+
 > <font size="3">mvlgamma()</font>
 
 <div style="margin-left: 2em">
@@ -523,6 +571,8 @@
 <!-- end id1584 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_nanmedian"></a>
 
 > <font size="3">nanmedian()</font>
 
@@ -544,6 +594,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_new_tensor"></a>
+
 > <font size="3">new_tensor()</font>
 
 <div style="margin-left: 2em">
@@ -563,6 +615,8 @@
 <!-- end id18 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_new_full"></a>
 
 > <font size="3">new_full()</font>
 
@@ -586,6 +640,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_new_empty"></a>
+
 > <font size="3">new_empty()</font>
 
 <div style="margin-left: 2em">
@@ -607,6 +663,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_new_ones"></a>
 
 > <font size="3">new_ones()</font>
 
@@ -630,6 +688,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_new_zeros"></a>
+
 > <font size="3">new_zeros()</font>
 
 <div style="margin-left: 2em">
@@ -652,6 +712,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_is_cuda"></a>
+
 > <font size="3">is_cuda()</font>
 
 <div style="margin-left: 2em">
@@ -673,6 +735,8 @@
 </div>
 
 <!-- npu="910b,A3" id1417 -->
+<a class="method_anchor" id="torch_Tensor_is_quantized"></a>
+
 > <font size="3">is_quantized()</font>
 
 <div style="margin-left: 2em">
@@ -692,6 +756,8 @@
 <!-- npu="910b,A3" id1418 -->
 </div>
 <!-- end id1418 -->
+
+<a class="method_anchor" id="torch_Tensor_is_meta"></a>
 
 > <font size="3">is_meta()</font>
 
@@ -713,6 +779,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_device"></a>
+
 > <font size="3">device()</font>
 
 <div style="margin-left: 2em">
@@ -732,6 +800,8 @@
 <!-- end id42 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_grad"></a>
 
 > <font size="3">grad()</font>
 
@@ -755,6 +825,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_ndim"></a>
+
 > <font size="3">ndim()</font>
 
 <div style="margin-left: 2em">
@@ -777,6 +849,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_nextafter"></a>
+
 > <font size="3">nextafter()</font>
 
 <div style="margin-left: 2em">
@@ -796,6 +870,8 @@
 <!-- end id1590 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_orgqr"></a>
 
 > <font size="3">orgqr()</font>
 
@@ -817,6 +893,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_ormqr"></a>
+
 > <font size="3">ormqr()</font>
 
 <div style="margin-left: 2em">
@@ -836,6 +914,8 @@
 <!-- end id1596 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_q_per_channel_axis"></a>
 
 > <font size="3">q_per_channel_axis()</font>
 
@@ -857,6 +937,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_q_per_channel_scales"></a>
+
 > <font size="3">q_per_channel_scales()</font>
 
 <div style="margin-left: 2em">
@@ -876,6 +958,8 @@
 <!-- end id1602 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_q_per_channel_zero_points"></a>
 
 > <font size="3">q_per_channel_zero_points()</font>
 
@@ -897,6 +981,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_q_scale"></a>
+
 > <font size="3">q_scale()</font>
 
 <div style="margin-left: 2em">
@@ -916,6 +1002,8 @@
 <!-- end id1608 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_q_zero_point"></a>
 
 > <font size="3">q_zero_point()</font>
 
@@ -937,6 +1025,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_real"></a>
+
 > <font size="3">real()</font>
 
 <div style="margin-left: 2em">
@@ -956,6 +1046,8 @@
 <!-- end id51 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_imag"></a>
 
 > <font size="3">imag()</font>
 
@@ -977,6 +1069,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_nbytes"></a>
+
 > <font size="3">nbytes()</font>
 
 <div style="margin-left: 2em">
@@ -997,6 +1091,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_itemsize"></a>
+
 > <font size="3">itemsize()</font>
 
 <div style="margin-left: 2em">
@@ -1016,6 +1112,8 @@
 <!-- end id60 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_abs"></a>
 
 > <font size="3">abs()</font>
 
@@ -1039,6 +1137,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_abs_"></a>
+
 > <font size="3">abs_()</font>
 
 <div style="margin-left: 2em">
@@ -1060,6 +1160,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_absolute"></a>
 
 > <font size="3">absolute()</font>
 
@@ -1083,6 +1185,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_absolute_"></a>
+
 > <font size="3">absolute_()</font>
 
 <div style="margin-left: 2em">
@@ -1104,6 +1208,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_acos"></a>
 
 > <font size="3">acos()</font>
 
@@ -1129,6 +1235,8 @@
 - 可能回退至CPU执行
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_acos_"></a>
 
 > <font size="3">acos_()</font>
 
@@ -1158,6 +1266,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_arccos"></a>
+
 > <font size="3">arccos()</font>
 
 <div style="margin-left: 2em">
@@ -1179,6 +1289,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_arccos_"></a>
 
 > <font size="3">arccos_()</font>
 
@@ -1208,6 +1320,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_add"></a>
+
 > <font size="3">add()</font>
 
 <div style="margin-left: 2em">
@@ -1229,6 +1343,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_add_"></a>
 
 > <font size="3">add_()</font>
 
@@ -1252,6 +1368,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_addbmm"></a>
+
 > <font size="3">addbmm()</font>
 
 <div style="margin-left: 2em">
@@ -1274,6 +1392,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_addbmm_"></a>
+
 > <font size="3">addbmm_()</font>
 
 <div style="margin-left: 2em">
@@ -1295,6 +1415,8 @@
 **限制与说明**： `self`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_addcdiv"></a>
 
 > <font size="3">addcdiv()</font>
 
@@ -1320,6 +1442,8 @@
 - int64类型不支持三个`tensor`同时广播
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_addcdiv_"></a>
 
 > <font size="3">addcdiv_()</font>
 
@@ -1348,6 +1472,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_addcmul"></a>
+
 > <font size="3">addcmul()</font>
 
 <div style="margin-left: 2em">
@@ -1372,6 +1498,8 @@
 - int64类型不支持三个`tensor`同时广播
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_addcmul_"></a>
 
 > <font size="3">addcmul_()</font>
 
@@ -1399,6 +1527,8 @@
 - int64类型不支持三个`tensor`同时广播
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_addmm"></a>
 
 > <font size="3">addmm()</font>
 
@@ -1428,6 +1558,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_addmm_"></a>
+
 > <font size="3">addmm_()</font>
 
 <div style="margin-left: 2em">
@@ -1449,6 +1581,8 @@
 **限制与说明**： `self`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_addmv"></a>
 
 > <font size="3">addmv()</font>
 
@@ -1472,6 +1606,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_addmv_"></a>
+
 > <font size="3">addmv_()</font>
 
 <div style="margin-left: 2em">
@@ -1493,6 +1629,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_addr"></a>
 
 > <font size="3">addr()</font>
 
@@ -1516,6 +1654,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_addr_"></a>
+
 > <font size="3">addr_()</font>
 
 <div style="margin-left: 2em">
@@ -1538,6 +1678,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_adjoint"></a>
+
 > <font size="3">adjoint()</font>
 
 <div style="margin-left: 2em">
@@ -1557,6 +1699,8 @@
 <!-- end id138 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_allclose"></a>
 
 > <font size="3">allclose()</font>
 
@@ -1580,6 +1724,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_amax"></a>
+
 > <font size="3">amax()</font>
 
 <div style="margin-left: 2em">
@@ -1601,6 +1747,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_amin"></a>
 
 > <font size="3">amin()</font>
 
@@ -1624,6 +1772,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_aminmax"></a>
+
 > <font size="3">aminmax()</font>
 
 <div style="margin-left: 2em">
@@ -1645,6 +1795,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_angle"></a>
 
 > <font size="3">angle()</font>
 
@@ -1668,6 +1820,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_apply_"></a>
+
 > <font size="3">apply_()</font>
 
 <div style="margin-left: 2em">
@@ -1689,6 +1843,8 @@
 **限制与说明**： 仅CPU支持
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_argmax"></a>
 
 > <font size="3">argmax()</font>
 
@@ -1712,6 +1868,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_argmin"></a>
+
 > <font size="3">argmin()</font>
 
 <div style="margin-left: 2em">
@@ -1733,6 +1891,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_argsort"></a>
 
 > <font size="3">argsort()</font>
 
@@ -1762,6 +1922,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_argwhere"></a>
+
 > <font size="3">argwhere()</font>
 
 <div style="margin-left: 2em">
@@ -1783,6 +1945,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_asin"></a>
 
 > <font size="3">asin()</font>
 
@@ -1806,6 +1970,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_asin_"></a>
+
 > <font size="3">asin_()</font>
 
 <div style="margin-left: 2em">
@@ -1827,6 +1993,8 @@
 **限制与说明**： `self`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_arcsin"></a>
 
 > <font size="3">arcsin()</font>
 
@@ -1850,6 +2018,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_arcsin_"></a>
+
 > <font size="3">arcsin_()</font>
 
 <div style="margin-left: 2em">
@@ -1871,6 +2041,8 @@
 **限制与说明**： `self`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_as_strided"></a>
 
 > <font size="3">as_strided()</font>
 
@@ -1894,6 +2066,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_atan"></a>
+
 > <font size="3">atan()</font>
 
 <div style="margin-left: 2em">
@@ -1915,6 +2089,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_atan_"></a>
 
 > <font size="3">atan_()</font>
 
@@ -1938,6 +2114,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_arctan"></a>
+
 > <font size="3">arctan()</font>
 
 <div style="margin-left: 2em">
@@ -1959,6 +2137,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_arctan_"></a>
 
 > <font size="3">arctan_()</font>
 
@@ -1982,6 +2162,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_atan2"></a>
+
 > <font size="3">atan2()</font>
 
 <div style="margin-left: 2em">
@@ -2003,6 +2185,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_atan2_"></a>
 
 > <font size="3">atan2_()</font>
 
@@ -2029,6 +2213,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_arctan2"></a>
+
 > <font size="3">arctan2()</font>
 
 <div style="margin-left: 2em">
@@ -2050,6 +2236,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_arctan2_"></a>
 
 > <font size="3">arctan2_()</font>
 
@@ -2073,6 +2261,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_all"></a>
+
 > <font size="3">all()</font>
 
 <div style="margin-left: 2em">
@@ -2094,6 +2284,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_any"></a>
 
 > <font size="3">any()</font>
 
@@ -2117,6 +2309,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_backward"></a>
+
 > <font size="3">backward()</font>
 
 <div style="margin-left: 2em">
@@ -2138,6 +2332,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_baddbmm"></a>
 
 > <font size="3">baddbmm()</font>
 
@@ -2161,6 +2357,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_baddbmm_"></a>
+
 > <font size="3">baddbmm_()</font>
 
 <div style="margin-left: 2em">
@@ -2182,6 +2380,8 @@
 **限制与说明**： `self`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_bernoulli"></a>
 
 > <font size="3">bernoulli()</font>
 
@@ -2207,6 +2407,8 @@
 - 可能回退至CPU执行
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_bernoulli_"></a>
 
 > <font size="3">bernoulli_()</font>
 
@@ -2236,6 +2438,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_bfloat16"></a>
+
 > <font size="3">bfloat16()</font>
 
 <div style="margin-left: 2em">
@@ -2257,6 +2461,8 @@
 **限制与说明**： `self`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_bincount"></a>
 
 > <font size="3">bincount()</font>
 
@@ -2283,6 +2489,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_bitwise_not"></a>
+
 > <font size="3">bitwise_not()</font>
 
 <div style="margin-left: 2em">
@@ -2304,6 +2512,8 @@
 **限制与说明**： `self`仅支持uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_bitwise_not_"></a>
 
 > <font size="3">bitwise_not_()</font>
 
@@ -2327,6 +2537,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_bitwise_and"></a>
+
 > <font size="3">bitwise_and()</font>
 
 <div style="margin-left: 2em">
@@ -2348,6 +2560,8 @@
 **限制与说明**： `self`仅支持uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_bitwise_and_"></a>
 
 > <font size="3">bitwise_and_()</font>
 
@@ -2371,6 +2585,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_bitwise_or"></a>
+
 > <font size="3">bitwise_or()</font>
 
 <div style="margin-left: 2em">
@@ -2392,6 +2608,8 @@
 **限制与说明**： `self`仅支持uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_bitwise_or_"></a>
 
 > <font size="3">bitwise_or_()</font>
 
@@ -2415,6 +2633,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_bitwise_xor"></a>
+
 > <font size="3">bitwise_xor()</font>
 
 <div style="margin-left: 2em">
@@ -2436,6 +2656,8 @@
 **限制与说明**： `self`仅支持uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_bitwise_xor_"></a>
 
 > <font size="3">bitwise_xor_()</font>
 
@@ -2459,6 +2681,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_bitwise_left_shift"></a>
+
 > <font size="3">bitwise_left_shift()</font>
 
 <div style="margin-left: 2em">
@@ -2478,6 +2702,8 @@
 <!-- end id1437 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_bmm"></a>
 
 > <font size="3">bmm()</font>
 
@@ -2507,6 +2733,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_bool"></a>
+
 > <font size="3">bool()</font>
 
 <div style="margin-left: 2em">
@@ -2528,6 +2756,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_byte"></a>
 
 > <font size="3">byte()</font>
 
@@ -2551,6 +2781,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_broadcast_to"></a>
+
 > <font size="3">broadcast_to()</font>
 
 <div style="margin-left: 2em">
@@ -2573,6 +2805,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_cauchy_"></a>
+
 > <font size="3">cauchy_()</font>
 
 <div style="margin-left: 2em">
@@ -2592,6 +2826,8 @@
 <!-- end id1440 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_ceil"></a>
 
 > <font size="3">ceil()</font>
 
@@ -2615,6 +2851,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_ceil_"></a>
+
 > <font size="3">ceil_()</font>
 
 <div style="margin-left: 2em">
@@ -2636,6 +2874,8 @@
 **限制与说明**： `self`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_char"></a>
 
 > <font size="3">char()</font>
 
@@ -2659,6 +2899,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_cholesky_inverse"></a>
+
 > <font size="3">cholesky_inverse()</font>
 
 <div style="margin-left: 2em">
@@ -2678,6 +2920,8 @@
 <!-- end id1443 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_chunk"></a>
 
 > <font size="3">chunk()</font>
 
@@ -2701,6 +2945,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_clamp"></a>
+
 > <font size="3">clamp()</font>
 
 <div style="margin-left: 2em">
@@ -2722,6 +2968,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_clamp_"></a>
 
 > <font size="3">clamp_()</font>
 
@@ -2745,6 +2993,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_clip"></a>
+
 > <font size="3">clip()</font>
 
 <div style="margin-left: 2em">
@@ -2766,6 +3016,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_clip_"></a>
 
 > <font size="3">clip_()</font>
 
@@ -2789,6 +3041,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_clone"></a>
+
 > <font size="3">clone()</font>
 
 <div style="margin-left: 2em">
@@ -2811,6 +3065,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_contiguous"></a>
+
 > <font size="3">contiguous()</font>
 
 <div style="margin-left: 2em">
@@ -2832,6 +3088,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_copy_"></a>
 
 > <font size="3">copy_()</font>
 
@@ -2858,6 +3116,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_conj"></a>
+
 > <font size="3">conj()</font>
 
 <div style="margin-left: 2em">
@@ -2880,6 +3140,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_renorm_"></a>
+
 > <font size="3">renorm_()</font>
 
 <div style="margin-left: 2em">
@@ -2899,6 +3161,8 @@
 <!-- end id1614 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_resolve_conj"></a>
 
 > <font size="3">resolve_conj()</font>
 
@@ -2922,6 +3186,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_resolve_neg"></a>
+
 > <font size="3">resolve_neg()</font>
 
 <div style="margin-left: 2em">
@@ -2943,6 +3209,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_copysign"></a>
 
 > <font size="3">copysign()</font>
 
@@ -2969,6 +3237,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_copysign_"></a>
+
 > <font size="3">copysign_()</font>
 
 <div style="margin-left: 2em">
@@ -2988,6 +3258,8 @@
 <!-- end id1446 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_cos"></a>
 
 > <font size="3">cos()</font>
 
@@ -3011,6 +3283,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_cos_"></a>
+
 > <font size="3">cos_()</font>
 
 <div style="margin-left: 2em">
@@ -3032,6 +3306,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_cosh"></a>
 
 > <font size="3">cosh()</font>
 
@@ -3055,6 +3331,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_cosh_"></a>
+
 > <font size="3">cosh_()</font>
 
 <div style="margin-left: 2em">
@@ -3077,6 +3355,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_corrcoef"></a>
+
 > <font size="3">corrcoef()</font>
 
 <div style="margin-left: 2em">
@@ -3096,6 +3376,8 @@
 <!-- end id1449 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_count_nonzero"></a>
 
 > <font size="3">count_nonzero()</font>
 
@@ -3119,6 +3401,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_cov"></a>
+
 > <font size="3">cov()</font>
 
 <div style="margin-left: 2em">
@@ -3140,6 +3424,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，int16，int32，int64
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_acosh"></a>
 
 > <font size="3">acosh()</font>
 
@@ -3166,6 +3452,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_acosh_"></a>
+
 > <font size="3">acosh_()</font>
 
 <div style="margin-left: 2em">
@@ -3187,6 +3475,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_arccosh"></a>
 
 > <font size="3">arccosh()</font>
 
@@ -3210,6 +3500,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_arccosh_"></a>
+
 > <font size="3">arccosh_()</font>
 
 <div style="margin-left: 2em">
@@ -3232,6 +3524,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_cpu"></a>
+
 > <font size="3">cpu()</font>
 
 <div style="margin-left: 2em">
@@ -3251,6 +3545,8 @@
 <!-- end id349 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_cross"></a>
 
 > <font size="3">cross()</font>
 
@@ -3277,6 +3573,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_cuda"></a>
+
 > <font size="3">cuda()</font>
 
 <div style="margin-left: 2em">
@@ -3299,6 +3597,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_logcumsumexp"></a>
+
 > <font size="3">logcumsumexp()</font>
 
 <div style="margin-left: 2em">
@@ -3318,6 +3618,8 @@
 <!-- end id1497 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_cummax"></a>
 
 > <font size="3">cummax()</font>
 
@@ -3344,6 +3646,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_cummin"></a>
+
 > <font size="3">cummin()</font>
 
 <div style="margin-left: 2em">
@@ -3366,6 +3670,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_cumprod"></a>
+
 > <font size="3">cumprod()</font>
 
 <div style="margin-left: 2em">
@@ -3386,6 +3692,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_cumprod_"></a>
+
 > <font size="3">cumprod_()</font>
 
 <div style="margin-left: 2em">
@@ -3405,6 +3713,8 @@
 <!-- end id1455 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_cumsum"></a>
 
 > <font size="3">cumsum()</font>
 
@@ -3431,6 +3741,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_cumsum_"></a>
+
 > <font size="3">cumsum_()</font>
 
 <div style="margin-left: 2em">
@@ -3453,6 +3765,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_cfloat"></a>
+
 > <font size="3">cfloat()</font>
 
 <div style="margin-left: 2em">
@@ -3473,6 +3787,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_cdouble"></a>
+
 > <font size="3">cdouble()</font>
 
 <div style="margin-left: 2em">
@@ -3492,6 +3808,8 @@
 <!-- end id376 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_data_ptr"></a>
 
 > <font size="3">data_ptr()</font>
 
@@ -3515,6 +3833,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_deg2rad"></a>
+
 > <font size="3">deg2rad()</font>
 
 <div style="margin-left: 2em">
@@ -3536,6 +3856,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_dequantize"></a>
 
 > <font size="3">dequantize()</font>
 
@@ -3559,6 +3881,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_dense_dim"></a>
+
 > <font size="3">dense_dim()</font>
 
 <div style="margin-left: 2em">
@@ -3578,6 +3902,8 @@
 <!-- end id388 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_detach"></a>
 
 > <font size="3">detach()</font>
 
@@ -3601,6 +3927,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_detach_"></a>
+
 > <font size="3">detach_()</font>
 
 <div style="margin-left: 2em">
@@ -3622,6 +3950,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_diag"></a>
 
 > <font size="3">diag()</font>
 
@@ -3645,6 +3975,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_diag_embed"></a>
+
 > <font size="3">diag_embed()</font>
 
 <div style="margin-left: 2em">
@@ -3666,6 +3998,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_diagflat"></a>
 
 > <font size="3">diagflat()</font>
 
@@ -3689,6 +4023,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_diagonal"></a>
+
 > <font size="3">diagonal()</font>
 
 <div style="margin-left: 2em">
@@ -3710,6 +4046,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_diagonal_scatter"></a>
 
 > <font size="3">diagonal_scatter()</font>
 
@@ -3733,6 +4071,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_fill_diagonal_"></a>
+
 > <font size="3">fill_diagonal_()</font>
 
 <div style="margin-left: 2em">
@@ -3755,6 +4095,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_fmax"></a>
+
 > <font size="3">fmax()</font>
 
 <div style="margin-left: 2em">
@@ -3775,6 +4117,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_fmin"></a>
+
 > <font size="3">fmin()</font>
 
 <div style="margin-left: 2em">
@@ -3794,6 +4138,8 @@
 <!-- end id1464 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_diff"></a>
 
 > <font size="3">diff()</font>
 
@@ -3817,6 +4163,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_dim"></a>
+
 > <font size="3">dim()</font>
 
 <div style="margin-left: 2em">
@@ -3839,6 +4187,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_digamma_"></a>
+
 > <font size="3">digamma_()</font>
 
 <div style="margin-left: 2em">
@@ -3859,6 +4209,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_dim_order"></a>
+
 > <font size="3">dim_order()</font>
 
 <div style="margin-left: 2em">
@@ -3878,6 +4230,8 @@
 <!-- end id421 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_dist"></a>
 
 > <font size="3">dist()</font>
 
@@ -3903,6 +4257,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_div"></a>
+
 > <font size="3">div()</font>
 
 <div style="margin-left: 2em">
@@ -3924,6 +4280,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_div_"></a>
 
 > <font size="3">div_()</font>
 
@@ -3947,6 +4305,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_divide"></a>
+
 > <font size="3">divide()</font>
 
 <div style="margin-left: 2em">
@@ -3968,6 +4328,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_divide_"></a>
 
 > <font size="3">divide_()</font>
 
@@ -3991,6 +4353,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_dot"></a>
+
 > <font size="3">dot()</font>
 
 <div style="margin-left: 2em">
@@ -4012,6 +4376,8 @@
 **限制与说明**： `self`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_double"></a>
 
 > <font size="3">double()</font>
 
@@ -4039,6 +4405,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_dsplit"></a>
+
 > <font size="3">dsplit()</font>
 
 <div style="margin-left: 2em">
@@ -4058,6 +4426,8 @@
 <!-- end id445 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_element_size"></a>
 
 > <font size="3">element_size()</font>
 
@@ -4081,6 +4451,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_eq"></a>
+
 > <font size="3">eq()</font>
 
 <div style="margin-left: 2em">
@@ -4102,6 +4474,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_eq_"></a>
 
 > <font size="3">eq_()</font>
 
@@ -4125,6 +4499,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_equal"></a>
+
 > <font size="3">equal()</font>
 
 <div style="margin-left: 2em">
@@ -4146,6 +4522,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_erf"></a>
 
 > <font size="3">erf()</font>
 
@@ -4169,6 +4547,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_erf_"></a>
+
 > <font size="3">erf_()</font>
 
 <div style="margin-left: 2em">
@@ -4190,6 +4570,8 @@
 **限制与说明**： `self`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_erfc"></a>
 
 > <font size="3">erfc()</font>
 
@@ -4213,6 +4595,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_erfc_"></a>
+
 > <font size="3">erfc_()</font>
 
 <div style="margin-left: 2em">
@@ -4234,6 +4618,8 @@
 **限制与说明**： `self`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_erfinv"></a>
 
 > <font size="3">erfinv()</font>
 
@@ -4257,6 +4643,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_erfinv_"></a>
+
 > <font size="3">erfinv_()</font>
 
 <div style="margin-left: 2em">
@@ -4278,6 +4666,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_exp"></a>
 
 > <font size="3">exp()</font>
 
@@ -4301,6 +4691,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_exp_"></a>
+
 > <font size="3">exp_()</font>
 
 <div style="margin-left: 2em">
@@ -4322,6 +4714,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_expm1"></a>
 
 > <font size="3">expm1()</font>
 
@@ -4345,6 +4739,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_expm1_"></a>
+
 > <font size="3">expm1_()</font>
 
 <div style="margin-left: 2em">
@@ -4366,6 +4762,8 @@
 **限制与说明**： `self`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_expand"></a>
 
 > <font size="3">expand()</font>
 
@@ -4389,6 +4787,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_expand_as"></a>
+
 > <font size="3">expand_as()</font>
 
 <div style="margin-left: 2em">
@@ -4410,6 +4810,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_exponential_"></a>
 
 > <font size="3">exponential_()</font>
 
@@ -4439,6 +4841,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_fix"></a>
+
 > <font size="3">fix()</font>
 
 <div style="margin-left: 2em">
@@ -4460,6 +4864,8 @@
 **限制与说明**： `self`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_fix_"></a>
 
 > <font size="3">fix_()</font>
 
@@ -4483,6 +4889,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_fill_"></a>
+
 > <font size="3">fill_()</font>
 
 <div style="margin-left: 2em">
@@ -4504,6 +4912,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_flatten"></a>
 
 > <font size="3">flatten()</font>
 
@@ -4527,6 +4937,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_flip"></a>
+
 > <font size="3">flip()</font>
 
 <div style="margin-left: 2em">
@@ -4548,6 +4960,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_fliplr"></a>
 
 > <font size="3">fliplr()</font>
 
@@ -4571,6 +4985,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_flipud"></a>
+
 > <font size="3">flipud()</font>
 
 <div style="margin-left: 2em">
@@ -4592,6 +5008,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_float"></a>
 
 > <font size="3">float()</font>
 
@@ -4615,6 +5033,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_float_power"></a>
+
 > <font size="3">float_power()</font>
 
 <div style="margin-left: 2em">
@@ -4636,6 +5056,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_float_power_"></a>
 
 > <font size="3">float_power_()</font>
 
@@ -4659,6 +5081,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_floor"></a>
+
 > <font size="3">floor()</font>
 
 <div style="margin-left: 2em">
@@ -4680,6 +5104,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_floor_"></a>
 
 > <font size="3">floor_()</font>
 
@@ -4703,6 +5129,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_floor_divide"></a>
+
 > <font size="3">floor_divide()</font>
 
 <div style="margin-left: 2em">
@@ -4724,6 +5152,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_floor_divide_"></a>
 
 > <font size="3">floor_divide_()</font>
 
@@ -4747,6 +5177,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_fmod"></a>
+
 > <font size="3">fmod()</font>
 
 <div style="margin-left: 2em">
@@ -4768,6 +5200,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int32，int64
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_fmod_"></a>
 
 > <font size="3">fmod_()</font>
 
@@ -4791,6 +5225,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_frac"></a>
+
 > <font size="3">frac()</font>
 
 <div style="margin-left: 2em">
@@ -4813,6 +5249,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_frac_"></a>
+
 > <font size="3">frac_()</font>
 
 <div style="margin-left: 2em">
@@ -4834,6 +5272,8 @@
 **限制与说明**： `self`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_gather"></a>
 
 > <font size="3">gather()</font>
 
@@ -4864,6 +5304,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_ge"></a>
+
 > <font size="3">ge()</font>
 
 <div style="margin-left: 2em">
@@ -4885,6 +5327,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_ge_"></a>
 
 > <font size="3">ge_()</font>
 
@@ -4908,6 +5352,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_greater_equal"></a>
+
 > <font size="3">greater_equal()</font>
 
 <div style="margin-left: 2em">
@@ -4929,6 +5375,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_greater_equal_"></a>
 
 > <font size="3">greater_equal_()</font>
 
@@ -4952,6 +5400,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_geometric_"></a>
+
 > <font size="3">geometric_()</font>
 
 <div style="margin-left: 2em">
@@ -4971,6 +5421,8 @@
 <!-- end id569 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_ger"></a>
 
 > <font size="3">ger()</font>
 
@@ -4992,6 +5444,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_get_device"></a>
+
 > <font size="3">get_device()</font>
 
 <div style="margin-left: 2em">
@@ -5011,6 +5465,8 @@
 <!-- end id575 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_gt"></a>
 
 > <font size="3">gt()</font>
 
@@ -5034,6 +5490,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_gt_"></a>
+
 > <font size="3">gt_()</font>
 
 <div style="margin-left: 2em">
@@ -5055,6 +5513,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_greater"></a>
 
 > <font size="3">greater()</font>
 
@@ -5078,6 +5538,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_greater_"></a>
+
 > <font size="3">greater_()</font>
 
 <div style="margin-left: 2em">
@@ -5099,6 +5561,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_half"></a>
 
 > <font size="3">half()</font>
 
@@ -5122,6 +5586,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_hardshrink"></a>
+
 > <font size="3">hardshrink()</font>
 
 <div style="margin-left: 2em">
@@ -5143,6 +5609,8 @@
 **限制与说明**： `self`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_heaviside"></a>
 
 > <font size="3">heaviside()</font>
 
@@ -5166,6 +5634,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_histc"></a>
+
 > <font size="3">histc()</font>
 
 <div style="margin-left: 2em">
@@ -5187,6 +5657,8 @@
 **限制与说明**： `self`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_hsplit"></a>
 
 > <font size="3">hsplit()</font>
 
@@ -5210,6 +5682,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_hypot_"></a>
+
 > <font size="3">hypot_()</font>
 
 <div style="margin-left: 2em">
@@ -5229,6 +5703,8 @@
 <!-- end id1467 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_i0"></a>
 
 > <font size="3">i0()</font>
 
@@ -5250,6 +5726,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_i0_"></a>
+
 > <font size="3">i0_()</font>
 
 <div style="margin-left: 2em">
@@ -5269,6 +5747,8 @@
 <!-- end id1473 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_igamma"></a>
 
 > <font size="3">igamma()</font>
 
@@ -5290,6 +5770,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_igamma_"></a>
+
 > <font size="3">igamma_()</font>
 
 <div style="margin-left: 2em">
@@ -5309,6 +5791,8 @@
 <!-- end id1479 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_igammac"></a>
 
 > <font size="3">igammac()</font>
 
@@ -5330,6 +5814,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_igammac_"></a>
+
 > <font size="3">igammac_()</font>
 
 <div style="margin-left: 2em">
@@ -5349,6 +5835,8 @@
 <!-- end id1485 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_index_add_"></a>
 
 > <font size="3">index_add_()</font>
 
@@ -5372,6 +5860,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_index_add"></a>
+
 > <font size="3">index_add()</font>
 
 <div style="margin-left: 2em">
@@ -5393,6 +5883,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_index_copy_"></a>
 
 > <font size="3">index_copy_()</font>
 
@@ -5416,6 +5908,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_index_copy"></a>
+
 > <font size="3">index_copy()</font>
 
 <div style="margin-left: 2em">
@@ -5437,6 +5931,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_index_fill_"></a>
 
 > <font size="3">index_fill_()</font>
 
@@ -5460,6 +5956,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_index_fill"></a>
+
 > <font size="3">index_fill()</font>
 
 <div style="margin-left: 2em">
@@ -5481,6 +5979,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，int32，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_index_put_"></a>
 
 > <font size="3">index_put_()</font>
 
@@ -5510,6 +6010,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_index_put"></a>
+
 > <font size="3">index_put()</font>
 
 <div style="margin-left: 2em">
@@ -5538,6 +6040,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_index_reduce_"></a>
+
 > <font size="3">index_reduce_()</font>
 
 <div style="margin-left: 2em">
@@ -5560,6 +6064,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_index_reduce"></a>
+
 > <font size="3">index_reduce()</font>
 
 <div style="margin-left: 2em">
@@ -5581,6 +6087,8 @@
 **限制与说明**： 可能回退至CPU执行
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_index_select"></a>
 
 > <font size="3">index_select()</font>
 
@@ -5605,6 +6113,8 @@
 </div>
 
 <!-- npu="910b,A3" id1419 -->
+<a class="method_anchor" id="torch_Tensor_indices"></a>
+
 > <font size="3">indices()</font>
 
 <div style="margin-left: 2em">
@@ -5624,6 +6134,8 @@
 <!-- npu="910b,A3" id1420 -->
 </div>
 <!-- end id1420 -->
+
+<a class="method_anchor" id="torch_Tensor_inner"></a>
 
 > <font size="3">inner()</font>
 
@@ -5647,6 +6159,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_int"></a>
+
 > <font size="3">int()</font>
 
 <div style="margin-left: 2em">
@@ -5669,6 +6183,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_int_repr"></a>
+
 > <font size="3">int_repr()</font>
 
 <div style="margin-left: 2em">
@@ -5689,6 +6205,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_inverse"></a>
+
 > <font size="3">inverse()</font>
 
 <div style="margin-left: 2em">
@@ -5708,6 +6226,8 @@
 <!-- end id1431 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_isclose"></a>
 
 > <font size="3">isclose()</font>
 
@@ -5731,6 +6251,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_isfinite"></a>
+
 > <font size="3">isfinite()</font>
 
 <div style="margin-left: 2em">
@@ -5752,6 +6274,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_isinf"></a>
 
 > <font size="3">isinf()</font>
 
@@ -5775,6 +6299,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_isposinf"></a>
+
 > <font size="3">isposinf()</font>
 
 <div style="margin-left: 2em">
@@ -5796,6 +6322,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_isneginf"></a>
 
 > <font size="3">isneginf()</font>
 
@@ -5819,6 +6347,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_isnan"></a>
+
 > <font size="3">isnan()</font>
 
 <div style="margin-left: 2em">
@@ -5840,6 +6370,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_is_contiguous"></a>
 
 > <font size="3">is_contiguous()</font>
 
@@ -5863,6 +6395,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_is_complex"></a>
+
 > <font size="3">is_complex()</font>
 
 <div style="margin-left: 2em">
@@ -5884,6 +6418,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_is_conj"></a>
 
 > <font size="3">is_conj()</font>
 
@@ -5907,6 +6443,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_is_floating_point"></a>
+
 > <font size="3">is_floating_point()</font>
 
 <div style="margin-left: 2em">
@@ -5928,6 +6466,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_is_inference"></a>
 
 > <font size="3">is_inference()</font>
 
@@ -5951,6 +6491,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_is_leaf"></a>
+
 > <font size="3">is_leaf()</font>
 
 <div style="margin-left: 2em">
@@ -5970,6 +6512,8 @@
 <!-- end id685 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_is_pinned"></a>
 
 > <font size="3">is_pinned()</font>
 
@@ -5993,6 +6537,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_is_set_to"></a>
+
 > <font size="3">is_set_to()</font>
 
 <div style="margin-left: 2em">
@@ -6015,6 +6561,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_is_shared"></a>
+
 > <font size="3">is_shared()</font>
 
 <div style="margin-left: 2em">
@@ -6034,6 +6582,8 @@
 <!-- end id694 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_is_signed"></a>
 
 > <font size="3">is_signed()</font>
 
@@ -6058,6 +6608,8 @@
 </div>
 
 <!-- npu="910b,A3" id1421 -->
+<a class="method_anchor" id="torch_Tensor_is_sparse"></a>
+
 > <font size="3">is_sparse()</font>
 
 <div style="margin-left: 2em">
@@ -6079,6 +6631,8 @@
 
 </div>
 <!-- end id1422 -->
+
+<a class="method_anchor" id="torch_Tensor_isreal"></a>
 
 > <font size="3">isreal()</font>
 
@@ -6102,6 +6656,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_item"></a>
+
 > <font size="3">item()</font>
 
 <div style="margin-left: 2em">
@@ -6123,6 +6679,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_kthvalue"></a>
 
 > <font size="3">kthvalue()</font>
 
@@ -6146,6 +6704,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_lcm"></a>
+
 > <font size="3">lcm()</font>
 
 <div style="margin-left: 2em">
@@ -6165,6 +6725,8 @@
 <!-- end id1488 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_ldexp"></a>
 
 > <font size="3">ldexp()</font>
 
@@ -6188,6 +6750,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_ldexp_"></a>
+
 > <font size="3">ldexp_()</font>
 
 <div style="margin-left: 2em">
@@ -6209,6 +6773,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_le"></a>
 
 > <font size="3">le()</font>
 
@@ -6232,6 +6798,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_le_"></a>
+
 > <font size="3">le_()</font>
 
 <div style="margin-left: 2em">
@@ -6253,6 +6821,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_less_equal"></a>
 
 > <font size="3">less_equal()</font>
 
@@ -6276,6 +6846,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_less_equal_"></a>
+
 > <font size="3">less_equal_()</font>
 
 <div style="margin-left: 2em">
@@ -6297,6 +6869,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_lerp"></a>
 
 > <font size="3">lerp()</font>
 
@@ -6320,6 +6894,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_lerp_"></a>
+
 > <font size="3">lerp_()</font>
 
 <div style="margin-left: 2em">
@@ -6342,6 +6918,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_lgamma"></a>
+
 > <font size="3">lgamma()</font>
 
 <div style="margin-left: 2em">
@@ -6362,6 +6940,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_lgamma_"></a>
+
 > <font size="3">lgamma_()</font>
 
 <div style="margin-left: 2em">
@@ -6381,6 +6961,8 @@
 <!-- end id1494 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_log"></a>
 
 > <font size="3">log()</font>
 
@@ -6404,6 +6986,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_log_"></a>
+
 > <font size="3">log_()</font>
 
 <div style="margin-left: 2em">
@@ -6425,6 +7009,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_log10"></a>
 
 > <font size="3">log10()</font>
 
@@ -6448,6 +7034,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_log10_"></a>
+
 > <font size="3">log10_()</font>
 
 <div style="margin-left: 2em">
@@ -6469,6 +7057,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_log1p"></a>
 
 > <font size="3">log1p()</font>
 
@@ -6492,6 +7082,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_log1p_"></a>
+
 > <font size="3">log1p_()</font>
 
 <div style="margin-left: 2em">
@@ -6513,6 +7105,8 @@
 **限制与说明**： `self`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_log2"></a>
 
 > <font size="3">log2()</font>
 
@@ -6536,6 +7130,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_log2_"></a>
+
 > <font size="3">log2_()</font>
 
 <div style="margin-left: 2em">
@@ -6557,6 +7153,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_logaddexp"></a>
 
 > <font size="3">logaddexp()</font>
 
@@ -6580,6 +7178,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_logaddexp2"></a>
+
 > <font size="3">logaddexp2()</font>
 
 <div style="margin-left: 2em">
@@ -6601,6 +7201,8 @@
 **限制与说明**： `self`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_logsumexp"></a>
 
 > <font size="3">logsumexp()</font>
 
@@ -6624,6 +7226,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_logical_and"></a>
+
 > <font size="3">logical_and()</font>
 
 <div style="margin-left: 2em">
@@ -6645,6 +7249,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_logical_and_"></a>
 
 > <font size="3">logical_and_()</font>
 
@@ -6668,6 +7274,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_logical_not"></a>
+
 > <font size="3">logical_not()</font>
 
 <div style="margin-left: 2em">
@@ -6689,6 +7297,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_logical_not_"></a>
 
 > <font size="3">logical_not_()</font>
 
@@ -6712,6 +7322,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_logical_or"></a>
+
 > <font size="3">logical_or()</font>
 
 <div style="margin-left: 2em">
@@ -6734,6 +7346,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_logical_or_"></a>
+
 > <font size="3">logical_or_()</font>
 
 <div style="margin-left: 2em">
@@ -6755,6 +7369,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_logical_xor"></a>
 
 > <font size="3">logical_xor()</font>
 
@@ -6781,6 +7397,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_logical_xor_"></a>
+
 > <font size="3">logical_xor_()</font>
 
 <div style="margin-left: 2em">
@@ -6802,6 +7420,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_logit"></a>
 
 > <font size="3">logit()</font>
 
@@ -6828,6 +7448,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_logit_"></a>
+
 > <font size="3">logit_()</font>
 
 <div style="margin-left: 2em">
@@ -6853,6 +7475,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_long"></a>
+
 > <font size="3">long()</font>
 
 <div style="margin-left: 2em">
@@ -6874,6 +7498,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_lt"></a>
 
 > <font size="3">lt()</font>
 
@@ -6897,6 +7523,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_lt_"></a>
+
 > <font size="3">lt_()</font>
 
 <div style="margin-left: 2em">
@@ -6918,6 +7546,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_less"></a>
 
 > <font size="3">less()</font>
 
@@ -6941,6 +7571,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_less_"></a>
+
 > <font size="3">less_()</font>
 
 <div style="margin-left: 2em">
@@ -6963,6 +7595,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_as_subclass"></a>
+
 > <font size="3">as_subclass()</font>
 
 <div style="margin-left: 2em">
@@ -6982,6 +7616,8 @@
 <!-- end id814 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_map_"></a>
 
 > <font size="3">map_()</font>
 
@@ -7005,6 +7641,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_masked_scatter_"></a>
+
 > <font size="3">masked_scatter_()</font>
 
 <div style="margin-left: 2em">
@@ -7026,6 +7664,8 @@
 **限制与说明**： `self`仅支持fp32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_masked_scatter"></a>
 
 > <font size="3">masked_scatter()</font>
 
@@ -7055,6 +7695,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_masked_fill_"></a>
+
 > <font size="3">masked_fill_()</font>
 
 <div style="margin-left: 2em">
@@ -7076,6 +7718,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，int8，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_masked_fill"></a>
 
 > <font size="3">masked_fill()</font>
 
@@ -7099,6 +7743,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_masked_select"></a>
+
 > <font size="3">masked_select()</font>
 
 <div style="margin-left: 2em">
@@ -7120,6 +7766,8 @@
 **限制与说明**： `self`仅支持fp32，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_matmul"></a>
 
 > <font size="3">matmul()</font>
 
@@ -7146,6 +7794,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_matrix_power"></a>
+
 > <font size="3">matrix_power()</font>
 
 <div style="margin-left: 2em">
@@ -7167,6 +7817,8 @@
 **限制与说明**： `self`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_max"></a>
 
 > <font size="3">max()</font>
 
@@ -7190,6 +7842,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_maximum"></a>
+
 > <font size="3">maximum()</font>
 
 <div style="margin-left: 2em">
@@ -7211,6 +7865,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_mean"></a>
 
 > <font size="3">mean()</font>
 
@@ -7234,6 +7890,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_nanmean"></a>
+
 > <font size="3">nanmean()</font>
 
 <div style="margin-left: 2em">
@@ -7255,6 +7913,8 @@
 **限制与说明**： `self`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_median"></a>
 
 > <font size="3">median()</font>
 
@@ -7281,6 +7941,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_min"></a>
+
 > <font size="3">min()</font>
 
 <div style="margin-left: 2em">
@@ -7303,6 +7965,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_minimum"></a>
+
 > <font size="3">minimum()</font>
 
 <div style="margin-left: 2em">
@@ -7324,6 +7988,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_mm"></a>
 
 > <font size="3">mm()</font>
 
@@ -7353,6 +8019,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_mode"></a>
+
 > <font size="3">mode()</font>
 
 <div style="margin-left: 2em">
@@ -7372,6 +8040,8 @@
 <!-- end id868 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_movedim"></a>
 
 > <font size="3">movedim()</font>
 
@@ -7395,6 +8065,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_moveaxis"></a>
+
 > <font size="3">moveaxis()</font>
 
 <div style="margin-left: 2em">
@@ -7416,6 +8088,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_msort"></a>
 
 > <font size="3">msort()</font>
 
@@ -7439,6 +8113,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_mul"></a>
+
 > <font size="3">mul()</font>
 
 <div style="margin-left: 2em">
@@ -7460,6 +8136,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_mul_"></a>
 
 > <font size="3">mul_()</font>
 
@@ -7483,6 +8161,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_multiply"></a>
+
 > <font size="3">multiply()</font>
 
 <div style="margin-left: 2em">
@@ -7504,6 +8184,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_multiply_"></a>
 
 > <font size="3">multiply_()</font>
 
@@ -7527,6 +8209,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_multinomial"></a>
+
 > <font size="3">multinomial()</font>
 
 <div style="margin-left: 2em">
@@ -7549,6 +8233,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_mv"></a>
+
 > <font size="3">mv()</font>
 
 <div style="margin-left: 2em">
@@ -7569,6 +8255,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_mvlgamma_"></a>
+
 > <font size="3">mvlgamma_()</font>
 
 <div style="margin-left: 2em">
@@ -7588,6 +8276,8 @@
 <!-- end id1503 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_nansum"></a>
 
 > <font size="3">nansum()</font>
 
@@ -7617,6 +8307,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_narrow"></a>
+
 > <font size="3">narrow()</font>
 
 <div style="margin-left: 2em">
@@ -7638,6 +8330,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_narrow_copy"></a>
 
 > <font size="3">narrow_copy()</font>
 
@@ -7661,6 +8355,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_ndimension"></a>
+
 > <font size="3">ndimension()</font>
 
 <div style="margin-left: 2em">
@@ -7682,6 +8378,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_nan_to_num"></a>
 
 > <font size="3">nan_to_num()</font>
 
@@ -7707,6 +8405,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_nan_to_num_"></a>
+
 > <font size="3">nan_to_num_()</font>
 
 <div style="margin-left: 2em">
@@ -7726,6 +8426,8 @@
 <!-- end id911 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_ne"></a>
 
 > <font size="3">ne()</font>
 
@@ -7749,6 +8451,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_ne_"></a>
+
 > <font size="3">ne_()</font>
 
 <div style="margin-left: 2em">
@@ -7771,6 +8475,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_nextafter_"></a>
+
 > <font size="3">nextafter_()</font>
 
 <div style="margin-left: 2em">
@@ -7792,6 +8498,8 @@
 **限制与说明**： 回退至CPU执行
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_not_equal"></a>
 
 > <font size="3">not_equal()</font>
 
@@ -7818,6 +8526,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_not_equal_"></a>
+
 > <font size="3">not_equal_()</font>
 
 <div style="margin-left: 2em">
@@ -7840,6 +8550,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_neg"></a>
+
 > <font size="3">neg()</font>
 
 <div style="margin-left: 2em">
@@ -7861,6 +8573,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，int8，int32，int64，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_neg_"></a>
 
 > <font size="3">neg_()</font>
 
@@ -7887,6 +8601,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_negative"></a>
+
 > <font size="3">negative()</font>
 
 <div style="margin-left: 2em">
@@ -7908,6 +8624,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，int8，int32，int64，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_negative_"></a>
 
 > <font size="3">negative_()</font>
 
@@ -7931,6 +8649,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_nelement"></a>
+
 > <font size="3">nelement()</font>
 
 <div style="margin-left: 2em">
@@ -7952,6 +8672,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_nonzero"></a>
 
 > <font size="3">nonzero()</font>
 
@@ -7977,6 +8699,8 @@
 - 不支持nan场景
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_norm"></a>
 
 > <font size="3">norm()</font>
 
@@ -8005,6 +8729,8 @@
 <!-- end id948 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_normal_"></a>
 
 > <font size="3">normal_()</font>
 
@@ -8035,6 +8761,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_numel"></a>
+
 > <font size="3">numel()</font>
 
 <div style="margin-left: 2em">
@@ -8056,6 +8784,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_numpy"></a>
 
 > <font size="3">numpy()</font>
 
@@ -8079,6 +8809,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_outer"></a>
+
 > <font size="3">outer()</font>
 
 <div style="margin-left: 2em">
@@ -8100,6 +8832,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_permute"></a>
 
 > <font size="3">permute()</font>
 
@@ -8123,6 +8857,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_pin_memory"></a>
+
 > <font size="3">pin_memory()</font>
 
 <div style="margin-left: 2em">
@@ -8142,6 +8878,8 @@
 <!-- end id1506 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_pinverse"></a>
 
 > <font size="3">pinverse()</font>
 
@@ -8163,6 +8901,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_polygamma"></a>
+
 > <font size="3">polygamma()</font>
 
 <div style="margin-left: 2em">
@@ -8183,6 +8923,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_polygamma_"></a>
+
 > <font size="3">polygamma_()</font>
 
 <div style="margin-left: 2em">
@@ -8202,6 +8944,8 @@
 <!-- end id1515 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_positive"></a>
 
 > <font size="3">positive()</font>
 
@@ -8225,6 +8969,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_pow"></a>
+
 > <font size="3">pow()</font>
 
 <div style="margin-left: 2em">
@@ -8246,6 +8992,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，int16，int64
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_pow_"></a>
 
 > <font size="3">pow_()</font>
 
@@ -8269,6 +9017,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_prod"></a>
+
 > <font size="3">prod()</font>
 
 <div style="margin-left: 2em">
@@ -8290,6 +9040,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_put_"></a>
 
 > <font size="3">put_()</font>
 
@@ -8313,6 +9065,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_qscheme"></a>
+
 > <font size="3">qscheme()</font>
 
 <div style="margin-left: 2em">
@@ -8333,6 +9087,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_quantile"></a>
+
 > <font size="3">quantile()</font>
 
 <div style="margin-left: 2em">
@@ -8352,6 +9108,8 @@
 <!-- end id984 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_rad2deg"></a>
 
 > <font size="3">rad2deg()</font>
 
@@ -8374,6 +9132,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_random_"></a>
 
 > <font size="3">random_()</font>
 
@@ -8403,6 +9163,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_ravel"></a>
+
 > <font size="3">ravel()</font>
 
 <div style="margin-left: 2em">
@@ -8425,6 +9187,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_reciprocal"></a>
+
 > <font size="3">reciprocal()</font>
 
 <div style="margin-left: 2em">
@@ -8446,6 +9210,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_reciprocal_"></a>
 
 > <font size="3">reciprocal_()</font>
 
@@ -8470,6 +9236,8 @@
 </div>
 
 <!-- npu="910b,A3" id1423 -->
+<a class="method_anchor" id="torch_Tensor_record_stream"></a>
+
 > <font size="3">record_stream()</font>
 
 <div style="margin-left: 2em">
@@ -8491,6 +9259,8 @@
 
 </div>
 <!-- end id1424 -->
+
+<a class="method_anchor" id="torch_Tensor_register_hook"></a>
 
 > <font size="3">register_hook()</font>
 
@@ -8514,6 +9284,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_register_post_accumulate_grad_hook"></a>
+
 > <font size="3">register_post_accumulate_grad_hook()</font>
 
 <div style="margin-left: 2em">
@@ -8533,6 +9305,8 @@
 <!-- end id1008 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_remainder"></a>
 
 > <font size="3">remainder()</font>
 
@@ -8556,6 +9330,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_remainder_"></a>
+
 > <font size="3">remainder_()</font>
 
 <div style="margin-left: 2em">
@@ -8578,6 +9354,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_renorm"></a>
+
 > <font size="3">renorm()</font>
 
 <div style="margin-left: 2em">
@@ -8597,6 +9375,8 @@
 <!-- end id1518 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_repeat"></a>
 
 > <font size="3">repeat()</font>
 
@@ -8619,6 +9399,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_repeat_interleave"></a>
 
 > <font size="3">repeat_interleave()</font>
 
@@ -8645,6 +9427,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_requires_grad"></a>
+
 > <font size="3">requires_grad()</font>
 
 <div style="margin-left: 2em">
@@ -8665,6 +9449,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_requires_grad_"></a>
+
 > <font size="3">requires_grad_()</font>
 
 <div style="margin-left: 2em">
@@ -8684,6 +9470,8 @@
 <!-- end id1026 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_reshape"></a>
 
 > <font size="3">reshape()</font>
 
@@ -8707,6 +9495,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_reshape_as"></a>
+
 > <font size="3">reshape_as()</font>
 
 <div style="margin-left: 2em">
@@ -8728,6 +9518,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_resize_"></a>
 
 > <font size="3">resize_()</font>
 
@@ -8754,6 +9546,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_resize_as_"></a>
+
 > <font size="3">resize_as_()</font>
 
 <div style="margin-left: 2em">
@@ -8779,6 +9573,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_retain_grad"></a>
+
 > <font size="3">retain_grad()</font>
 
 <div style="margin-left: 2em">
@@ -8800,6 +9596,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_retains_grad"></a>
 
 > <font size="3">retains_grad()</font>
 
@@ -8823,6 +9621,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_roll"></a>
+
 > <font size="3">roll()</font>
 
 <div style="margin-left: 2em">
@@ -8844,6 +9644,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_rot90"></a>
 
 > <font size="3">rot90()</font>
 
@@ -8867,6 +9669,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_round"></a>
+
 > <font size="3">round()</font>
 
 <div style="margin-left: 2em">
@@ -8888,6 +9692,8 @@
 **限制与说明**： `self`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_round_"></a>
 
 > <font size="3">round_()</font>
 
@@ -8911,6 +9717,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_rsqrt"></a>
+
 > <font size="3">rsqrt()</font>
 
 <div style="margin-left: 2em">
@@ -8933,6 +9741,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_rsqrt_"></a>
+
 > <font size="3">rsqrt_()</font>
 
 <div style="margin-left: 2em">
@@ -8954,6 +9764,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_scatter"></a>
 
 > <font size="3">scatter()</font>
 
@@ -8982,6 +9794,8 @@
 <!-- end id1066 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_scatter_"></a>
 
 > <font size="3">scatter_()</font>
 
@@ -9012,6 +9826,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_scatter_add_"></a>
+
 > <font size="3">scatter_add_()</font>
 
 <div style="margin-left: 2em">
@@ -9039,6 +9855,8 @@
 <!-- end id1074 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_scatter_add"></a>
 
 > <font size="3">scatter_add()</font>
 
@@ -9068,6 +9886,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_scatter_reduce_"></a>
+
 > <font size="3">scatter_reduce_()</font>
 
 <div style="margin-left: 2em">
@@ -9087,6 +9907,8 @@
 <!-- end id1521 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_scatter_reduce"></a>
 
 > <font size="3">scatter_reduce()</font>
 
@@ -9120,6 +9942,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_select"></a>
+
 > <font size="3">select()</font>
 
 <div style="margin-left: 2em">
@@ -9141,6 +9965,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_select_scatter"></a>
 
 > <font size="3">select_scatter()</font>
 
@@ -9167,6 +9993,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_set_"></a>
+
 > <font size="3">set_()</font>
 
 <div style="margin-left: 2em">
@@ -9189,6 +10017,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_share_memory_"></a>
+
 > <font size="3">share_memory_()</font>
 
 <div style="margin-left: 2em">
@@ -9208,6 +10038,8 @@
 <!-- end id1095 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_short"></a>
 
 > <font size="3">short()</font>
 
@@ -9231,6 +10063,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_sigmoid"></a>
+
 > <font size="3">sigmoid()</font>
 
 <div style="margin-left: 2em">
@@ -9250,6 +10084,8 @@
 <!-- end id1524 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_sigmoid_"></a>
 
 > <font size="3">sigmoid_()</font>
 
@@ -9273,6 +10109,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_sign"></a>
+
 > <font size="3">sign()</font>
 
 <div style="margin-left: 2em">
@@ -9294,6 +10132,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_sign_"></a>
 
 > <font size="3">sign_()</font>
 
@@ -9317,6 +10157,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_sgn"></a>
+
 > <font size="3">sgn()</font>
 
 <div style="margin-left: 2em">
@@ -9338,6 +10180,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_sgn_"></a>
 
 > <font size="3">sgn_()</font>
 
@@ -9361,6 +10205,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_signbit"></a>
+
 > <font size="3">signbit()</font>
 
 <div style="margin-left: 2em">
@@ -9380,6 +10226,8 @@
 <!-- end id1617 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_sin"></a>
 
 > <font size="3">sin()</font>
 
@@ -9403,6 +10251,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_sin_"></a>
+
 > <font size="3">sin_()</font>
 
 <div style="margin-left: 2em">
@@ -9425,6 +10275,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_sinc"></a>
+
 > <font size="3">sinc()</font>
 
 <div style="margin-left: 2em">
@@ -9445,6 +10297,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_sinc_"></a>
+
 > <font size="3">sinc_()</font>
 
 <div style="margin-left: 2em">
@@ -9464,6 +10318,8 @@
 <!-- end id1620 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_sinh"></a>
 
 > <font size="3">sinh()</font>
 
@@ -9487,6 +10343,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_sinh_"></a>
+
 > <font size="3">sinh_()</font>
 
 <div style="margin-left: 2em">
@@ -9508,6 +10366,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，fp64
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_asinh"></a>
 
 > <font size="3">asinh()</font>
 
@@ -9531,6 +10391,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_asinh_"></a>
+
 > <font size="3">asinh_()</font>
 
 <div style="margin-left: 2em">
@@ -9552,6 +10414,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_arcsinh"></a>
 
 > <font size="3">arcsinh()</font>
 
@@ -9575,6 +10439,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_arcsinh_"></a>
+
 > <font size="3">arcsinh_()</font>
 
 <div style="margin-left: 2em">
@@ -9597,6 +10463,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_shape"></a>
+
 > <font size="3">shape()</font>
 
 <div style="margin-left: 2em">
@@ -9616,6 +10484,8 @@
 <!-- end id1140 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_size"></a>
 
 > <font size="3">size()</font>
 
@@ -9639,6 +10509,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_slogdet"></a>
+
 > <font size="3">slogdet()</font>
 
 <div style="margin-left: 2em">
@@ -9660,6 +10532,8 @@
 **限制与说明**： `self`仅支持fp32，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_slice_scatter"></a>
 
 > <font size="3">slice_scatter()</font>
 
@@ -9683,6 +10557,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_softmax"></a>
+
 > <font size="3">softmax()</font>
 
 <div style="margin-left: 2em">
@@ -9704,6 +10580,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，fp64
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_sort"></a>
 
 > <font size="3">sort()</font>
 
@@ -9733,6 +10611,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_split"></a>
+
 > <font size="3">split()</font>
 
 <div style="margin-left: 2em">
@@ -9755,6 +10635,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_sparse_dim"></a>
+
 > <font size="3">sparse_dim()</font>
 
 <div style="margin-left: 2em">
@@ -9774,6 +10656,8 @@
 <!-- end id1165 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_sqrt"></a>
 
 > <font size="3">sqrt()</font>
 
@@ -9797,6 +10681,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_sqrt_"></a>
+
 > <font size="3">sqrt_()</font>
 
 <div style="margin-left: 2em">
@@ -9818,6 +10704,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_square"></a>
 
 > <font size="3">square()</font>
 
@@ -9841,6 +10729,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_square_"></a>
+
 > <font size="3">square_()</font>
 
 <div style="margin-left: 2em">
@@ -9862,6 +10752,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_squeeze"></a>
 
 > <font size="3">squeeze()</font>
 
@@ -9885,6 +10777,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_squeeze_"></a>
+
 > <font size="3">squeeze_()</font>
 
 <div style="margin-left: 2em">
@@ -9906,6 +10800,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_std"></a>
 
 > <font size="3">std()</font>
 
@@ -9933,6 +10829,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_stft"></a>
+
 > <font size="3">stft()</font>
 
 <div style="margin-left: 2em">
@@ -9952,6 +10850,8 @@
 <!-- end id1623 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_storage"></a>
 
 > <font size="3">storage()</font>
 
@@ -9975,6 +10875,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_trace"></a>
+
 > <font size="3">trace()</font>
 
 <div style="margin-left: 2em">
@@ -9994,6 +10896,8 @@
 <!-- end id1626 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_untyped_storage"></a>
 
 > <font size="3">untyped_storage()</font>
 
@@ -10017,6 +10921,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_storage_offset"></a>
+
 > <font size="3">storage_offset()</font>
 
 <div style="margin-left: 2em">
@@ -10038,6 +10944,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_storage_type"></a>
 
 > <font size="3">storage_type()</font>
 
@@ -10061,6 +10969,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_stride"></a>
+
 > <font size="3">stride()</font>
 
 <div style="margin-left: 2em">
@@ -10082,6 +10992,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_sub"></a>
 
 > <font size="3">sub()</font>
 
@@ -10105,6 +11017,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_sub_"></a>
+
 > <font size="3">sub_()</font>
 
 <div style="margin-left: 2em">
@@ -10126,6 +11040,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_subtract_"></a>
 
 > <font size="3">subtract_()</font>
 
@@ -10149,6 +11065,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_sum"></a>
+
 > <font size="3">sum()</font>
 
 <div style="margin-left: 2em">
@@ -10170,6 +11088,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，int32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_sum_to_size"></a>
 
 > <font size="3">sum_to_size()</font>
 
@@ -10193,6 +11113,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_swapaxes"></a>
+
 > <font size="3">swapaxes()</font>
 
 <div style="margin-left: 2em">
@@ -10214,6 +11136,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_swapdims"></a>
 
 > <font size="3">swapdims()</font>
 
@@ -10238,6 +11162,8 @@
 </div>
 
 <!-- npu="910b,A3" id1425 -->
+<a class="method_anchor" id="torch_Tensor_t"></a>
+
 > <font size="3">t()</font>
 
 <div style="margin-left: 2em">
@@ -10259,6 +11185,8 @@
 
 </div>
 <!-- end id1426 -->
+
+<a class="method_anchor" id="torch_Tensor_t_"></a>
 
 > <font size="3">t_()</font>
 
@@ -10282,6 +11210,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_tensor_split"></a>
+
 > <font size="3">tensor_split()</font>
 
 <div style="margin-left: 2em">
@@ -10303,6 +11233,8 @@
 **限制与说明**： 仅CPU支持
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_tile"></a>
 
 > <font size="3">tile()</font>
 
@@ -10331,6 +11263,8 @@
   - 若执行反向计算，`Tensor`的维度数与`dims`中大于1的元素个数之和不得超过8
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_to"></a>
 
 > <font size="3">to()</font>
 
@@ -10361,6 +11295,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_to_mkldnn"></a>
+
 > <font size="3">to_mkldnn()</font>
 
 <div style="margin-left: 2em">
@@ -10380,6 +11316,8 @@
 <!-- end id1241 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_take"></a>
 
 > <font size="3">take()</font>
 
@@ -10403,6 +11341,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_take_along_dim"></a>
+
 > <font size="3">take_along_dim()</font>
 
 <div style="margin-left: 2em">
@@ -10424,6 +11364,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_tan"></a>
 
 > <font size="3">tan()</font>
 
@@ -10447,6 +11389,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_tan_"></a>
+
 > <font size="3">tan_()</font>
 
 <div style="margin-left: 2em">
@@ -10468,6 +11412,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_tanh"></a>
 
 > <font size="3">tanh()</font>
 
@@ -10497,6 +11443,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_tanh_"></a>
+
 > <font size="3">tanh_()</font>
 
 <div style="margin-left: 2em">
@@ -10518,6 +11466,8 @@
 **限制与说明**： `self`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_atanh"></a>
 
 > <font size="3">atanh()</font>
 
@@ -10541,6 +11491,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_atanh_"></a>
+
 > <font size="3">atanh_()</font>
 
 <div style="margin-left: 2em">
@@ -10562,6 +11514,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_arctanh"></a>
 
 > <font size="3">arctanh()</font>
 
@@ -10585,6 +11539,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_arctanh_"></a>
+
 > <font size="3">arctanh_()</font>
 
 <div style="margin-left: 2em">
@@ -10607,6 +11563,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_tolist"></a>
+
 > <font size="3">tolist()</font>
 
 <div style="margin-left: 2em">
@@ -10628,6 +11586,8 @@
 **限制与说明**： `self`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_topk"></a>
 
 > <font size="3">topk()</font>
 
@@ -10655,6 +11615,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_to_dense"></a>
+
 > <font size="3">to_dense()</font>
 
 <div style="margin-left: 2em">
@@ -10674,6 +11636,8 @@
 <!-- end id1281 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_to_sparse_csr"></a>
 
 > <font size="3">to_sparse_csr()</font>
 
@@ -10695,6 +11659,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_to_sparse_csc"></a>
+
 > <font size="3">to_sparse_csc()</font>
 
 <div style="margin-left: 2em">
@@ -10714,6 +11680,8 @@
 <!-- end id1290 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_to_sparse_bsr"></a>
 
 > <font size="3">to_sparse_bsr()</font>
 
@@ -10735,6 +11703,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_to_sparse_bsc"></a>
+
 > <font size="3">to_sparse_bsc()</font>
 
 <div style="margin-left: 2em">
@@ -10754,6 +11724,8 @@
 <!-- end id1296 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_transpose"></a>
 
 > <font size="3">transpose()</font>
 
@@ -10777,6 +11749,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_transpose_"></a>
+
 > <font size="3">transpose_()</font>
 
 <div style="margin-left: 2em">
@@ -10798,6 +11772,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_tril"></a>
 
 > <font size="3">tril()</font>
 
@@ -10821,6 +11797,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_tril_"></a>
+
 > <font size="3">tril_()</font>
 
 <div style="margin-left: 2em">
@@ -10842,6 +11820,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_triu"></a>
 
 > <font size="3">triu()</font>
 
@@ -10865,6 +11845,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_triu_"></a>
+
 > <font size="3">triu_()</font>
 
 <div style="margin-left: 2em">
@@ -10886,6 +11868,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_true_divide"></a>
 
 > <font size="3">true_divide()</font>
 
@@ -10909,6 +11893,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_true_divide_"></a>
+
 > <font size="3">true_divide_()</font>
 
 <div style="margin-left: 2em">
@@ -10930,6 +11916,8 @@
 **限制与说明**： `self`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_trunc"></a>
 
 > <font size="3">trunc()</font>
 
@@ -10953,6 +11941,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_trunc_"></a>
+
 > <font size="3">trunc_()</font>
 
 <div style="margin-left: 2em">
@@ -10974,6 +11964,8 @@
 **限制与说明**： `self`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_type"></a>
 
 > <font size="3">type()</font>
 
@@ -10997,6 +11989,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_type_as"></a>
+
 > <font size="3">type_as()</font>
 
 <div style="margin-left: 2em">
@@ -11018,6 +12012,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_unbind"></a>
 
 > <font size="3">unbind()</font>
 
@@ -11041,6 +12037,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_unflatten"></a>
+
 > <font size="3">unflatten()</font>
 
 <div style="margin-left: 2em">
@@ -11063,6 +12061,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_unfold"></a>
+
 > <font size="3">unfold()</font>
 
 <div style="margin-left: 2em">
@@ -11084,6 +12084,8 @@
 **限制与说明**： `self`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_uniform_"></a>
 
 > <font size="3">uniform_()</font>
 
@@ -11114,6 +12116,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_unique"></a>
+
 > <font size="3">unique()</font>
 
 <div style="margin-left: 2em">
@@ -11139,6 +12143,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_unique_consecutive"></a>
+
 > <font size="3">unique_consecutive()</font>
 
 <div style="margin-left: 2em">
@@ -11158,6 +12164,8 @@
 <!-- end id1350 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_unsqueeze"></a>
 
 > <font size="3">unsqueeze()</font>
 
@@ -11180,6 +12188,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_unsqueeze_"></a>
 
 > <font size="3">unsqueeze_()</font>
 
@@ -11204,6 +12214,8 @@
 </div>
 
 <!-- npu="910b,A3" id1427 -->
+<a class="method_anchor" id="torch_Tensor_values"></a>
+
 > <font size="3">values()</font>
 
 <div style="margin-left: 2em">
@@ -11225,6 +12237,8 @@
 
 </div>
 <!-- end id1428 -->
+
+<a class="method_anchor" id="torch_Tensor_var"></a>
 
 > <font size="3">var()</font>
 
@@ -11251,6 +12265,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_vdot"></a>
+
 > <font size="3">vdot()</font>
 
 <div style="margin-left: 2em">
@@ -11270,6 +12286,8 @@
 <!-- end id1629 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_view"></a>
 
 > <font size="3">view()</font>
 
@@ -11293,6 +12311,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_view_as"></a>
+
 > <font size="3">view_as()</font>
 
 <div style="margin-left: 2em">
@@ -11314,6 +12334,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_vsplit"></a>
 
 > <font size="3">vsplit()</font>
 
@@ -11337,6 +12359,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_where"></a>
+
 > <font size="3">where()</font>
 
 <div style="margin-left: 2em">
@@ -11358,6 +12382,8 @@
 **限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_xlogy"></a>
 
 > <font size="3">xlogy()</font>
 
@@ -11381,6 +12407,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Tensor_xlogy_"></a>
+
 > <font size="3">xlogy_()</font>
 
 <div style="margin-left: 2em">
@@ -11402,6 +12430,8 @@
 **限制与说明**： `self`仅支持fp16，fp32
 
 </div>
+
+<a class="method_anchor" id="torch_Tensor_zero_"></a>
 
 > <font size="3">zero_()</font>
 

@@ -320,6 +320,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id36 -->
 
+<a class="method_anchor" id="torch_distributed_pipelining_schedules_PipelineScheduleSingle_step"></a>
+
 > <font size="3">step()</font>
 
 <div style="margin-left: 2em">
@@ -359,6 +361,8 @@
 <!-- npu="950" id42 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id42 -->
+
+<a class="method_anchor" id="torch_distributed_pipelining_schedules_PipelineScheduleMulti_step"></a>
 
 > <font size="3">step()</font>
 

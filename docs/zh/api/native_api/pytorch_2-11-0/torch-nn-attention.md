@@ -41,6 +41,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id12 -->
 
+<a class="method_anchor" id="torch_nn_attention_SDPBackend_name"></a>
+
 > <font size="3">name</font>
 
 <div style="margin-left: 2em">
@@ -129,6 +131,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id3 -->
 
+<a class="method_anchor" id="torch_nn_attention_flex_attention_BlockMask_BLOCK_SIZE"></a>
+
 > <font size="3">BLOCK_SIZE</font>
 
 <div style="margin-left: 2em">
@@ -148,6 +152,8 @@
 <!-- end id6 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_attention_flex_attention_BlockMask_kv_indices"></a>
 
 > <font size="3">kv_indices</font>
 
@@ -169,6 +175,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_attention_flex_attention_BlockMask_seq_lengths"></a>
+
 > <font size="3">seq\_lengths</font>
 
 <div style="margin-left: 2em">
@@ -188,6 +196,8 @@
 <!-- end id1019 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_attention_flex_attention_BlockMask_shape"></a>
 
 > <font size="3"><code><i>property</i></code> shape</font>
 
@@ -209,6 +219,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_attention_flex_attention_BlockMask_to"></a>
+
 > <font size="3">to()</font>
 
 <div style="margin-left: 2em">
@@ -228,6 +240,8 @@
 <!-- end id1028 -->
 
 </div>
+
+<a class="method_anchor" id="torch_nn_attention_flex_attention_BlockMask_to_dense"></a>
 
 > <font size="3">to_dense()</font>
 
@@ -276,6 +290,8 @@
 ### <code><i>class</i></code> torch.nn.attention.flex\_attention.BlockMask
 
 <div style="margin-left: 2em">
+
+<a class="method_anchor" id="torch_nn_attention_flex_attention_BlockMask_from_kv_blocks"></a>
 
 > <font size="3">from_kv_blocks()</font>
 

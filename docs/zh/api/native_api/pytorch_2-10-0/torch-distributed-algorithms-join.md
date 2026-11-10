@@ -34,6 +34,8 @@
 <!-- end id2 -->
 
 <!-- npu="910b,A3" id29 -->
+<a class="method_anchor" id="torch_distributed_algorithms_Join_notify_join_context"></a>
+
 > <font size="3">notify_join_context()</font>
 
 <div style="margin-left: 2em">
@@ -76,6 +78,8 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id8 -->
 
+<a class="method_anchor" id="torch_distributed_algorithms_Joinable_join_device"></a>
+
 > <font size="3">join_device()</font>
 
 <div style="margin-left: 2em">
@@ -95,6 +99,8 @@
 <!-- end id12 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_algorithms_Joinable_join_hook"></a>
 
 > <font size="3">join_hook()</font>
 
@@ -117,6 +123,8 @@
 </div>
 
 <!-- npu="910b,A3" id33 -->
+<a class="method_anchor" id="torch_distributed_algorithms_Joinable_join_process_group"></a>
+
 > <font size="3">join_process_group()</font>
 
 <div style="margin-left: 2em">
@@ -160,6 +168,8 @@
 <!-- end id20 -->
 
 <!-- npu="910b,A3" id37 -->
+<a class="method_anchor" id="torch_distributed_algorithms_JoinHook_main_hook"></a>
+
 > <font size="3">main_hook()</font>
 
 <div style="margin-left: 2em">
@@ -181,6 +191,8 @@
 <!-- end id38 -->
 
 <!-- npu="910b,A3" id39 -->
+<a class="method_anchor" id="torch_distributed_algorithms_JoinHook_post_hook"></a>
+
 > <font size="3">post_hook()</font>
 
 <div style="margin-left: 2em">

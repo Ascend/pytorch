@@ -168,6 +168,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id24 -->
 
+<a class="method_anchor" id="torch_distributed_rpc_WorkerInfo_id"></a>
+
 > <font size="3">id</font>
 
 <div style="margin-left: 2em">
@@ -187,6 +189,8 @@
 <!-- end id63 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_rpc_WorkerInfo_name"></a>
 
 > <font size="3">name</font>
 
@@ -268,6 +272,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id30 -->
 
+<a class="method_anchor" id="torch_distributed_rpc_RpcBackendOptions_init_method"></a>
+
 > <font size="3">init_method</font>
 
 <div style="margin-left: 2em">
@@ -287,6 +293,8 @@
 <!-- end id69 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_rpc_RpcBackendOptions_rpc_timeout"></a>
 
 > <font size="3">rpc_timeout</font>
 
@@ -330,6 +338,8 @@
 
 **限制与说明**：建议使用已适配的`torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions`
 
+<a class="method_anchor" id="torch_distributed_rpc_TensorPipeRpcBackendOptions_device_maps"></a>
+
 > <font size="3">device_maps</font>
 
 <div style="margin-left: 2em">
@@ -349,6 +359,8 @@
 <!-- end id75 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_rpc_TensorPipeRpcBackendOptions_devices"></a>
 
 > <font size="3">devices</font>
 
@@ -370,6 +382,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_distributed_rpc_TensorPipeRpcBackendOptions_num_worker_threads"></a>
+
 > <font size="3">num_worker_threads</font>
 
 <div style="margin-left: 2em">
@@ -389,6 +403,8 @@
 <!-- end id81 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_rpc_TensorPipeRpcBackendOptions_set_device_map"></a>
 
 > <font size="3">set_device_map()</font>
 
@@ -411,6 +427,8 @@
 **限制与说明**：建议使用已适配的`torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions.set_device_map`
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_rpc_TensorPipeRpcBackendOptions_set_devices"></a>
 
 > <font size="3">set_devices()</font>
 
@@ -478,6 +496,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id45 -->
 
+<a class="method_anchor" id="torch_distributed_nn_api_remote_module_RemoteModule_get_module_rref"></a>
+
 > <font size="3">get_module_rref()</font>
 
 <div style="margin-left: 2em">
@@ -497,6 +517,8 @@
 <!-- end id48 -->
 
 </div>
+
+<a class="method_anchor" id="torch_distributed_nn_api_remote_module_RemoteModule_remote_parameters"></a>
 
 > <font size="3">remote_parameters()</font>
 

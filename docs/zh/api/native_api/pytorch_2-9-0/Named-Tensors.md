@@ -46,6 +46,8 @@
 <!-- end id27 -->
 
 <!-- npu="910b,A3" id28 -->
+<a class="method_anchor" id="torch_Tensor_names"></a>
+
 > <font size="3">names</font>
 
 <div style="margin-left: 2em">
@@ -69,6 +71,8 @@
 <!-- end id29 -->
 
 <!-- npu="910b,A3" id30 -->
+<a class="method_anchor" id="torch_Tensor_rename"></a>
+
 > <font size="3">rename()</font>
 
 <div style="margin-left: 2em">
@@ -92,6 +96,8 @@
 <!-- end id31 -->
 
 <!-- npu="910b,A3" id32 -->
+<a class="method_anchor" id="torch_Tensor_rename_"></a>
+
 > <font size="3">rename_()</font>
 
 <div style="margin-left: 2em">
@@ -115,6 +121,8 @@
 <!-- end id33 -->
 
 <!-- npu="910b,A3" id34 -->
+<a class="method_anchor" id="torch_Tensor_align_to"></a>
+
 > <font size="3">align_to</font>
 
 <div style="margin-left: 2em">
@@ -138,6 +146,8 @@
 <!-- end id35 -->
 
 <!-- npu="910b,A3" id36 -->
+<a class="method_anchor" id="torch_Tensor_refine_names"></a>
+
 > <font size="3">refine_names()</font>
 
 <div style="margin-left: 2em">
@@ -161,6 +171,8 @@
 <!-- end id37 -->
 
 <!-- npu="910b,A3" id38 -->
+<a class="method_anchor" id="torch_Tensor_align_as"></a>
+
 > <font size="3">align_as()</font>
 
 <div style="margin-left: 2em">
@@ -182,6 +194,8 @@
 
 </div>
 <!-- end id39 -->
+
+<a class="method_anchor" id="torch_Tensor_flatten"></a>
 
 > <font size="3">flatten()</font>
 

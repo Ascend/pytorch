@@ -80,6 +80,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id9 -->
 
+<a class="method_anchor" id="torch_package_PackageExporter___init__"></a>
+
 > <font size="3">\_\_init\_\_()</font>
 
 <div style="margin-left: 2em">
@@ -99,6 +101,8 @@
 <!-- end id12 -->
 
 </div>
+
+<a class="method_anchor" id="torch_package_PackageExporter_add_dependency"></a>
 
 > <font size="3">add_dependency()</font>
 
@@ -120,6 +124,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_package_PackageExporter_all_paths"></a>
+
 > <font size="3">all_paths()</font>
 
 <div style="margin-left: 2em">
@@ -139,6 +145,8 @@
 <!-- end id18 -->
 
 </div>
+
+<a class="method_anchor" id="torch_package_PackageExporter_close"></a>
 
 > <font size="3">close()</font>
 
@@ -160,6 +168,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_package_PackageExporter_denied_modules"></a>
+
 > <font size="3">denied_modules()</font>
 
 <div style="margin-left: 2em">
@@ -179,6 +189,8 @@
 <!-- end id24 -->
 
 </div>
+
+<a class="method_anchor" id="torch_package_PackageExporter_deny"></a>
 
 > <font size="3">deny()</font>
 
@@ -200,6 +212,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_package_PackageExporter_dependency_graph_string"></a>
+
 > <font size="3">dependency_graph_string()</font>
 
 <div style="margin-left: 2em">
@@ -219,6 +233,8 @@
 <!-- end id30 -->
 
 </div>
+
+<a class="method_anchor" id="torch_package_PackageExporter_extern"></a>
 
 > <font size="3">extern()</font>
 
@@ -240,6 +256,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_package_PackageExporter_externed_modules"></a>
+
 > <font size="3">externed_modules()</font>
 
 <div style="margin-left: 2em">
@@ -259,6 +277,8 @@
 <!-- end id36 -->
 
 </div>
+
+<a class="method_anchor" id="torch_package_PackageExporter_get_rdeps"></a>
 
 > <font size="3">get_rdeps()</font>
 
@@ -280,6 +300,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_package_PackageExporter_get_unique_id"></a>
+
 > <font size="3">get_unique_id()</font>
 
 <div style="margin-left: 2em">
@@ -299,6 +321,8 @@
 <!-- end id42 -->
 
 </div>
+
+<a class="method_anchor" id="torch_package_PackageExporter_intern"></a>
 
 > <font size="3">intern()</font>
 
@@ -320,6 +344,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_package_PackageExporter_interned_modules"></a>
+
 > <font size="3">interned_modules()</font>
 
 <div style="margin-left: 2em">
@@ -339,6 +365,8 @@
 <!-- end id48 -->
 
 </div>
+
+<a class="method_anchor" id="torch_package_PackageExporter_mock"></a>
 
 > <font size="3">mock()</font>
 
@@ -360,6 +388,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_package_PackageExporter_mocked_modules"></a>
+
 > <font size="3">mocked_modules()</font>
 
 <div style="margin-left: 2em">
@@ -379,6 +409,8 @@
 <!-- end id54 -->
 
 </div>
+
+<a class="method_anchor" id="torch_package_PackageExporter_register_extern_hook"></a>
 
 > <font size="3">register_extern_hook()</font>
 
@@ -400,6 +432,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_package_PackageExporter_register_intern_hook"></a>
+
 > <font size="3">register_intern_hook()</font>
 
 <div style="margin-left: 2em">
@@ -419,6 +453,8 @@
 <!-- end id60 -->
 
 </div>
+
+<a class="method_anchor" id="torch_package_PackageExporter_register_mock_hook"></a>
 
 > <font size="3">register_mock_hook()</font>
 
@@ -440,6 +476,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_package_PackageExporter_save_binary"></a>
+
 > <font size="3">save_binary()</font>
 
 <div style="margin-left: 2em">
@@ -459,6 +497,8 @@
 <!-- end id66 -->
 
 </div>
+
+<a class="method_anchor" id="torch_package_PackageExporter_save_module"></a>
 
 > <font size="3">save_module()</font>
 
@@ -480,6 +520,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_package_PackageExporter_save_pickle"></a>
+
 > <font size="3">save_pickle()</font>
 
 <div style="margin-left: 2em">
@@ -499,6 +541,8 @@
 <!-- end id72 -->
 
 </div>
+
+<a class="method_anchor" id="torch_package_PackageExporter_save_source_file"></a>
 
 > <font size="3">save_source_file()</font>
 
@@ -520,6 +564,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_package_PackageExporter_save_source_string"></a>
+
 > <font size="3">save_source_string()</font>
 
 <div style="margin-left: 2em">
@@ -539,6 +585,8 @@
 <!-- end id78 -->
 
 </div>
+
+<a class="method_anchor" id="torch_package_PackageExporter_save_text"></a>
 
 > <font size="3">save_text()</font>
 
@@ -580,6 +628,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id84 -->
 
+<a class="method_anchor" id="torch_package_PackageImporter___init__"></a>
+
 > <font size="3">\_\_init\_\_()</font>
 
 <div style="margin-left: 2em">
@@ -601,6 +651,8 @@
 </div>
 
 <!-- npu="910b,A3" id115 -->
+<a class="method_anchor" id="torch_package_PackageImporter_file_structure"></a>
+
 > <font size="3">file_structure()</font>
 
 <div style="margin-left: 2em">
@@ -620,6 +672,8 @@
 <!-- npu="910b,A3" id116 -->
 </div>
 <!-- end id116 -->
+
+<a class="method_anchor" id="torch_package_PackageImporter_id"></a>
 
 > <font size="3">id()</font>
 
@@ -641,6 +695,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_package_PackageImporter_import_module"></a>
+
 > <font size="3">import_module()</font>
 
 <div style="margin-left: 2em">
@@ -660,6 +716,8 @@
 <!-- end id96 -->
 
 </div>
+
+<a class="method_anchor" id="torch_package_PackageImporter_load_binary"></a>
 
 > <font size="3">load_binary()</font>
 
@@ -681,6 +739,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_package_PackageImporter_load_pickle"></a>
+
 > <font size="3">load_pickle()</font>
 
 <div style="margin-left: 2em">
@@ -700,6 +760,8 @@
 <!-- end id102 -->
 
 </div>
+
+<a class="method_anchor" id="torch_package_PackageImporter_load_text"></a>
 
 > <font size="3">load_text()</font>
 
@@ -722,6 +784,8 @@
 </div>
 
 <!-- npu="910b,A3" id117 -->
+<a class="method_anchor" id="torch_package_PackageImporter_python_version"></a>
+
 > <font size="3">python_version()</font>
 
 <div style="margin-left: 2em">
@@ -761,6 +825,8 @@
 <!-- npu="950" id111 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id111 -->
+
+<a class="method_anchor" id="torch_package_Directory_has_file"></a>
 
 > <font size="3">has_file()</font>
 

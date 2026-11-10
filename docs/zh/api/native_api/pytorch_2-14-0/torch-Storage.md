@@ -43,6 +43,8 @@
 <!-- end id3 -->
 
 <!-- npu="910b,A3" id376 -->
+<a class="method_anchor" id="torch_UntypedStorage_bfloat16"></a>
+
 > <font size="3">bfloat16()</font>
 
 <div style="margin-left: 2em">
@@ -63,6 +65,8 @@
 </div>
 <!-- end id377 -->
 
+<a class="method_anchor" id="torch_UntypedStorage_bool"></a>
+
 > <font size="3">bool()</font>
 
 <div style="margin-left: 2em">
@@ -82,6 +86,8 @@
 <!-- end id9 -->
 
 </div>
+
+<a class="method_anchor" id="torch_UntypedStorage_byte"></a>
 
 > <font size="3">byte()</font>
 
@@ -104,6 +110,8 @@
 </div>
 
 <!-- npu="910b,A3" id378 -->
+<a class="method_anchor" id="torch_UntypedStorage_byteswap"></a>
+
 > <font size="3">byteswap()</font>
 
 <div style="margin-left: 2em">
@@ -124,6 +132,8 @@
 </div>
 <!-- end id379 -->
 
+<a class="method_anchor" id="torch_UntypedStorage_char"></a>
+
 > <font size="3">char()</font>
 
 <div style="margin-left: 2em">
@@ -143,6 +153,8 @@
 <!-- end id18 -->
 
 </div>
+
+<a class="method_anchor" id="torch_UntypedStorage_clone"></a>
 
 > <font size="3">clone()</font>
 
@@ -165,6 +177,8 @@
 </div>
 
 <!-- npu="910b,A3" id380 -->
+<a class="method_anchor" id="torch_UntypedStorage_complex_double"></a>
+
 > <font size="3">complex_double()</font>
 
 <div style="margin-left: 2em">
@@ -186,6 +200,8 @@
 <!-- end id381 -->
 
 <!-- npu="910b,A3" id382 -->
+<a class="method_anchor" id="torch_UntypedStorage_complex_float"></a>
+
 > <font size="3">complex_float()</font>
 
 <div style="margin-left: 2em">
@@ -205,6 +221,8 @@
 <!-- npu="910b,A3" id383 -->
 </div>
 <!-- end id383 -->
+
+<a class="method_anchor" id="torch_UntypedStorage_copy_"></a>
 
 > <font size="3">copy_()</font>
 
@@ -226,6 +244,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_UntypedStorage_cpu"></a>
+
 > <font size="3">cpu()</font>
 
 <div style="margin-left: 2em">
@@ -245,6 +265,8 @@
 <!-- end id33 -->
 
 </div>
+
+<a class="method_anchor" id="torch_UntypedStorage_cuda"></a>
 
 > <font size="3">cuda()</font>
 
@@ -266,6 +288,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_UntypedStorage_data_ptr"></a>
+
 > <font size="3">data_ptr()</font>
 
 <div style="margin-left: 2em">
@@ -285,6 +309,8 @@
 <!-- end id39 -->
 
 </div>
+
+<a class="method_anchor" id="torch_UntypedStorage_device"></a>
 
 > <font size="3">device()</font>
 
@@ -306,6 +332,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_UntypedStorage_double"></a>
+
 > <font size="3">double()</font>
 
 <div style="margin-left: 2em">
@@ -325,6 +353,8 @@
 <!-- end id45 -->
 
 </div>
+
+<a class="method_anchor" id="torch_UntypedStorage_element_size"></a>
 
 > <font size="3">element_size()</font>
 
@@ -346,6 +376,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_UntypedStorage_filename"></a>
+
 > <font size="3">filename()</font>
 
 <div style="margin-left: 2em">
@@ -365,6 +397,8 @@
 <!-- end id51 -->
 
 </div>
+
+<a class="method_anchor" id="torch_UntypedStorage_fill_"></a>
 
 > <font size="3">fill_()</font>
 
@@ -386,6 +420,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_UntypedStorage_float"></a>
+
 > <font size="3">float()</font>
 
 <div style="margin-left: 2em">
@@ -405,6 +441,8 @@
 <!-- end id57 -->
 
 </div>
+
+<a class="method_anchor" id="torch_UntypedStorage_from_buffer"></a>
 
 > <font size="3">from_buffer()</font>
 
@@ -426,6 +464,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_UntypedStorage_from_file"></a>
+
 > <font size="3">from_file()</font>
 
 <div style="margin-left: 2em">
@@ -445,6 +485,8 @@
 <!-- end id75 -->
 
 </div>
+
+<a class="method_anchor" id="torch_UntypedStorage_get_device"></a>
 
 > <font size="3">get_device()</font>
 
@@ -466,6 +508,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_UntypedStorage_half"></a>
+
 > <font size="3">half()</font>
 
 <div style="margin-left: 2em">
@@ -485,6 +529,8 @@
 <!-- end id81 -->
 
 </div>
+
+<a class="method_anchor" id="torch_UntypedStorage_int"></a>
 
 > <font size="3">int()</font>
 
@@ -506,6 +552,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_UntypedStorage_is_cuda"></a>
+
 > <font size="3">is_cuda()</font>
 
 <div style="margin-left: 2em">
@@ -525,6 +573,8 @@
 <!-- end id90 -->
 
 </div>
+
+<a class="method_anchor" id="torch_UntypedStorage_is_pinned"></a>
 
 > <font size="3">is_pinned()</font>
 
@@ -547,6 +597,8 @@
 </div>
 
 <!-- npu="910b,A3" id384 -->
+<a class="method_anchor" id="torch_UntypedStorage_is_shared"></a>
+
 > <font size="3">is_shared()</font>
 
 <div style="margin-left: 2em">
@@ -568,6 +620,8 @@
 <!-- end id385 -->
 
 <!-- npu="910b,A3" id386 -->
+<a class="method_anchor" id="torch_UntypedStorage_is_sparse"></a>
+
 > <font size="3">is_sparse()</font>
 
 <div style="margin-left: 2em">
@@ -589,6 +643,8 @@
 <!-- end id387 -->
 
 <!-- npu="910b,A3" id388 -->
+<a class="method_anchor" id="torch_UntypedStorage_is_sparse_csr"></a>
+
 > <font size="3">is_sparse_csr()</font>
 
 <div style="margin-left: 2em">
@@ -608,6 +664,8 @@
 <!-- npu="910b,A3" id389 -->
 </div>
 <!-- end id389 -->
+
+<a class="method_anchor" id="torch_UntypedStorage_long"></a>
 
 > <font size="3">long()</font>
 
@@ -629,6 +687,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_UntypedStorage_nbytes"></a>
+
 > <font size="3">nbytes()</font>
 
 <div style="margin-left: 2em">
@@ -648,6 +708,8 @@
 <!-- end id114 -->
 
 </div>
+
+<a class="method_anchor" id="torch_UntypedStorage_new"></a>
 
 > <font size="3">new()</font>
 
@@ -669,6 +731,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_UntypedStorage_pin_memory"></a>
+
 > <font size="3">pin_memory()</font>
 
 <div style="margin-left: 2em">
@@ -689,6 +753,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_UntypedStorage_resizable"></a>
+
 > <font size="3">resizable()</font>
 
 <div style="margin-left: 2em">
@@ -708,6 +774,8 @@
 <!-- end id375 -->
 
 </div>
+
+<a class="method_anchor" id="torch_UntypedStorage_resize_"></a>
 
 > <font size="3">resize_()</font>
 
@@ -730,6 +798,8 @@
 </div>
 
 <!-- npu="910b,A3" id390 -->
+<a class="method_anchor" id="torch_UntypedStorage_share_memory_"></a>
+
 > <font size="3">share_memory_()</font>
 
 <div style="margin-left: 2em">
@@ -749,6 +819,8 @@
 <!-- npu="910b,A3" id391 -->
 </div>
 <!-- end id391 -->
+
+<a class="method_anchor" id="torch_UntypedStorage_short"></a>
 
 > <font size="3">short()</font>
 
@@ -770,6 +842,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_UntypedStorage_size"></a>
+
 > <font size="3">size()</font>
 
 <div style="margin-left: 2em">
@@ -789,6 +863,8 @@
 <!-- end id132 -->
 
 </div>
+
+<a class="method_anchor" id="torch_UntypedStorage_to"></a>
 
 > <font size="3">to()</font>
 
@@ -811,6 +887,8 @@
 </div>
 
 <!-- npu="910b,A3" id392 -->
+<a class="method_anchor" id="torch_UntypedStorage_tolist"></a>
+
 > <font size="3">tolist()</font>
 
 <div style="margin-left: 2em">
@@ -831,6 +909,8 @@
 </div>
 <!-- end id393 -->
 
+<a class="method_anchor" id="torch_UntypedStorage_type"></a>
+
 > <font size="3">type()</font>
 
 <div style="margin-left: 2em">
@@ -850,6 +930,8 @@
 <!-- end id138 -->
 
 </div>
+
+<a class="method_anchor" id="torch_UntypedStorage_untyped"></a>
 
 > <font size="3">untyped()</font>
 
@@ -894,6 +976,8 @@
 <!-- end id234 -->
 
 <!-- npu="910b,A3" id420 -->
+<a class="method_anchor" id="torch_TypedStorage_bfloat16"></a>
+
 > <font size="3">bfloat16()</font>
 
 <div style="margin-left: 2em">
@@ -913,6 +997,8 @@
 <!-- npu="910b,A3" id421 -->
 </div>
 <!-- end id421 -->
+
+<a class="method_anchor" id="torch_TypedStorage_bool"></a>
 
 > <font size="3">bool()</font>
 
@@ -934,6 +1020,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_TypedStorage_byte"></a>
+
 > <font size="3">byte()</font>
 
 <div style="margin-left: 2em">
@@ -954,6 +1042,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_TypedStorage_char"></a>
+
 > <font size="3">char()</font>
 
 <div style="margin-left: 2em">
@@ -973,6 +1063,8 @@
 <!-- end id246 -->
 
 </div>
+
+<a class="method_anchor" id="torch_TypedStorage_clone"></a>
 
 > <font size="3">clone()</font>
 
@@ -995,6 +1087,8 @@
 </div>
 
 <!-- npu="910b,A3" id422 -->
+<a class="method_anchor" id="torch_TypedStorage_complex_double"></a>
+
 > <font size="3">complex_double()</font>
 
 <div style="margin-left: 2em">
@@ -1016,6 +1110,8 @@
 <!-- end id423 -->
 
 <!-- npu="910b,A3" id424 -->
+<a class="method_anchor" id="torch_TypedStorage_complex_float"></a>
+
 > <font size="3">complex_float()</font>
 
 <div style="margin-left: 2em">
@@ -1035,6 +1131,8 @@
 <!-- npu="910b,A3" id425 -->
 </div>
 <!-- end id425 -->
+
+<a class="method_anchor" id="torch_TypedStorage_copy_"></a>
 
 > <font size="3">copy_()</font>
 
@@ -1056,6 +1154,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_TypedStorage_cpu"></a>
+
 > <font size="3">cpu()</font>
 
 <div style="margin-left: 2em">
@@ -1075,6 +1175,8 @@
 <!-- end id261 -->
 
 </div>
+
+<a class="method_anchor" id="torch_TypedStorage_cuda"></a>
 
 > <font size="3">cuda()</font>
 
@@ -1096,6 +1198,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_TypedStorage_data_ptr"></a>
+
 > <font size="3">data_ptr()</font>
 
 <div style="margin-left: 2em">
@@ -1115,6 +1219,8 @@
 <!-- end id267 -->
 
 </div>
+
+<a class="method_anchor" id="torch_TypedStorage_device"></a>
 
 > <font size="3">device()</font>
 
@@ -1136,6 +1242,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_TypedStorage_double"></a>
+
 > <font size="3">double()</font>
 
 <div style="margin-left: 2em">
@@ -1156,6 +1264,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_TypedStorage_dtype"></a>
+
 > <font size="3">dtype()</font>
 
 <div style="margin-left: 2em">
@@ -1175,6 +1285,8 @@
 <!-- end id276 -->
 
 </div>
+
+<a class="method_anchor" id="torch_TypedStorage_element_size"></a>
 
 > <font size="3">element_size()</font>
 
@@ -1197,6 +1309,8 @@
 </div>
 
 <!-- npu="910b,A3" id426 -->
+<a class="method_anchor" id="torch_TypedStorage_filename"></a>
+
 > <font size="3">filename()</font>
 
 <div style="margin-left: 2em">
@@ -1216,6 +1330,8 @@
 <!-- npu="910b,A3" id427 -->
 </div>
 <!-- end id427 -->
+
+<a class="method_anchor" id="torch_TypedStorage_fill_"></a>
 
 > <font size="3">fill_()</font>
 
@@ -1237,6 +1353,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_TypedStorage_float"></a>
+
 > <font size="3">float()</font>
 
 <div style="margin-left: 2em">
@@ -1256,6 +1374,8 @@
 <!-- end id288 -->
 
 </div>
+
+<a class="method_anchor" id="torch_TypedStorage_from_buffer"></a>
 
 > <font size="3">from_buffer()</font>
 
@@ -1277,6 +1397,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_TypedStorage_from_file"></a>
+
 > <font size="3">from_file()</font>
 
 <div style="margin-left: 2em">
@@ -1296,6 +1418,8 @@
 <!-- end id300 -->
 
 </div>
+
+<a class="method_anchor" id="torch_TypedStorage_get_device"></a>
 
 > <font size="3">get_device()</font>
 
@@ -1317,6 +1441,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_TypedStorage_half"></a>
+
 > <font size="3">half()</font>
 
 <div style="margin-left: 2em">
@@ -1336,6 +1462,8 @@
 <!-- end id306 -->
 
 </div>
+
+<a class="method_anchor" id="torch_TypedStorage_int"></a>
 
 > <font size="3">int()</font>
 
@@ -1357,6 +1485,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_TypedStorage_is_cuda"></a>
+
 > <font size="3">is_cuda()</font>
 
 <div style="margin-left: 2em">
@@ -1376,6 +1506,8 @@
 <!-- end id315 -->
 
 </div>
+
+<a class="method_anchor" id="torch_TypedStorage_is_pinned"></a>
 
 > <font size="3">is_pinned()</font>
 
@@ -1398,6 +1530,8 @@
 </div>
 
 <!-- npu="910b,A3" id428 -->
+<a class="method_anchor" id="torch_TypedStorage_is_shared"></a>
+
 > <font size="3">is_shared()</font>
 
 <div style="margin-left: 2em">
@@ -1417,6 +1551,8 @@
 <!-- npu="910b,A3" id429 -->
 </div>
 <!-- end id429 -->
+
+<a class="method_anchor" id="torch_TypedStorage_is_sparse"></a>
 
 > <font size="3">is_sparse()</font>
 
@@ -1438,6 +1574,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_TypedStorage_long"></a>
+
 > <font size="3">long()</font>
 
 <div style="margin-left: 2em">
@@ -1457,6 +1595,8 @@
 <!-- end id330 -->
 
 </div>
+
+<a class="method_anchor" id="torch_TypedStorage_nbytes"></a>
 
 > <font size="3">nbytes()</font>
 
@@ -1478,6 +1618,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_TypedStorage_pickle_storage_type"></a>
+
 > <font size="3">pickle_storage_type()</font>
 
 <div style="margin-left: 2em">
@@ -1497,6 +1639,8 @@
 <!-- end id336 -->
 
 </div>
+
+<a class="method_anchor" id="torch_TypedStorage_pin_memory"></a>
 
 > <font size="3">pin_memory()</font>
 
@@ -1518,6 +1662,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_TypedStorage_resizable"></a>
+
 > <font size="3">resizable()</font>
 
 <div style="margin-left: 2em">
@@ -1537,6 +1683,8 @@
 <!-- end id378 -->
 
 </div>
+
+<a class="method_anchor" id="torch_TypedStorage_resize_"></a>
 
 > <font size="3">resize_()</font>
 
@@ -1558,6 +1706,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_TypedStorage_short"></a>
+
 > <font size="3">short()</font>
 
 <div style="margin-left: 2em">
@@ -1577,6 +1727,8 @@
 <!-- end id348 -->
 
 </div>
+
+<a class="method_anchor" id="torch_TypedStorage_size"></a>
 
 > <font size="3">size()</font>
 
@@ -1598,6 +1750,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_TypedStorage_tolist"></a>
+
 > <font size="3">tolist()</font>
 
 <div style="margin-left: 2em">
@@ -1618,6 +1772,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_TypedStorage_type"></a>
+
 > <font size="3">type()</font>
 
 <div style="margin-left: 2em">
@@ -1637,6 +1793,8 @@
 <!-- end id357 -->
 
 </div>
+
+<a class="method_anchor" id="torch_TypedStorage_untyped"></a>
 
 > <font size="3">untyped()</font>
 
@@ -1678,6 +1836,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id144 -->
 
+<a class="method_anchor" id="torch_DoubleStorage_dtype"></a>
+
 > <font size="3">dtype()</font>
 
 <div style="margin-left: 2em">
@@ -1717,6 +1877,8 @@
 <!-- npu="950" id363 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id363 -->
+
+<a class="method_anchor" id="torch_FloatStorage_dtype"></a>
 
 > <font size="3">dtype()</font>
 
@@ -1758,6 +1920,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id150 -->
 
+<a class="method_anchor" id="torch_HalfStorage_dtype"></a>
+
 > <font size="3">dtype()</font>
 
 <div style="margin-left: 2em">
@@ -1797,6 +1961,8 @@
 <!-- npu="950" id156 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id156 -->
+
+<a class="method_anchor" id="torch_LongStorage_dtype"></a>
 
 > <font size="3">dtype()</font>
 
@@ -1838,6 +2004,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id369 -->
 
+<a class="method_anchor" id="torch_IntStorage_dtype"></a>
+
 > <font size="3">dtype()</font>
 
 <div style="margin-left: 2em">
@@ -1877,6 +2045,8 @@
 <!-- npu="950" id162 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id162 -->
+
+<a class="method_anchor" id="torch_ShortStorage_dtype"></a>
 
 > <font size="3">dtype()</font>
 
@@ -1921,6 +2091,8 @@
 <!-- end id185 -->
 
 <!-- npu="910b,A3" id396 -->
+<a class="method_anchor" id="torch_BFloat16Storage_dtype"></a>
+
 > <font size="3">dtype()</font>
 
 <div style="margin-left: 2em">
@@ -1965,6 +2137,8 @@
 <!-- end id191 -->
 
 <!-- npu="910b,A3" id400 -->
+<a class="method_anchor" id="torch_ComplexDoubleStorage_dtype"></a>
+
 > <font size="3">dtype()</font>
 
 <div style="margin-left: 2em">
@@ -2009,6 +2183,8 @@
 <!-- end id197 -->
 
 <!-- npu="910b,A3" id404 -->
+<a class="method_anchor" id="torch_ComplexFloatStorage_dtype"></a>
+
 > <font size="3">dtype()</font>
 
 <div style="margin-left: 2em">
@@ -2053,6 +2229,8 @@
 <!-- end id203 -->
 
 <!-- npu="910b,A3" id408 -->
+<a class="method_anchor" id="torch_QUInt8Storage_dtype"></a>
+
 > <font size="3">dtype()</font>
 
 <div style="margin-left: 2em">
@@ -2099,6 +2277,8 @@
 <!-- end id209 -->
 
 <!-- npu="910b,A3" id412 -->
+<a class="method_anchor" id="torch_QInt8Storage_dtype"></a>
+
 > <font size="3">dtype()</font>
 
 <div style="margin-left: 2em">
@@ -2142,6 +2322,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id168 -->
 
+<a class="method_anchor" id="torch_CharStorage_dtype"></a>
+
 > <font size="3">dtype()</font>
 
 <div style="margin-left: 2em">
@@ -2181,6 +2363,8 @@
 <!-- npu="950" id174 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id174 -->
+
+<a class="method_anchor" id="torch_ByteStorage_dtype"></a>
 
 > <font size="3">dtype()</font>
 
@@ -2222,6 +2406,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id180 -->
 
+<a class="method_anchor" id="torch_BoolStorage_dtype"></a>
+
 > <font size="3">dtype()</font>
 
 <div style="margin-left: 2em">
@@ -2252,6 +2438,8 @@
 **原生文档**：[torch.QInt32Storage](https://pytorch.org/docs/2.14/storage.html#torch.QInt32Storage)
 
 <!-- npu="910b,A3" id414 -->
+<a class="method_anchor" id="torch_QInt32Storage_dtype"></a>
+
 > <font size="3">dtype()</font>
 
 <div style="margin-left: 2em">
@@ -2296,6 +2484,8 @@
 <!-- end id222 -->
 
 <!-- npu="910b,A3" id416 -->
+<a class="method_anchor" id="torch_QUInt4x2Storage_dtype"></a>
+
 > <font size="3">dtype()</font>
 
 <div style="margin-left: 2em">
@@ -2339,6 +2529,8 @@
 <!-- end id228 -->
 
 <!-- npu="910b,A3" id418 -->
+<a class="method_anchor" id="torch_QUInt2x4Storage_dtype"></a>
+
 > <font size="3">dtype()</font>
 
 <div style="margin-left: 2em">

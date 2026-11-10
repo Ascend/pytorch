@@ -211,6 +211,8 @@
 
 **限制与说明**：`input`仅支持fp32
 
+<a class="method_anchor" id="torch_jit_ScriptModule_add_module"></a>
+
 > <font size="3">add_module()</font>
 
 <div style="margin-left: 2em">
@@ -230,6 +232,8 @@
 <!-- end id30 -->
 
 </div>
+
+<a class="method_anchor" id="torch_jit_ScriptModule_apply"></a>
 
 > <font size="3">apply()</font>
 
@@ -253,6 +257,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptModule_bfloat16"></a>
+
 > <font size="3">bfloat16()</font>
 
 <div style="margin-left: 2em">
@@ -272,6 +278,8 @@
 <!-- end id36 -->
 
 </div>
+
+<a class="method_anchor" id="torch_jit_ScriptModule_buffers"></a>
 
 > <font size="3">buffers()</font>
 
@@ -295,6 +303,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptModule_children"></a>
+
 > <font size="3">children()</font>
 
 <div style="margin-left: 2em">
@@ -314,6 +324,8 @@
 <!-- end id42 -->
 
 </div>
+
+<a class="method_anchor" id="torch_jit_ScriptModule_code"></a>
 
 > <font size="3">code()</font>
 
@@ -335,6 +347,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptModule_code_with_constants"></a>
+
 > <font size="3">code_with_constants()</font>
 
 <div style="margin-left: 2em">
@@ -355,6 +369,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptModule_compile"></a>
+
 > <font size="3">compile()</font>
 
 <div style="margin-left: 2em">
@@ -374,6 +390,8 @@
 <!-- end id51 -->
 
 </div>
+
+<a class="method_anchor" id="torch_jit_ScriptModule_cpu"></a>
 
 > <font size="3">cpu()</font>
 
@@ -397,6 +415,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptModule_cuda"></a>
+
 > <font size="3">cuda()</font>
 
 <div style="margin-left: 2em">
@@ -418,6 +438,8 @@
 **限制与说明**：`input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_jit_ScriptModule_double"></a>
 
 > <font size="3">double()</font>
 
@@ -441,6 +463,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptModule_eval"></a>
+
 > <font size="3">eval()</font>
 
 <div style="margin-left: 2em">
@@ -462,6 +486,8 @@
 **限制与说明**：`input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_jit_ScriptModule_extra_repr"></a>
 
 > <font size="3">extra_repr()</font>
 
@@ -485,6 +511,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptModule_float"></a>
+
 > <font size="3">float()</font>
 
 <div style="margin-left: 2em">
@@ -506,6 +534,8 @@
 **限制与说明**：`input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_jit_ScriptModule_get_buffer"></a>
 
 > <font size="3">get_buffer()</font>
 
@@ -529,6 +559,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptModule_get_parameter"></a>
+
 > <font size="3">get_parameter()</font>
 
 <div style="margin-left: 2em">
@@ -550,6 +582,8 @@
 **限制与说明**：`input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_jit_ScriptModule_get_submodule"></a>
 
 > <font size="3">get_submodule()</font>
 
@@ -573,6 +607,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptModule_graph"></a>
+
 > <font size="3">graph()</font>
 
 <div style="margin-left: 2em">
@@ -592,6 +628,8 @@
 <!-- end id84 -->
 
 </div>
+
+<a class="method_anchor" id="torch_jit_ScriptModule_half"></a>
 
 > <font size="3">half()</font>
 
@@ -615,6 +653,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptModule_inlined_graph"></a>
+
 > <font size="3">inlined_graph</font>
 
 <div style="margin-left: 2em">
@@ -634,6 +674,8 @@
 <!-- end id90 -->
 
 </div>
+
+<a class="method_anchor" id="torch_jit_ScriptModule_ipu"></a>
 
 > <font size="3">ipu()</font>
 
@@ -655,6 +697,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptModule_load_state_dict"></a>
+
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -674,6 +718,8 @@
 <!-- end id96 -->
 
 </div>
+
+<a class="method_anchor" id="torch_jit_ScriptModule_modules"></a>
 
 > <font size="3">modules()</font>
 
@@ -695,6 +741,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptModule_mtia"></a>
+
 > <font size="3">mtia()</font>
 
 <div style="margin-left: 2em">
@@ -714,6 +762,8 @@
 <!-- end id255 -->
 
 </div>
+
+<a class="method_anchor" id="torch_jit_ScriptModule_named_buffers"></a>
 
 > <font size="3">named_buffers()</font>
 
@@ -737,6 +787,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptModule_named_children"></a>
+
 > <font size="3">named_children()</font>
 
 <div style="margin-left: 2em">
@@ -758,6 +810,8 @@
 **限制与说明**：`input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_jit_ScriptModule_named_modules"></a>
 
 > <font size="3">named_modules()</font>
 
@@ -781,6 +835,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptModule_named_parameters"></a>
+
 > <font size="3">named_parameters()</font>
 
 <div style="margin-left: 2em">
@@ -802,6 +858,8 @@
 **限制与说明**：`input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_jit_ScriptModule_parameters"></a>
 
 > <font size="3">parameters()</font>
 
@@ -825,6 +883,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptModule_register_backward_hook"></a>
+
 > <font size="3">register_backward_hook()</font>
 
 <div style="margin-left: 2em">
@@ -846,6 +906,8 @@
 **限制与说明**：`input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_jit_ScriptModule_register_forward_hook"></a>
 
 > <font size="3">register_forward_hook()</font>
 
@@ -869,6 +931,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptModule_register_forward_pre_hook"></a>
+
 > <font size="3">register_forward_pre_hook()</font>
 
 <div style="margin-left: 2em">
@@ -890,6 +954,8 @@
 **限制与说明**：`input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_jit_ScriptModule_register_full_backward_hook"></a>
 
 > <font size="3">register_full_backward_hook()</font>
 
@@ -913,6 +979,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptModule_register_full_backward_pre_hook"></a>
+
 > <font size="3">register_full_backward_pre_hook()</font>
 
 <div style="margin-left: 2em">
@@ -934,6 +1002,8 @@
 **限制与说明**：`input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_jit_ScriptModule_register_load_state_dict_post_hook"></a>
 
 > <font size="3">register_load_state_dict_post_hook()</font>
 
@@ -957,6 +1027,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptModule_register_load_state_dict_pre_hook"></a>
+
 > <font size="3">register_load_state_dict_pre_hook()</font>
 
 <div style="margin-left: 2em">
@@ -978,6 +1050,8 @@
 **限制与说明**：`input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_jit_ScriptModule_register_state_dict_post_hook"></a>
 
 > <font size="3">register_state_dict_post_hook()</font>
 
@@ -1001,6 +1075,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptModule_register_state_dict_pre_hook"></a>
+
 > <font size="3">register_state_dict_pre_hook()</font>
 
 <div style="margin-left: 2em">
@@ -1022,6 +1098,8 @@
 **限制与说明**：`input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_jit_ScriptModule_requires_grad_"></a>
 
 > <font size="3">requires_grad_()</font>
 
@@ -1045,6 +1123,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptModule_save"></a>
+
 > <font size="3">save()</font>
 
 <div style="margin-left: 2em">
@@ -1066,6 +1146,8 @@
 **限制与说明**：`input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_jit_ScriptModule_state_dict"></a>
 
 > <font size="3">state_dict()</font>
 
@@ -1089,6 +1171,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptModule_to"></a>
+
 > <font size="3">to()</font>
 
 <div style="margin-left: 2em">
@@ -1110,6 +1194,8 @@
 **限制与说明**：`input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_jit_ScriptModule_to_empty"></a>
 
 > <font size="3">to_empty()</font>
 
@@ -1133,6 +1219,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptModule_train"></a>
+
 > <font size="3">train()</font>
 
 <div style="margin-left: 2em">
@@ -1154,6 +1242,8 @@
 **限制与说明**：`input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_jit_ScriptModule_type"></a>
 
 > <font size="3">type()</font>
 
@@ -1177,6 +1267,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptModule_xpu"></a>
+
 > <font size="3">xpu()</font>
 
 <div style="margin-left: 2em">
@@ -1198,6 +1290,8 @@
 **限制与说明**：`input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_jit_ScriptModule_zero_grad"></a>
 
 > <font size="3">zero_grad()</font>
 
@@ -1243,6 +1337,8 @@
 
 **限制与说明**：`input`仅支持fp32
 
+<a class="method_anchor" id="torch_jit_ScriptFunction_get_debug_state"></a>
+
 > <font size="3">get_debug_state()</font>
 
 <div style="margin-left: 2em">
@@ -1265,6 +1361,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptFunction_save"></a>
+
 > <font size="3">save()</font>
 
 <div style="margin-left: 2em">
@@ -1286,6 +1384,8 @@
 **限制与说明**：`input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_jit_ScriptFunction_save_to_buffer"></a>
 
 > <font size="3">save_to_buffer()</font>
 
@@ -1549,6 +1649,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id234 -->
 
+<a class="method_anchor" id="torch_jit_Attribute_count"></a>
+
 > <font size="3">count()</font>
 
 <div style="margin-left: 2em">
@@ -1568,6 +1670,8 @@
 <!-- end id237 -->
 
 </div>
+
+<a class="method_anchor" id="torch_jit_Attribute_index"></a>
 
 > <font size="3">index()</font>
 
@@ -1589,6 +1693,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_Attribute_type"></a>
+
 > <font size="3">type()</font>
 
 <div style="margin-left: 2em">
@@ -1608,6 +1714,8 @@
 <!-- end id243 -->
 
 </div>
+
+<a class="method_anchor" id="torch_jit_Attribute_value"></a>
 
 > <font size="3">value()</font>
 

@@ -141,6 +141,8 @@
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id17 -->
 
+<a class="method_anchor" id="torch_onnx_ONNXProgram_apply_weights"></a>
+
 > <font size="3">apply_weights()</font>
 
 <div style="margin-left: 2em">
@@ -160,6 +162,8 @@
 <!-- end id21 -->
 
 </div>
+
+<a class="method_anchor" id="torch_onnx_ONNXProgram_compute_values"></a>
 
 > <font size="3">compute_values()</font>
 
@@ -181,6 +185,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_onnx_ONNXProgram_model_proto"></a>
+
 > <font size="3">model_proto()</font>
 
 <div style="margin-left: 2em">
@@ -200,6 +206,8 @@
 <!-- end id24 -->
 
 </div>
+
+<a class="method_anchor" id="torch_onnx_ONNXProgram_save"></a>
 
 > <font size="3">save()</font>
 
@@ -221,6 +229,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_onnx_ONNXProgram_initialize_inference_session"></a>
+
 > <font size="3">initialize_inference_session()</font>
 
 <div style="margin-left: 2em">
@@ -241,6 +251,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_onnx_ONNXProgram_release"></a>
+
 > <font size="3">release()</font>
 
 <div style="margin-left: 2em">
@@ -260,6 +272,8 @@
 <!-- end id45 -->
 
 </div>
+
+<a class="method_anchor" id="torch_onnx_ONNXProgram_optimize"></a>
 
 > <font size="3">optimize()</font>
 
@@ -340,6 +354,8 @@
 <!-- npu="950" id50 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id50 -->
+
+<a class="method_anchor" id="torch_onnx_verification_VerificationInfo_from_tensors"></a>
 
 > <font size="3"><code><i>classmethod</i></code> from_tensors()</font>
 

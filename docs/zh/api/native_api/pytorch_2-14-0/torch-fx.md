@@ -92,6 +92,8 @@
 
 **限制与说明**： `input`仅支持fp32
 
+<a class="method_anchor" id="torch_fx_GraphModule___init__"></a>
+
 > <font size="3">\_\_init\_\_()</font>
 
 <div style="margin-left: 2em">
@@ -113,6 +115,8 @@
 **限制与说明**： `input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_fx_GraphModule_add_submodule"></a>
 
 > <font size="3">add_submodule()</font>
 
@@ -136,6 +140,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_GraphModule_code"></a>
+
 > <font size="3">code()</font>
 
 <div style="margin-left: 2em">
@@ -155,6 +161,8 @@
 <!-- end id15 -->
 
 </div>
+
+<a class="method_anchor" id="torch_fx_GraphModule_delete_all_unused_submodules"></a>
 
 > <font size="3">delete_all_unused_submodules()</font>
 
@@ -178,6 +186,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_GraphModule_delete_submodule"></a>
+
 > <font size="3">delete_submodule()</font>
 
 <div style="margin-left: 2em">
@@ -200,6 +210,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_GraphModule_graph"></a>
+
 > <font size="3">graph()</font>
 
 <div style="margin-left: 2em">
@@ -219,6 +231,8 @@
 <!-- end id24 -->
 
 </div>
+
+<a class="method_anchor" id="torch_fx_GraphModule_print_readable"></a>
 
 > <font size="3">print_readable()</font>
 
@@ -240,6 +254,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_GraphModule_recompile"></a>
+
 > <font size="3">recompile()</font>
 
 <div style="margin-left: 2em">
@@ -259,6 +275,8 @@
 <!-- end id30 -->
 
 </div>
+
+<a class="method_anchor" id="torch_fx_GraphModule_to_folder"></a>
 
 > <font size="3">to_folder()</font>
 
@@ -302,6 +320,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id36 -->
 
+<a class="method_anchor" id="torch_fx_Graph___init__"></a>
+
 > <font size="3">\_\_init\_\_()</font>
 
 <div style="margin-left: 2em">
@@ -321,6 +341,8 @@
 <!-- end id39 -->
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Graph_call_function"></a>
 
 > <font size="3">call_function()</font>
 
@@ -342,6 +364,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Graph_call_method"></a>
+
 > <font size="3">call_method()</font>
 
 <div style="margin-left: 2em">
@@ -361,6 +385,8 @@
 <!-- end id45 -->
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Graph_call_module"></a>
 
 > <font size="3">call_module()</font>
 
@@ -382,6 +408,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Graph_create_node"></a>
+
 > <font size="3">create_node()</font>
 
 <div style="margin-left: 2em">
@@ -402,6 +430,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Graph_eliminate_dead_code"></a>
+
 > <font size="3">eliminate_dead_code()</font>
 
 <div style="margin-left: 2em">
@@ -421,6 +451,8 @@
 <!-- end id54 -->
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Graph_erase_node"></a>
 
 > <font size="3">erase_node()</font>
 
@@ -443,6 +475,8 @@
 </div>
 
 <!-- npu="910b,A3" id276 -->
+<a class="method_anchor" id="torch_fx_Graph_find_nodes"></a>
+
 > <font size="3">find_nodes()</font>
 
 <div style="margin-left: 2em">
@@ -462,6 +496,8 @@
 <!-- npu="910b,A3" id277 -->
 </div>
 <!-- end id277 -->
+
+<a class="method_anchor" id="torch_fx_Graph_get_attr"></a>
 
 > <font size="3">get_attr()</font>
 
@@ -483,6 +519,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Graph_graph_copy"></a>
+
 > <font size="3">graph_copy()</font>
 
 <div style="margin-left: 2em">
@@ -502,6 +540,8 @@
 <!-- end id63 -->
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Graph_inserting_after"></a>
 
 > <font size="3">inserting_after()</font>
 
@@ -523,6 +563,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Graph_inserting_before"></a>
+
 > <font size="3">inserting_before()</font>
 
 <div style="margin-left: 2em">
@@ -542,6 +584,8 @@
 <!-- end id72 -->
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Graph_lint"></a>
 
 > <font size="3">lint()</font>
 
@@ -565,6 +609,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Graph_node_copy"></a>
+
 > <font size="3">node_copy()</font>
 
 <div style="margin-left: 2em">
@@ -586,6 +632,8 @@
 **限制与说明**： `input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Graph_nodes"></a>
 
 > <font size="3">nodes()</font>
 
@@ -609,6 +657,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Graph_on_generate_code"></a>
+
 > <font size="3">on_generate_code()</font>
 
 <div style="margin-left: 2em">
@@ -631,6 +681,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Graph_output"></a>
+
 > <font size="3">output()</font>
 
 <div style="margin-left: 2em">
@@ -652,6 +704,8 @@
 </div>
 
 <!-- npu="910b,A3" id278 -->
+<a class="method_anchor" id="torch_fx_Graph_output_node"></a>
+
 > <font size="3">output_node()</font>
 
 <div style="margin-left: 2em">
@@ -672,6 +726,8 @@
 </div>
 <!-- end id279 -->
 
+<a class="method_anchor" id="torch_fx_Graph_placeholder"></a>
+
 > <font size="3">placeholder()</font>
 
 <div style="margin-left: 2em">
@@ -691,6 +747,8 @@
 <!-- end id93 -->
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Graph_print_tabular"></a>
 
 > <font size="3">print_tabular()</font>
 
@@ -714,6 +772,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Graph_process_inputs"></a>
+
 > <font size="3">process_inputs()</font>
 
 <div style="margin-left: 2em">
@@ -734,6 +794,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Graph_process_outputs"></a>
+
 > <font size="3">process_outputs()</font>
 
 <div style="margin-left: 2em">
@@ -753,6 +815,8 @@
 <!-- end id102 -->
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Graph_python_code"></a>
 
 > <font size="3">python_code()</font>
 
@@ -775,6 +839,8 @@
 **限制与说明**： `input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Graph_set_codegen"></a>
 
 > <font size="3">set_codegen()</font>
 
@@ -818,6 +884,8 @@
 
 **限制与说明**： `input`仅支持fp32
 
+<a class="method_anchor" id="torch_fx_Node_all_input_nodes"></a>
+
 > <font size="3">all_input_nodes()</font>
 
 <div style="margin-left: 2em">
@@ -837,6 +905,8 @@
 <!-- end id159 -->
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Node_append"></a>
 
 > <font size="3">append()</font>
 
@@ -860,6 +930,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Node_args"></a>
+
 > <font size="3">args()</font>
 
 <div style="margin-left: 2em">
@@ -879,6 +951,8 @@
 <!-- end id165 -->
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Node_format_node"></a>
 
 > <font size="3">format_node()</font>
 
@@ -903,6 +977,8 @@
 </div>
 
 <!-- npu="910b,A3" id280 -->
+<a class="method_anchor" id="torch_fx_Node_insert_arg"></a>
+
 > <font size="3">insert_arg()</font>
 
 <div style="margin-left: 2em">
@@ -922,6 +998,8 @@
 <!-- npu="910b,A3" id281 -->
 </div>
 <!-- end id281 -->
+
+<a class="method_anchor" id="torch_fx_Node_is_impure"></a>
 
 > <font size="3">is_impure()</font>
 
@@ -945,6 +1023,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Node_kwargs"></a>
+
 > <font size="3">kwargs()</font>
 
 <div style="margin-left: 2em">
@@ -964,6 +1044,8 @@
 <!-- end id174 -->
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Node_next"></a>
 
 > <font size="3">next()</font>
 
@@ -985,6 +1067,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Node_normalized_arguments"></a>
+
 > <font size="3">normalized_arguments()</font>
 
 <div style="margin-left: 2em">
@@ -1004,6 +1088,8 @@
 <!-- end id180 -->
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Node_prepend"></a>
 
 > <font size="3">prepend()</font>
 
@@ -1025,6 +1111,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Node_prev"></a>
+
 > <font size="3">prev()</font>
 
 <div style="margin-left: 2em">
@@ -1045,6 +1133,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Node_replace_all_uses_with"></a>
+
 > <font size="3">replace_all_uses_with()</font>
 
 <div style="margin-left: 2em">
@@ -1064,6 +1154,8 @@
 <!-- end id189 -->
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Node_replace_input_with"></a>
 
 > <font size="3">replace_input_with()</font>
 
@@ -1087,6 +1179,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Node_stack_trace"></a>
+
 > <font size="3">stack_trace()</font>
 
 <div style="margin-left: 2em">
@@ -1106,6 +1200,8 @@
 <!-- end id195 -->
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Node_update_arg"></a>
 
 > <font size="3">update_arg()</font>
 
@@ -1128,6 +1224,8 @@
 **限制与说明**： `input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Node_update_kwarg"></a>
 
 > <font size="3">update_kwarg()</font>
 
@@ -1171,6 +1269,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id111 -->
 
+<a class="method_anchor" id="torch_fx_Tracer_call_module"></a>
+
 > <font size="3">call_module()</font>
 
 <div style="margin-left: 2em">
@@ -1193,6 +1293,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Tracer_create_arg"></a>
+
 > <font size="3">create_arg()</font>
 
 <div style="margin-left: 2em">
@@ -1212,6 +1314,8 @@
 <!-- end id117 -->
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Tracer_create_args_for_root"></a>
 
 > <font size="3">create_args_for_root()</font>
 
@@ -1235,6 +1339,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Tracer_create_node"></a>
+
 > <font size="3">create_node()</font>
 
 <div style="margin-left: 2em">
@@ -1254,6 +1360,8 @@
 <!-- end id123 -->
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Tracer_create_proxy"></a>
 
 > <font size="3">create_proxy()</font>
 
@@ -1277,6 +1385,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Tracer_getattr"></a>
+
 > <font size="3">getattr()</font>
 
 <div style="margin-left: 2em">
@@ -1297,6 +1407,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Tracer_is_leaf_module"></a>
+
 > <font size="3">is_leaf_module()</font>
 
 <div style="margin-left: 2em">
@@ -1316,6 +1428,8 @@
 <!-- end id132 -->
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Tracer_iter"></a>
 
 > <font size="3">iter()</font>
 
@@ -1339,6 +1453,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Tracer_keys"></a>
+
 > <font size="3">keys()</font>
 
 <div style="margin-left: 2em">
@@ -1361,6 +1477,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Tracer_path_of_module"></a>
+
 > <font size="3">path_of_module()</font>
 
 <div style="margin-left: 2em">
@@ -1380,6 +1498,8 @@
 <!-- end id141 -->
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Tracer_proxy"></a>
 
 > <font size="3">proxy()</font>
 
@@ -1403,6 +1523,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Tracer_to_bool"></a>
+
 > <font size="3">to_bool()</font>
 
 <div style="margin-left: 2em">
@@ -1424,6 +1546,8 @@
 **限制与说明**： `input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Tracer_trace"></a>
 
 > <font size="3">trace()</font>
 
@@ -1485,6 +1609,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id210 -->
 
+<a class="method_anchor" id="torch_fx_Interpreter_boxed_run"></a>
+
 > <font size="3">boxed_run()</font>
 
 <div style="margin-left: 2em">
@@ -1504,6 +1630,8 @@
 <!-- end id243 -->
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Interpreter_call_function"></a>
 
 > <font size="3">call_function()</font>
 
@@ -1527,6 +1655,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Interpreter_call_method"></a>
+
 > <font size="3">call_method()</font>
 
 <div style="margin-left: 2em">
@@ -1548,6 +1678,8 @@
 **限制与说明**： `input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Interpreter_call_module"></a>
 
 > <font size="3">call_module()</font>
 
@@ -1571,6 +1703,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Interpreter_fetch_args_kwargs_from_env"></a>
+
 > <font size="3">fetch_args_kwargs_from_env()</font>
 
 <div style="margin-left: 2em">
@@ -1592,6 +1726,8 @@
 **限制与说明**： `input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Interpreter_fetch_attr"></a>
 
 > <font size="3">fetch_attr()</font>
 
@@ -1615,6 +1751,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Interpreter_get_attr"></a>
+
 > <font size="3">get_attr()</font>
 
 <div style="margin-left: 2em">
@@ -1636,6 +1774,8 @@
 **限制与说明**： `input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Interpreter_map_nodes_to_values"></a>
 
 > <font size="3">map_nodes_to_values()</font>
 
@@ -1659,6 +1799,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Interpreter_output"></a>
+
 > <font size="3">output()</font>
 
 <div style="margin-left: 2em">
@@ -1680,6 +1822,8 @@
 **限制与说明**： `input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Interpreter_placeholder"></a>
 
 > <font size="3">placeholder()</font>
 
@@ -1703,6 +1847,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Interpreter_run"></a>
+
 > <font size="3">run()</font>
 
 <div style="margin-left: 2em">
@@ -1722,6 +1868,8 @@
 <!-- end id240 -->
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Interpreter_run_node"></a>
 
 > <font size="3">run_node()</font>
 
@@ -1765,6 +1913,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id249 -->
 
+<a class="method_anchor" id="torch_fx_Transformer_call_function"></a>
+
 > <font size="3">call_function()</font>
 
 <div style="margin-left: 2em">
@@ -1786,6 +1936,8 @@
 **限制与说明**： `input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Transformer_call_module"></a>
 
 > <font size="3">call_module()</font>
 
@@ -1809,6 +1961,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Transformer_get_attr"></a>
+
 > <font size="3">get_attr()</font>
 
 <div style="margin-left: 2em">
@@ -1831,6 +1985,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_fx_Transformer_placeholder"></a>
+
 > <font size="3">placeholder()</font>
 
 <div style="margin-left: 2em">
@@ -1852,6 +2008,8 @@
 **限制与说明**： `input`仅支持fp32
 
 </div>
+
+<a class="method_anchor" id="torch_fx_Transformer_transform"></a>
 
 > <font size="3">transform()</font>
 

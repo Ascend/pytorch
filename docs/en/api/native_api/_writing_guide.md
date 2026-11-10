@@ -68,6 +68,22 @@ The following is a structural example. Content in angle brackets must be replace
 - Do not rewrite native APIs into a complete manual with "function description, parameters, and return values"; usage is provided through the Native Documentation link.
 - Keep reasonable blank lines before and after code fences, lists, and HTML containers to prevent Markdown from being treated as plain text inside HTML.
 
+### Method and Attribute Anchors
+
+- Do not add explicit API anchors to Markdown headings that start with `#`, including class, function, and category headings. Use their generated heading anchors.
+- For method or attribute titles displayed as `> <font size="3">...</font>` without `#`, place `<a class="method_anchor" id="..."></a>` on a separate line above the title, with one blank line between them. Do not append the anchor to the title or place it inside the support description.
+- Confirm the fully qualified API name from its native documentation link for the target version and replace dots with underscores to form the ID. Display names may omit module prefixes: `Optimizer.step` must use `torch.optim.Optimizer.step` to produce `torch_optim_Optimizer_step`; `Tensor.add` produces `torch_Tensor_add`, and `Node.name` produces `torch_autograd_graph_Node_name`.
+- Remove Markdown escape backslashes while preserving underscores, case, and double-underscore method names. Title modifiers such as `property` and `classmethod`, and call parentheses, are not part of the ID.
+- IDs must be unique within each file and match the following method or attribute and its native documentation link. The same API may have anchors on different pages or versions. Check API anchor IDs separately from product-filter comment numbers.
+
+The following illustrates only the method title and anchor position. Continue with the API fields shown above:
+
+```markdown
+<a class="method_anchor" id="torch_optim_Optimizer_step"></a>
+
+> <font size="3">step()</font>
+```
+
 ## 4. Product Support Lists and Conditional Comments
 
 Product filtering tags are used to filter displayed information by product. They are used line by line and do not support inline usage. The start comment and end comment each occupy a single line, and the text to be filtered is placed between them. Do not insert tags into part of a sentence, a list item, or a table cell to filter that part. This refers to `<!-- npu="..." id... -->` / `<!-- end id... -->`; `<term>` product name tags are not required to occupy a single line.
@@ -144,5 +160,7 @@ Add examples when they can demonstrate switch configuration, context, parameter 
 ## 8. Minimal Acceptance
 
 Text polishing: review the diff and confirm that facts, product blocks, IDs, links, and heading anchors are preserved. New entries: verify the evidence, field order, container closure, non-conflicting IDs, category positions, and related navigation. Structural migration: additionally check the product status and constraint attribution of each API before and after the migration.
+
+For anchor changes, check coverage and placement for every method and attribute title without `#`, the absence of added explicit anchors on headings with `#`, fully qualified prefixes, agreement with titles and native links, unique IDs within each file, and references to old IDs. Removing the added anchors must leave the original body unchanged.
 
 Verification should be performed according to the specific scope of modification; do not modify unrelated pages just because the repository has historical warnings. Distinguish static structure checks, documentation tool checks, site rendering, and NPU example execution, and report honestly which ones were completed.

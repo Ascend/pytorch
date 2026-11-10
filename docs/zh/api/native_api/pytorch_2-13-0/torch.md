@@ -2364,6 +2364,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id272 -->
 
+<a class="method_anchor" id="torch_Generator_device"></a>
+
 > <font size="3">device()</font>
 
 <div style="margin-left: 2em">
@@ -2383,6 +2385,8 @@
 <!-- end id275 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Generator_get_state"></a>
 
 > <font size="3">get_state()</font>
 
@@ -2404,6 +2408,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Generator_initial_seed"></a>
+
 > <font size="3">initial_seed()</font>
 
 <div style="margin-left: 2em">
@@ -2423,6 +2429,8 @@
 <!-- end id281 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Generator_manual_seed"></a>
 
 > <font size="3">manual_seed()</font>
 
@@ -2444,6 +2452,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Generator_seed"></a>
+
 > <font size="3">seed()</font>
 
 <div style="margin-left: 2em">
@@ -2463,6 +2473,8 @@
 <!-- end id287 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Generator_set_state"></a>
 
 > <font size="3">set_state()</font>
 
@@ -2484,6 +2496,8 @@
 
 </div>
 
+<a class="method_anchor" id="torch_Generator_clone_state"></a>
+
 > <font size="3">clone_state()</font>
 
 <div style="margin-left: 2em">
@@ -2503,6 +2517,8 @@
 <!-- end id293 -->
 
 </div>
+
+<a class="method_anchor" id="torch_Generator_graphsafe_set_state"></a>
 
 > <font size="3">graphsafe_set_state()</font>
 
@@ -2951,6 +2967,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1349 -->
 
+<a class="method_anchor" id="torch_quasirandom_SobolEngine_draw"></a>
+
 > <font size="3">draw()</font>
 
 <div style="margin-left: 2em">
@@ -3244,6 +3262,8 @@
 <!-- end id382 -->
 
 <!-- npu="910b,A3" id1169 -->
+<a class="method_anchor" id="torch_autograd_grad_mode_set_grad_enabled_clone"></a>
+
 > <font size="3">clone()</font>
 
 <div style="margin-left: 2em">
@@ -3327,6 +3347,8 @@
 <!-- end id394 -->
 
 <!-- npu="910b,A3" id1175 -->
+<a class="method_anchor" id="torch_autograd_grad_mode_inference_mode_clone"></a>
+
 > <font size="3">clone()</font>
 
 <div style="margin-left: 2em">
@@ -10368,6 +10390,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1079 -->
 
+<a class="method_anchor" id="torch_SymFloat_as_integer_ratio"></a>
+
 > <font size="3">as_integer_ratio()</font>
 
 <div style="margin-left: 2em">
@@ -10624,6 +10648,8 @@
 <!-- npu="950" id1103 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1103 -->
+
+<a class="method_anchor" id="torch_Tag_name"></a>
 
 > <font size="3">name</font>
 
