@@ -59,6 +59,7 @@ jobs:
         .github/config/running_skiped_testcases.json
         .github/config/unsupport_dtype_testcases.json
         .github/config/unsupported_aclnn_testcases.json
+        .github/config/temporary_skiped_testcases.json
       # Experimental: validates the triton-ascend -std=c++17 -> c++20
       # workaround against the deterministic npu_utils build failure
       # (ATen headers require C++20). The a3 image ships triton 3.6.0 +

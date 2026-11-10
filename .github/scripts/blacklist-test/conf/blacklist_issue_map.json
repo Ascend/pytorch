@@ -12,9 +12,9 @@
       "temporary_skiped_testcases.json",
       "running_skiped_testcases.json"
     ],
-    "generated_at": "2026-11-10 17:44:19 +0800",
+    "generated_at": "2026-11-10 19:49:40 +0800",
     "category_count": 5,
-    "issue_count": 75
+    "issue_count": 76
   },
   "categories": {
     "device not supported": {
@@ -27,17 +27,13 @@
     },
     "cann not supported": {
       "https://gitcode.com/Ascend/pytorch/issues/5315": [
-        "NPU contiguous operator only supported contiguous memory format",
-        "Only c10::MemoryFormat::Contiguous is supported for creating a npu tensor",
-        "Only contiguous_format or preserve_format is supported",
-        "RuntimeError: NPU contiguous operator only supported contiguous memory format.",
-        "RuntimeError: Only contiguous_format or preserve_format is supported.",
         "acl not supported: aclnnAdd",
         "acl not supported: aclnnAddbmm",
         "acl not supported: aclnnAddmm",
         "acl not supported: aclnnArange",
         "acl not supported: aclnnBaddbmm",
         "acl not supported: aclnnBatchMatMul",
+        "acl not supported: aclnnComplex",
         "acl not supported: aclnnConvolution",
         "acl not supported: aclnnConvolutionBackward",
         "acl not supported: aclnnDot",
@@ -46,6 +42,7 @@
         "acl not supported: aclnnErfc",
         "acl not supported: aclnnExp",
         "acl not supported: aclnnExpm1",
+        "acl not supported: aclnnEye",
         "acl not supported: aclnnGather",
         "acl not supported: aclnnGcd",
         "acl not supported: aclnnGroupNorm",
@@ -73,20 +70,6 @@
         "acl not supported: eye",
         "acl not supported: log10",
         "acl not supported: log1p",
-        "cannot be larger than 8 dimensions"
-      ],
-      "https://gitcode.com/Ascend/pytorch/issues/5949": [
-        "acl not supported: aclnnBatchMatMul",
-        "acl not supported: aclnnComplex",
-        "acl not supported: aclnnConvolution",
-        "acl not supported: aclnnExpm1",
-        "acl not supported: aclnnEye",
-        "acl not supported: aclnnIndexAdd",
-        "acl not supported: aclnnMm",
-        "acl not supported: aclnnNeg",
-        "acl not supported: aclnnRemainderTensorTensor",
-        "acl not supported: aclnnTriangularSolve",
-        "acl not supported: aclnnUpsampleBilinear2d",
         "acl not supported:aclnnAdd",
         "acl not supported:aclnnAddbmm",
         "acl not supported:aclnnAddcdiv",
@@ -136,22 +119,17 @@
         "acl not supported:aclnnUpsampleBicubic2dAA",
         "acl not supported:aclnnUpsampleBilinear2d",
         "acl not supported:aclnnUpsampleBilinear2dAA",
-        "acl not supported:aclnnVarMean",
-        "acl not supported:aten::_sparse_log_softmax",
-        "acl not supported:aten::_sparse_softmax",
-        "acl not supported:aten::_sparse_sparse_matmul",
-        "acl not supported:aten::empty_quantized",
-        "acl not supported:aten::sparse_sampled_addmm",
-        "acl not supported:torch._foreach_lgamma",
-        "acl not supported:torch._foreach_lgamma_",
-        "acl not supported:torch.copysign",
-        "acl not supported:torch.frexp",
-        "acl not supported:torch.histogram",
-        "acl not supported:torch.hypot",
-        "acl not supported:torch.mode",
-        "acl not supported:torch.ops.aten._dyn_quant_matmul_4bit",
-        "acl not supported:torch.sparse.mm",
-        "acl not supported:torch.sparse.sampled_addmm"
+        "acl not supported:aclnnVarMean"
+      ],
+      "https://gitcode.com/Ascend/pytorch/issues/6009": [
+        "NPU contiguous operator only supported contiguous memory format",
+        "Only c10::MemoryFormat::Contiguous is supported for creating a npu tensor",
+        "Only contiguous_format or preserve_format is supported",
+        "RuntimeError: NPU contiguous operator only supported contiguous memory format.",
+        "RuntimeError: Only contiguous_format or preserve_format is supported."
+      ],
+      "https://gitcode.com/Ascend/pytorch/issues/6011": [
+        "cannot be larger than 8 dimensions"
       ]
     },
     "dtype not supported (cann)": {

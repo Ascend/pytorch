@@ -86,6 +86,8 @@ jobs:
               ".github/config/unsupported_aclnn_testcases.json",
               ".github/config/unsupport_dtype_testcases.json",
           ]
+          if platform == "a3":
+              files.append(".github/config/temporary_skiped_testcases.json")
           nodeids = sorted(module.load_skip_list(files, platform=platform))
           print(f"[{platform}] {len(nodeids)} unique blacklist nodeids from {len(files)} files")
 
