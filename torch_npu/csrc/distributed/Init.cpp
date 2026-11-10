@@ -27,6 +27,7 @@
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/npu/MemPool.h"
 #include "torch_npu/csrc/distributed/Init.h"
+#include "torch_npu/csrc/distributed/PythonDebugAdapter.h"
 
 namespace {
 
@@ -184,6 +185,7 @@ void _register_builtin_comm_hook(c10d_npu::Reducer& reducer, ::c10d::BuiltinComm
 }
 
 PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs) {
+  c10d_npu::registerPythonDebugAdapter();
   auto torch_npu_C_module = THPObjectPtr(PyImport_ImportModule("torch_npu._C"));
   if (!torch_npu_C_module) {
     throw python_error();
