@@ -12,7 +12,11 @@ class AscendCustomPostPass(CustomGraphPass):
         # The registered pass set changes with feature flags / shutdown lists.
         # Include it and the implementation so an FX cache hit cannot silently
         # reuse the graph from before the passes or their implementations changed.
-        from .ascend_custom_passes import ascend_graph_pass, index_reshape_index
+        from .ascend_custom_passes import (
+            ascend_graph_pass,
+            comparison_count_to_searchsorted,
+            index_reshape_index,
+        )
         from .ascend_custom_passes.register_custom_pass import (
             ASCEND_CUSTOME_PASS_REGISTER,
         )
@@ -26,6 +30,7 @@ class AscendCustomPostPass(CustomGraphPass):
         files = (
             __file__,
             ascend_graph_pass.__file__,
+            comparison_count_to_searchsorted.__file__,
             index_reshape_index.__file__,
             index_lowering.__file__,
         )
@@ -34,6 +39,7 @@ class AscendCustomPostPass(CustomGraphPass):
             extra=repr(
                 (
                     names,
+                    npu_config.allow_searchsorted_lowering,
                     npu_config.enable_full_lowering_fallback.strip() == "allfallback",
                 )
             ),
