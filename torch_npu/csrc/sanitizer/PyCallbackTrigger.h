@@ -1,141 +1,147 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
-#include <torch/csrc/utils/python_arg_parser.h>
-
-#define CONCRETE_TRACE_NPU(func_name, ...)                                     \
-    if (Py_IsInitialized()) {                                                  \
-        pybind11::gil_scoped_acquire gil;                                      \
-        try {                                                                  \
-            py::module mod = py::module::import("torch_npu.utils._npu_trace"); \
-            py::object hook = mod.attr(func_name).attr("fire_callbacks");      \
-            hook(__VA_ARGS__);                                                 \
-        } catch (const std::exception& e) {                                    \
-            LOG(ERROR) << "NPU trace hook execution failed: " << e.what();     \
-        }                                                                      \
-    }
 
 namespace c10_npu {
 namespace impl {
 
 enum class SanitizerMode { STREAM = 0, KERNEL };
 
+// Registered callbacks must remain valid for the lifetime of the trace object.
+struct NPUTraceCallbacks {
+  void (*traceNpuAclStartExecution)(const std::string& acl_name);
+  void (*traceNpuAclFinishExecution)(const std::string& acl_name);
+  void (*traceNpuEventCreation)(uintptr_t event);
+  void (*traceNpuEventDeletion)(uintptr_t event);
+  void (*traceNpuEventRecord)(uintptr_t event, uintptr_t stream);
+  void (*traceNpuEventWait)(uintptr_t event, uintptr_t stream);
+  void (*traceNpuEventGetHandle)(uintptr_t event, uintptr_t handle);
+  void (*traceNpuEventOpenHandle)(uintptr_t handle, uintptr_t event);
+  void (*traceNpuMemoryAllocation)(uintptr_t ptr);
+  void (*traceNpuMemoryDeallocation)(uintptr_t ptr);
+  void (*traceNpuStreamCreation)(uintptr_t stream);
+  void (*traceNpuDeviceSynchronization)();
+  void (*traceNpuStreamSynchronization)(uintptr_t stream);
+  void (*traceNpuEventSynchronization)(uintptr_t event);
+  void (*traceNpuExternalEventWrite)(uintptr_t event, uintptr_t stream);
+  void (*traceNpuExternalEventWait)(uintptr_t event, uintptr_t stream);
+  void (*traceNpuRecordStream)(uintptr_t data_ptr, uintptr_t stream);
+  void (*traceNpuEraseStream)(uintptr_t data_ptr, uintptr_t stream);
+};
+
 struct PyCallbackTrigger {
     const SanitizerMode sanitizer_mode;
 
-    PyCallbackTrigger(const int mode) : sanitizer_mode(static_cast<SanitizerMode>(mode)){};
-    void traceNpuAclStartExecution(std::string acl_name) const
+    PyCallbackTrigger(const int mode, const NPUTraceCallbacks& callbacks) : sanitizer_mode(static_cast<SanitizerMode>(mode)), callbacks_(callbacks) {}
+  void traceNpuAclStartExecution(std::string acl_name) const
     {
         if (sanitizer_mode == SanitizerMode::KERNEL) {
-            CONCRETE_TRACE_NPU("NPUACLStartExecuteCallbacks", acl_name);
+      callbacks_.traceNpuAclStartExecution(acl_name);
         }
     }
     void traceNpuAclFinishExecution(std::string acl_name) const
     {
         if (sanitizer_mode == SanitizerMode::KERNEL) {
-            CONCRETE_TRACE_NPU("NPUACLFinishExecuteCallbacks", acl_name);
+      callbacks_.traceNpuAclFinishExecution(acl_name);
         }
     }
     void traceNpuEventCreation(uintptr_t event) const
     {
         if (sanitizer_mode == SanitizerMode::STREAM) {
-            CONCRETE_TRACE_NPU("NPUEventCreationCallbacks", event);
+      callbacks_.traceNpuEventCreation(event);
         }
     }
     void traceNpuEventDeletion(uintptr_t event) const
     {
         if (sanitizer_mode == SanitizerMode::STREAM) {
-            CONCRETE_TRACE_NPU("NPUEventDeletionCallbacks", event);
+      callbacks_.traceNpuEventDeletion(event);
         }
     }
     void traceNpuEventRecord(uintptr_t event, uintptr_t stream) const
     {
         if (sanitizer_mode == SanitizerMode::STREAM) {
-            CONCRETE_TRACE_NPU("NPUEventRecordCallbacks", event, stream);
+      callbacks_.traceNpuEventRecord(event, stream);
         }
     }
     void traceNpuEventWait(uintptr_t event, uintptr_t stream) const
     {
         if (sanitizer_mode == SanitizerMode::STREAM) {
-            CONCRETE_TRACE_NPU("NPUEventWaitCallbacks", event, stream);
+      callbacks_.traceNpuEventWait(event, stream);
         }
     }
     void traceNpuEventGetHandle(uintptr_t event, uintptr_t handle) const
     {
         if (sanitizer_mode == SanitizerMode::STREAM) {
-            CONCRETE_TRACE_NPU("NPUEventGetHandleCallbacks", event, handle);
+      callbacks_.traceNpuEventGetHandle(event, handle);
         }
     }
     void traceNpuEventOpenHandle(uintptr_t handle, uintptr_t event) const
     {
         if (sanitizer_mode == SanitizerMode::STREAM) {
-            CONCRETE_TRACE_NPU("NPUEventOpenHandleCallbacks", handle, event);
+      callbacks_.traceNpuEventOpenHandle(handle, event);
         }
     }
     void traceNpuMemoryAllocation(uintptr_t ptr) const
     {
         if (sanitizer_mode == SanitizerMode::STREAM) {
-            CONCRETE_TRACE_NPU("NPUMemoryAllocationCallbacks", ptr);
+      callbacks_.traceNpuMemoryAllocation(ptr);
         }
     }
     void traceNpuMemoryDeallocation(uintptr_t ptr) const
     {
         if (sanitizer_mode == SanitizerMode::STREAM) {
-            CONCRETE_TRACE_NPU("NPUMemoryDeallocationCallbacks", ptr);
+      callbacks_.traceNpuMemoryDeallocation(ptr);
         }
     }
     void traceNpuStreamCreation(uintptr_t stream) const
     {
         if (sanitizer_mode == SanitizerMode::STREAM) {
-            CONCRETE_TRACE_NPU("NPUStreamCreationCallbacks", stream);
+      callbacks_.traceNpuStreamCreation(stream);
         }
     }
     void traceNpuDeviceSynchronization() const
     {
         if (sanitizer_mode == SanitizerMode::STREAM) {
-            CONCRETE_TRACE_NPU("NPUDeviceSynchronizationCallbacks");
+      callbacks_.traceNpuDeviceSynchronization();
         }
     }
     void traceNpuStreamSynchronization(uintptr_t stream) const
     {
         if (sanitizer_mode == SanitizerMode::STREAM) {
-            CONCRETE_TRACE_NPU("NPUStreamSynchronizationCallbacks", stream);
+      callbacks_.traceNpuStreamSynchronization(stream);
         }
     }
     void traceNpuEventSynchronization(uintptr_t event) const
     {
         if (sanitizer_mode == SanitizerMode::STREAM) {
-            CONCRETE_TRACE_NPU("NPUEventSynchronizationCallbacks", event);
+      callbacks_.traceNpuEventSynchronization(event);
+    }
+  }
+  void traceNpuExternalEventWrite(uintptr_t event, uintptr_t stream) const {
+    if (sanitizer_mode == SanitizerMode::STREAM) {
+      callbacks_.traceNpuExternalEventWrite(event, stream);
+    }
+  }
+  void traceNpuExternalEventWait(uintptr_t event, uintptr_t stream) const {
+    if (sanitizer_mode == SanitizerMode::STREAM) {
+      callbacks_.traceNpuExternalEventWait(event, stream);
+    }
+  }
+  void traceNpuRecordStream(uintptr_t data_ptr, uintptr_t stream) const {
+    if (sanitizer_mode == SanitizerMode::STREAM) {
+      callbacks_.traceNpuRecordStream(data_ptr, stream);
+    }
+  }
+  void traceNpuEraseStream(uintptr_t data_ptr, uintptr_t stream) const {
+    if (sanitizer_mode == SanitizerMode::STREAM) {
+      callbacks_.traceNpuEraseStream(data_ptr, stream);
         }
     }
-    static PyCallbackTrigger* instance(const int mode)
-    {
-        static PyCallbackTrigger trigger = PyCallbackTrigger(mode);
-        return &trigger;
-    }
-    void traceNpuExternalEventWrite(uintptr_t event, uintptr_t stream) const
-    {
-        if (sanitizer_mode == SanitizerMode::STREAM) {
-            CONCRETE_TRACE_NPU("traceNpuExternalEventWriteCallbacks", event, stream);
-        }
-    }
-    void traceNpuExternalEventWait(uintptr_t event, uintptr_t stream) const
-    {
-        if (sanitizer_mode == SanitizerMode::STREAM) {
-            CONCRETE_TRACE_NPU("traceNpuExternalEventWaitCallbacks", event, stream);
-        }
-    }
-    void traceNpuRecordStream(uintptr_t data_ptr, uintptr_t stream) const
-    {
-        if (sanitizer_mode == SanitizerMode::STREAM) {
-            CONCRETE_TRACE_NPU("NPURecordStreamCallbacks", data_ptr, stream);
-        }
-    }
-    void traceNpuEraseStream(uintptr_t data_ptr, uintptr_t stream) const {
-        if (sanitizer_mode == SanitizerMode::STREAM) {
-            CONCRETE_TRACE_NPU("NPUEraseStreamCallbacks", data_ptr, stream);
-        }
-    }
+    static PyCallbackTrigger* instance(const int mode);
+
+ private:
+  const NPUTraceCallbacks& callbacks_;
 };
 
 PyCallbackTrigger* getPyCallbackTrigger(const int mode);
