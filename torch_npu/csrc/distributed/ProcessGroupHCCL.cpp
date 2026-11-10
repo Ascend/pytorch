@@ -3086,7 +3086,8 @@ void ProcessGroupHCCL::createHCCLCommOrigin(
                 "The current SoC is unsupported; falling back to the original RootInfo initialization path.");
         } else {
             const uint32_t numRanks = static_cast<uint32_t>(getSize());
-            if (numRanks > ranksPerRoot) {
+            // Fall back to the original path if the HCCL library lacks the scalable interfaces.
+            if (numRanks > ranksPerRoot && hcclCommInitRootInfoScalableExist()) {
                 // Overflow-safe ceiling division: 512 ranks with ranksPerRoot=127 require 5 roots.
                 const uint32_t numRoots = (numRanks - 1) / static_cast<uint32_t>(ranksPerRoot) + 1;
                 createHCCLCommScalable(devices, commConfig, hcclComms, streamVal, numRoots);
@@ -3145,8 +3146,11 @@ void ProcessGroupHCCL::createHCCLCommOrigin(
     }
     auto endTime = std::chrono::steady_clock::now();
     auto timeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-    TORCH_NPU_HCCL_LOGI("Create hccl comm by hcclCommInitRootInfoConfig success, group id is %s, commType is %d, use %d ms.",
-        options_->group_id.c_str(), static_cast<int>(commType), timeElapsed.count());
+    TORCH_NPU_HCCL_LOGI(
+        "Create hccl comm by hcclCommInitRootInfoConfig success, group id is %s, commType is %d, use %d ms, "
+        "ranksPerRoot is %lld.",
+        options_->group_id.c_str(), static_cast<int>(commType), timeElapsed.count(),
+        static_cast<long long>(ranksPerRoot));
 }
 
 bool ProcessGroupHCCL::createHCCLCommEx(
