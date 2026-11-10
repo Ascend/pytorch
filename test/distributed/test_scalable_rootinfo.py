@@ -1,3 +1,4 @@
+import ctypes
 import os
 import re
 import socket
@@ -133,6 +134,13 @@ class ScalableRootInfoTest(TestCase):
         return is_a2 or is_a3
 
     @staticmethod
+    def _has_scalable_interfaces():
+        # Query the same library as the HCCL loader, including dependency symbols.
+        # Failure to load HCCL itself is an environment error, not a fallback case.
+        hccl = ctypes.CDLL("libhccl.so")
+        return hasattr(hccl, "HcclGetRootInfoScalable") and hasattr(hccl, "HcclCommInitRootInfoScalable")
+
+    @staticmethod
     def _expected_roots(world_size, ranks_per_root):
         if world_size <= 0 or ranks_per_root <= 0:
             raise ValueError("world_size and ranks_per_root must be greater than 0")
@@ -149,12 +157,15 @@ class ScalableRootInfoTest(TestCase):
         return roots
 
     def _assert_path_logs(self, log_dir, world_size, ranks_per_root, rounds):
-        effective_ranks_per_root = -1 if ranks_per_root is None else ranks_per_root
+        # Assert the effective C++ value below, not just the selected path.
+        effective_ranks_per_root = 128 if ranks_per_root is None else ranks_per_root
         valid_ranks_per_root = isinstance(effective_ranks_per_root, int) and effective_ranks_per_root > 0
         scalable_enabled = valid_ranks_per_root
         scalable_requested = scalable_enabled and world_size > effective_ranks_per_root
         scalable_supported_soc = self._is_scalable_supported_soc()
-        use_scalable_path = scalable_requested and scalable_supported_soc
+        use_scalable_path = (
+            scalable_requested and scalable_supported_soc and self._has_scalable_interfaces()
+        )
         expected_roots = (
             self._expected_roots(world_size, effective_ranks_per_root) if use_scalable_path else {}
         )
@@ -167,6 +178,11 @@ class ScalableRootInfoTest(TestCase):
 
             if not use_scalable_path:
                 self.assertEqual(log_text.count(ORIGINAL_COMM_LOG_KEYWORD), rounds)
+                logged_ranks_per_root = re.findall(
+                    rf"{re.escape(ORIGINAL_COMM_LOG_KEYWORD)}[^\n]*ranksPerRoot is (-?\d+)\.",
+                    log_text,
+                )
+                self.assertEqual(logged_ranks_per_root, [str(effective_ranks_per_root)] * rounds)
                 self.assertNotIn(SCALABLE_COMM_LOG_KEYWORD, log_text)
                 self.assertNotIn(SCALABLE_LAYOUT_LOG_KEYWORD, log_text)
                 self.assertNotIn(ROOTINFO_EXCHANGE_LOG_KEYWORD, log_text)
@@ -265,8 +281,21 @@ class ScalableRootInfoTest(TestCase):
     def test_negative_one_disables_scalable_rootinfo(self):
         self._run_case(ranks_per_root=-1)
 
-    def test_unset_ranks_per_root_disables_scalable_rootinfo(self):
+    def test_unset_ranks_per_root_uses_default_128(self):
         self._run_case(ranks_per_root=None)
+
+    def test_unset_ranks_per_root_repeated_create_and_destroy(self):
+        self._run_case(ranks_per_root=None, run_all_collectives=True, rounds=2)
+
+    def test_explicit_default_ranks_per_root_uses_original_path(self):
+        self._run_case(ranks_per_root=128, run_all_collectives=True)
+
+    def test_missing_scalable_interfaces_falls_back(self):
+        if not self._is_scalable_supported_soc():
+            self.skipTest("Requires Atlas A2/A3 to isolate the missing-interface fallback")
+        if self._has_scalable_interfaces():
+            self.skipTest("Requires an HCCL library missing scalable RootInfo interfaces")
+        self._run_case(ranks_per_root=2, run_all_collectives=True)
 
     def test_repeated_create_and_destroy(self):
         self._run_case(ranks_per_root=2, rounds=2)

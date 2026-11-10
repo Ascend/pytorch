@@ -117,7 +117,7 @@ bool OptionsManager::IsSubCommRootInfoEnable() {
 }
 
 int64_t OptionsManager::GetHcclRanksPerRoot() {
-  constexpr int64_t defaultRanksPerRoot = -1;
+  constexpr int64_t defaultRanksPerRoot = 128;
   char* envVal = get_and_log_env("TORCH_HCCL_RANKS_PER_ROOT");
   if (envVal == nullptr) {
     return defaultRanksPerRoot;
