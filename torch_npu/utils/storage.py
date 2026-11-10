@@ -3,9 +3,13 @@ __all__ = []
 from typing import Union
 from functools import wraps
 import torch
+from torch.storage import _warn_typed_storage_removal
 
 import torch_npu
 from . import serialization as se
+
+
+_original_untyped_double = torch.UntypedStorage.double
 
 
 def _rebuild_npu_tensor(storage, storage_offset, size, stride, requires_grad, backward_hooks, npu_storage_info):
@@ -98,9 +102,26 @@ def _typed_storage_release_ipc_counter_npu(*args, device: Union[str, torch.devic
     return torch.UntypedStorage._release_ipc_counter_npu(*args, **kwargs)
 
 
+def _untyped_double(self):
+    if self.device.type != "npu":
+        return _original_untyped_double(self)
+    _warn_typed_storage_removal()
+    # View raw storage bytes as uint8; keep the device explicit to preserve float64 on NPU.
+    storage = (
+        torch.empty(0, dtype=torch.uint8, device=self.device)
+        .set_(self)
+        .to(dtype=torch.float64, device=self.device)
+        ._typed_storage()
+    )
+    if storage.data_ptr() == self.data_ptr():
+        storage = storage.clone()
+    return storage
+
+
 def _add_storage_methods():
     torch.storage.UntypedStorage.cpu = _cpu_decorator(torch.storage.UntypedStorage.cpu)
     torch.storage.TypedStorage._deepcopy = _deepcopy_decorator(torch.storage.TypedStorage._deepcopy)
+    torch.storage.UntypedStorage.double = _untyped_double
 
     torch.UntypedStorage._share_npu_ = _share_npu_
     torch.UntypedStorage._new_shared_npu = _new_shared_npu
