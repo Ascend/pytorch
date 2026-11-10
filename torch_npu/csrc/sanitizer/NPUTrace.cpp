@@ -17,10 +17,5 @@ void NPUTrace::setTrace(const PyCallbackTrigger* trace)
     have_state = true;
 }
 
-void activateNPUTrace(const int mode)
-{
-    c10_npu::impl::NPUTrace::setTrace(getPyCallbackTrigger(mode));
-}
-
 } // namespace impl
 } // namespace c10_npu
