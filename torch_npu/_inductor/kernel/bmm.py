@@ -1795,20 +1795,6 @@ def _register_npu_inductor_bmm():
             if is_valid_to_require_contiguous(mat2):
                 meta_mat2 = V.graph.current_node.args[1]
                 mat2 = may_require_contiguous(mat2, meta_mat2)
-        elif _degenerate_axis(mat1, mat2):
-            # The same decomposition, for the extents that leave the cube with
-            # nothing to reuse.  With M or N of one each operand element is
-            # read exactly once however the output is tiled, so the mmad buys
-            # no traffic back and spends fifteen sixteenths of a fractal
-            # carrying the extent of one; with K of one there is no reduction
-            # left and the product is an outer product wearing a matmul's
-            # shape.  Lowered this way they become ordinary pointwise and
-            # reduction nodes, which also lets an epilogue fuse into them by
-            # the scheduler's normal rules rather than through a template.
-            mat1 = L.unsqueeze(mat1, -1)
-            mat2 = L.unsqueeze(mat2, 1)
-            return L.sum_(L.mul(mat1, mat2), axis=2)
-
         m, n, k, layout, mat1, mat2 = mm_args(mat1, mat2, layout=layout)
 
         # options to tune from
@@ -1816,6 +1802,18 @@ def _register_npu_inductor_bmm():
             [aten_bmm.bind((mat1, mat2), layout)] if use_aten_gemm_kernels() else []
         )
         static_shape, is_nonzero = _is_static_problem(layout)
+
+        # The extents that leave the cube with nothing to reuse are answered by
+        # decomposing instead of tiling.  Behind the same gate as the templates
+        # below, because it stands in for them: with the Triton path switched
+        # off the caller has asked for the operator library.
+        if is_nonzero and use_triton_template(layout) and _degenerate_axis(
+            mat1, mat2
+        ):
+            mat1 = L.unsqueeze(mat1, -1)
+            mat2 = L.unsqueeze(mat2, 1)
+            return L.sum_(L.mul(mat1, mat2), axis=2)
+
         batch_stride_largest_or_zero = is_batch_stride_largest_or_zero(mat1, mat2, layout)
         is_contiguous_input = False
         if batch_stride_largest_or_zero:
