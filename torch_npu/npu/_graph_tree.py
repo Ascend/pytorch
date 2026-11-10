@@ -380,11 +380,18 @@ def get_container(device_index: int) -> TreeManagerContainer:
 
 
 def get_manager(
-    device_index: int, create_if_none_exists: bool = True
+    device_index: Optional[int] = None, create_if_none_exists: bool = True
 ) -> Optional[NPUGraphTreeManager]:
+    if device_index is None:
+        if not torch.npu.is_initialized():
+            return None
+        device_index = torch.npu.current_device()
+
     if create_if_none_exists:
         return get_container(device_index).get_tree_manager()
-    return get_container(device_index).tree_manager
+
+    container = get_obj(local, "npu_tree_manager_containers").get(device_index)
+    return None if container is None else container.tree_manager
 
 
 def is_cudagraph_capture_sizes(int_key: Union[int, Tuple[int, ...]]) -> bool:
@@ -2253,6 +2260,9 @@ class NPUGraphTreeManager:
         # whether we the current node is in a state of warmup, recording, execution. If
         # there is no current node the state will be ExecutionState.None.
         self.path_state = ExecutionState.NONE
+        # the function currently running eager warmup. None outside warmup, so
+        # code running elsewhere can detect that a warmup request is a no-op.
+        self.active_warmup_function: Optional[FunctionID] = None
         self.device_index = device_index
 
         # the most recently invoked npugraph wrapping of a function. Will be None
@@ -2650,7 +2660,19 @@ class NPUGraphTreeManager:
         self.update_generation()
         log.debug("NPUGRAPH-TREE State state=WARMUP, node=%s, already_warm=%s, gen=%d",
                   node.id, already_warm, self.current_gen)
-        return node.run(new_inputs)
+        # Mark this function active only for the duration of the eager run, so
+        # code that runs during warmup can request another iteration. Restore the
+        # previous marker so nested warmups keep the outer function active.
+        previous_warmup_function = self.active_warmup_function
+        self.active_warmup_function = function_id
+        try:
+            return node.run(new_inputs)
+        finally:
+            self.active_warmup_function = previous_warmup_function
+
+    def mark_warmup_incomplete(self) -> None:
+        if self.active_warmup_function is not None:
+            self.warmed_up_functions.discard(self.active_warmup_function)
 
     def new_graph_id(self) -> GraphID:
         return GraphID(next(self.graph_counter))

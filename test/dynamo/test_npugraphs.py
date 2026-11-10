@@ -39,7 +39,7 @@ class NpuGraphsTests(torch._dynamo.test_case.TestCase):
         # A single compiled callable may be first invoked from multiple Python
         # threads. Graph capture and private-pool warmup are process-wide states,
         # so callables/managers must be isolated per thread while warmup and
-        # capture are serialized. See q4_feat #1 Python 多线程 Graph Tree.
+        # capture are serialized.
         import queue
         import threading
         import traceback

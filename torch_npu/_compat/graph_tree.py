@@ -1,9 +1,12 @@
 # Copyright (c) 2026, Huawei Technologies Co., Ltd
 
+import torch
+
 from torch_npu._compat._impl import compat_impl, compat_impl_container
 
 __all__ = [
     "CustomClassBase",
+    "cudagraph_mark_warmup_incomplete",
     "is_opaque_input",
     "make_wrapped_function",
     "register_opaque_input",
@@ -173,3 +176,22 @@ def make_wrapped_function_local(
 
 
 make_wrapped_function = compat_impl_container["make_wrapped_function"].resolve()
+
+
+# Upstream 2.14 added torch.compiler.cudagraph_mark_warmup_incomplete(), which
+# resolves torch._inductor.cudagraph_trees.mark_warmup_incomplete() at call
+# time. 2.13 has neither, and PTA does not backfill upstream APIs, so the
+# capability resolves to None there and callers skip it.
+@compat_impl(key="cudagraph_mark_warmup_incomplete", ge=(2, 14))
+def cudagraph_mark_warmup_incomplete_upstream():
+    return getattr(torch.compiler, "cudagraph_mark_warmup_incomplete", None)
+
+
+@compat_impl(key="cudagraph_mark_warmup_incomplete", lt=(2, 14))
+def cudagraph_mark_warmup_incomplete_local():
+    return None
+
+
+cudagraph_mark_warmup_incomplete = compat_impl_container[
+    "cudagraph_mark_warmup_incomplete"
+].apply()

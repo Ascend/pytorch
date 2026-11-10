@@ -18,6 +18,7 @@ from torch._inductor import config as inductor_config
 from torch._inductor.cudagraph_utils import CheckInvariantStatus
 from torch_npu._compat.graph_tree import (
     CustomClassBase,
+    cudagraph_mark_warmup_incomplete,
     is_opaque_input,
     register_opaque_input,
 )
@@ -37,6 +38,7 @@ from torch_npu.npu._graph_tree import (
     get_container,
     get_block_addrs,
     get_manager,
+    get_obj,
     get_npugraph_segments,
     reset_npugraph_trees,
     local,
@@ -88,6 +90,11 @@ GENERATION_CLONING_SUPPORTED = hasattr(
     inductor_config.triton, "cudagraph_trees_generation_cloning"
 )
 
+# torch >= 2.14 ships the public warmup-incomplete API (and the internal
+# function it resolves). torch 2.13 has neither and PTA does not backfill it,
+# so only the cases that go through the public API are version-gated.
+WARMUP_INCOMPLETE_API_SUPPORTED = cudagraph_mark_warmup_incomplete is not None
+
 
 class TestCublasCacheManagement(TestCase):
     @patch("torch_npu.npu._graph_tree.clear_cublass_cache")
@@ -131,6 +138,19 @@ class TestNpuGraphFunctions(TestCase):
         # Test no-creation path
         manager = get_manager(0, create_if_none_exists=False)
         mock_container.return_value.get_tree_manager.assert_called_once()
+
+    @unittest.skipUnless(
+        WARMUP_INCOMPLETE_API_SUPPORTED,
+        "torch < 2.14 has no cudagraph_mark_warmup_incomplete API",
+    )
+    def test_mark_warmup_incomplete_without_cudagraphs(self):
+        from torch_npu.utils._graph_tree import _apply_npugraph_tree_methods
+
+        _apply_npugraph_tree_methods()
+        containers = get_obj(local, "npu_tree_manager_containers")
+        existing_devices = tuple(containers)
+        cudagraph_mark_warmup_incomplete()
+        self.assertEqual(tuple(containers), existing_devices)
 
     @patch("torch_npu.npu._graph_tree.npugraphify")
     @patch("torch._inductor.compile_fx.align_inputs_from_check_idxs")
@@ -1843,6 +1863,96 @@ class TestCaptureSizes(TestCase):
             impl([2])
 
         mock_warning.assert_called_once()
+
+
+@unittest.skipUnless(
+    WARMUP_INCOMPLETE_API_SUPPORTED,
+    "torch < 2.14 has no cudagraph_mark_warmup_incomplete API",
+)
+class TestMarkWarmupIncompleteE2E(TestCase):
+    """End-to-end checks for cudagraph_mark_warmup_incomplete (requires NPU)."""
+
+    def setUp(self):
+        reset_npugraph_trees()
+        self.addCleanup(reset_npugraph_trees)
+        # Apply the same patch that inductor setup installs, so the public
+        # torch.compiler API routes to the NPU tree manager even when this test
+        # is the first in the process to touch graph trees.
+        from torch_npu.utils._graph_tree import _apply_npugraph_tree_methods
+
+        _apply_npugraph_tree_methods()
+
+    def test_mark_warmup_incomplete(self):
+        mark_warmup_incomplete = cudagraph_mark_warmup_incomplete
+
+        # Outside any graph tree the call must be a no-op and must not create
+        # a tree manager.
+        mark_warmup_incomplete()
+        self.assertIsNone(get_manager(create_if_none_exists=False))
+
+        def stable(inps):
+            x = inps[0]
+            inps.clear()
+            return (x + 1,)
+
+        x = torch.randn(2, device="npu")
+        stable_cg, stable_out = npugraphify(
+            stable, [x], (), device_index=0, is_backward=False, is_inference=True
+        )
+        # Keep the callable alive: its finalizer tears down the tree manager.
+        self.assertIsNotNone(stable_cg)
+        manager = get_manager(0, create_if_none_exists=False)
+        self.assertIsNotNone(manager)
+        stable_functions = manager.warmed_up_functions.copy()
+        self.assertEqual(len(stable_functions), 1)
+        del stable_out
+
+        calls = 0
+
+        def f(inps):
+            nonlocal calls
+            calls += 1
+            x = inps[0]
+            inps.clear()
+            if calls < 3 or calls == 4:
+                mark_warmup_incomplete()
+            return (x + 1,)
+
+        foo_cg, foo_out = npugraphify(
+            f, [x], (), device_index=0, is_backward=False, is_inference=True
+        )
+        del foo_out
+
+        # npugraphify already ran call 1 and it requested another warmup, so f
+        # is not warmed and stable's state is untouched.
+        self.assertEqual(calls, 1)
+        out = foo_cg([x])
+        self.assertEqual(calls, 2)
+        self.assertEqual(manager.warmed_up_functions, stable_functions)
+        del out
+
+        # Call 3 finishes warmup without requesting another iteration.
+        out = foo_cg([x])
+        self.assertEqual(calls, 3)
+        warmed_functions = manager.warmed_up_functions.copy()
+        self.assertEqual(len(warmed_functions), 2)
+        del out
+
+        # Call 4 records the graph; a request during recording is a no-op.
+        out = foo_cg([x])
+        self.assertEqual(calls, 4)
+        self.assertEqual(manager.path_state, ExecutionState.RECORDING)
+        self.assertEqual(manager.warmed_up_functions, warmed_functions)
+        del out
+
+        # Call 5 replays the graph; a request during replay is also a no-op.
+        out = foo_cg([x])
+        self.assertEqual(calls, 4)
+        self.assertEqual(manager.path_state, ExecutionState.EXECUTION)
+        self.assertEqual(manager.warmed_up_functions, warmed_functions)
+        mark_warmup_incomplete()
+        self.assertEqual(manager.warmed_up_functions, warmed_functions)
+        del out
 
 
 @unittest.skipUnless(
