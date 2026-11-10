@@ -7,6 +7,11 @@ on:
         description: PyTorch source branch
         required: false
         type: string
+      NIGHTLY_DATE:
+        description: Nightly date YYYYMMDD, overrides torch date parsed from requirements.txt
+        required: false
+        type: string
+        default: ""
       TORCH_NPU_WHEEL_ARTIFACT_DIR:
         description: torch-npu wheel artifact directory
         required: false
@@ -53,10 +58,15 @@ jobs:
 
       - name: Install PyTorch
         run: |
+          NIGHTLY_DATE_ARG=""
+          if [ -n "${{ inputs.NIGHTLY_DATE }}" ]; then
+            NIGHTLY_DATE_ARG="--nightly-date ${{ inputs.NIGHTLY_DATE }}"
+          fi
           python3.11 .gitcode/scripts/install_pytorch_from_requirements.py \
             --arch aarch64 \
             --python-tag cp311 \
-            --python-exe python3.11
+            --python-exe python3.11 \
+            ${NIGHTLY_DATE_ARG}
 
       - name: Install pytest-timeout
         run: python3.11 -m pip install --trusted-host mirrors.huaweicloud.com pytest-timeout

@@ -7,6 +7,11 @@ on:
         description: Python version
         required: false
         type: string
+      NIGHTLY_DATE:
+        description: Nightly date YYYYMMDD, overrides torch date parsed from requirements.txt
+        required: false
+        type: string
+        default: ""
       PYTORCH_BRANCH:
         description: PyTorch source branch
         required: false
@@ -70,10 +75,15 @@ jobs:
 
       - name: Install PyTorch
         run: |
+          NIGHTLY_DATE_ARG=""
+          if [ -n "${{ inputs.NIGHTLY_DATE }}" ]; then
+            NIGHTLY_DATE_ARG="--nightly-date ${{ inputs.NIGHTLY_DATE }}"
+          fi
           python3.11 .gitcode/scripts/install_pytorch_from_requirements.py \
             --arch aarch64 \
             --python-tag cp311 \
-            --python-exe python3.11
+            --python-exe python3.11 \
+            ${NIGHTLY_DATE_ARG}
 
       - name: Install nanobind
         run: |

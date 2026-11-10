@@ -1,7 +1,7 @@
 # TorchNPU 每日自动化验证流水线
 # 流程: build → collect → test(13 job) → report
 #
-# 四个阶段说明:
+# 阶段说明:
 #   1. stage_build   编译 PyTorch + torch_npu, 产出 wheel 供后续阶段使用
 #   2. stage_collect 采集用例并分片 (分布式卡数分类 + 常规 NPU 10 分片)
 #   3. stage_test    执行测试, 共 13 个 job:
@@ -14,7 +14,13 @@ name: Torch NPU Test Nightly
 on:
   schedule:
     - cron: "0 22 * * *"    # 北京时间 22:00
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      nightly_date:
+        description: 'Nightly date YYYYMMDD, overrides the torch date parsed from requirements.txt'
+        required: false
+        type: string
+        default: ''
 
 env:
   PYTORCH_BRANCH: "release/2.15"
@@ -51,11 +57,45 @@ stages:
     name: stage_build
     select: selected_by_default
     jobs:
+      # with: 层不解析 inputs 上下文(即使 dispatch 触发也以字面量透传),
+      # run 层可正常求值。此 job 在 run 层解析 nightly_date, 经 outputs 中转给下游。
+      # 产物只有两种: 合法 YYYYMMDD 或空串(下游回落 requirements.txt 日期)。
+      resolve:
+        name: resolve-inputs
+        runs-on: [ self-hosted, x86, cpu=2 ]
+        outputs:
+          nightly_date: ${{ steps.resolve.outputs.nightly_date }}
+        steps:
+          - name: Resolve nightly date
+            id: resolve
+            env:
+              # 经 env 传入, 避免 dispatch 原始输入被直接拼进 shell 脚本(命令注入)
+              NIGHTLY_DATE_INPUT: ${{ inputs.nightly_date }}
+            run: |
+              set -euo pipefail
+              RAW="${NIGHTLY_DATE_INPUT:-}"
+              if [ -z "${RAW}" ]; then
+                echo "nightly_date=" >> "$ATOMGIT_OUTPUT"
+                echo "No nightly_date provided, fallback to requirements.txt date"
+                exit 0
+              fi
+              if ! echo "${RAW}" | grep -Eq '^[0-9]{8}$'; then
+                echo "ERROR: invalid nightly_date '${RAW}', expect YYYYMMDD" >&2
+                exit 1
+              fi
+              if ! date -d "${RAW}" +%Y%m%d >/dev/null 2>&1; then
+                echo "ERROR: nightly_date '${RAW}' is not a valid calendar date" >&2
+                exit 1
+              fi
+              echo "nightly_date=${RAW}" >> "$ATOMGIT_OUTPUT"
+              echo "Resolved nightly_date: '${RAW}'"
       build:
         name: build
+        needs: resolve
         uses: .gitcode/workflows/_nightly_build.yml
         with:
           PYTHON_VERSION: ${{ env.PYTHON_VERSION }}
+          NIGHTLY_DATE: ${{ jobs.resolve.outputs.nightly_date }}
           PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
           MAX_JOBS: ${{ env.MAX_JOBS }}
           TORCH_NPU_WHEEL_ARTIFACT_DIR: ${{ env.TORCH_NPU_WHEEL_ARTIFACT_DIR }}
@@ -74,6 +114,7 @@ stages:
         uses: .gitcode/workflows/_nightly_collect.yml
         with:
           PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+          NIGHTLY_DATE: ${{ jobs.resolve.outputs.nightly_date }}
           TORCH_NPU_WHEEL_ARTIFACT_DIR: ${{ env.TORCH_NPU_WHEEL_ARTIFACT_DIR }}
           CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_COLLECT }}
           DISTRIBUTED_MACHINES: ${{ env.DISTRIBUTED_MACHINES }}
@@ -99,6 +140,7 @@ stages:
           CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
           CARDS_PER_TEST: "2"
           PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+          NIGHTLY_DATE: ${{ jobs.resolve.outputs.nightly_date }}
           CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_COLLECT }}
           NPU_LABEL: ${{ env.NPU_LABEL_DIST_2CARD }}
 
@@ -112,6 +154,7 @@ stages:
           CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
           CARDS_PER_TEST: "2"
           PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+          NIGHTLY_DATE: ${{ jobs.resolve.outputs.nightly_date }}
           CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
           NPU_LABEL: ${{ env.NPU_LABEL_DIST_2CARD }}
 
@@ -125,6 +168,7 @@ stages:
           CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
           CARDS_PER_TEST: "8"
           PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+          NIGHTLY_DATE: ${{ jobs.resolve.outputs.nightly_date }}
           CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
           NPU_LABEL: ${{ env.NPU_LABEL_DIST }}
 
@@ -139,6 +183,7 @@ stages:
           CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
           MAX_WORKERS: ${{ env.REG_WORKERS }}
           PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+          NIGHTLY_DATE: ${{ jobs.resolve.outputs.nightly_date }}
           CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
           NPU_LABEL: ${{ env.NPU_LABEL_REG }}
 
@@ -152,6 +197,7 @@ stages:
           CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
           MAX_WORKERS: ${{ env.REG_WORKERS }}
           PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+          NIGHTLY_DATE: ${{ jobs.resolve.outputs.nightly_date }}
           CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
           NPU_LABEL: ${{ env.NPU_LABEL_REG }}
 
@@ -165,6 +211,7 @@ stages:
           CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
           MAX_WORKERS: ${{ env.REG_WORKERS }}
           PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+          NIGHTLY_DATE: ${{ jobs.resolve.outputs.nightly_date }}
           CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
           NPU_LABEL: ${{ env.NPU_LABEL_REG }}
 
@@ -178,6 +225,7 @@ stages:
           CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
           MAX_WORKERS: ${{ env.REG_WORKERS }}
           PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+          NIGHTLY_DATE: ${{ jobs.resolve.outputs.nightly_date }}
           CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
           NPU_LABEL: ${{ env.NPU_LABEL_REG }}
 
@@ -191,6 +239,7 @@ stages:
           CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
           MAX_WORKERS: ${{ env.REG_WORKERS }}
           PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+          NIGHTLY_DATE: ${{ jobs.resolve.outputs.nightly_date }}
           CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
           NPU_LABEL: ${{ env.NPU_LABEL_REG }}
 
@@ -204,6 +253,7 @@ stages:
           CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
           MAX_WORKERS: ${{ env.REG_WORKERS }}
           PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+          NIGHTLY_DATE: ${{ jobs.resolve.outputs.nightly_date }}
           CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
           NPU_LABEL: ${{ env.NPU_LABEL_REG }}
 
@@ -217,6 +267,7 @@ stages:
           CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
           MAX_WORKERS: ${{ env.REG_WORKERS }}
           PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+          NIGHTLY_DATE: ${{ jobs.resolve.outputs.nightly_date }}
           CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
           NPU_LABEL: ${{ env.NPU_LABEL_REG }}
 
@@ -230,6 +281,7 @@ stages:
           CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
           MAX_WORKERS: ${{ env.REG_WORKERS }}
           PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+          NIGHTLY_DATE: ${{ jobs.resolve.outputs.nightly_date }}
           CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
           NPU_LABEL: ${{ env.NPU_LABEL_REG }}
 
@@ -243,6 +295,7 @@ stages:
           CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
           MAX_WORKERS: ${{ env.REG_WORKERS }}
           PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+          NIGHTLY_DATE: ${{ jobs.resolve.outputs.nightly_date }}
           CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
           NPU_LABEL: ${{ env.NPU_LABEL_REG_2 }}
 
@@ -256,6 +309,7 @@ stages:
           CASE_TIMEOUT: ${{ env.CASE_TIMEOUT }}
           MAX_WORKERS: ${{ env.REG_WORKERS }}
           PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
+          NIGHTLY_DATE: ${{ jobs.resolve.outputs.nightly_date }}
           CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
           NPU_LABEL: ${{ env.NPU_LABEL_REG_2 }}
 

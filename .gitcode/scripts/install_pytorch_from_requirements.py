@@ -7,7 +7,8 @@ import sys
 import subprocess
 
 
-def install_from_requirements(python_exe='python3.11', arch='aarch64', python_tag='cp311'):
+def install_from_requirements(python_exe='python3.11', arch='aarch64', python_tag='cp311',
+                              nightly_date=None):
     req_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                             '..', '..', 'requirements.txt')
     torch_version = None
@@ -22,11 +23,16 @@ def install_from_requirements(python_exe='python3.11', arch='aarch64', python_ta
         return False
 
     base_version = torch_version.split('+')[0]      # e.g. 2.15.0.dev20260902
+    # dispatch 手动触发时可传入 nightly_date (YYYYMMDD), 优先于从版本号解析的日期
+    if nightly_date and not re.fullmatch(r'\d{8}', nightly_date):
+        print(f"WARNING: invalid nightly_date '{nightly_date}', fallback to parsed date")
+        nightly_date = None
     date_match = re.search(r'(\d{8})$', base_version)
-    if date_match:
-        ver = base_version
+    date = nightly_date or (date_match.group(1) if date_match else None)
+    if date:
+        ver = re.sub(r'\d{8}$', date, base_version) if date_match else base_version
         url_base = ("https://pytorch-package.obs.cn-north-4.myhuaweicloud.com"
-                    f"/pta/torch/master/{date_match.group(1)}")
+                    f"/pta/torch/master/{date}")
     else:
         ver = base_version
         url_base = ("https://pytorch-package.obs.cn-north-4.myhuaweicloud.com"
@@ -66,9 +72,12 @@ def main():
     parser.add_argument('--arch', default='aarch64')
     parser.add_argument('--python-tag', default='cp311')
     parser.add_argument('--python-exe', default='python3.11')
+    parser.add_argument('--nightly-date', default=None,
+                        help='Nightly date YYYYMMDD; overrides the date parsed from torch version')
     args = parser.parse_args()
 
-    if not install_from_requirements(args.python_exe, args.arch, args.python_tag):
+    if not install_from_requirements(args.python_exe, args.arch, args.python_tag,
+                                     args.nightly_date):
         print("FAILED: Could not install PyTorch")
         sys.exit(1)
     if not verify(args.python_exe):
