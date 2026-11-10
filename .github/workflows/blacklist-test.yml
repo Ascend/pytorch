@@ -20,8 +20,9 @@ on:
       - '.github/workflows/blacklist-test.yml'
       - '.github/workflows/_blacklist_diff_shard.yml'
       - '.github/workflows/_blacklist_test-category.yml'
-      - '.github/scripts/build_diff_shards.py'
-      - '.github/scripts/compare_diff_results.py'
+      - '.github/scripts/blacklist-test/build_diff_shards.py'
+      - '.github/scripts/blacklist-test/compare_diff_results.py'
+      - '.github/scripts/blacklist-test/collect_passed_skipped.py'
       - '.github/config/disabled_testcases_a3_all.json'
       - '.github/config/disabled_testcases_a5_all.json'
       - '.github/config/unsupported_aclnn_testcases.json'
@@ -559,6 +560,13 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    outputs:
+      a3_retest_count: ${{ steps.passed_skipped.outputs.a3_retest_count }}
+      a3_num_shards: ${{ steps.passed_skipped.outputs.a3_num_shards }}
+      a3_shards_json: ${{ steps.passed_skipped.outputs.a3_shards_json }}
+      a5_retest_count: ${{ steps.passed_skipped.outputs.a5_retest_count }}
+      a5_num_shards: ${{ steps.passed_skipped.outputs.a5_num_shards }}
+      a5_shards_json: ${{ steps.passed_skipped.outputs.a5_shards_json }}
     steps:
       # Checkout first: actions/checkout runs `git clean -ffdx`, which would
       # delete the downloaded report directories if it ran after them.
@@ -653,11 +661,55 @@ jobs:
               )
           PY
 
+      # Cases that PASSED or were SKIPPED on a platform are stale blacklist
+      # entries; they are the candidates to be blacklisted on the OTHER
+      # platform. Aggregate them and emit retest shards (one direction per
+      # platform) plus a Markdown record. Artifact-only: nothing is written
+      # back to the repo.
+      - name: Collect passed/skipped blacklist cases
+        id: passed_skipped
+        if: always()
+        continue-on-error: true
+        run: |
+          python3 .github/scripts/blacklist-test/collect_passed_skipped.py collect \
+            --reports-root . \
+            --config-dir .github/config \
+            --output-prefix passed-skipped
+
+      - name: Upload passed/skipped cases
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: passed-skipped-cases
+          path: |
+            passed-skipped.json
+            passed-skipped.md
+          retention-days: 30
+
+      - name: Upload a3 retest cases
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: retest-cases-a3
+          path: retest-cases-a3/
+          retention-days: 30
+
+      - name: Upload a5 retest cases
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: retest-cases-a5
+          path: retest-cases-a5/
+          retention-days: 30
+
       - name: Generate blacklist report
         if: always()
         continue-on-error: true
         run: |
-          python3 .github/scripts/generate_blacklist_report.py \
+          python3 .github/scripts/blacklist-test/generate_blacklist_report.py \
             --reports-root . \
             --platform all \
             --config-dir .github/config \
@@ -671,6 +723,81 @@ jobs:
           name: blacklist-report
           path: blacklist-report.md
           retention-days: 30
+
+  # ==========================================================================
+  # Re-run the stale cases: those that passed / were skipped on one platform
+  # are re-run ON the other platform, so a failure there turns into a
+  # blacklist-sync candidate. retest-a3 runs the a3 shards (cases that were
+  # passed/skipped on a5); retest-a5 runs the a5 shards (cases from a3).
+  # Artifact-only: nothing is written back to the repo.
+  # ==========================================================================
+  retest-a3:
+    needs:
+      - summary
+      - resolve
+      - build-a3
+    if: ${{ !cancelled() && needs.summary.outputs.a3_retest_count != '' && needs.summary.outputs.a3_retest_count != '0' && (needs.resolve.outputs.a3_found == 'true' || needs.build-a3.result == 'success') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - category: retest-a3
+            num_shards: ${{ needs.summary.outputs.a3_num_shards }}
+            matrix_json: ${{ needs.summary.outputs.a3_shards_json }}
+            max_workers: '32'
+            runner_label: 'linux-aarch64-a3-800i-2-cn12-001'
+    uses: ./.github/workflows/_blacklist_test-category.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ needs.resolve.outputs.a3_resolved_short || needs.build-a3.outputs.resolved_short }}
+      resolved_sha: ${{ needs.resolve.outputs.a3_resolved_short || needs.build-a3.outputs.resolved_sha }}
+      pytorch_wheels_tarball: ${{ needs.resolve.outputs.a3_pytorch_wheels_tarball || needs.build-a3.outputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a3_torchnpu_wheels_tarball || needs.build-a3.outputs.torchnpu_wheels_tarball }}
+      upstream_repo: pytorch/pytorch
+      category: ${{ matrix.category }}
+      num_shards: ${{ matrix.num_shards }}
+      matrix_json: ${{ matrix.matrix_json }}
+      max_workers: ${{ matrix.max_workers }}
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17
+      report_to_upstream: false
+      runner_label: ${{ matrix.runner_label }}
+      device_env: 'privateuse1,cpu'
+      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 || github.event_name == 'push' }}
+      cases_artifact_name: retest-cases-a3
+
+  retest-a5:
+    needs:
+      - summary
+      - resolve
+      - build-a5
+    if: ${{ !cancelled() && needs.summary.outputs.a5_retest_count != '' && needs.summary.outputs.a5_retest_count != '0' && (needs.resolve.outputs.a5_found == 'true' || needs.build-a5.result == 'success') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - category: retest-a5
+            num_shards: ${{ needs.summary.outputs.a5_num_shards }}
+            matrix_json: ${{ needs.summary.outputs.a5_shards_json }}
+            max_workers: '32'
+            runner_label: 'linux-amd64-a5-2'
+    uses: ./.github/workflows/_blacklist_test-category.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ needs.resolve.outputs.a5_resolved_short || needs.build-a5.outputs.resolved_short }}
+      resolved_sha: ${{ needs.resolve.outputs.a5_resolved_short || needs.build-a5.outputs.resolved_sha }}
+      pytorch_wheels_tarball: ${{ needs.resolve.outputs.a5_pytorch_wheels_tarball || needs.build-a5.outputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a5_torchnpu_wheels_tarball || needs.build-a5.outputs.torchnpu_wheels_tarball }}
+      upstream_repo: pytorch/pytorch
+      category: ${{ matrix.category }}
+      num_shards: ${{ matrix.num_shards }}
+      matrix_json: ${{ matrix.matrix_json }}
+      max_workers: ${{ matrix.max_workers }}
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.11-torch-master-cann9.2.0-20260910200430-202610160226-8a315d17
+      report_to_upstream: false
+      runner_label: ${{ matrix.runner_label }}
+      device_env: 'privateuse1,cpu'
+      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 || github.event_name == 'push' }}
+      cases_artifact_name: retest-cases-a5
 
   # ==========================================================================
   # Cross-platform sync candidates. Runs after the diff shards finished on both
@@ -732,7 +859,7 @@ jobs:
         if: always()
         continue-on-error: true
         run: |
-          python3 .github/scripts/compare_diff_results.py \
+          python3 .github/scripts/blacklist-test/compare_diff_results.py \
             --reports-root diff-reports \
             --config-dir .github/config \
             --output-prefix blacklist-sync-candidates
@@ -746,4 +873,71 @@ jobs:
           path: |
             blacklist-sync-candidates.json
             blacklist-sync-candidates.md
+          retention-days: 30
+
+  # ==========================================================================
+  # Render the cross-platform retest outcome: for every stale case, whether its
+  # re-run on the other platform passed / failed / was skipped / errored /
+  # timed out. Only a report is produced; nothing is written back to the repo.
+  # ==========================================================================
+  retest-report:
+    needs:
+      - summary
+      - retest-a3
+      - retest-a5
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # Checkout first: actions/checkout runs `git clean -ffdx`, which would
+      # delete the downloaded report directories if it ran after them.
+      - name: Checkout this repo
+        if: always()
+        uses: actions/checkout@v6
+        with:
+          ref: ci-test
+
+      - name: Download passed/skipped cases
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: passed-skipped-cases
+          path: passed-skipped
+
+      - name: Download a3 retest reports
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-rta3-*
+          path: retest-reports-a3
+          merge-multiple: true
+
+      - name: Download a5 retest reports
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-rta5-*
+          path: retest-reports-a5
+          merge-multiple: true
+
+      - name: Render retest report
+        if: always()
+        continue-on-error: true
+        run: |
+          python3 .github/scripts/blacklist-test/collect_passed_skipped.py report \
+            --input passed-skipped/passed-skipped.json \
+            --reports-root . \
+            --output passed-skipped-retest.md
+
+      - name: Upload retest report
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: passed-skipped-retest-report
+          path: passed-skipped-retest.md
           retention-days: 30

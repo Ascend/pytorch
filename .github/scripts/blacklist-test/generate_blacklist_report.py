@@ -92,11 +92,6 @@ def aggregate(blacklist, status_by_nodeid):
     return totals, by_reason
 
 
-def _missing(counter):
-    """Blacklist entries with no execution result."""
-    return counter["blacklist"] - sum(counter[s] for s in STATUS_KEYS)
-
-
 def _escape(text):
     return str(text).replace("|", "\\|")
 
@@ -120,7 +115,6 @@ def render_overview(platform_totals):
         ("error", lambda t: t["error"], False),
         ("timeout", lambda t: t["timeout"], False),
         ("skipped", lambda t: t["skipped"], False),
-        ("无结果", _missing, False),
     ]
 
     header = ["platform"] + [label for label, _, _ in metrics]
@@ -152,8 +146,7 @@ def render_compare(key_header, per_platform, top=None):
     """
     platforms = list(per_platform)
     paired = len(platforms) == 2
-    status_groups = ("passed", "failed", "error", "timeout", "skipped", NO_RESULT)
-    group_labels = {NO_RESULT: "无结果"}
+    status_groups = ("passed", "failed", "error", "timeout", "skipped")
 
     def total_of(key):
         return sum(per_platform[p].get(key, Counter())["blacklist"] for p in platforms)
@@ -168,8 +161,6 @@ def render_compare(key_header, per_platform, top=None):
             return None
         if key == "blacklist":
             return counter["blacklist"]
-        if key == NO_RESULT:
-            return _missing(counter)
         return counter[key]
 
     def fmt(number, key=None):
@@ -187,9 +178,9 @@ def render_compare(key_header, per_platform, top=None):
         rows.append((None, [merged[p] if merged[p] else None for p in platforms]))
 
     if paired:
-        header = [key_header, "总数"] + [group_labels.get(g, g) for g in status_groups]
+        header = [key_header, "总数"] + list(status_groups)
     else:
-        header = [key_header, "条数"] + [group_labels.get(g, g) for g in status_groups]
+        header = [key_header, "条数"] + list(status_groups)
 
     # Pad the reason column with plain spaces so the raw Markdown lines up.
     # Markdown has no syntax for column width: rendered widths are chosen by
@@ -300,8 +291,7 @@ def main(argv=None):
     sections = [
         "# Blacklist Report",
         "",
-        "黑名单执行结果，按 reason 对比各平台。"
-        "`无结果` = 黑名单条目在本次执行中没有对应用例结果。",
+        "黑名单执行结果，按 reason 对比各平台。",
         "",
         "## 总览",
         "",

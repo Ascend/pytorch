@@ -10,6 +10,8 @@ name: Blacklist Test Category
 #   * new categories blacklist-a3/blacklist-a5 -> artifact prefix bla3/bla5;
 #     the cross-platform diff runs use diff-{a3only,a5only}-{a3,a5} ->
 #     d3a3/d3a5/d5a3/d5a5 so their result artifacts never collide;
+#     the retest runs use retest-<platform> -> rta<platform>, i.e. cases that
+#     passed/were skipped on the other platform and are re-run here;
 #   * the shard JSONs carry test_type "regular", so the runner writes
 #     results as shard_reg-<n>_cases.json; the parse/fail steps look for
 #     that fixed prefix while uploads use the platform-specific one.
@@ -151,6 +153,11 @@ jobs:
             diff-a3only-a5) PREFIX="d3a5" ;;
             diff-a5only-a3) PREFIX="d5a3" ;;
             diff-a5only-a5) PREFIX="d5a5" ;;
+            # Retest categories: retest-<platform>, cases that passed/were
+            # skipped on the OTHER platform and are re-run here to decide
+            # whether they belong on this platform's blacklist.
+            retest-a3) PREFIX="rta3" ;;
+            retest-a5) PREFIX="rta5" ;;
             *)           PREFIX="reg" ;;
           esac
           # Shard JSONs from _blacklist_shard.yml carry test_type

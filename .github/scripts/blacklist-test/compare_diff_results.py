@@ -224,15 +224,14 @@ def render_markdown(sets_report, candidates, top):
     lines.append("### 总览")
     lines.append("")
     lines.append(
-        "| set | 差异数 | 本侧失败 | 对侧失败 | **候选** | 对侧通过 | 对侧跳过/超时 | reason 不符 | reason 不可校验 | 本侧无结果 | 对侧无结果 |"
+        "| set | 差异数 | 本侧失败 | 对侧失败 | **候选** | 对侧通过 | 对侧跳过/超时 | reason 不符 | reason 不可校验 |"
     )
-    lines.append("|---|---|---|---|---|---|---|---|---|---|---|")
+    lines.append("|---|---|---|---|---|---|---|---|---|")
     for set_name, c in sets_report.items():
         lines.append(
             f"| {set_name} | {c['total']} | {c['owner_failed']} | {c['other_failed']} | "
             f"**{c['candidate']}** | {c['other_passed']} | {c['other_skipped_or_timeout']} | "
-            f"{c['reason_mismatch']} | {c['reason_unverifiable']} | "
-            f"{c['owner_no_result']} | {c['other_no_result']} |"
+            f"{c['reason_mismatch']} | {c['reason_unverifiable']} |"
         )
     lines.append("")
 

@@ -47,7 +47,7 @@ jobs:
         env:
           NUM_SHARDS: ${{ inputs.num_shards }}
         run: |
-          python3 .github/scripts/build_diff_shards.py \
+          python3 .github/scripts/blacklist-test/build_diff_shards.py \
             --config-dir .github/config \
             --scripts-dir .github/scripts \
             --output-dir cases-shards \
