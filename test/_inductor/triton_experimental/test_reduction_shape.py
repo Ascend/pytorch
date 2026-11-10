@@ -277,6 +277,157 @@ class TestReductionShape(TestCase):
         self.assertNotRegex(source, r"tl\.static_assert\(\w+\.shape ==")
 
 
+def _compile_fwd_bwd(fn, args, wrt):
+    """Compile fn, run forward and backward, and return the generated source.
+
+    `wrt` selects the inputs to differentiate, which need not be all args.
+
+    Module-level on purpose, NOT a @staticmethod on the TestCase:
+    instantiate_device_type_tests ports non-test members with
+    `getattr(generic_cls, name)` + `setattr(device_cls, name, ...)`, which
+    unwraps a staticmethod into a plain function and rebinds it as an instance
+    method on the generated class, so `self._helper(a, b, c)` would pass self
+    as a fourth argument (TypeError observed on the CI interpreter).
+    """
+    from torch._inductor.graph import GraphLowering
+
+    codes = []
+    with mock.patch.object(GraphLowering, "save_output_code", side_effect=codes.append):
+        torch._dynamo.reset()
+        compiled = torch.compile(fn, fullgraph=True,
+                                 options={"npu_backend": "triton_experimental"})
+        out = compiled(*args)
+        grads = torch.autograd.grad(out.sum(), wrt)
+    return out, grads, "\n".join(codes)
+
+
+def _split_kernels(source):
+    """[(kernel_name, body)] -- tmpN names are only unique within a kernel."""
+    starts = [(m.start(), m.group(1))
+              for m in re.finditer(r"^def (triton_\w+)\(", source, re.M)]
+    out = []
+    for i, (pos, name) in enumerate(starts):
+        end = starts[i + 1][0] if i + 1 < len(starts) else len(source)
+        out.append((name, source[pos:end]))
+    return out
+
+
+class TestScalarBlockLoadShape(TestCase):
+    """Guards for the constant-index scalar-load provenance, both directions.
+
+    A 0-dim operand is loaded at a constant index and, in a NON-degenerate
+    kernel, upstream's load() reassigns result_var to
+    `tl.broadcast_to(tmp, expand_shape)`, so the value it returns -- and every
+    consumer, e.g. `.to(tl.float32)` -- has rank >= 1 while reconstructing the
+    shape from the index alone yields (). Asserting `len(var.shape) == 0`
+    against that value fails to compile, so the reconstruction keeps upstream's
+    expected shape for exactly this provenance.
+
+    In a DEGENERATE kernel the [1] broadcast is stripped from the final source,
+    so () stays correct there and rank-0 assertions must still be emitted.
+    """
+
+    @torch._inductor.config.patch({
+        "force_disable_caches": True,
+        "implicit_fallbacks": False,
+        "test_configs.runtime_triton_shape_assert": True,
+        "test_configs.runtime_triton_dtype_assert": True,
+    })
+    def test_scalar_cast_consumer_not_asserted_rank0(self, device):
+        """Non-degenerate kernel: a broadcast scalar load feeding a dtype cast
+        must be asserted at its real rank, never rank 0.
+
+        The cast is created EXPLICITLY (a float16 0-dim operand converted to
+        float32) rather than left to dtype promotion: a same-dtype graph emits
+        no convert node at all, which would make this guard vacuous. This is
+        the provenance KLDiv's fp16 backward hit, reproduced without KLDiv.
+        """
+        scalar = torch.tensor(2.5, device=device, dtype=torch.float16)
+        vec = torch.linspace(-1.0, 1.0, 8, device=device, dtype=torch.float32).requires_grad_()
+
+        def fn(v, s):
+            return (v * s.to(torch.float32)).sum()
+
+        expected = fn(vec, scalar)
+        expected_grads = torch.autograd.grad(expected, (vec,))
+        actual, actual_grads, source = _compile_fwd_bwd(fn, (vec, scalar), (vec,))
+        self.assertEqual(actual, expected)
+        self.assertEqual(actual_grads, expected_grads, atol=0, rtol=0)
+
+        # tmpN names are per-kernel, and `source` concatenates the forward and
+        # backward wrappers, so every check below is scoped to ONE kernel body.
+        # Without that scoping a backward broadcast (e.g. tmp3) collides with a
+        # legitimately rank-0 tmp3 in the forward kernel.
+        kernels = _split_kernels(source)
+        self.assertTrue(kernels, f"no triton kernels in generated source:\n{source[:3000]}")
+        checked = 0
+        found_broadcast = False
+        for kname, body in kernels:
+            broadcasts = re.findall(r"(tmp\d+) = tl\.broadcast_to\((tmp\d+), \[[^\]]+\]\)", body)
+            if broadcasts:
+                found_broadcast = True
+            for bcast_var, _loaded in broadcasts:
+                self.assertNotIn(
+                    f"tl.static_assert(len({bcast_var}.shape) == 0)", body,
+                    f"{kname}: broadcast {bcast_var} asserted rank 0",
+                )
+                for consumer in re.findall(rf"(tmp\d+) = {re.escape(bcast_var)}\.to\(", body):
+                    self.assertNotIn(
+                        f"tl.static_assert(len({consumer}.shape) == 0)", body,
+                        f"{kname}: cast consumer {consumer} of {bcast_var} asserted rank 0",
+                    )
+                    self.assertRegex(
+                        body,
+                        rf"tl\.static_assert\(\(?len\({consumer}\.shape\) == [1-9]",
+                        f"{kname}: cast consumer {consumer} of {bcast_var} carries no "
+                        f"rank>=1 shape assertion:\n{body[:3000]}",
+                    )
+                    checked += 1
+        self.assertTrue(
+            found_broadcast,
+            f"expected a broadcast scalar load in some kernel:\n{source[:3000]}",
+        )
+        self.assertTrue(
+            checked,
+            f"no dtype-cast consumer of a broadcast scalar load was generated in any "
+            f"kernel; the guard would be vacuous:\n{source[:3000]}",
+        )
+
+    @dtypes(torch.float32)
+    @torch._inductor.config.patch({
+        "force_disable_caches": True,
+        "implicit_fallbacks": False,
+        "test_configs.runtime_triton_shape_assert": True,
+        "test_configs.runtime_triton_dtype_assert": True,
+    })
+    def test_degenerate_kernel_still_asserts_rank0(self, device, dtype):
+        """Degenerate kernel: rank-0 reconstruction stays in force.
+
+        Every non-reduction range tree has numel 1, so the [1] broadcast is
+        stripped and scalar values really are rank 0; at least one rank-0 shape
+        assertion must still be emitted.
+        """
+        scalar = torch.tensor(2.5, device=device, dtype=dtype, requires_grad=True)
+        one = torch.tensor([3.0], device=device, dtype=dtype, requires_grad=True)
+
+        def fn(s, v):
+            return v * s
+
+        expected = fn(scalar, one)
+        expected_grads = torch.autograd.grad(expected.sum(), (scalar, one))
+        args = (scalar, one)
+        actual, actual_grads, source = _compile_fwd_bwd(fn, args, args)
+        self.assertEqual(actual, expected)
+        self.assertEqual(actual_grads, expected_grads, atol=0, rtol=0)
+        self.assertRegex(
+            source,
+            r"tl\.static_assert\(len\(tmp\d+\.shape\) == 0\)",
+            f"degenerate kernel emitted no rank-0 shape assertion:\n{source[:3000]}",
+        )
+
+
+instantiate_device_type_tests(TestScalarBlockLoadShape, globals(), only_for="npu")
+
 instantiate_device_type_tests(TestReductionShape, globals(), only_for="npu")
 
 if __name__ == "__main__":

@@ -58,4 +58,6 @@ EXPLICIT_FALLBACK_LIST = [
     # eager.
     npu._npu_dropout.default,
     npu.npu_dropout_backward.default,
+    # KLDiv's private backward ops are decomposed instead (decomposition.py,
+    # _override_kl_div_backward_decomp); also listing them here breaks backend init.
 ]

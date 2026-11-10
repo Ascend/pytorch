@@ -1004,6 +1004,93 @@ def _override_rms_norm_decomp():
     _ind_decomps[npu.npu_rms_norm_backward.default] = npu_rms_norm_backward
 
 
+def _override_kl_div_backward_decomp():
+    """Fuse the KLDiv backward instead of falling back to the private ops.
+
+    op-plugin overrides ``aten::kl_div`` for PrivateUse1 and registers an
+    explicit autograd formula, so the grad graph carries
+    ``npu.kl_div_backward`` / ``npu.kl_div_target_backward`` as leaf nodes with
+    no upstream lowering. Decomposing them into the same primitives upstream
+    autograd would use when differentiating the CompositeImplicitAutograd
+    ``aten::kl_div`` composite (``Loss.cpp``: ``xlogy(t,t) - t*x``, or
+    ``exp(t)*(t-x)`` when ``log_target``) lets both gradients be computed in one
+    Triton kernel, and removes the need for a Meta kernel on the target-grad op.
+
+    Two details are load-bearing and were established on device, not assumed:
+
+    * Accumulation ORDER. Putting the ``- t*x`` contribution first -- the order
+      autograd itself accumulates, since the ``sub`` node's backward runs before
+      ``xlogy``'s -- is what makes the result bitwise equal to the native op.
+      ``part + g*t/t - g*x`` differs on 1/6 elements by 7.45e-09 for
+      float32/mean/log_target=False.
+    * fp32 opmath for fp16/bf16. Without it the fp16 ``log_target=False``
+      (xlogy) branch differs from eager: grad_target 3/6 maxabs=4.88e-04
+      (reduction=none) and 2/6 maxabs=6.10e-05 (mean).
+
+    Zero/negative-target and NaN semantics follow upstream exactly: at
+    ``target == 0`` the ``xlogy`` self-grad is masked to 0 while ``g*t/t``
+    yields NaN, which is what the native op produces as well.
+    """
+    from torch._inductor.decomposition import (
+        decompositions as _ind_decomps,
+        fast_random_decomps,
+    )
+
+    _MEAN = 1
+
+    def _numel(shape):
+        n = 1
+        for d in shape:
+            n *= d
+        return n
+
+    def _up(t):
+        if t.dtype in (torch.float16, torch.bfloat16):
+            return t.to(torch.float32)
+        return t
+
+    def _grad_elem(grad_output, out_shape, reduction):
+        g = grad_output
+        if g.shape != out_shape:
+            g = g.expand(out_shape)
+        if reduction == _MEAN:
+            g = g / _numel(out_shape)
+        return g
+
+    def _reduce_to(res, shape, dtype):
+        if tuple(res.shape) != tuple(shape):
+            res = res.sum_to_size(shape)
+        return res.to(dtype)
+
+    def kl_div_backward(grad_output, self, target, reduction=_MEAN, log_target=False):
+        out_shape = torch.broadcast_shapes(self.shape, target.shape)
+        g = _grad_elem(_up(grad_output), out_shape, reduction)
+        t = _up(target)
+        res = -(g * torch.exp(t)) if log_target else -(g * t)
+        return _reduce_to(res, self.shape, self.dtype)
+
+    def kl_div_target_backward(grad_output, self, target, reduction=_MEAN, log_target=False):
+        out_shape = torch.broadcast_shapes(self.shape, target.shape)
+        g = _grad_elem(_up(grad_output), out_shape, reduction)
+        x = _up(self)
+        t = _up(target)
+        if log_target:
+            # out = exp(t) * (t - x): exp-grad part + sub-grad part
+            res = g * (t - x) * torch.exp(t) + g * torch.exp(t)
+        else:
+            # out = xlogy(t, t) - t * x; see the accumulation-order note above
+            part = torch.xlogy(g, t).masked_fill((t == 0.) & (t <= 0.), 0.)
+            res = (-(g * x) + part) + g * t / t
+        return _reduce_to(res, target.shape, target.dtype)
+
+    _ind_decomps[npu.kl_div_backward.default] = kl_div_backward
+    _ind_decomps[npu.kl_div_target_backward.default] = kl_div_target_backward
+    # select_decomp_table() returns fast_random_decomps() when fallback_random is
+    # off, and that is functools.cache'd over a snapshot of `decompositions`;
+    # clear it so these entries are visible to the tracer.
+    fast_random_decomps.cache_clear()
+
+
 def _override_native_dropout_decomp():
     """Override aten.native_dropout / native_dropout_backward for NPU. The core
     aten decomposition produces a bool mask, but this CANN's dropout backward
@@ -1271,6 +1358,7 @@ def _register_triton_experimental_decompositions():
     _override_plain_softmax_width_decomp()
     _override_gelu_decomp()
     _override_rms_norm_decomp()
+    _override_kl_div_backward_decomp()
     _override_native_dropout_decomp()
     decompositions[aten.binary_cross_entropy_with_logits.default] = _binary_cross_entropy_with_logits_inductor
     decompositions[npu.npu_binary_cross_entropy_with_logits_backward.default] = (
