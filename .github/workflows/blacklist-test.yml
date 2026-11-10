@@ -11,6 +11,10 @@ name: Blacklist Test (a3/a5)
 #   disabled_testcases_<platform>_all.json
 #   unsupported_aclnn_testcases.json   (common + <platform> group)
 #   unsupport_dtype_testcases.json     (common + <platform> group)
+#
+# Manual re-trigger: this file is listed in its own `paths` filter below, so a
+# push touching only this file re-runs the whole pipeline without editing any
+# blacklist.
 
 on:
   push:
