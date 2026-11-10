@@ -4,15 +4,20 @@
 #include <iostream>
 
 #include <c10/util/Exception.h>
+#include <torch/csrc/utils/cpp_stacktraces.h>
 #include "unwind.h"
 
 #if !defined(__linux__) || !defined(__x86_64__) || !defined(__has_include) || !__has_include("ext/stdio_filebuf.h")
 namespace torch_npu::unwind {
 std::vector<void*> unwind() {
+#if defined(__linux__) && defined(__aarch64__)
+  return torch::unwind::unwind();
+#else
   const int size = 200;
   void* buffer[size];
   int nptrs = backtrace(buffer, size);
   return std::vector<void*>(buffer, buffer + nptrs);
+#endif
 }
 
 c10::optional<std::pair<std::string, uint64_t>> libraryFor(void* addr) {
@@ -20,6 +25,9 @@ c10::optional<std::pair<std::string, uint64_t>> libraryFor(void* addr) {
 }
 
 std::vector<torch::unwind::Frame> symbolize(const std::vector<void*>& frames) {
+#if defined(__linux__) && defined(__aarch64__)
+  return torch::unwind::symbolize(frames, torch::get_symbolize_mode());
+#else
   std::vector<torch::unwind::Frame> results;
   for (const auto& addr : frames) {
     torch::unwind::Frame frame;
@@ -50,6 +58,7 @@ std::vector<torch::unwind::Frame> symbolize(const std::vector<void*>& frames) {
     results.push_back(frame);
   }
   return results;
+#endif
 }
 
 Stats stats() {
