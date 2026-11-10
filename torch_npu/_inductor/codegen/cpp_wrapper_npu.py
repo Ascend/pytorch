@@ -432,9 +432,17 @@ class DeferredNpuTritonCallWrapper(DeferredTritonCallWrapper):
     def _generate_single_kernel_load(self, prefix, kernel_var_name, params):
         prefix.writeline(f"if ({kernel_var_name} == nullptr) {{")
         with prefix.indent():
-            embed_kernel_args = [f"__{params['inductor_meta']['kernel_name']}_start"]
+            kernel_name = params["inductor_meta"]["kernel_name"]
+            embed_kernel_args = [f"__{kernel_name}_start"]
 
             if V.graph.aot_mode and config.aot_inductor.embed_kernel_binary:
+                # aclrtBinaryLoadFromData requires the binary length, so the
+                # embedded kernel needs the end symbol as well. The shared
+                # wrapper only declares _start, so declare _end here.
+                prefix.writeline(
+                    f"extern const unsigned char __{kernel_name}_end[];"
+                )
+                embed_kernel_args.append(f"__{kernel_name}_end")
                 load_kernel_args = [
                     *embed_kernel_args,
                     cpp_string_literal(params["mangled_name"]),

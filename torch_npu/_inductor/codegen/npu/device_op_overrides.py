@@ -120,6 +120,50 @@ class NewNPUDeviceOpOverrides(DeviceOpOverrides):
                 return nameFuncMode;
             }
 
+            static inline void * loadKernelFromData(
+                    const void *data,
+                    size_t data_size,
+                    const std::string &nameFunc,
+                    const std::string &kernel_mode_str,
+                    uint32_t sharedMemBytes) {
+                aclError aclRet;
+
+                uint32_t magic;
+                std::string kernel_mode{kernel_mode_str};
+                if (kernel_mode.empty()) {
+                    kernel_mode = inferKernelModeFromName(nameFunc);
+                }
+                if (kernel_mode == "aiv") {
+                    magic = ACL_RT_BINARY_MAGIC_ELF_VECTOR_CORE;
+                } else {
+                    magic = ACL_RT_BINARY_MAGIC_ELF_AICORE;
+                }
+
+                aclrtBinaryLoadOption optArr[] = {
+                    { .type = ACL_RT_BINARY_LOAD_OPT_LAZY_LOAD, .value = { .isLazyLoad = 0 } },
+                    { .type = ACL_RT_BINARY_LOAD_OPT_MAGIC, .value = { .magic = magic } }
+                };
+                aclrtBinaryLoadOptions loadOptions = { .options = optArr, .numOpt = 2 };
+                aclrtBinHandle binHandle = nullptr;
+                aclRet = aclrtBinaryLoadFromData(data, data_size, &loadOptions, &binHandle);
+                if (aclRet != ACL_SUCCESS) {
+                    throw std::runtime_error(std::string("aclrtBinaryLoadFromData failed, 0x") + std::to_string(aclRet));
+                }
+
+                std::string kernel_func_name = parseKernelFuncName(nameFunc, kernel_mode);
+                const char* name = kernel_func_name.c_str();
+                aclrtFuncHandle funcHandle = nullptr;
+                aclRet = aclrtBinaryGetFunction(binHandle, name, &funcHandle);
+                if (aclRet != ACL_SUCCESS) {
+                    throw std::runtime_error(std::string("aclrtBinaryGetFunction failed(name = ") + name
+                                + std::string("), 0x") + std::to_string(aclRet));
+                }
+
+                registered_kernels[nameFunc] = std::make_pair(binHandle, funcHandle);
+
+                return reinterpret_cast<void *>(funcHandle);
+            }
+
             static inline void * loadKernel(
                     std::string filePath,
                     const std::string &&nameFunc,
@@ -145,42 +189,21 @@ class NewNPUDeviceOpOverrides(DeviceOpOverrides):
                     throw std::runtime_error(std::string("read npubin failed"));
                 }
 
-                aclError aclRet;
+                return loadKernelFromData(buffer.get(), static_cast<size_t>(data_size),
+                                          nameFunc, kernel_mode_str, sharedMemBytes);
+            }
 
-                uint32_t magic;
-                std::string kernel_mode{kernel_mode_str};
-                if (kernel_mode.empty()) {
-                    kernel_mode = inferKernelModeFromName(nameFunc);
+            static inline void * loadKernel(
+                    const unsigned char *start,
+                    const unsigned char *end,
+                    const std::string &&nameFunc,
+                    const std::string &&kernel_mode_str,
+                    uint32_t sharedMemBytes) {
+                if (end <= start) {
+                    throw std::runtime_error(std::string("invalid or empty embedded npubin range"));
                 }
-                if (kernel_mode == "aiv") {
-                    magic = ACL_RT_BINARY_MAGIC_ELF_VECTOR_CORE;
-                } else {
-                    magic = ACL_RT_BINARY_MAGIC_ELF_AICORE;
-                }
-
-                aclrtBinaryLoadOption optArr[] = {
-                    { .type = ACL_RT_BINARY_LOAD_OPT_LAZY_LOAD, .value = { .isLazyLoad = 0 } },
-                    { .type = ACL_RT_BINARY_LOAD_OPT_MAGIC, .value = { .magic = magic } }
-                };
-                aclrtBinaryLoadOptions loadOptions = { .options = optArr, .numOpt = 2 };
-                aclrtBinHandle binHandle = nullptr;
-                aclRet = aclrtBinaryLoadFromData(buffer.get(), data_size, &loadOptions, &binHandle);
-                if (aclRet != ACL_SUCCESS) {
-                    throw std::runtime_error(std::string("aclrtBinaryLoadFromData failed, 0x") + std::to_string(aclRet));
-                }
-
-                std::string kernel_func_name = parseKernelFuncName(nameFunc, kernel_mode);
-                const char* name = kernel_func_name.c_str();
-                aclrtFuncHandle funcHandle = nullptr;
-                aclRet = aclrtBinaryGetFunction(binHandle, name, &funcHandle);
-                if (aclRet != ACL_SUCCESS) {
-                    throw std::runtime_error(std::string("aclrtBinaryGetFunction failed(name = ") + name
-                                + std::string("), 0x") + std::to_string(aclRet));
-                }
-
-                registered_kernels[nameFunc] = std::make_pair(binHandle, funcHandle);
-
-                return reinterpret_cast<void *>(funcHandle);
+                return loadKernelFromData(start, static_cast<size_t>(end - start),
+                                          nameFunc, kernel_mode_str, sharedMemBytes);
             }
 
             static inline void * loadKernel(
