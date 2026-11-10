@@ -24,9 +24,9 @@ on:
       - '.github/workflows/blacklist-test.yml'
       - '.github/workflows/_blacklist_diff_shard.yml'
       - '.github/workflows/_blacklist_test-category.yml'
-      - '.github/scripts/blacklist-test/build_diff_shards.py'
-      - '.github/scripts/blacklist-test/compare_diff_results.py'
-      - '.github/scripts/blacklist-test/collect_passed_skipped.py'
+      - '.github/scripts/blacklist-test/scripts/build_diff_shards.py'
+      - '.github/scripts/blacklist-test/scripts/compare_diff_results.py'
+      - '.github/scripts/blacklist-test/scripts/collect_passed_skipped.py'
       - '.github/config/disabled_testcases_a3_all.json'
       - '.github/config/disabled_testcases_a5_all.json'
       - '.github/config/unsupported_aclnn_testcases.json'
@@ -675,7 +675,7 @@ jobs:
         if: always()
         continue-on-error: true
         run: |
-          python3 .github/scripts/blacklist-test/collect_passed_skipped.py collect \
+          python3 .github/scripts/blacklist-test/scripts/collect_passed_skipped.py collect \
             --reports-root . \
             --config-dir .github/config \
             --output-prefix passed-skipped
@@ -713,7 +713,7 @@ jobs:
         if: always()
         continue-on-error: true
         run: |
-          python3 .github/scripts/blacklist-test/generate_blacklist_report.py \
+          python3 .github/scripts/blacklist-test/scripts/generate_blacklist_report.py \
             --reports-root . \
             --platform all \
             --config-dir .github/config \
@@ -863,7 +863,7 @@ jobs:
         if: always()
         continue-on-error: true
         run: |
-          python3 .github/scripts/blacklist-test/compare_diff_results.py \
+          python3 .github/scripts/blacklist-test/scripts/compare_diff_results.py \
             --reports-root diff-reports \
             --config-dir .github/config \
             --output-prefix blacklist-sync-candidates
@@ -932,7 +932,7 @@ jobs:
         if: always()
         continue-on-error: true
         run: |
-          python3 .github/scripts/blacklist-test/collect_passed_skipped.py report \
+          python3 .github/scripts/blacklist-test/scripts/collect_passed_skipped.py report \
             --input passed-skipped/passed-skipped.json \
             --reports-root . \
             --output passed-skipped-retest.md

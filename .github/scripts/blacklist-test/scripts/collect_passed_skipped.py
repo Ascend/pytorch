@@ -73,7 +73,7 @@ MISSING = "missing"
 
 def load_collect_module():
     """Import collect_all_cases.py from the parent .github/scripts (via importlib)."""
-    script = Path(__file__).resolve().parent.parent / "collect_all_cases.py"
+    script = Path(__file__).resolve().parent.parent.parent / "collect_all_cases.py"
     spec = importlib.util.spec_from_file_location("collect_all_cases", str(script))
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
