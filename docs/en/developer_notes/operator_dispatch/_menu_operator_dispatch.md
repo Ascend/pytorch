@@ -16,7 +16,7 @@
   <!-- npu="A3,910b,910" id1 -->
   - [Python Compilation Optimization](compilation_optimization/python_compilation_optimization.md)
   <!-- end id1 -->
-  <!-- npu="910b,910,310p" id2 -->
+  <!-- npu="A3,910b,910" id2 -->
   - [PyTorch Compilation Optimization](compilation_optimization/pytorch_compilation_optimization.md)
   <!-- end id2 -->
   <!-- npu="A3,910b,910" id3 -->
