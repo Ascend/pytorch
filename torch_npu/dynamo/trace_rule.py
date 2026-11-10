@@ -36,8 +36,6 @@ torch_non_c_binding_in_graph_functions_npu = dict.fromkeys(
         "torch.npu.memory.reset_peak_memory_stats",
         "torch.npu.memory.get_per_process_memory_fraction",
         "torch.npu.memory.set_per_process_memory_fraction",
-        "torch.npu.random.manual_seed_all",
-        "torch.npu.random.manual_seed",
         "torch.npu.random.seed_all",
         "torch.npu.random.seed",
         "torch.npu.set_sync_debug_mode",
@@ -86,6 +84,10 @@ torch_c_binding_in_graph_functions_npu = dict.fromkeys(
 skip_functions_npu = dict.fromkeys(
     [
         "torch.npu.set_device",
+        "torch.npu.manual_seed",
+        "torch.npu.manual_seed_all",
+        "torch.npu.random.manual_seed",
+        "torch.npu.random.manual_seed_all",
     ],
     SkipFunctionVariable
 )
