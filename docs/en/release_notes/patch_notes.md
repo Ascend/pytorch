@@ -24,7 +24,7 @@
 
 Software package download address: [Quick Installation](https://www.hiascend.com/en-sg/developer/software/ai-frameworks/pytorch/download?versionId=183&ids=b1e62037594d4e5c9a0fd797ff490006%2C211%2C145%2C1%2C6%2C177%2C)
 
-## Version Mapping
+## Related Product Version Mapping
 
 The version mapping table for firmware and drivers is related to all Ascend hardware and CANN versions. For specific selection, refer to the [CANN Release Notes](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/softwareinst/releasenote/9.1.0/release-notes.md).
 
@@ -61,13 +61,13 @@ The version mapping between related products is shown in the following table:
     <th class="tg-amwm" colspan="3">CANN Version</th>
   </tr>
   <tr>
-    <th class="tg-c3ow">8.5.X</th>
+    <th class="tg-c3ow">8.5.0</th>
     <th class="tg-c3ow">9.0.X</th>
     <th class="tg-c3ow">9.1.X</th>
   </tr></thead>
 <tbody>
   <tr>
-    <td class="tg-c3ow">7.3.X</td>
+    <td class="tg-c3ow">7.3.0</td>
     <td class="tg-c3ow">Y</td>
     <td class="tg-c3ow">Y</td>
     <td class="tg-c3ow">Y</td>
@@ -89,15 +89,15 @@ The version mapping between related products is shown in the following table:
 
 ## Patch Installation Impact
 
-### Impact on the Current System During Installation
+### Impact on the Existing System During Installation
 
 None
 
-### Impact on the Current System After Installation
+### Impact on the Existing System After Installation
 
 None
 
-## Fixed Issues
+## Resolved Issues
 
 - Fixed the core dump issue that occurred when profiler collection was enabled on PyTorch 2.12 and later versions.
 - Fixed the installation and compilation error that occurred when TorchNPU 26.1.0 was used with CANN 9.0.0 and earlier versions.

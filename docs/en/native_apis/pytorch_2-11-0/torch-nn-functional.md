@@ -1448,7 +1448,7 @@
 **Constraints & Notes**:
 
 - `input` only supports bf16, fp16, fp32, fp64
-- `input` only supports nearest、linear、bilinear、bicubic、trilinear、area
+- `input` only supports nearest, linear, bilinear, bicubic, trilinear, area
 - Does not support `scale_factor`.
 
 </div>

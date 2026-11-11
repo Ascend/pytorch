@@ -47,7 +47,7 @@ As deep learning flourishes, data scales keep expanding, and model complexity co
   </tr>
   <tr>
     <td><a href="./ranktable_link_setup.md">Ranktable link setup</a></td>
-    <td>Supports establishing a communication domain by configuring the ranktable file.</td>
+    <td>Supports establishing a communicator by configuring the ranktable file.</td>
   </tr>
   <tr>
     <td rowspan="3">Computing Performance Optimization</td>
@@ -73,8 +73,8 @@ As deep learning flourishes, data scales keep expanding, and model complexity co
   </tr>
   <tr>
     <td>Parameter Configuration</td>
-    <td><a href="./setting_HCCL_communicator_parameter.md" target="_blank" rel="noopener noreferrer">Configuring HCCL Communication Domain Parameters Through pg_options</a></td>
-    <td>Allows different HCCL parameters to be configured for different communication domains.</td>
+    <td><a href="./setting_HCCL_communicator_parameter.md" target="_blank" rel="noopener noreferrer">Configuring HCCL Communicator Parameters Through pg_options</a></td>
+    <td>Allows different HCCL parameters to be configured for different communicators.</td>
   </tr>
   <tr>
     <td>torch_npu.npu.NPUGraph</td>

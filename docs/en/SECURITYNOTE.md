@@ -20,7 +20,7 @@ For security reasons and the principle of least privilege, do not use root or ot
 
 4. Files generated during PyTorch framework execution (for example, files saved via `torch.save`) inherit system‑default permissions. You are advised to apply appropriate permission controls to output files as needed. Refer to the [File Permission Reference](#file-permission-reference) for guidance. The `umask` setting can be used to control default permissions and mitigate privilege escalation risks. You are advised to set `umask` to `0027` or stricter on both hosts (including the host machine) and containers to enhance security.
 
-### File Permission Reference
+**File Permission Reference:**<a id="file-permission-reference"></a>
 
 | Type | Maximum Linux Permission |
 | --- | --- |
@@ -69,7 +69,7 @@ TorchNPU supports source code compilation and installation. During the build pro
 
 There are [public network addresses](#public-network-addresses) in the configuration files and scripts of TorchNPU.
 
-### Public Network Addresses
+**Public Network Addresses:**<a id="public-network-addresses"></a>
 
 | Type | Open Source Code Address | Filename | Public IP Address/Public URL Address/Domain Name/Email Address | Usage Description |
 | --- | --- | --- | --- | --- |
@@ -212,7 +212,7 @@ PyTorch distributed training services require communication between devices. The
 
 PyTorch provides distributed training capabilities and supports training in both single‑node and multi‑node scenarios, which requires network communication. Specifically, PyTorch communicates over TCP, while TorchNPU uses HCCL from CANN for communication between NPU devices. For port details, refer to the [communication matrix](#communication-matrix-information). Users should pay attention to and ensure the security of inter‑node communication networks. Measures such as iptables can be used to mitigate security risks. For network security hardening, refer to the [Communication Security Hardening](#communication-security-hardening) section.
 
-### Communication Matrix Information
+**Communication Matrix Information:**<a id="communication-matrix-information"></a>
 
 | Component | PyTorch | HCCL |
 | --------------------- | ------------------------------------ | ------------------------------------ |
@@ -230,8 +230,8 @@ PyTorch provides distributed training capabilities and supports training in both
 | Belonging Plane | Not involved | Not involved |
 | Version | All versions | All versions |
 | Special Scenario | None | None |
-| Remarks | This communication process is controlled by the open-source software PyTorch, configured with PyTorch native settings. Refer to the [PyTorch documentation](https://pytorch.org/docs/stable/distributed.html#launch-utility). The source port is automatically assigned by the operating system, and the assignment range is determined by the OS configuration. For example, on Ubuntu: it is specified by the /proc/sys/net/ipv4/ipv4_local_port_range file, which can be viewed via cat /proc/sys/net/ipv4/ipv4_local_port_range or sysctl net.ipv4.ip_local_port_range. | This communication process is controlled by the HCCL component in CANN; TorchNPU does not control it. For the port range, refer to the "Execution Related > Collective Communication > HCCL_IF_BASE_PORT" section in the Environment Variable Reference. |
-<!-- This communication process is controlled by the HCCL component in CANN; TorchNPU does not control it. For the port range, refer to the "Execution Related > Collective Communication > HCCL_IF_BASE_PORT" section in the [Environment Variable Reference](https://www.hiascend.com/document/detail/en/canncommercial/82RC1/maintenref/envvar/envref_07_0001.html). -->
+| Remarks | This communication process is controlled by the open-source software PyTorch, configured with PyTorch native settings. Refer to the [PyTorch documentation](https://pytorch.org/docs/stable/distributed.html#launch-utility). The source port is automatically assigned by the operating system, and the assignment range is determined by the OS configuration. For example, on Ubuntu: it is specified by the /proc/sys/net/ipv4/ipv4_local_port_range file, which can be viewed via cat /proc/sys/net/ipv4/ipv4_local_port_range or sysctl net.ipv4.ip_local_port_range. | This communication process is controlled by the HCCL component in CANN; TorchNPU does not control it. For the port range, refer to the "Execution Related > Collective Communication > HCCL_IF_BASE_PORT" section in the [Environment Variable Reference](https://www.hiascend.com/document/detail/en/canncommercial/82RC1/maintenref/envvar/envref_07_0001.html). |
+
 ## Vulnerability Security Statement
 
 The Ascend for PyTorch community highly values the security of community versions. Vulnerability management specialists are specifically designated to handle vulnerability-related matters. To build a more secure AI full-process toolchain, we look forward to your participation.

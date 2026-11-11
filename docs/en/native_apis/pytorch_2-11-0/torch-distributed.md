@@ -99,7 +99,7 @@
 - <term>Atlas A3 training products</term>: Supported
 - <term>Ascend 950DT</term>: Supported
 
-**Constraints & Notes**: When the `pg_options` parameter is passed in with the type `torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()`, the HCCL communication domain buffer size can be controlled by configuring the `hccl_config` attribute of the variable. For specific examples, refer to the "[hccl_buffer_size](https://www.hiascend.com/document/detail/en/ModelZoo/traditional_model_train/PyTorch/docs/en/performance_tuning/performance_tuning_methods/communication_basics_overview.md#hccl_buffer_size)" section of the PyTorch Model Migration and Tuning Guide. A custom name for the communication group of the HCCL communication domain can be set by configuring the `group_name` field of the `hccl_config` variable, whose value is a string with a length not exceeding 32.
+**Constraints & Notes**: When the `pg_options` parameter is passed in with the type `torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()`, the HCCL communicator buffer size can be controlled by configuring the `hccl_config` attribute of the variable. For specific examples, refer to the "[hccl_buffer_size](https://www.hiascend.com/document/detail/en/ModelZoo/traditional_model_train/PyTorch/docs/en/performance_tuning/performance_tuning_methods/communication_basics_overview.md#hccl_buffer_size)" section of the PyTorch Model Migration and Tuning Guide. A custom name for the communication group of the HCCL communicator can be set by configuring the `group_name` field of the `hccl_config` variable, whose value is a string with a length not exceeding 32.
 
 </div>
 
@@ -225,7 +225,7 @@
 - <term>Atlas A3 training products</term>: Supported
 - <term>Ascend 950DT</term>: Supported
 
-**Constraints & Notes**: When the `pg_options` parameter is passed in with the type `torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()`, the HCCL communication domain buffer size can be controlled by configuring the `hccl_config` attribute of the variable. For specific examples, refer to the "[hccl_buffer_size](https://www.hiascend.com/document/detail/en/ModelZoo/traditional_model_train/PyTorch/docs/en/performance_tuning/performance_tuning_methods/communication_basics_overview.md#hccl_buffer_size)" section of the PyTorch Model Migration and Tuning Guide. A custom name for the communication group of the HCCL communication domain can be set by configuring the `group_name` field of the `hccl_config` variable, whose value is a string with a length not exceeding 32.
+**Constraints & Notes**: When the `pg_options` parameter is passed in with the type `torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()`, the HCCL communicator buffer size can be controlled by configuring the `hccl_config` attribute of the variable. For specific examples, refer to the "[hccl_buffer_size](https://www.hiascend.com/document/detail/en/ModelZoo/traditional_model_train/PyTorch/docs/en/performance_tuning/performance_tuning_methods/communication_basics_overview.md#hccl_buffer_size)" section of the PyTorch Model Migration and Tuning Guide. A custom name for the communication group of the HCCL communicator can be set by configuring the `group_name` field of the `hccl_config` variable, whose value is a string with a length not exceeding 32.
 
 </div>
 

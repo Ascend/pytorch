@@ -6,7 +6,7 @@ This example is based on the Atlas 800T A2 training server.
 
 Complete the following installation and environment configuration first. If you have already done so, proceed directly to data preparation.
 
-- NPU driver firmware and CANN: See [*CANN Software Installation*](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum), and load the environment variables as instructed in the guide.
+- NPU driver firmware and CANN: See [CANN Software Installation](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum), and load the environment variables as instructed in the guide.
 - PyTorch framework and TorchNPU plugin: See [Quick Installation](https://www.hiascend.com/developer/software/ai-frameworks/pytorch/download?versionId=182&ids=89dda9ba9de741349efa03687a487678%2C202%2C106%2C1%2C6%2C177%2C).
 - torchvision: Install the CPU version that matches the PyTorch version. For details, see [Installing torchvision](../installation_guide/installing_torchvision.md).
 
@@ -98,7 +98,6 @@ This section uses a CNN model recognizing MNIST handwritten digits as an example
     # Save the model checkpoint
     torch.save({
                    'epoch': epochs,
-                   'arch': CNN,
                    'state_dict': model.state_dict(),
                    'optimizer' : optimizer.state_dict(),
                 },'checkpoint.pth.tar')
@@ -116,7 +115,7 @@ This section uses a CNN model recognizing MNIST handwritten digits as an example
     +from torch_npu.contrib import transfer_to_npu    # Enable automatic migration
     ```
 
-    Importing `transfer_to_npu` enables automatic migration, mapping the relevant CUDA calls in this example to the NPU. Therefore, `cuda:0` in the script can be retained, and the model and data actually run on the NPU. If automatic migration is not enabled, you can refer to [Manual Migration](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/zh/model_migration/manual_migration.md) for related operations.
+    Importing `transfer_to_npu` enables automatic migration, mapping the relevant CUDA calls in this example to the NPU. Therefore, `cuda:0` in the script can be retained, and the model and data actually run on the NPU. If automatic migration is not enabled, you can refer to [Manual Migration](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/en/model_migration/manual_migration.md) for related operations.
 
 3. Add the following code to train.py to enable AMP mixed precision.
 
@@ -124,7 +123,7 @@ This section uses a CNN model recognizing MNIST handwritten digits as an example
     >
     > - If you are using <term>Atlas training products</term>, due to their architectural characteristics, you need to perform this step to enable mixed precision after the migration is complete and before training begins.
     > - If you are using <term>Atlas A2 training products</term>, <term>Atlas A3 training products</term>, or <term>Ascend 950DT</term>, you can choose whether to enable mixed precision. If you choose not to enable mixed precision, you can skip this step.
-    > - For a detailed introduction to mixed precision, see [Mixed Precision Adaptation](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/zh/mixed_precision_adaptation/adaptation_introduction.md).
+    > - For a detailed introduction to mixed precision, see [Mixed Precision Adaptation](https://gitcode.com/Ascend/ModelZoo-PyTorch/blob/master/PyTorch/docs/en/mixed_precision_adaptation/adaptation_introduction.md).
 
     AMP (automatic mixed precision) includes two main operations: `autocast` selects the appropriate computation precision for operators in forward computation; `GradScaler` reduces the risk of low-precision gradient underflow by scaling the loss, and restores the gradient scale when updating parameters.
 

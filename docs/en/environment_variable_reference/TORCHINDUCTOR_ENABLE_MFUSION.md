@@ -1,5 +1,9 @@
 # (beta) TORCHINDUCTOR\_ENABLE\_MFUSION
 
+> [!NOTICE]
+>
+> The Torch-MLIR compiler in the Inductor backend is deprecated. This environment variable is no longer supported in MLIR mode.
+
 ## Feature Description
 
 This environment variable controls whether to enable the MFusion fusion optimization feature. MFusion is a graph fusion optimization technique for NPU platforms that can automatically fuse multiple operators into a single kernel, thereby reducing data transfer overhead and improving overall computational performance.

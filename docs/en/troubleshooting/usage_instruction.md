@@ -29,7 +29,7 @@ An actual error message example on the user interface is shown below. The error 
 |:---|:---|
 |Log level|Example: [ERROR].|
 |Log timestamp|Example: 2024-03-07-01:31:48.|
-|Device information|Example: (PID:116072, Device:0, RankID:-1).<br>- PID: Process ID of the faulty process.<br>- Device: Device number where the faulty process resides, obtained through the ACL interface. If retrieval fails, the default value -1 is printed.<br>- RankID: Sequence number of the device where the faulty process resides within the communication domain, obtained through the environment variable RANK. If not configured, the default value -1 is printed.|
+|Device information|Example: (PID:116072, Device:0, RankID:-1).<br>- PID: Process ID of the faulty process.<br>- Device: Device number where the faulty process resides, obtained through the ACL interface. If retrieval fails, the default value -1 is printed.<br>- RankID: Sequence number of the device where the faulty process resides within the communicator, obtained through the environment variable RANK. If not configured, the default value -1 is printed.|
 |Error codes|Example: ERR00002.<br>Error codes are represented as 8-character strings. For field descriptions, see [Figure 1](#figure1).<br>- Field 1 is ERR, which indicates an error class.<br>- Field 2 is a two-digit number indicating the error module. For details, see [Figure 2](#figure2).<br>- Field 3 is a three-digit number indicating the error type. For details, see [Figure 3](#figure3).|
 |Error code description|Example: PTA invalid type.|
 

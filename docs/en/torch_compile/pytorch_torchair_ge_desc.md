@@ -29,6 +29,7 @@ For the compilation options supported by the TorchAir-GE backend (the `compiler_
 import torch
 import torch_npu
 import torchair
+import torch.nn as nn
 
 # 1. Define the model
 class SimpleMLP(torch.nn.Module):

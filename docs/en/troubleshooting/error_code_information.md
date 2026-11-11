@@ -217,8 +217,7 @@ Calling the ACL API returns some errors.
 Check CANN-related errors in logs and find the CANN Error Code.
 
 > [!NOTE]  
-> For details about CANN software-related errors, see the CANN Troubleshooting.
-<!-- see the [CANN Troubleshooting](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/troubleshooting/troubleshooting_0001.html) Troubleshooting. -->
+> For details about CANN software-related errors, see the [CANN Troubleshooting](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/troubleshooting/troubleshooting_0001.html).
 
 ## ERR\*\*200
 
@@ -237,8 +236,7 @@ Calling the HCCL API returns some errors.
 Check CANN-related errors in logs and find the CANN Error Code.
 
 > [!NOTE]  
-> For details about CANN software-related errors, see the CANN Troubleshooting.
-<!-- see the [CANN Troubleshooting](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/troubleshooting/troubleshooting_0001.html) Troubleshooting. -->
+> For details about CANN software-related errors, see the [CANN Troubleshooting](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/troubleshooting/troubleshooting_0001.html).
 
 ## ERR\*\*300
 
@@ -257,8 +255,7 @@ Calling the GE API returns some errors.
 Check CANN-related errors in logs and find the CANN Error Code.
 
 > [!NOTE]  
-> For details about CANN software-related errors, see the CANN Troubleshooting.
-<!-- see the [CANN Troubleshooting](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/troubleshooting/troubleshooting_0001.html)Troubleshooting. -->
+> For details about CANN software-related errors, see the [CANN Troubleshooting](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/troubleshooting/troubleshooting_0001.html).
 
 ## ERR\*\*999
 

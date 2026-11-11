@@ -1,14 +1,13 @@
 # Environment Variable List
 
-This manual describes the environment variables that you can use during TorchNPU training and online inference. For environment variables used in building AI apps and services based on CANN, refer to CANN Environment Variable Reference.
-<!-- refer to [CANN Environment Variable Reference](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/maintenref/envvar/envref_07_0001.html) -->
+This manual describes the environment variables that you can use during TorchNPU training and online inference. For environment variables used in building AI apps and services based on CANN, refer to [CANN Environment Variable Reference](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/envvar/envref_07_0001.html).
 
 **Table 1**  Operator execution environment variables
 
 |Environment Variable Name|Description|
 |--|--|
 |[INF_NAN_MODE_ENABLE](INF_NAN_MODE_ENABLE.md)|Controls how the AI processor handles input data that is Inf/NaN through this environment variable, that is, whether the AI processor uses saturation mode or INF_NAN mode.|
-|[INF_NAN_MODE_FORCE_DISABLE](INF_NAN_MODE_FORCE_DISABLE.md)|For Atlas A2 training series/Atlas A3 training series, this environment variable forcibly disables INF_NAN mode.|
+|[INF_NAN_MODE_FORCE_DISABLE](INF_NAN_MODE_FORCE_DISABLE.md)|For Atlas A2 training products/Atlas A3 training products, this environment variable forcibly disables INF_NAN mode.|
 |[COMBINED_ENABLE](COMBINED_ENABLE.md)|Sets the combined flag through this environment variable.|
 |[ASCEND_LAUNCH_BLOCKING](ASCEND_LAUNCH_BLOCKING.md)|Controls whether synchronous mode is enabled during operator execution through this environment variable.|
 |[TASK_QUEUE_ENABLE](TASK_QUEUE_ENABLE.md)|Configures whether the `task_queue` operator dispatch queue is enabled and its optimization level through this environment variable.|
@@ -41,8 +40,8 @@ This manual describes the environment variables that you can use during TorchNPU
 |[HCCL_ASYNC_ERROR_HANDLING](HCCL_ASYNC_ERROR_HANDLING.md)|When HCCL is used as the communication backend, controls whether asynchronous error handling is enabled through this environment variable.|
 |[HCCL_DESYNC_DEBUG](HCCL_DESYNC_DEBUG.md)|When HCCL is used as the communication backend, controls whether communication timeout analysis is performed through this environment variable.|
 |[HCCL_EVENT_TIMEOUT](HCCL_EVENT_TIMEOUT.md)|When HCCL is used as the communication backend, sets the timeout duration for waiting for an event to complete through this environment variable.|
-|[P2P_HCCL_BUFFSIZE](P2P_HCCL_BUFFSIZE.md)|Configures whether to enable point-to-point communication (`torch.distributed.isend`, `torch.distributed.irecv`, and `torch.distributed.batch_isend_irecv`) and use the independent communication domain feature through this environment variable.|
-|[RANK_TABLE_FILE](RANK_TABLE_FILE.md)|Configures the path of the RANK_TABLE_FILE file through this environment variable, which is used for collective communication domain link establishment.|
+|[P2P_HCCL_BUFFSIZE](P2P_HCCL_BUFFSIZE.md)|Configures whether to enable point-to-point communication (`torch.distributed.isend`, `torch.distributed.irecv`, and `torch.distributed.batch_isend_irecv`) and use the independent communicator feature through this environment variable.|
+|[RANK_TABLE_FILE](RANK_TABLE_FILE.md)|Configures the path of the RANK_TABLE_FILE file through this environment variable, which is used for collective communicator link establishment.|
 |[(beta) TORCH_HCCL_ZERO_COPY](beta_TORCH_HCCL_ZERO_COPY.md)|In training or online inference scenarios, this environment variable enables the collective communication intra-chip zero-copy feature, reducing the number of intra-chip copies of communication operators during communication, improving collective communication efficiency, and reducing communication latency. In compute-communication parallel scenarios, it also reduces the contention for memory bandwidth during communication.|
 
 **Table 5**  Alarm message printing environment variables
@@ -88,10 +87,17 @@ This manual describes the environment variables that you can use during TorchNPU
 
 **Table 10**  Graph mode environment variables
 
+> [!NOTICE]
+>
+> Since the Torch-MLIR compiler in the Inductor backend is deprecated, the supported functions in MLIR mode are adjusted accordingly:
+>
+> - If an environment variable supports use in MLIR mode, its function in MLIR mode is no longer supported.
+> - If an environment variable applies only to MLIR mode, the environment variable is deprecated directly.
+
 |Environment Variable Name|Description|
 |--|--|
 |[TORCHINDUCTOR_NPU_BACKEND](TORCHINDUCTOR_NPU_BACKEND.md)|Configures the optimization mode in graph mode through this environment variable, supporting Triton, MLIR, DVM, and other optimization modes.|
-|[（beta）INDUCTOR_ASCEND_CHECK_ACCURACY](INDUCTOR_ASCEND_CHECK_ACCURACY.md)|INDUCTOR_ASCEND_CHECK_ACCURACY is an accuracy verification tool provided by TorchNPU. It automatically detects the numerical accuracy of fused operators only when the torch.compile graph compilation backend is "Inductor" and the mode is "Triton".|
+|[(beta) INDUCTOR_ASCEND_CHECK_ACCURACY](INDUCTOR_ASCEND_CHECK_ACCURACY.md)|INDUCTOR_ASCEND_CHECK_ACCURACY is an accuracy verification tool provided by TorchNPU. It automatically detects the numerical accuracy of fused operators only when the torch.compile graph compilation backend is "Inductor" and the mode is "Triton".|
 |[NPU_INDUCTOR_FALLBACK_LIST](NPU_INDUCTOR_FALLBACK_LIST.md)|Specifies the list of operators that need to fall back to native PyTorch through this environment variable.|
-|[（beta）TORCHINDUCTOR_ENABLE_MFUSION](TORCHINDUCTOR_ENABLE_MFUSION.md)|Controls whether the MFusion fusion optimization feature is enabled through this environment variable. It takes effect only when the torch.compile graph compilation backend is "Inductor".|
-|[TORCHINDUCTOR_USE_AKG](TORCHINDUCTOR_USE_AKG.md)|Configures whether AKG (Auto Kernel Generator) backend optimization is enabled in MLIR (Multi-Level Intermediate Representation) mode under the torch.compile graph mode (Inductor) through this environment variable.|
+|[(beta) TORCHINDUCTOR_ENABLE_MFUSION](TORCHINDUCTOR_ENABLE_MFUSION.md)|Controls whether the MFusion fusion optimization feature is enabled through this environment variable. It takes effect only when the torch.compile graph compilation backend is "Inductor".|
+|[TORCHINDUCTOR_USE_AKG](TORCHINDUCTOR_USE_AKG.md) (Deprecated)|The Torch-MLIR compiler in the Inductor backend is deprecated, and this environment variable is no longer supported. Configures whether AKG (Auto Kernel Generator) backend optimization is enabled in MLIR (Multi-Level Intermediate Representation) mode under the torch.compile graph mode (Inductor) through this environment variable.|

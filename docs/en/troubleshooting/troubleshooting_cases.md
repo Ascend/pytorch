@@ -16,4 +16,4 @@
 
 - **[Initialization Error](initialization_error.md)**  
 
-- **[Communication Domain Link Establishment Timeout](communication_domain_link_establishment_timeout.md)**  
+- **[Communicator Link Establishment Timeout](communication_domain_link_establishment_timeout.md)**  

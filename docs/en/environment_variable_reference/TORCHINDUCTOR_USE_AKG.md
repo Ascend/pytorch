@@ -1,5 +1,9 @@
 # TORCHINDUCTOR\_USE\_AKG
 
+> [!NOTICE]
+>
+> The Torch-MLIR compiler in the Inductor backend is deprecated. This environment variable is no longer supported.
+
 ## Feature Description
 
 This environment variable configures whether to enable AKG (Auto Kernel Generator) backend optimization in MLIR (Multi-Level Intermediate Representation) mode under the torch.compile graph mode (Inductor). AKG performs scheduling optimizations such as fusion and tiling based on Affine Dialect, improving fusion capability and reducing scheduling and execution overhead.

@@ -4,7 +4,7 @@
 
 `torch.compile` includes the following core components:
 
-**Table 1** Core Components
+**Table 1** Core components
 
 | Component | Function |
 | ------------------- | ----------- |
@@ -38,7 +38,7 @@ For more parameter details, see [torch.compile](https://docs.pytorch.org/docs/st
 
 | Backend | Enabling Method | Core Mechanism | Applicable Scenario |
 | ------ | ---------- | --------- | --------- |
-| Inductor (default) | `backend="inductor"` | Operator fusion + code generation (Triton/MLIR/DVM) | Most scenarios. When uncertain, choose it first |
+| Inductor (default) | `backend="inductor"` | The Torch-MLIR compiler is deprecated starting from this version.<br>Operator fusion + code generation (Triton/MLIR/DVM) | Most scenarios. When uncertain, choose it first |
 | NPUGraphs | `backend="npugraphs"` | ACLGraph graph sinking, capture once and replay multiple times, eliminating kernel launch overhead | Frequent kernel calls, CPU-intensive scheduling |
 | NPUGraph_EX | `backend="npugraph_ex"` | ACLGraph graph sinking + FX graph optimization + compilation cache reuse | LLM inference deployment |
 | AOT_Eager | `backend="aot_eager"` | No optimization, only verifies graph capture correctness | Debugging, baseline performance comparison |

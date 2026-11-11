@@ -26,7 +26,7 @@ In NPU training and inference scenarios, the following types of guards may frequ
 
 | Guard Type | Trigger Scenario |
 | --- | --- |
-| `DICT_VERSION` / `DICT_KEYS` / `DICT_KEYS_MATCH` / `DICT_CONTAINS` | HuggingFace `generation_config`, KV cache state dict, attention kwargs, where the version increments at each step |
+| `DICT_VERSION` / `DICT_KEYS` / `DICT_KEYS_MATCH` / `DICT_CONTAINS` | Hugging Face `generation_config`, KV cache state dict, attention kwargs, where the version increments at each step |
 | `TYPE_MATCH` / `OPTIONAL_TENSOR` | `past_key_values=None` (prefill) ↔ `tuple` (decode), `attention_mask=None` ↔ Tensor |
 | `HASATTR` / `NOT_PRESENT_IN_GENERIC_DICT` | Feature flags, fields attached only after the first forward pass |
 | `GRAD_MODE` / `TORCH_FUNCTION_STATE` / `DEFAULT_DEVICE` / `DETERMINISTIC_ALGORITHMS` / `AUTOCAST_STATE` / `FSDP_TRAINING_STATE` | Process-level one-time configurations, but guards are generated for every compilation entry |
@@ -81,7 +81,7 @@ def filter_fn(entries: list) -> list[bool]:
 
 Example 1: Filtering dictionary version guards
 
-Corresponds to `DICT_VERSION`/`DICT_KEYS`/`DICT_KEYS_MATCH`/`DICT_CONTAINS` type guards in Table 2. Suitable for scenarios in HuggingFace model inference where dictionaries such as `generation_config` and KV cache state dict cause recompilation due to per-step version auto-increment:
+Corresponds to `DICT_VERSION`/`DICT_KEYS`/`DICT_KEYS_MATCH`/`DICT_CONTAINS` type guards in Table 2. Suitable for scenarios in Hugging Face model inference where dictionaries such as `generation_config` and KV cache state dict cause recompilation due to per-step version auto-increment:
 
 ```python
 import torch

@@ -56,7 +56,7 @@ for _ in range(1000):
 
 ## Constraints
 
-1. **Input shapes must be fixed**: After capture, batch_size, sequence length, and so on cannot be modified.
-2. **Only NN operators are supported**: All operators must be aclnn operators to be included in the graph.
-3. For dynamic shape support, consider using the `reduce-overhead` mode (NPUGraph Tree) of the Inductor backend.
-4. The `npu_fusion_attention_v3` interface does not currently support graph capture in TND format.
+- **Input shapes must be fixed**: After capture, batch_size, sequence length, and so on cannot be modified.
+- **Only NN operators are supported**: All operators must be aclnn operators to be included in the graph.
+- For dynamic shape support, consider using the `reduce-overhead` mode (NPUGraph Tree) of the Inductor backend.
+- The `npu_fusion_attention_v3` interface does not currently support graph capture in TND format.

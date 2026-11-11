@@ -2,10 +2,10 @@
 
 ## Feature Description
 
-This environment variable configures the path to the `RANK_TABLE_FILE`, which is used for collective communication domain establishment.
+This environment variable configures the path to the `RANK_TABLE_FILE`, which is used for collective communicator establishment.
 
-- When not configured, collective communication domain links are established through the default negotiation process.
-- When configured and the full file path is valid, collective communication domain links are established through the `RANK_TABLE_FILE`.
+- When not configured, collective communicator links are established through the default negotiation process.
+- When configured and the full file path is valid, collective communicator links are established through the `RANK_TABLE_FILE`.
 
 This environment variable is not configured by default.
 
@@ -23,8 +23,8 @@ export RANK_TABLE_FILE=/home/ranktable.json
 
 > [!CAUTION]
 >
-> - If the configured file path does not exist, collective communication domain links are established through the default negotiation process.
-> - If the configured file path exists but the configuration information is incorrect, collective communication domain links are not established through the default negotiation process. Instead, a corresponding error is reported during actual communication.
+> - If the configured file path does not exist, collective communicator links are established through the default negotiation process.
+> - If the configured file path exists but the configuration information is incorrect, collective communicator links are not established through the default negotiation process. Instead, a corresponding error is reported during actual communication.
 
 Example of disabling link establishment using the rank table file:
 
@@ -35,8 +35,7 @@ unset RANK_TABLE_FILE
 ## Usage Constraints
 
 - The configured file path cannot be a symbolic link and must have read permission.
-- The configured file must be in JSON format. For details, see the "Cluster Information Configuration" chapter in CANN HCCL Library.
-<!-- see the "[Cluster Information Configuration](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/commlib/hcclug/docs/zh/user_guide/cluster_info_config/intro.md)" -->
+- The configured file must be in JSON format. For details, see the "[Cluster Information Configuration](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/commlib/hcclug/docs/en/user_guide/cluster_info_config/intro.md)" chapter in CANN HCCL Library.
 
 ## Supported Products
 

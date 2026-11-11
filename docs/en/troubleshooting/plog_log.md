@@ -19,5 +19,4 @@ As shown in [Figure 3](#figure3), users can view the log level (for example, **E
 ![figure4](../figures/plog_log_OOM.png)
 
 > [!NOTE]
-> For more details about logs, see the CANN Log Reference.
-<!-- or more details about logs, see the [CANN Log Reference](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/logreference/logreference_0001.html). -->
+> For more details about logs, see the [CANN Log Reference](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/maintenref/logreference/logreference_0001.html).

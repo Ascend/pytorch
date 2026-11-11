@@ -1,5 +1,9 @@
 # NPU_INDUCTOR_FALLBACK_LIST
 
+> [!NOTICE]
+>
+> Starting from this version, the Torch-MLIR compiler in the Inductor backend is deprecated, and MLIR mode is no longer supported.
+
 ## Feature Description
 
 This environment variable specifies the list of operators that need to fall back to the native PyTorch implementation. When certain operators encounter issues during execution on the NPU backend or when the native operator implementation is required, you can configure them through this environment variable.

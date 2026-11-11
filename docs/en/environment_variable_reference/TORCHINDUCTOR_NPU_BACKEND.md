@@ -1,5 +1,9 @@
 # TORCHINDUCTOR\_NPU\_BACKEND
 
+> [!NOTICE]
+>
+> The Torch-MLIR compiler in the Inductor backend is deprecated. This environment variable is no longer supported in MLIR mode.
+
 ## Feature Description
 
 This environment variable configures the backend optimization strategy in graph mode (Inductor), supporting switching between modes such as Triton, MLIR, and DVM.

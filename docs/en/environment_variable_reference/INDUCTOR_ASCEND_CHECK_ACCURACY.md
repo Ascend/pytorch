@@ -1,5 +1,9 @@
 # (Beta) INDUCTOR\_ASCEND\_CHECK\_ACCURACY
 
+> [!NOTICE]
+>
+> The Torch-MLIR compiler in the Inductor backend is deprecated. This environment variable is no longer supported in MLIR mode.
+
 ## Feature Description
 
 INDUCTOR_ASCEND_CHECK_ACCURACY is an accuracy verification tool provided by Ascend Extension for PyTorch. It automatically detects the numerical accuracy of fused operators when the torch.compile graph compilation backend is "inductor".

@@ -40,7 +40,7 @@
 
 OpPlugin uses logic similar to native PyTorch to declare various types of operator information in YAML. By configuring operators in YAML, operator declaration and registration code is automatically generated. The Aten IR definitions of operators are located in the `op_plugin/config/op_plugin_functions.yaml` file. Definitions of all versions are in this file, distinguished by configuring different versions.
 
-### YAML Operator Adaptation Rules<a id="yaml 算子适配规则"></a>
+### YAML Operator Adaptation Rules<a id="yaml-operator-adaptation-rules"></a>
 
 ```yaml
 # op_plugin_functions.yaml
@@ -133,7 +133,7 @@ Parameters
 > [!NOTE]  
 > Forward-backward bindings of operators of all versions are defined in the same `derivatives.yaml`, with different versions distinguished by the `version` field.
 
-### Symint Operator Adaptation
+### symint Operator Adaptation
 
 > [!NOTE]
 >
@@ -456,7 +456,7 @@ aclop operators are an earlier operator implementation method and are not recomm
           if (!npu_utils::check_match(&result)) { 
               // If result is non-contiguous, create a contiguous tensor (contig_tensor) to receive the output of the ACLOP operator (abs). Then copy contig_tensor to the original output result
               at::Tensor contiguous_result = npu_utils::format_contiguous(result); 
-              abs_out_nocheck(ccontiguous_result, self); 
+              abs_out_nocheck(contiguous_result, self); 
               npu_utils::format_fresh_view(result, contiguous_result); 
           } else { 
               // If result is contiguous, directly call the ACLOP operator
