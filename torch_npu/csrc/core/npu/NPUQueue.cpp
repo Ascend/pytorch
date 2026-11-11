@@ -11,9 +11,7 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/logging/LogContext.h"
 
-#ifndef BUILD_LIBTORCH
-#include <Python.h>
-#endif
+#include "torch_npu/csrc/core/npu/PythonGilBridge.h"
 
 #include <ATen/record_function.h>
 #include <acl/acl_rt.h>
@@ -276,12 +274,8 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error) {
   // the TE module attempts to obtain the GIL.
   // If the current thread does not release the GIL, a deadlock will
   // occur.
-#ifndef BUILD_LIBTORCH
-  PyThreadState* gilState = nullptr;
-  if (PyGILState_Check() != 0 && g_used_aclop) {
-    gilState = PyEval_SaveThread();
-  }
-#endif
+  auto* gil_hooks = g_used_aclop ? c10_npu::impl::getPythonGilHooks() : nullptr;
+  void* gil_state = gil_hooks != nullptr ? gil_hooks->release_if_held() : nullptr;
 
   if (consumer.joinable()) {
     ssize_t s;
@@ -311,12 +305,10 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error) {
           }
           ASCEND_LOGE(
               "eventfd_read failed. s=%zd, errno=%s.", s, strerror(errno));
-#ifndef BUILD_LIBTORCH
           // Get the GIL
-          if (gilState) {
-            PyEval_RestoreThread(gilState);
+          if (gil_state != nullptr) {
+            gil_hooks->restore(gil_state);
           }
-#endif
           return NPU_STATUS_INTERNAL_ERROR;
         }
       }
@@ -366,12 +358,10 @@ NPUStatus Repository::MakeSureQueueEmpty(bool check_error) {
     error_msg = "Inner error happened, detail: " + repo_error;
   }
 
-#ifndef BUILD_LIBTORCH
   // Get the GIL
-  if (gilState) {
-    PyEval_RestoreThread(gilState);
+  if (gil_state != nullptr) {
+    gil_hooks->restore(gil_state);
   }
-#endif
 
   if (!error_msg.empty()) {
     ASCEND_LOGE("%s", error_msg.c_str());
@@ -734,7 +724,6 @@ void Repository::Enqueue(void* cur_paras) {
             write_idx.idx,
             read_idx.idx,
             GetStatus());
-#ifndef BUILD_LIBTORCH
         // double check the current thread hold a Gil lock
         // and release the GIL to TE op compiler in case the acl thread
         // deadlock. However, this operator could produce another form of
@@ -746,15 +735,12 @@ void Repository::Enqueue(void* cur_paras) {
         // would cause another form of deadlock. Since the aclop will be
         // deprecated soon, we just add a using-aclop check here to avoid the
         // second case of deadlock.
-        if (PyGILState_Check() != 0 && g_used_aclop) {
-          Py_BEGIN_ALLOW_THREADS s = eventfd_read(efd_write, &u);
-          Py_END_ALLOW_THREADS
+        auto hook = g_used_aclop ? c10_npu::impl::getPythonGilCallback() : nullptr;
+        if (hook != nullptr) {
+          hook([&] { s = eventfd_read(efd_write, &u); });
         } else {
           s = eventfd_read(efd_write, &u);
         }
-#else
-        s = eventfd_read(efd_write, &u);
-#endif
         TORCH_NPU_QUEUE_LOGI(
             "Enqueue: taskqueue is full, wait for efd_write end, device = %d, write_idx = %u, read_idx = %u, status = %d, s = %d",
             device_idx,
