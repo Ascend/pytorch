@@ -121,28 +121,28 @@ The PyTorch distributed training service requires communication between devices.
         ```bash
         #!/bin/bash
         set -x
-        
-        #Port number to limit
-        port={端口号}
-        
-        #Clear Old Rules
-        iptables -D INPUT -p tcp -j {规则名}
-        iptables -F {规则名}
-        iptables -X {规则名}
-        
-        #Create a new rule chain
-        iptables -t filter -N {规则名}
-        
-        #Configure the trustlist in the multi-node cluster scenario to allow other nodes to access the listening port of the active node.
-        #Add a rule that allows a specific IP address range to the rule chain
-        iptables -t filter -A {规则名} -i eno1 -p tcp --dport $port -s {允许外部访问的IP} -j ACCEPT
-        
-        #Disabling External Addresses to Access Distributed Training Ports
-        #Add a rule for denying other IP addresses to the PORT-LIMIT-RULE rule chain.
-        iptables -t filter -A {规则名} -i {要限制的网卡名} -p tcp --dport $port -j DROP
-        
-        #Passing Traffic to a Rule Chain
-        iptables -I INPUT -p tcp -j {规则名}
+
+        # Port number to be restricted
+        port={port_number}
+
+        # Clear old rules
+        iptables -D INPUT -p tcp -j {rule_name}
+        iptables -F {rule_name}
+        iptables -X {rule_name}
+
+        # Create a new rule chain
+        iptables -t filter -N {rule_name}
+
+        # In the multi-node scenario, set a whitelist to allow other nodes to access the listening port of the master node
+        # Add a rule to the rule chain to allow a specific IP address range
+        iptables -t filter -A {rule_name} -i eno1 -p tcp --dport $port -s {IP_allowed_for_external_access} -j ACCEPT
+
+        # Block external addresses from accessing the distributed training port
+        # Add a rule to the PORT-LIMIT-RULE rule chain to deny other IP addresses
+        iptables -t filter -A {rule_name} -i {NIC_to_be_restricted} -p tcp --dport $port -j DROP
+
+        # Pass traffic to the rule chain
+        iptables -I INPUT -p tcp -j {rule_name}
         ```
     
     - Remove the firewall rule. For details, see the following script:
@@ -150,10 +150,10 @@ The PyTorch distributed training service requires communication between devices.
         ```bash
         #!/bin/bash
         set -x
-        #Clear Rule
-        iptables -D INPUT -p tcp -j {规则名}
-        iptables -F {规则名}
-        iptables -X {规则名}
+        # Clear rules
+        iptables -D INPUT -p tcp -j {rule_name}
+        iptables -F {rule_name}
+        iptables -X {rule_name}
         ```
 
 2. Firewall Rule Setting and Removal Reference Script Example
