@@ -6,7 +6,7 @@
 
 |组件|地址|
 |:---|:---|
-|TorchNPU|v2.7.1-26.2.0分支请参考《[安全声明](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.2.0/docs/zh/SECURITYNOTE.md)》。|
+|TorchNPU|v2.7.1-26.2.0分支请参考《[安全声明](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.2.0/SECURITYNOTE.md)》。|
 |TorchNPU|v2.9.0-26.2.0分支请参考《[安全声明](https://gitcode.com/Ascend/pytorch/blob/v2.9.0-26.2.0/SECURITYNOTE.md)》。|
 |TorchNPU|v2.10.0-26.2.0分支请参考《[安全声明](https://gitcode.com/Ascend/pytorch/blob/v2.10.0-26.2.0/SECURITYNOTE.md)》。|
 |TorchNPU|v2.11.0-26.2.0分支请参考《[安全声明](https://gitcode.com/Ascend/pytorch/blob/v2.11.0-26.2.0/SECURITYNOTE.md)》。|
