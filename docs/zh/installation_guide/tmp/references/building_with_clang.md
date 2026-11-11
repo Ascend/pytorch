@@ -1,0 +1,36 @@
+# 使用Clang编译
+
+编译前，保证编译器设置正确：
+
+```bash
+export CC=clang
+export CXX=clang++
+```
+
+## 使用Clang编译上游torch
+
+下载相应源码后，需先安装对应仓库的requirements-build.txt，而后开始编译cpu包：
+
+```bash
+pip install -r requirements-build.txt
+
+export USE_CUDA=0
+export USE_CUDNN=0
+
+# 若为ARM架构，可能需要进行特殊链接器优化设置
+# export USE_PRIORITIZED_TEXT_FOR_LD=OFF
+
+python setup.py build bdist_wheel 2>&1 | tee build.log
+```
+
+> [!NOTE]
+>
+> 使用Clang 20编译PyTorch 2.12时存在已知的编译问题，详见上游社区的[相关issue](https://github.com/pytorch/pytorch/issues/185618)。请参考[修复PR](https://github.com/pytorch/pytorch/pull/185785)中的内容修改代码后，再进行编译。
+
+在编译完torch后，安装位于dist目录下的编译产物。
+
+## 使用Clang编译TorchNPU
+
+若要使用Clang编译TorchNPU，需要先安装使用Clang编译的上游torch的cpu包，但原生社区中并未提供该包，需要用户自行编译。
+
+确保已安装Clang编译的torch后，进入TorchNPU仓库目录下，即可开始编译TorchNPU，编译方式与正常编译TorchNPU保持一致，仅需保证编译器设置正确。

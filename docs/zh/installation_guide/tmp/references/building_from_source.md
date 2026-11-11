@@ -1,0 +1,292 @@
+# 源码编译
+
+源码安装适用于二次开发场景，如自定义算子适配开发后，用户可以选择需要的分支版本自行编译PyTorch框架和TorchNPU插件。
+
+## 安装前准备
+
+### 硬件配套
+
+<!-- npu="950" id1 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1 -->
+<!-- npu="A3" id2 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id2 -->
+<!-- npu="A3" id3 -->
+- <term>Atlas A3推理系列产品</term>：不支持
+<!-- end id3 -->
+<!-- npu="910b" id4 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id4 -->
+<!-- npu="910b" id5 -->
+- <term>Atlas A2推理系列产品</term>：不支持
+<!-- end id5 -->
+<!-- npu="910" id6 -->
+- <term>Atlas训练系列产品</term>：支持
+<!-- end id6 -->
+<!-- npu="310p" id7 -->
+- <term>Atlas推理系列产品</term>：不支持
+<!-- end id7 -->
+<!-- npu="310b" id8 -->
+- <term>Atlas 200I/500 A2推理产品</term>：不支持
+<!-- end id8 -->
+
+### 环境准备
+
+> [!NOTICE]
+>
+> 安装运行程序建议使用非root用户，且建议对安装程序的目录文件做好权限管控：文件夹权限设置为750，文件权限设置为640。可以通过设置umask控制安装后文件的权限，如设置umask为0027。更多安全相关内容请参见《[安全声明](../../../reference/security_statement.md)》中各组件关于“文件权限控制”的说明。
+
+- 安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops和NNAL）并配置CANN环境变量，具体请参考《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/920/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》。
+
+    CANN软件提供进程级环境变量设置脚本，训练或推理场景下使用NPU执行业务代码前需要调用该脚本，否则业务代码将无法执行。
+
+    ```bash
+    source /usr/local/Ascend/cann/set_env.sh
+    source /usr/local/Ascend/nnal/atb/set_env.sh
+    ```
+
+    以上命令以root用户安装后的默认路径为例，请用户根据set\_env.sh的实际路径进行替换。
+
+- 容器场景下源码安装TorchNPU插件，涉及从外部网络获取社区提供基础镜像、Python第三方库以及编译使用源码，代理配置等相关网络问题请参考[Docker官方文档](https://docs.docker.com/engine/cli/proxy/)。
+
+- 在容器场景下，安装TorchNPU前需预先安装Docker环境，具体请参考[安装Docker](https://docs.docker.com/engine/install/)。
+
+- 在安装不同类型操作系统所需依赖前，请在安装用户下检查源是否可用。以配置华为镜像源为例，可参考[华为开源镜像站](https://mirrors.huaweicloud.com/)中镜像源对应的配置方法操作。
+
+- Python3.11的调度（即下发）性能优于Python3.10，建议用Python3.11及以上。
+
+## 安装PyTorch框架
+
+具体步骤请参见[PyTorch官网](https://github.com/pytorch/pytorch?tab=readme-ov-file#from-source)。
+
+## 安装TorchNPU插件
+
+如需缩短源码构建时间，可参考[编译加速](build_acceleration.md)配置Ninja、Mold、CCache，或仅编译所需目标。
+
+以下操作步骤以安装PyTorch 2.14.0版本、Python 3.11.0版本为例。
+
+- **方式一（推荐）：容器场景**
+    
+    1. 下载TorchNPU源码。
+
+        ```bash
+        git clone https://gitcode.com/Ascend/pytorch.git -b master --depth 1
+        ```
+
+    2. 自构建并启动容器。
+
+        TorchNPU提供了可用的Dockerfile，可以自动检测架构来拉取镜像。您可以阅览该目录（pytorch/docker/devel）下的README文件，获取更多信息，并根据其指导构建自己的开发环境。或者直接通过devcontainer工具来构建开发环境。
+
+        ```bash
+        cd pytorch/docker/devel
+        export DOCKER_BUILDKIT=1
+        docker build -t manylinux-builder:v1 .
+        ```
+
+        或直接使用一键式创建容器脚本builder.sh。
+
+        ```bash
+        cd pytorch/docker/devel
+        export DOCKER_BUILDKIT=1
+        bash builder.sh --cann
+        ```
+
+        > [!NOTE]
+        >
+        > - Dockerfile会自动根据当前架构（ARM/X86）拉取对应镜像。
+        > - 如果需要指定更具体的构建参数，可参考该目录（pytorch/docker/devel）下README。
+        > - 注意不要遗漏命令结尾的“.”。
+
+        构建完成后，使用以下命令启动并进入Docker容器，并将TorchNPU源代码挂载至容器内：
+
+        ```bash
+        docker run -it -v /{code_path}/pytorch:/home/pytorch manylinux-builder:v1 bash
+        ```
+
+        _{code_path}_ 表示TorchNPU源代码路径，请根据实际情况进行替换。
+
+        > [!NOTE]
+        >
+        > - 直接启动的容器仅可用于编译TorchNPU插件。
+        > - 如需在该容器内的NPU环境上运行TorchNPU，请确保宿主机已存在驱动（driver）（可通过 `npu-smi` 命令确认），并在启动容器时挂载驱动。具体操作可参考该目录（pytorch/docker/devel）下README。
+
+    3. 编译生成Whl安装包。
+
+       编译前需关注环境中安装的torch版本是否与当前要编译的TorchNPU版本一致，若要更换可使用如下命令：
+
+       ```bash
+       pip3 install torch==2.14.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu # 根据自身需求安装CPU版本的torch
+       ```
+
+        环境准备完成后使用如下命令进行编译：
+
+        ```bash
+        cd /home/pytorch
+        bash ci/build.sh --python=3.11
+        ```
+
+        如需指定其他Python版本，请使用--python=3.10、--python=3.12、--python=3.13或--python=3.14。
+        > [!NOTE]
+        > 
+        > 默认编译Release版本。如需编译Debug版本，请在执行构建命令时设置环境变量`DEBUG=1`。
+        
+    4. 在运行环境中安装生成的TorchNPU插件包，如果使用非root用户进行安装，需要在命令后加`--user`。
+
+        ```bash
+        pip3 install --upgrade dist/torch_npu-2.14.0-cp311-cp311-manylinux_2_28_aarch64.whl
+        ```
+
+        请用户根据实际情况更改命令中的TorchNPU包名。
+
+    5. 在运行环境中安装pytorch目录下的依赖文件requirements_2.14.txt。
+
+        ```bash
+        pip3 install -r requirements_2.14.txt
+        ```
+
+- **方式二：物理机及虚拟机场景**
+
+    1. 安装系统依赖
+
+        1. 根据不同类型的操作系统，选择对应的命令安装所需依赖。
+
+            - openEuler、CentOS、Kylin、BCLinux、UOS V20、AntOS、AliOS、CTyunOS、CULinux、Tlinux、MTOS、vesselOS：
+
+                1. 安装依赖（除gcc和cmake以外）。
+
+                    ```bash
+                    yum install -y patch libjpeg-turbo-devel dos2unix openblas git
+                    ```
+
+                2. 安装gcc和cmake。
+
+                    根据实际情况，安装对应gcc和cmake版本，版本信息及安装指导请参见[表1](#gcc_cmake)。
+
+            - Debian、Ubuntu、veLinux：
+
+                1. 安装依赖（除gcc和cmake以外）。
+
+                    ```bash
+                    apt-get install -y patch build-essential libbz2-dev libreadline-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev liblzma-dev m4 dos2unix libopenblas-dev git
+                    ```
+
+                2. 安装gcc和cmake。
+
+                    根据实际情况，安装对应gcc和cmake版本，版本信息及安装指导请参见[表1](#gcc_cmake)。
+
+                    **表 1**  gcc和cmake版本要求<a id="gcc_cmake"></a>
+
+                    |PyTorch版本|系统架构|gcc版本|cmake版本|
+                    |--|--|--|--|
+                    |2.7.1|X86_64|11.2.0|3.18.4|
+                    |2.7.1|AArch64|11.2.0|3.31.1|
+                    |2.9.0|X86_64|13.3.0|3.18.4|
+                    |2.9.0|AArch64|13.3.0|4.0.3|
+                    |2.10.0|X86_64|13.3.0|3.18.4|
+                    |2.10.0|AArch64|13.3.0|4.0.3|
+                    |2.11.0|X86_64|13.3.0|3.18.4|
+                    |2.11.0|AArch64|13.3.0|4.3.2|
+                    |2.12.0|X86_64|13.3.0|3.18.4|
+                    |2.12.0|AArch64|13.3.0|4.3.2|
+                    |2.13.0|X86_64|13.3.0|3.18.4|
+                    |2.13.0|AArch64|13.3.0|4.3.2|
+                    |2.14.0|X86_64|13.3.0|3.18.4|
+                    |2.14.0|AArch64|13.3.0|4.4.3|
+
+                    > [!NOTE]
+                    >
+                    > 安装指导可参见[安装gcc](https://ubuntu.com/developers/docs/howto/gcc-setup/)和[安装cmake](https://cmake.org/download/)。
+
+        2. 安装环境依赖。
+    
+            ```bash
+            pip install pyyaml
+            pip install setuptools
+            pip install auditwheel
+            pip install "nanobind>=2.9"
+            ```
+
+            如果使用非root用户安装，需要在命令后加`--user`，例如：**pip3 install pyyaml --user**。
+
+    2. 编译生成TorchNPU插件的Whl安装包。
+        1. 下载master分支代码并进入TorchNPU插件根目录。
+
+            ```bash
+            git clone -b master https://gitcode.com/Ascend/pytorch.git
+            cd pytorch
+            ```
+
+        2. 编译生成Whl安装包。
+
+            编译前需关注环境中安装的torch版本是否与当前要编译的TorchNPU版本一致，若要更换可使用如下命令：
+
+            ```bash
+            pip3 install torch==2.14.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu # 根据自身需求安装CPU版本的torch
+            ```
+
+            环境准备完成后使用如下命令进行编译：
+
+            ```bash
+            bash ci/build.sh --python=3.11
+            ```
+
+            如需指定其他Python版本，请使用--python=3.10、--python=3.12、--python=3.13或--python=3.14。
+            > [!NOTE]
+            > 
+            > 默认编译Release版本。如需编译Debug版本，请在执行构建命令时设置环境变量`DEBUG=1`。
+
+    3. 安装pytorch/dist目录下生成的插件TorchNPU包，如果使用非root用户安装，需要在命令后加`--user`。
+
+        ```bash
+        pip3 install --upgrade dist/torch_npu-2.14.0-cp311-cp311-manylinux_2_28_aarch64.whl
+        ```
+
+        请用户根据实际情况更改命令中的TorchNPU包名。
+
+    4. 安装pytorch目录下的依赖文件requirements.txt。
+
+        ```bash
+        pip3 install -r requirements.txt
+        ```
+
+## 安装后验证
+
+执行以下命令可检查PyTorch框架和TorchNPU插件是否已成功安装。
+
+```Python
+python3 -c "import torch;import torch_npu; a = torch.randn(3, 4).npu(); print(a + a);"
+```
+
+输出如下类似信息说明安装成功。
+
+```text
+tensor([[-0.6066,  6.3385,  0.0379,  3.3356],
+        [ 2.9243,  3.3134, -1.5465,  0.1916],
+        [-2.1807,  0.2008, -1.1431,  2.1523]], device='npu:0')
+```
+
+如需查看当前环境中已安装的Python、PyTorch和TorchNPU安装包版本，请参见[查询版本](check_installed_versions.md)。
+
+## UT验证
+
+安装完成后，可在源码根目录下执行`cd test`进入test目录，并通过运行UT测试，进一步验证TorchNPU插件的功能是否正常。
+
+1. 安装UT测试依赖文件requirements_2.14.txt。
+
+    ```bash
+    cd test
+    pip3 install -r requirements_2.14.txt
+    ```
+
+    > [!NOTE]
+    >
+    > 依赖文件名与PyTorch版本对应（如requirements_2.14.txt对应PyTorch 2.14.0版本），请根据实际安装的版本选择对应的requirements文件。
+
+2. 运行UT测试，以test_autocast.py为例。
+
+    ```bash
+    python test_autocast.py -v
+    ```
+
+    测试执行完成后，输出中显示`OK`说明测试通过。如需运行其他UT测试用例，可参考test目录下的其他测试文件。
