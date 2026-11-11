@@ -71,6 +71,7 @@ from .config import log
 from .lowering_common import (
     TracedGraph,
     TRITON_OPERATOR_MAPPING,
+    create_fake_input,
     create_sym_inputs as _create_sym_inputs,
     fetch_graphs as _fetch_graphs,
     get_reduction_type_to_aten_fn,
@@ -126,6 +127,7 @@ DUMP_FX_GRAPH_LOWERING_OPS = [
     aten.empty,
     aten.full,
     aten.clone,
+    aten.lift_fresh_copy,
     aten.constant_pad_nd,
     aten.pow,
     aten.empty_like,
@@ -383,6 +385,10 @@ def create_fx_from_snodes_by_traced_graph(snodes: List[scheduler.SchedulerNode])
         if node.op == 'placeholder':
             fx_call_inputs.append(node.target)
             fx_inputs.append(node.meta['val'])
+            # Placeholder produced by a deterministic constant factory
+            # (aten.full/ones/zeros): record its compile-time-determined value
+            # for create_compile_kwargs to embed (see the section comment).
+            _maybe_capture_boundary_constant_factory(node.target, node.meta['val'])
     non_contiguous_indices = {}
     non_contiguous_indices["inputs"] = [
         i
@@ -438,6 +444,143 @@ def create_fx_from_snodes_by_traced_graph(snodes: List[scheduler.SchedulerNode])
         "non_contiguous_indices": non_contiguous_indices,
     }
 
+
+def _get_module_tensor_constant(name):
+    # Dynamo-lifted constants are attached to the GraphModule as get_attr
+    # attributes (torch/fx/_symbolic_trace.py Tracer.create_arg setattrs the
+    # constant under the fx node name, e.g. _tensor_constant0). At dump time
+    # constant folding has moved them out of V.graph.constants/graph_inputs;
+    # only the module attribute holds the real tensor (its value is baked as a
+    # literal into the kernel source, so the kernel has no runtime argument for
+    # it). Look it up by name; None (caller falls back to the existing honest
+    # skip) when absent or not a tensor — never affects compilation.
+    try:
+        val = getattr(V.graph.module, name, None)
+    except Exception:
+        return None
+    return val if isinstance(val, torch.Tensor) else None
+
+
+# ---------------------------------------------------------------------------
+# Boundary constant-factory support.
+#
+# Buffers produced directly by aten.full/ones/zeros (incl. *_like/new_*
+# variants) have two properties: (1) their producing node is not in the
+# tool's lowering whitelist and has no traced_graph, so downstream kernels
+# see them boundary-fied into placeholders; (2) they are ordinary inductor
+# buffers, not dynamo-lifted constants, so V.graph.module has no attribute
+# holding their value. create_compile_kwargs' fx_only check therefore treats
+# them as a "buffer mismatch" and bails out — the comparison is honestly
+# skipped (coverage gap).
+#
+# Their value is nonetheless fully determined at compile time (factory op +
+# constant fill value): graph.py's assign_origin_node also applies to stock
+# lowering outputs, so the buffer's origin_node points at the full/ones/zeros
+# fx node in the inductor graph and the constant value can be rebuilt from
+# the node's arguments. Evaluate the value at dump time and persist it
+# through the existing -2 embedding mechanism so the reference can recompute;
+# when unavailable or unqualified, keep the honest skip. Compilation is
+# never affected.
+#
+# Explicitly excluded: empty/empty_like (undefined values), randn/rand
+# (non-deterministic), arange/scalar_tensor (non-constant factories —
+# evaluate separately if ever needed). Anything outside the whitelist takes
+# the original path.
+# ---------------------------------------------------------------------------
+_CONSTANT_FACTORY_FILL = {
+    # target(str) -> (fill-value source, position): "arg" = take the
+    # positional argument at that index, "const" = fixed constant.
+    # full-family schema: full(size, fill_value), full_like(self, fill_value)
+    "aten.full.default": ("arg", 1),
+    "aten.full_like.default": ("arg", 1),
+    "aten.new_full.default": ("arg", 1),
+    "aten.ones.default": ("const", 1),
+    "aten.ones_like.default": ("const", 1),
+    "aten.new_ones.default": ("const", 1),
+    "aten.zeros.default": ("const", 0),
+    "aten.zeros_like.default": ("const", 0),
+    "aten.new_zeros.default": ("const", 0),
+}
+# Embedded values are written into the dump file as tolist literals; cap the
+# constant size to keep dumps from blowing up (e.g. a 372x16 int constant is
+# ~30KB of text, well under this limit).
+_BOUNDARY_CONSTANT_MAX_NUMEL = 65536
+
+
+def _boundary_constant_factory_store():
+    # Captured values hang off V.graph: every compile gets a fresh Graph
+    # object, so values are naturally isolated per compile unit (same-named
+    # buffers in different compile units mean different things). When the
+    # tool is off this function is never called (only the dump path reaches
+    # it).
+    store = getattr(V.graph, "_acc_boundary_constant_factories", None)
+    if store is None:
+        store = {}
+        try:
+            V.graph._acc_boundary_constant_factories = store
+        except Exception:
+            return {}
+    return store
+
+
+def _maybe_capture_boundary_constant_factory(buf_name, fake_val):
+    # Check whether the placeholder's producing buffer is a deterministic
+    # constant factory and, if so, record its value in the side table for
+    # create_compile_kwargs to consume; bail out silently (honest skip
+    # preserved) whenever any step does not qualify.
+    try:
+        if not (isinstance(fake_val, torch.Tensor) and fake_val.dim() > 0):
+            return
+        rule = None
+        buf = V.graph.try_get_buffer(str(buf_name))
+        if buf is not None:
+            # TensorBox(.data=StorageBox) / Buffer(.data=Loops): unwrap to
+            # the innermost IRNode for origin_node (assign_origin_node sets
+            # it on both levels)
+            data = getattr(buf, "data", buf)
+            data = getattr(data, "data", data)
+            origin = getattr(data, "origin_node", None)
+            if isinstance(origin, torch.fx.Node):
+                rule = _CONSTANT_FACTORY_FILL.get(str(origin.target))
+        if rule is None:
+            return
+        kind, value_pos = rule
+        if kind == "arg":
+            fill_value = origin.args[value_pos] if len(origin.args) > value_pos \
+                else origin.kwargs.get("fill_value")
+        else:
+            fill_value = value_pos
+        # The fill value must be a compile-time-determined Python scalar
+        # (sympy symbols / SymInt / tensors do not qualify)
+        if not isinstance(fill_value, (int, float, bool)):
+            return
+        # All sizes must be concrete ints (dynamic-shape constants cannot be
+        # embedded; SymInt/sympy are not int)
+        sizes = list(fake_val.shape)
+        if not all(isinstance(s, (int, sympy.Integer)) for s in sizes):
+            return
+        shape = [int(s) for s in sizes]
+        numel = 1
+        for s in shape:
+            numel *= s
+        if numel == 0 or numel > _BOUNDARY_CONSTANT_MAX_NUMEL:
+            return
+        dtype = fake_val.dtype
+        value = torch.full(shape, fill_value, dtype=dtype).tolist()
+        _boundary_constant_factory_store()[str(buf_name)] = {
+            "dtype": str(dtype).replace("torch.", ""),
+            "value": value,
+        }
+    except Exception:
+        return
+
+
+def _get_boundary_constant_factory(name):
+    # Fetch the captured constant-factory value; None when not captured
+    # (not a factory / evaluation failed)
+    return _boundary_constant_factory_store().get(str(name))
+
+
 def create_compile_kwargs(final_kernel, fx_call_args, fx_args):
     _, kernel_call_args, _, arg_types = final_kernel.args.python_argdefs()
     for idx, call_arg in enumerate(fx_call_args):
@@ -473,6 +616,11 @@ def create_compile_kwargs(final_kernel, fx_call_args, fx_args):
         fx_only = set(fx_call_args_no_dy) - kernel_call_args_str_set
         scalar_only_mismatch = True
         for buf_name in fx_only:
+            if buf_name in _boundary_constant_factory_store():
+                # A deterministic constant-factory buffer (e.g. ones-filled)
+                # has an embeddable compile-time value — not a fatal mismatch;
+                # let the mapping below handle it via -2 embedding
+                continue
             buf = V.graph.try_get_buffer(buf_name)
             if buf is not None:
                 scalar_only_mismatch = False
@@ -493,6 +641,8 @@ def create_compile_kwargs(final_kernel, fx_call_args, fx_args):
     # Prefer the runtime kernel argument for every exact match, including
     # symbolic scalar arguments such as a numel expression.
     call_args_mapping = []
+    embedded_constants = {}
+    pending_tensor_inputs = []  # fx Tensor inputs with no same-named kernel arg, recovered below
     for i, element in enumerate(fx_call_args):
         element_str = str(element)
         if element_str in index_map:
@@ -501,7 +651,107 @@ def create_compile_kwargs(final_kernel, fx_call_args, fx_args):
             # Only scalars absent from the kernel signature need a shape recipe.
             call_args_mapping.append(-1)
         else:
+            # fx input is a Tensor with no kernel argument of the same name —
+            # two common forms:
+            # 1) the constant is passed as a real kernel argument, but the
+            #    device copy renamed its buffer (prims.device_put produces e.g.
+            #    `_tensor_constant0_npu0_3`), so the name match failed — mark
+            #    it pending and let the 1-1 pairing below recover it;
+            # 2) the constant is baked as a literal into the kernel source and
+            #    the kernel genuinely has no argument for it — handled by the
+            #    pending-input post-pass via the -2 embedded-constant sentinel
+            #    (see below and npu_compare).
+            call_args_mapping.append(None)
+            pending_tensor_inputs.append(i)
+
+    # Form-1 recovery: pair pending Tensor inputs with kernel Tensor arguments
+    # not claimed by any other input (arg_types entries are torch.dtype;
+    # scalar parameters are sympy type objects) so the comparison runs against
+    # the real runtime buffer. Generalized from strict 1-1: the same runtime
+    # data may reach the kernel as several view arguments pointing at one
+    # buffer while the fx graph has a single input placeholder — pairing is
+    # safe as long as all unclaimed arguments share the same call-argument
+    # value (strict 1-1 is the special case). A shape-consistency guard runs
+    # before pairing: do not pair when both the fx placeholder and the
+    # argument buffer have concrete shapes that disagree (symbolic/unavailable
+    # shapes always pass, keeping the existing 1-1 behavior), so distinct
+    # tensors are never mispaired.
+    matched_kernel_idx = {v for v in call_args_mapping if isinstance(v, int) and v >= 0}
+    unmatched_kernel_tensors = [
+        j for j, t in enumerate(arg_types)
+        if isinstance(t, torch.dtype) and j not in matched_kernel_idx
+    ]
+    if len(pending_tensor_inputs) == 1 and unmatched_kernel_tensors:
+        unmatched_values = {str(kernel_call_args[j]) for j in unmatched_kernel_tensors}
+        if len(unmatched_values) == 1:
+            def _pairing_shape_compatible(j):
+                # Only reject when both sides have concrete int shapes that
+                # disagree; symbolic or unavailable shapes always pass.
+                try:
+                    buf = V.graph.try_get_buffer(str(kernel_call_args[j]))
+                    if buf is None:
+                        return True
+                    runtime_shape = [int(s) for s in buf.layout.size]
+                    fx_shape = [int(s) for s in fx_args[pending_tensor_inputs[0]].shape]
+                    return runtime_shape == fx_shape
+                except Exception:
+                    return True
+            if all(_pairing_shape_compatible(j) for j in unmatched_kernel_tensors):
+                call_args_mapping[pending_tensor_inputs[0]] = unmatched_kernel_tensors[0]
+                pending_tensor_inputs = []
+                log.debug("[ACC-DEBUG] kernel=%s constant input paired to kernel arg %s "
+                          "(same-value multi-arg fallback, unmatched=%s)",
+                          final_kernel.kernel_name, unmatched_kernel_tensors[0],
+                          unmatched_kernel_tensors)
+
+    if pending_tensor_inputs and unmatched_kernel_tensors:
+        # -2 embedding gate: when the kernel still has unclaimed Tensor
+        # arguments it reads runtime data, so the fx input cannot be a pure
+        # baked-in constant — embedding one would feed the reference a wrong
+        # constant (expected = diff of the embedded constant, actual = diff of
+        # per-batch varying runtime data). Without a trustworthy pairing or
+        # embedding, skip honestly (pristine behavior: no dump, no
+        # comparison) — never an incorrect comparison.
+        unclaimed = [str(kernel_call_args[j]) for j in unmatched_kernel_tensors]
+        pending = [str(fx_call_args[i]) for i in pending_tensor_inputs]
+        log.warning("[ACC-DEBUG] kernel=%s skipped: unclaimed kernel tensor args %s (%s) "
+                    "with pending fx inputs %s",
+                    final_kernel.kernel_name, unmatched_kernel_tensors, unclaimed, pending)
+        return None
+
+    for i in pending_tensor_inputs:
+        # Form 2: fx input is a Tensor but the kernel has no matching
+        # argument, two forms:
+        # 1) a dynamo-lifted constant (torch.tensor(python_list, device=...))
+        #    baked as a literal into the kernel source — fetch the real
+        #    tensor from V.graph.module by name;
+        # 2) a constant-factory-produced buffer (aten.full/ones/zeros, see
+        #    _CONSTANT_FACTORY_FILL) — take the compile-time value captured
+        #    at dump time.
+        # Either source records the -2 sentinel so the comparison builds this
+        # input from the embedded value (see generate_fx_graph_code /
+        # npu_compare); when neither source works, keep the original skip
+        # behavior (honest warning), compilation unaffected.
+        entry = None
+        if i < len(fx_args) and isinstance(fx_args[i], torch.Tensor):
+            const_val = _get_module_tensor_constant(str(fx_call_args[i]))
+            if const_val is not None:
+                # Same cap as the constant-factory path: embedded values go
+                # into the dump file as tolist literals, and a huge lifted
+                # constant would blow the dump up to tens of MB~GB, dragging
+                # down compile-time writes and compare-time imports. Over the
+                # cap, entry stays None and the honest skip below applies.
+                if const_val.numel() <= _BOUNDARY_CONSTANT_MAX_NUMEL:
+                    entry = {
+                        "dtype": str(const_val.dtype).replace("torch.", ""),
+                        "value": const_val.tolist(),
+                    }
+            else:
+                entry = _get_boundary_constant_factory(str(fx_call_args[i]))
+        if entry is None:
             return None
+        embedded_constants[i] = entry
+        call_args_mapping[i] = -2
 
     # 精确配方: 对每个 -1 标量输入, 编译期求解它等于哪个 kernel arg tensor 的第几维。
     # 序列化为具体 int (kernel_arg_idx, dim), 运行期 args[kidx].shape[dim] 精确反推,
@@ -588,6 +838,7 @@ def create_compile_kwargs(final_kernel, fx_call_args, fx_args):
         "call_args_mapping": call_args_mapping,
         "mismatch_indices_shapes": mismatch_indices_shapes,
         "scalar_resolved_from": scalar_resolved_from,
+        "embedded_constants": embedded_constants,
     }
 
 
@@ -642,6 +893,13 @@ num_outputs = {compile_kwargs['num_outputs']}
 non_contiguous_indices = {compile_kwargs['non_contiguous_indices']}
 mismatch_indices_shapes = {compile_kwargs['mismatch_indices_shapes']}
 scalar_resolved_from = {compile_kwargs.get('scalar_resolved_from', {})}
+embedded_constants = {compile_kwargs.get('embedded_constants', {})}
+template_input_layouts = {compile_kwargs.get('template_input_layouts', [])}
+# Snapshot of the compile-time matmul precision switch (allow_hf32 →
+# CANN ALLOW_MATMUL_HF32): the template bakes tf32 dot accordingly, and
+# the replay run() reproduces the compile-time precision environment from
+# it; None = not recorded (switch untouched).
+allow_hf32 = {compile_kwargs.get('allow_hf32')!r}
 
 async_compile = AsyncCompile()
 {kernel_name} = async_compile.triton('{kernel_name}', '''
@@ -669,6 +927,15 @@ def run():
             kidx, d = scalar_resolved_from[pos]
             fx_args.append(int(args[kidx].shape[d]))
             continue
+        if idx == -2:
+            # Embedded-constant input: the value was embedded at compile time
+            # (see embedded_constants); build the input from that value. It has
+            # no runtime kernel argument (baked into the source), so it cannot
+            # come from data.pth.
+            meta = embedded_constants[pos]
+            const = torch.tensor(meta["value"], dtype=getattr(torch, meta["dtype"])).npu()
+            fx_args.append(const.float() if const.dtype == torch.bfloat16 else const)
+            continue
         arg = args[idx]
         if isinstance(arg, int):
             fx_args.append(arg)
@@ -677,6 +944,21 @@ def run():
         if not isinstance(arg, torch.Tensor):
             arg = torch.tensor(arg).npu()
         fx_arg = clone_preserve_strides(arg).float() if arg.dtype == torch.bfloat16 else clone_preserve_strides(arg)
+        if template_input_layouts and pos < len(template_input_layouts) and template_input_layouts[pos]:
+            # Template input layout recipe: the kernel argument is the base
+            # storage of a view/expand (e.g. the broadcast bmm's 2D weight
+            # mat2); rebuild the view the kernel actually reads via as_strided
+            # from the IR-recorded (size, stride) before the FX recompute.
+            # When the argument already carries the recorded shape (a
+            # wrapper-materialized view buffer), its clone holds the view's
+            # data from offset 0 — keep the offset-free as_strided. Only the
+            # shape-mismatch (base-storage) case honors the recorded offset.
+            lay = template_input_layouts[pos]
+            if tuple(arg.shape) == tuple(lay["size"]):
+                fx_arg = torch.as_strided(fx_arg, lay["size"], lay["stride"])
+            else:
+                fx_arg = torch.as_strided(fx_arg, lay["size"], lay["stride"],
+                                          lay.get("offset", 0))
         fx_args.append(fx_arg)
 
     fx_inputs = [
@@ -689,6 +971,19 @@ def run():
             if ind >= num_inputs:
                 break
             fx_inputs[ind] = fx_inputs[ind].reshape(shape)
+    # Replay-environment consistency: the template kernel had the
+    # compile-time matmul precision switch (allow_hf32) baked into it, while
+    # the eager reference follows the switch of the current process. If the
+    # replay process disagrees with compile time, reference and kernel run in
+    # mismatched precision modes (a tf32 kernel vs a full-fp32 reference
+    # differs by ~1e-4 — a guaranteed false FAIL under fp32 tolerances, the
+    # opposite of the online verdict). Set the switch to the dumped
+    # compile-time state and keep it until the comparison finishes (restored
+    # at the end of run()), so offline comparison runs in the same
+    # environment as online.
+    if allow_hf32 is not None:
+        _allow_hf32_prev = torch.npu.matmul.allow_hf32
+        torch.npu.matmul.allow_hf32 = allow_hf32
     model_outputs = model.forward(*fx_inputs)
     for idx, (out1, out2) in enumerate(zip(model_outputs, fx_args[num_inputs:(num_inputs + num_outputs)])):
         out1 = out1.reshape(out2.shape)
@@ -709,6 +1004,17 @@ def run():
             torch.testing.assert_close(actual, expected, rtol=rtol, atol=atol, equal_nan=True)
         except Exception as e:
             print(e)
+
+    # Restore at the end of run(), not before kernel.run(): in the replay
+    # process kernel.run() re-enters maybe_run_debug → check_accuracy_triton
+    # (the same path as online computes a reference and compares once more),
+    # and that reference must also run in the compile-time precision mode —
+    # restoring earlier would demote the re-entered comparison to a full-fp32
+    # reference and re-fail the tf32-baked template kernel. The kernel itself
+    # has its precision baked in and never reads this switch at execution
+    # time.
+    if allow_hf32 is not None:
+        torch.npu.matmul.allow_hf32 = _allow_hf32_prev
 
 if __name__ == "__main__":
     run()
@@ -923,6 +1229,60 @@ def clone(x, *, memory_format=None):  # noqa: F811
         traced_graph=new_graph,
         node_name=node_name
     )
+
+
+def _boundary_graph_for_input(irv, name):
+    # Build a minimal boundary placeholder graph for an input that has no
+    # traced_graph of its own. Typical case: a dynamo-lifted CPU constant
+    # (torch.tensor(python_list, device='npu')) whose value is inlined into
+    # the kernel source; its IR node has no name, no stride and no graph
+    # (get_stride() itself raises). Matches lowering_common.fetch_graphs'
+    # fallback for graph-less inputs.
+    tg_i = TracedGraph()
+    nd = tg_i.graph.placeholder(name)
+    try:
+        stride = list(irv.get_stride())
+    except Exception:
+        stride = ir.FlexibleLayout.contiguous_strides(list(irv.get_size()))
+    nd.meta["val"] = create_fake_input(
+        list(irv.get_size()), stride, irv.get_device(), irv.get_dtype()
+    )
+    tg_i.last_node = nd
+    return tg_i
+
+
+def lift_fresh_copy(x):
+    # Stock inductor registers aten.lift_fresh_copy as a plain clone, whose
+    # Pointwise carries no traced_graph; when dynamo lifts a CPU constant to
+    # a graph input, prims.device_put consuming that Pointwise would crash
+    # in fetch_graphs (NotImplementedError: Pointwise). Attach a traced_graph
+    # so the constant path stays comparable by the accuracy tool.
+    try:
+        input_graphs = fetch_graphs([x])
+    except Exception as e:
+        # Input has no graph (typical for a lifted constant): fall back to a
+        # boundary placeholder graph named after the fx input node — matching
+        # the module attribute that holds the constant's real value.
+        name = None
+        current_node = getattr(V.graph, "current_node", None)
+        if current_node is not None and current_node.args and \
+                isinstance(current_node.args[0], torch.fx.Node):
+            name = current_node.args[0].name
+        log.debug("lift_fresh_copy: input has no traced graph (%s), "
+                  "use boundary graph placeholder '%s'",
+                  type(e).__name__, name or "_tensor_constant")
+        input_graphs = [_boundary_graph_for_input(x, name or "_tensor_constant")]
+    node_name = f'lift_fresh_copy_{next(node_id)}'
+    new_graph = merge_traced_graphs(input_graphs, aten.lift_fresh_copy.default, node_name)
+    return Pointwise.create(
+        device=x.get_device(),
+        dtype=x.get_dtype(),
+        inner_fn=x.make_loader(),
+        ranges=list(x.get_size()),
+        traced_graph=new_graph,
+        node_name=node_name
+    )
+
 
 def pointwise_cat(inputs, dim=0):
     inputs_ranges: list[tuple[sympy.Expr, sympy.Expr]] = []
@@ -1870,6 +2230,7 @@ def _register_npu_inductor_fallbacks_fx(make_reduction):
         return tensor_constructor(fill_value)(size, **kwargs)
 
     register_lowering(aten.clone)(clone)
+    register_lowering(aten.lift_fresh_copy)(lift_fresh_copy)
 
     @register_lowering(aten.constant_pad_nd, type_promotion_kind=None)
     def constant_pad_nd(x, padding, fill_value=0):

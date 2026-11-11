@@ -132,7 +132,15 @@ def get_triton_fx_graph_call(inductor_meta, auto_fallback=False):
 
 def check_accuracy_triton(*args, launcher, grid, stream, inductor_meta, **kwargs):
     import torch_npu._inductor.config as npu_config
-    fx_graph_call, kernel_name, dump_path, fx_module = get_triton_fx_graph_call(inductor_meta)
+    try:
+        fx_graph_call, kernel_name, dump_path, fx_module = get_triton_fx_graph_call(inductor_meta)
+    except Exception as e:
+        # A dump file that cannot even be imported (e.g. a malformed
+        # serialized recipe) must degrade to a warning, not break the
+        # forward — same convention as every other failure path here.
+        log.warning("[ACC_DEBUG] kernel=%s: could not import dumped fx module, comparison skipped: %s",
+                    inductor_meta.get("kernel_name", "triton_"), repr(e))
+        return None
     if not fx_graph_call:
         return None
     call_outputs_indices = fx_module.call_args_mapping[fx_module.num_inputs:]
@@ -140,47 +148,94 @@ def check_accuracy_triton(*args, launcher, grid, stream, inductor_meta, **kwargs
     _call_counter[kernel_name] += 1
     invocation = _call_counter[kernel_name]
     scalar_resolved_from = getattr(fx_module, "scalar_resolved_from", {})
+    embedded_constants = getattr(fx_module, "embedded_constants", {})
+    template_input_layouts = getattr(fx_module, "template_input_layouts", [])
 
     # 诊断: 记录配方路径的解析值, 供 compare_outputs 失败时打印 (区分误报)
     _recipe_used = bool(scalar_resolved_from)
     _recipe_resolved = {}
-    fx_args = []
-    for pos, idx in enumerate(fx_module.call_args_mapping):
-        if idx == -1:
-            # SymInt 标量输入: 用编译期记录的精确配方 (kernel_arg_idx, dim) 反推其值。
-            # 配方在 create_compile_kwargs 求解, 序列化为具体 int, 不依赖 pos==dim 假设。
-            kidx, d = scalar_resolved_from[pos]
-            _resolved = int(args[kidx].shape[d])
-            _recipe_resolved[pos] = (scalar_resolved_from[pos], _resolved)
-            fx_args.append(_resolved)
-            continue
-        arg = args[idx]
-        if isinstance(arg, int):
-            fx_args.append(arg)
-            continue
+    try:
+        fx_args = []
+        for pos, idx in enumerate(fx_module.call_args_mapping):
+            if idx == -1:
+                # SymInt 标量输入: 用编译期记录的精确配方 (kernel_arg_idx, dim) 反推其值。
+                # 配方在 create_compile_kwargs 求解, 序列化为具体 int, 不依赖 pos==dim 假设。
+                kidx, d = scalar_resolved_from[pos]
+                _resolved = int(args[kidx].shape[d])
+                _recipe_resolved[pos] = (scalar_resolved_from[pos], _resolved)
+                fx_args.append(_resolved)
+                continue
+            if idx == -2:
+                # Embedded-constant input: the value was embedded into the dump file
+                # at compile time (embedded_constants); the input has no runtime
+                # kernel argument (baked into the source), so build it from the
+                # embedded value for the FX recompute — this is what lets kernels
+                # containing constants be fully compared.
+                meta = embedded_constants[pos]
+                const = torch.tensor(meta["value"], dtype=getattr(torch, meta["dtype"])).npu()
+                fx_args.append(const.float() if const.dtype == torch.bfloat16 else const)
+                continue
+            arg = args[idx]
+            if isinstance(arg, int):
+                fx_args.append(arg)
+                continue
 
-        if not isinstance(arg, torch.Tensor):
-            arg = torch.tensor(arg).npu()
-        fx_arg = clone_preserve_strides(arg).float() if arg.dtype == torch.bfloat16 else clone_preserve_strides(
-            arg)
-        fx_args.append(fx_arg)
+            if not isinstance(arg, torch.Tensor):
+                arg = torch.tensor(arg).npu()
+            fx_arg = clone_preserve_strides(arg).float() if arg.dtype == torch.bfloat16 else clone_preserve_strides(
+                arg)
+            if template_input_layouts and pos < len(template_input_layouts) and template_input_layouts[pos]:
+                # Template input layout recipe: the kernel argument is the base
+                # storage of a view/expand (e.g. the broadcast bmm's 2D weight
+                # mat2, a transposed mat1); rebuild the view the kernel actually
+                # reads via as_strided from the IR-recorded (size, stride) before
+                # the FX recompute. When the runtime argument already carries
+                # the recorded shape (a wrapper-materialized view buffer), its
+                # clone holds the view's data from offset 0 — keep the
+                # offset-free as_strided; only the shape-mismatch (base-storage)
+                # case honors the recorded offset.
+                lay = template_input_layouts[pos]
+                if tuple(arg.shape) == tuple(lay["size"]):
+                    fx_arg = torch.as_strided(fx_arg, lay["size"], lay["stride"])
+                else:
+                    fx_arg = torch.as_strided(fx_arg, lay["size"], lay["stride"],
+                                              lay.get("offset", 0))
+            fx_args.append(fx_arg)
 
-    input_indices = fx_module.call_args_mapping[:fx_module.num_inputs]
-    input_shapes = {f"args[{i}]": list(args[i].shape) if isinstance(args[i], torch.Tensor) else type(args[i]).__name__
-                    for i in input_indices}
-    output_indices = call_outputs_indices
-    output_shapes = {f"args[{i}]": list(args[i].shape) if isinstance(args[i], torch.Tensor) else type(args[i]).__name__
-                     for i in output_indices}
-    log.debug("[ACC_DEBUG] kernel=%s invocation=#%s inputs=%s outputs=%s",
-              kernel_name, invocation, input_shapes, output_shapes)
-    _input_snapshot = {}
-    for idx in fx_module.call_args_mapping[:fx_module.num_inputs]:
-        if isinstance(args[idx], torch.Tensor):
-            _input_snapshot[idx] = args[idx].cpu()
+        input_indices = fx_module.call_args_mapping[:fx_module.num_inputs]
+        input_shapes = {f"args[{i}]": list(args[i].shape) if isinstance(args[i], torch.Tensor) else type(args[i]).__name__
+                        for i in input_indices if i >= 0}
+        output_indices = call_outputs_indices
+        output_shapes = {f"args[{i}]": list(args[i].shape) if isinstance(args[i], torch.Tensor) else type(args[i]).__name__
+                         for i in output_indices}
+        log.debug("[ACC_DEBUG] kernel=%s invocation=#%s inputs=%s outputs=%s",
+                  kernel_name, invocation, input_shapes, output_shapes)
+        _input_snapshot = {}
+        for idx in fx_module.call_args_mapping[:fx_module.num_inputs]:
+            if idx < 0:
+                # Negative sentinels (-1 scalar recipe / -2 embedded constant) map
+                # to no runtime argument; skip the snapshot.
+                continue
+            if isinstance(args[idx], torch.Tensor):
+                _input_snapshot[idx] = args[idx].cpu()
 
-    fx_graph_call(*fx_args)
+        fx_graph_call(*fx_args)
+    except Exception as e:
+        # Recipe/dump inconsistencies (missing metadata key, as_strided
+        # extent overflow, reshape mismatch...) must degrade to a warning
+        # with the kernel still running normally, never break the user's
+        # forward. Returning None makes run() launch the kernel as usual.
+        log.warning("[ACC_DEBUG] kernel=%s invocation=#%s: accuracy comparison skipped, fx recompute failed: %s",
+                    kernel_name, invocation, repr(e))
+        return None
 
     launcher(*args, **kwargs, stream=stream)
+
+    # The NPU launcher is async: without a sync, compare_outputs could read
+    # the output buffer before the kernel finished writing it (garbage reads
+    # with chunked writes). Synchronize once so the comparison sees the
+    # kernel's real result.
+    torch.npu.synchronize()
 
     passed = compare_outputs(
         [args[i] for i in call_outputs_indices],

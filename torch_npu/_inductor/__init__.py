@@ -225,6 +225,7 @@ def _load_triton_backend():
         patch_triton_heuristics_cached_autotune,
     )
     from .scheduler import patch_scheduler
+    from .npu_template_fx import patch_npu_template_fx
     from .select_algorithm import patch_algorithm_selector
 
     from .graph import patch_count_bytes, patch_propagate_mutation
@@ -313,6 +314,7 @@ def _load_triton_backend():
     patch_algorithm_selector()
     patch_async_compile()
     patch_scheduler()
+    patch_npu_template_fx()
     patch_simplify()
     patch_num_splits()
     patch_loop_body()

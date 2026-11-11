@@ -1956,7 +1956,21 @@ class NPUCachingAutotuner(CachingAutotuner):
             finally:
                 launcher.config.kwargs = orig_cfg_kwargs
 
-        if self.is_run_debug() and not self.heuristic_type == HeuristicType.USER_AUTOTUNE:
+        # Dispatch-point guards, evaluated at dispatch time:
+        # 1) benchmark_run=True is autotune candidate timing, not a real forward
+        #    — dumping would spam "no valid dump_path" warnings and compare
+        #    against uninitialized buffers, so it is skipped;
+        # 2) suspend_check_accuracy is set during the tool's own internal timing
+        #    (fusion decisions / candidate benchmarking), which is issued through
+        #    generated code and cannot carry the benchmark_run flag.
+        # Not folded into is_run_debug(): it is lru_cache'd per instance, so a
+        # suspend decision cached there would leak into later real forwards.
+        if (
+                not npu_config.suspend_check_accuracy
+                and self.is_run_debug()
+                and not benchmark_run
+                and not self.heuristic_type == HeuristicType.USER_AUTOTUNE
+        ):
             debug_cfg = self.best_candidate_config or launcher.config
             _, grid = self._interpret_args_grid(args, debug_cfg, runtime_blocks)
             debug_mode = self.maybe_run_debug(*launch_args, grid_=grid, stream=stream, launcher=launcher, **kwargs)

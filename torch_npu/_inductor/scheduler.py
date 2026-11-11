@@ -32,6 +32,22 @@ from .config import is_ascend950, log as npu_log
 
 
 def _do_batch_profiling_for_fusion(ready_choices):
+    # Batch-profiler entry for fusion decisions. The timing runs through
+    # generated code and cannot carry the benchmark_run flag, so the tool's
+    # debug dispatch is suspended here (the suspend flag is read at the
+    # dispatch point in runtime/triton_heuristics.py run()); candidate kernels
+    # are not dumped/compared while timing. No reader exists when the tool is
+    # off, so this wrapper is a no-op for the original logic.
+    from torch_npu._inductor import config as npu_config
+    prev = npu_config.suspend_check_accuracy
+    npu_config.suspend_check_accuracy = True
+    try:
+        return _do_batch_profiling_for_fusion_impl(ready_choices)
+    finally:
+        npu_config.suspend_check_accuracy = prev
+
+
+def _do_batch_profiling_for_fusion_impl(ready_choices):
     """Batch-profile fusion choices using torch_npu.profiler for
     L2-cache-sensitive benchmarking.
 
@@ -906,8 +922,71 @@ def patch_scheduler():
 
             return benchmark_when_ready
 
+    # Suspend comparison around Scheduler-level internal timing (same purpose
+    # as _do_batch_profiling_for_fusion above): fusion-decision and
+    # multi-template candidate timing is dispatched to the backend through
+    # Scheduler.benchmark_fused_nodes / benchmark_codegened_module, runs via
+    # generated code and cannot carry the benchmark_run flag. No reader exists
+    # when the tool is off, and the original methods are fully preserved — the
+    # wrappers only set/restore the flag around the call.
+    _orig_benchmark_fused_nodes = Scheduler.benchmark_fused_nodes
+
+    def benchmark_fused_nodes(self, nodes):
+        from torch_npu._inductor import config as npu_config
+        prev = npu_config.suspend_check_accuracy
+        npu_config.suspend_check_accuracy = True
+        try:
+            return _orig_benchmark_fused_nodes(self, nodes)
+        finally:
+            npu_config.suspend_check_accuracy = prev
+
+    _orig_benchmark_codegened_module = Scheduler.benchmark_codegened_module
+
+    def benchmark_codegened_module(self, module, device):
+        from torch_npu._inductor import config as npu_config
+        prev = npu_config.suspend_check_accuracy
+        npu_config.suspend_check_accuracy = True
+        try:
+            return _orig_benchmark_codegened_module(self, module, device)
+        finally:
+            npu_config.suspend_check_accuracy = prev
+
+    Scheduler.benchmark_fused_nodes = benchmark_fused_nodes
+    Scheduler.benchmark_codegened_module = benchmark_codegened_module
     Scheduler.speedup_by_fusion = speedup_by_fusion
     Scheduler.fuse_nodes_once = fuse_nodes_once
+
+    # Suspend comparison around compile-time autotune block execution (same
+    # purpose as the two internal-timing wrappers above): with cpp wrapper /
+    # autotune_at_compile_time, candidate kernels are triggered by generated
+    # code ("{kernel}.run(..., stream=...)" — there is no way to pass
+    # benchmark_run=True) with synthetic example arguments from
+    # generate_example_arg_value. Letting the debug dispatch through would map
+    # those synthetic arguments through call_args_mapping into an FX recompute
+    # — crashing on shape mismatch ("Failed to run autotuning code block: mat1
+    # and mat2 shapes cannot be multiplied (2048x64 and 1x64)") or pointlessly
+    # comparing garbage inputs. Suspend during the block; the first real
+    # forward still compares (the kernel's traced_graph_hash is injected by
+    # then and run() dispatches normally). No reader exists when the tool is
+    # off, and the wrapper leaves the original logic untouched.
+    from torch._inductor.codegen.wrapper import PythonWrapperCodegen
+
+    _orig_generate_and_run_autotune_block = (
+        PythonWrapperCodegen.generate_and_run_autotune_block
+    )
+
+    def generate_and_run_autotune_block(self):
+        from torch_npu._inductor import config as npu_config
+        prev = npu_config.suspend_check_accuracy
+        npu_config.suspend_check_accuracy = True
+        try:
+            return _orig_generate_and_run_autotune_block(self)
+        finally:
+            npu_config.suspend_check_accuracy = prev
+
+    PythonWrapperCodegen.generate_and_run_autotune_block = (
+        generate_and_run_autotune_block
+    )
 
 def patch_get_graph_partition_signature():
     """

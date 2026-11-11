@@ -281,6 +281,14 @@ fallback_warning = os.environ.get("INDUCTOR_ASCEND_FALLBACK_WARNING", False)
 # Trace fx graph when lowering and dump.
 dump_fx_graph = os.environ.get("INDUCTOR_ASCEND_DUMP_FX_GRAPH", False) or check_accuracy
 
+# Internal accuracy-tool flag (not an env option, defaults to False). Set to
+# True around the tool's own internal timing (fusion decisions via
+# benchmark_fused_nodes, autotune candidate benchmarking); the debug dispatch
+# in runtime/triton_heuristics.py run() reads it at the dispatch point so
+# timed calls neither dump nor compare. Real forwards are unaffected, and no
+# reader exists when the tool is off.
+suspend_check_accuracy = False
+
 
 def parse_rtol_atol(env_str: str):
     rtol, atol = None, None
