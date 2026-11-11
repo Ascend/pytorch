@@ -127,6 +127,26 @@ on:
           Both current callers (the manual pipeline and the PR-gated
           receive-trigger flow) enable this: the passed-case whitelist
           keeps failures rare.
+      wheels_obs_endpoint:
+        required: false
+        type: string
+        default: 'obs.ap-southeast-1.myhuaweicloud.com'
+        description: >-
+          OBS endpoint for the wheels cache objects (wheel downloads in
+          the collect and shard jobs). The PyTorch source tarball always
+          stays on the legacy ap-southeast-1 endpoint regardless of this
+          input. Must match the endpoint the build phase uploaded to.
+      wheels_obs_bucket:
+        required: false
+        type: string
+        default: 'pytorch-ci-cache/7day-cache'
+        description: >-
+          Bucket (with optional key prefix) holding the wheels cache
+          objects; wheel downloads read obs://<bucket>/<tarball>. The
+          cn-southwest-2 (Guiyang) bucket is owned by a different key
+          pair: wheel steps pick ACCESSKEY_GUIYANG/SECRETACCESSKEY_GUIYANG
+          when the endpoint is cn-southwest-2, ACCESSKEY/SECRETACCESSKEY
+          otherwise. Must match the bucket the build phase uploaded to.
 
 defaults:
   run:
@@ -154,6 +174,8 @@ jobs:
       shard_threshold_distributed: ${{ inputs.shard_threshold_distributed }}
       runner_label: ${{ inputs.runner_label }}
       device_env: ${{ inputs.device_env }}
+      wheels_obs_endpoint: ${{ inputs.wheels_obs_endpoint }}
+      wheels_obs_bucket: ${{ inputs.wheels_obs_bucket }}
 
   # ============================================================================
   # 2. Run test shards per category (matrix-driven)
@@ -180,6 +202,8 @@ jobs:
       runner_label: ${{ matrix.runner_label }}
       device_env: ${{ inputs.device_env }}
       batch_execution: ${{ inputs.batch_execution }}
+      wheels_obs_endpoint: ${{ inputs.wheels_obs_endpoint }}
+      wheels_obs_bucket: ${{ inputs.wheels_obs_bucket }}
 
   # ============================================================================
   # 3. Generate consolidated test report

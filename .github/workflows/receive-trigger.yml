@@ -304,6 +304,16 @@ jobs:
       # image below.
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-builder-aarch64-torch-master-202610200103-e0dcc43e
       report_to_upstream: true
+      # Wheels cache moved to the dedicated Guiyang bucket
+      # (pytorch-torchnpu, cn-southwest-2): uploads during build and
+      # downloads during test all use it. The PyTorch source tarball
+      # stays on the legacy ap-southeast-1 bucket. The Guiyang bucket is
+      # owned by a different key pair (ACCESSKEY_GUIYANG/
+      # SECRETACCESSKEY_GUIYANG), selected by the wheel steps via the
+      # cn-southwest-2 endpoint match. The bucket starts empty on
+      # purpose: the first run rebuilds and repopulates it.
+      wheels_obs_endpoint: 'obs.cn-southwest-2.myhuaweicloud.com'
+      wheels_obs_bucket: 'pytorch-torchnpu/7day-cache'
       runner_label: 'linux-aarch64-cpu-24'
       max_jobs: '23'
 
@@ -362,4 +372,8 @@ jobs:
       # whitelist keeps failures rare and every failure gets a manual
       # root cause.
       batch_execution: true
+      # Same dedicated Guiyang wheels bucket as the build job above;
+      # collect/shard jobs download the wheels the build uploaded there.
+      wheels_obs_endpoint: 'obs.cn-southwest-2.myhuaweicloud.com'
+      wheels_obs_bucket: 'pytorch-torchnpu/7day-cache'
       runner_label: 'linux-aarch64-a3-800i-2-cn12-001'
