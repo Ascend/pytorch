@@ -985,14 +985,6 @@ static inline void load_{kernel_name}() {{
                 )
                 struct_data = f"void* {var_name} __attribute__((aligned(8)));"
                 arg_data = f"static_cast<void*>({var_name})"
-            elif arg_type in (sympy.Integer, int):
-                code.writeline(f"int32_t {var_name} = {cexpr(arg)};")
-                struct_data = f"int32_t {var_name} __attribute__((aligned(4)));"
-                arg_data = f"static_cast<int32_t>({var_name})"
-            elif arg_type in (sympy.Float, float):
-                code.writeline(f"float {var_name} = {cexpr(arg)};")
-                struct_data = f"float {var_name} __attribute__((aligned(4)));"
-                arg_data = f"static_cast<float>({var_name})"
             # For symbolic call arguments, examine the arg signatures from triton meta
             # to explicitly cast to the right type
             # Reason: `auto` can infer unexpected type against kernel input signature.
@@ -1005,6 +997,14 @@ static inline void load_{kernel_name}() {{
                 code.writeline(f"{arg_dtype} {var_name} = {cexpr(arg)};")
                 struct_data = f"{arg_dtype} {var_name} __attribute__((aligned(sizeof({arg_dtype}))));"
                 arg_data = f"static_cast<{arg_dtype}>({var_name})"
+            elif arg_type in (sympy.Integer, int):
+                code.writeline(f"int32_t {var_name} = {cexpr(arg)};")
+                struct_data = f"int32_t {var_name} __attribute__((aligned(4)));"
+                arg_data = f"static_cast<int32_t>({var_name})"
+            elif arg_type in (sympy.Float, float):
+                code.writeline(f"float {var_name} = {cexpr(arg)};")
+                struct_data = f"float {var_name} __attribute__((aligned(4)));"
+                arg_data = f"static_cast<float>({var_name})"
             else:
                 raise TypeError("Infer arg_type to cpp failed!")
             nonlocal struct_def_body
