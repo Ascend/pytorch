@@ -1,4 +1,5 @@
 import unittest
+from unittest import mock
 
 import torch
 from torch.fx.experimental.proxy_tensor import make_fx
@@ -17,6 +18,8 @@ class TestSinkPointwiseCat(unittest.TestCase):
         gm = make_fx(fn, tracing_mode='fake')(*inputs)
         expected = gm(*inputs)
         before = str(gm.graph)
+        # The compiler collects tables before sinking; keep that order here.
+        passes.indexed_slice_concat_table_pass(gm.graph)
         passes.sink_pointwise_cat_pass(gm.graph)
         gm.graph.lint()
         gm.recompile()
@@ -26,6 +29,23 @@ class TestSinkPointwiseCat(unittest.TestCase):
         passes.sink_pointwise_cat_pass(gm.graph)
         self.assertEqual(str(gm.graph), after)
         return gm
+
+    def test_candidate_failures_keep_original_graph(self):
+        for stage in ("normalize", "fake"):
+            for error in (RuntimeError, ValueError, AssertionError):
+                with self.subTest(stage=stage, error=error):
+                    args = (torch.randn(4, 20),)
+                    gm = make_fx(lambda x: torch.cat([t.neg() for t in slices(x)], 1),
+                                 tracing_mode="fake")(*args)
+                    expected, before = gm(*args), str(gm.graph)
+                    owner, name = (passes, "normalize_function") if stage == "normalize" else (torch, "cat")
+                    with mock.patch.object(owner, name, side_effect=error("unsupported candidate")):
+                        with self.assertLogs(passes.log.name, level="DEBUG"):
+                            passes.sink_pointwise_cat_pass(gm.graph)
+                    self.assertEqual(str(gm.graph), before)
+                    gm.graph.lint()
+                    gm.recompile()
+                    torch.testing.assert_close(gm(*args), expected, rtol=0, atol=0)
 
     def test_supported_unary(self):
         for op in [lambda x: x.clamp(-1, 1),
@@ -207,7 +227,9 @@ class TestSinkPointwiseCatDevice(unittest.TestCase):
             passes.multi_slice_concat_pass(graph)
 
         x = torch.randn(4, 40, dtype=torch.bfloat16, device='npu')[:, 1:39:2]
-        with config.patch(post_grad_custom_post_pass=hook, fx_graph_cache=False):
+        with config.patch(
+                pre_grad_custom_pass=passes.indexed_slice_concat_table_pass,
+                post_grad_custom_post_pass=hook, fx_graph_cache=False):
             actual = torch.compile(fn, fullgraph=True)(x)
         torch.testing.assert_close(actual, fn(x), rtol=0, atol=0)
         self.assertTrue(rewrites)
@@ -256,7 +278,9 @@ class TestSinkPointwiseCatDevice(unittest.TestCase):
                     rewrites.append((before != str(graph), before))
                     passes.multi_slice_concat_pass(graph)
                 with self.subTest(dtype=dtype, kind=kind), config.patch(
-                        post_grad_custom_post_pass=hook, fx_graph_cache=False, fx_graph_remote_cache=False):
+                        pre_grad_custom_pass=passes.indexed_slice_concat_table_pass,
+                        post_grad_custom_post_pass=hook, fx_graph_cache=False,
+                        fx_graph_remote_cache=False):
                     actual, codes = run_and_get_code(torch.compile(fn, fullgraph=True), x, y)
                     torch.npu.synchronize()
                     if kind != 'cast':

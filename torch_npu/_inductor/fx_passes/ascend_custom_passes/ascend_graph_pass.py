@@ -1,5 +1,6 @@
 import contextlib
 import functools
+import hashlib
 import math
 import operator
 from collections import Counter
@@ -7,8 +8,9 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 import torch
-import torch_npu
+import torch_npu  # noqa: F401 - initialize the NPU operator registrations
 import torch.fx
+from torch._dynamo.source import SyntheticLocalSource
 from torch.utils._ordered_set import OrderedSet
 from torch.fx.operator_schemas import normalize_function
 
@@ -36,7 +38,7 @@ from ..utils.check_op_util import (
     normalize_dtype,
     try_match,
 )
-from ..utils.fx_pass_level import PassType
+from ..utils.fx_pass_level import FxPassLevel, PassType
 from ..utils.get_binary_fold_result import (
     _fold_slice,
     _fold_slice_scatter,
@@ -163,15 +165,20 @@ MULTI_SLICE_CONCAT_TARGET = torch.ops.npu_ext.multi_slice_concat.default
 
 torch.library.define(
     "npu_ext::indexed_slice_concat",
-    '(Tensor src, int[] offsets, int[] widths, ScalarType dtype) -> Tensor',
+    '(Tensor src, Tensor table, int offset, int count, ScalarType dtype) -> Tensor',
 )
 
 
-def _indexed_slice_concat_ref(src, offsets, widths, dtype):
-    result = _multi_slice_concat_ref(
-        [src], [], [0] * len(offsets), offsets, widths, [-1] * len(offsets)
-    )
-    return result.to(dtype=dtype)
+def _indexed_slice_concat_ref(src, table, offset, count, dtype):
+    # The table says which source column each output column reads, so the slice
+    # bounds it was built from need not travel with the node. One table serves
+    # several cats, hence the window: the columns this call reads start at offset.
+    # The pass validates the source and table window before inserting this op;
+    # unsupported candidates keep their original slice-cat graph.
+    # The table holds column numbers, not data, so where it lives says nothing
+    # about where the gather runs; the generated kernel reads it beside the source.
+    window = table[offset:offset + count].to(device=src.device, dtype=torch.int64)
+    return src.index_select(1, window).to(dtype=dtype)
 
 
 torch.library.impl(
@@ -180,21 +187,199 @@ torch.library.impl(
 INDEXED_SLICE_CONCAT_TARGET = torch.ops.npu_ext.indexed_slice_concat.default
 
 
-def indexed_delta_runs(offsets, widths):
-    """Describe the index table as (output_start, delta) runs.
+def index_plan_columns(offsets, widths):
+    """The source column of every output column the plan describes."""
+    return [offset + i for offset, width in zip(offsets, widths) for i in range(width)]
 
-    Output column c of a run reads source column c + delta, so the table is
-    piecewise affine and the kernel can compute it instead of loading it. Runs
-    that continue the previous one in both output and source share a delta and
-    are merged, which also bounds how much work the kernel does per element.
+
+INDEX_TABLE_PREFIX = "_npu_index_table_"
+
+# The post_grad pass reads a table's columns to find its own run in them, but by
+# then the table is a fake graph input holding no data, so the columns are kept
+# here under the name the two stages share. An entry is a few hundred integers
+# and only a plan the compiler has already seen adds one.
+INDEX_TABLE_COLUMNS = {}
+
+
+def _msc_node_shape(node):
+    """Read candidate metadata before any graph edits; unavailable shapes skip fusion."""
+    if not isinstance(node, torch.fx.Node):
+        return None
+    try:
+        return get_node_shape(node, allow_symbolic=True)
+    except (AssertionError, AttributeError, KeyError, RuntimeError, TypeError, ValueError):
+        log.debug("[inductor_fx] slice_cat skip: cannot read tensor metadata", exc_info=True)
+        return None
+
+
+def _msc_valid_index_columns(value, columns):
+    # Validate the compile-time plan, never read values from a fake/lifted table.
+    if (not isinstance(value, torch.Tensor) or value.dim() != 2
+            or not columns or not isinstance(value.shape[1], int)
+            or any(not isinstance(column, int) or column < 0
+                   or column >= value.shape[1] for column in columns)):
+        log.debug("[inductor_fx] indexed_slice_concat skip: invalid source or columns")
+        return False
+    return True
+
+
+def _msc_valid_index_table(table, offset, count):
+    if (not isinstance(table, torch.Tensor) or table.dim() != 1
+            or table.dtype not in (torch.int32, torch.int64)
+            or not statically_known_eq(table.stride(0), 1)
+            or offset < 0 or count <= 0
+            or not statically_known_leq(offset + count, table.numel())):
+        log.debug("[inductor_fx] indexed_slice_concat skip: invalid table or window")
+        return False
+    return True
+
+
+def index_table_name(columns):
+    """Buffer name of a column table, derived from the columns themselves."""
+    digest = hashlib.sha256(repr(list(columns)).encode()).hexdigest()[:16]
+    return INDEX_TABLE_PREFIX + digest
+
+
+_PRE_CAT_TARGETS = (torch.cat, torch.concat, torch.ops.aten.cat.default)
+
+
+def _pre_column_bounds(node, dim):
+    """The (source, slice) a column slice reads, in either form dynamo emits."""
+    if node.target is operator.getitem and len(node.args) == 2:
+        source, index = node.args
+        if isinstance(index, tuple) and get_slice_dim(index, dim) == dim:
+            return source, index[dim]
+        return None, None
+    if node.target is _MSC_SLICE_TARGET and len(node.args) >= 2:
+        if normalize_dim(node.args[1], 2) != dim:
+            return None, None
+        start = node.args[2] if len(node.args) > 2 else node.kwargs.get("start")
+        stop = node.args[3] if len(node.args) > 3 else node.kwargs.get("end")
+        step = node.args[4] if len(node.args) > 4 else node.kwargs.get("step", 1)
+        return node.args[0], slice(start, stop, step)
+    return None, None
+
+
+def _pre_column_slice(node, dim):
+    """(source, start, width) for a 2D column slice of the dynamo graph, else None."""
+    if not isinstance(node, torch.fx.Node) or node.op != "call_function":
+        return None
+    source, column = _pre_column_bounds(node, dim)
+    if not isinstance(column, slice) or column.step not in (1, None):
+        return None
+    shape = _msc_node_shape(source)
+    if shape is None or len(shape) != 2:
+        return None
+    limit = shape[dim]
+    if not isinstance(limit, int):
+        return None
+    # Bounds are normalized the way the post_grad pass normalizes them, or the
+    # columns recorded here would not be the columns it later looks for.
+    start = _msc_bound(resolve_size_arg(column.start), limit, 0)
+    stop = _msc_bound(resolve_size_arg(column.stop), limit, limit)
+    if start is None or stop is None or stop <= start:
+        return None
+    return source, start, stop - start
+
+
+def _pre_tensor_value(node):
+    """The traced tensor of a node; dynamo and aten graphs name it differently."""
+    return node.meta.get("example_value", node.meta.get("val"))
+
+
+def _pre_slice_through_pointwise(node, dim, depth=4):
+    """The column slice feeding a cat input, looking through elementwise nodes.
+
+    An elementwise op changes the values but not which source column each of them
+    came from, so the widest reading of a cat is the one that ignores them. The
+    post_grad pass may well group the same cat more finely, and it finds its own
+    columns inside this one.
     """
-    runs, start = [], 0
-    for offset, width in zip(offsets, widths):
-        delta = offset - start
-        if not runs or runs[-1][1] != delta:
-            runs.append((start, delta))
-        start += width
-    return tuple(runs)
+    for _ in range(depth):
+        segment = _pre_column_slice(node, dim)
+        if segment is not None:
+            return segment
+        # Dynamo writes ``t.float()`` as a method call and ``torch.abs(t)`` as a
+        # function call; both take their tensor first and neither moves a column.
+        if not isinstance(node, torch.fx.Node) or node.op not in (
+                "call_function", "call_method"):
+            return None
+        source = node.args[0] if node.args else None
+        if not isinstance(source, torch.fx.Node):
+            return None
+        shape, source_shape = (_msc_node_shape(n)
+                               for n in (node, source))
+        if shape is None or source_shape is None:
+            return None
+        if not shapes_statically_equal(shape, source_shape):
+            return None
+        node = source
+    return None
+
+
+def _pre_index_runs(cat):
+    """Runs of two or more adjacent column slices that share one source."""
+    shape = _msc_node_shape(cat)
+    inputs = cat.args[0] if cat.args else None
+    if shape is None or len(shape) != 2 or not isinstance(inputs, (list, tuple)):
+        return []
+    dim = cat.kwargs.get("dim", cat.args[1] if len(cat.args) > 1 else 0)
+    if dim not in (1, -1):
+        return []
+    runs, current = [], []
+    for node in list(inputs) + [None]:
+        segment = _pre_slice_through_pointwise(node, 1)
+        if current and (segment is None or segment[0] is not current[0][0]):
+            if len(current) >= 2:
+                runs.append(current)
+            current = []
+        if segment is not None:
+            current.append(segment)
+    return runs
+
+
+# Runs last among the pre_grad passes: the folds ahead of it rewrite slices and
+# cats, and a table collected before them would describe a shape that no longer
+# exists by the time the post_grad pass looks for it.
+@register_custom_pass(PassType.PRE, FxPassLevel.LEVEL3, ignore_inference_check=True)
+def indexed_slice_concat_table_pass(graph: torch.fx.Graph) -> None:
+    """Register the column table of every candidate column slice-cat as a buffer.
+
+    Only AOTAutograd turns a tensor into a graph input, and it does so for module
+    buffers before the post_grad graph exists, while how a cat is worth splitting
+    is decided there. So each candidate is read here as widely as possible and the
+    whole reading is registered; the post_grad pass takes the window it needs out
+    of it. An unused table costs one buffer, and a fused kernel never has to build
+    its own table through an operator call on every invocation.
+    """
+    module = graph.owning_module
+    if module is None:
+        return
+    sources = getattr(module, "_param_name_to_source", None)
+    for node in graph.nodes:
+        if node.op != "call_function" or node.target not in _PRE_CAT_TARGETS:
+            continue
+        for run in _pre_index_runs(node):
+            columns = index_plan_columns([segment[1] for segment in run],
+                                         [segment[2] for segment in run])
+            value = _pre_tensor_value(run[0][0])
+            if not _msc_valid_index_columns(value, columns):
+                continue
+            name = index_table_name(columns)
+            if hasattr(module, name):
+                if _msc_valid_index_table(getattr(module, name), 0, len(columns)):
+                    INDEX_TABLE_COLUMNS[name] = tuple(columns)
+                continue
+            try:
+                table = torch.tensor(columns, dtype=torch.int32, device=value.device)
+                module.register_buffer(name, table, persistent=False)
+            except (AssertionError, RuntimeError, TypeError, ValueError):
+                log.debug("[inductor_fx] indexed_slice_concat skip: cannot register table", exc_info=True)
+                continue
+            INDEX_TABLE_COLUMNS[name] = tuple(columns)
+            if sources is not None:
+                # AOTAutograd only lifts buffers dynamo knows a source for.
+                sources[name] = SyntheticLocalSource(name)
 
 
 @register_custom_pass(PassType.PRE)
@@ -425,10 +610,16 @@ def fold_cast(graph: torch.fx.Graph) -> None:
     eliminate_dead_code(graph, changed, fold_cast.__name__)
 
 
-@register_custom_pass(PassType.POST)
+@register_custom_pass(PassType.POST, FxPassLevel.LEVEL2)
 def fold_cat(graph: torch.fx.Graph) -> None:
     """Merge nested cats: when a cat input is itself a single-use cat on the same dim,
-    flatten the inner cat's inputs into the outer one to save a concatenation."""
+    flatten the inner cat's inputs into the outer one to save a concatenation.
+
+    LEVEL2 so remove_cast_after_slice_by_add_cat (LEVEL1) runs first: packing a
+    same-dtype nested cat under one convert installs a cast barrier that this
+    pass must not flatten away, or the conversion collapses back into per-input
+    aclnn casts.
+    """
     changed = False
     flag = True
     while flag:
@@ -3047,7 +3238,7 @@ _MSC_BROADCAST_TARGETS = (
 
 
 def _msc_static_last_dim(node):
-    shape = get_node_shape(node, allow_symbolic=True)
+    shape = _msc_node_shape(node)
     if shape is None or len(shape) != 2:
         return None
     last = shape[-1]
@@ -3069,7 +3260,7 @@ def _msc_base_limit(base, cat_dtype, rows):
     """Validate a graph input without forcing an intermediate producer to materialize."""
     if not isinstance(base, torch.fx.Node) or base.op != "placeholder":
         return None
-    shape = get_node_shape(base, allow_symbolic=True)
+    shape = _msc_node_shape(base)
     if shape is None or len(shape) != 2:
         return None
     # Rows may be symbolic, so dynamic batch works; it just has to match the cat output.
@@ -3122,7 +3313,7 @@ def _msc_row_mask(node, rows):
     def qualifies(candidate):
         if not isinstance(candidate, torch.fx.Node):
             return False
-        shape = get_node_shape(candidate, allow_symbolic=True)
+        shape = _msc_node_shape(candidate)
         if shape is None or len(shape) != 2:
             return False
         if not statically_known_eq(shape[0], rows):
@@ -3276,8 +3467,8 @@ def _msc_build_node(graph, cat, run, cat_dim):
             fake_out = _multi_slice_concat_ref(
                 fake_srcs, fake_masks, src_idx, offsets, widths, mask_idx, cat_dim
             )
-    except Exception as exc:  # a gap in matching; skip rather than emit a wrong graph
-        log.debug("[inductor_fx] multi_slice_concat segment plan validation failed: %s", exc)
+    except Exception:  # a gap in matching; skip rather than emit a wrong graph
+        log.debug("[inductor_fx] multi_slice_concat segment plan validation failed", exc_info=True)
         return None
 
     with graph.inserting_before(cat):
@@ -3362,6 +3553,39 @@ def _rcasc_slice(node, dtype, out, cat_dim):
     return node if current.op == "placeholder" and current is not node else None
 
 
+def _rcasc_packable(node, dtype, out, cat_dim):
+    """Same-dtype operand that can join a pack ahead of one conversion.
+
+    Placeholder-rooted slices stay as before. A dtype-preserving clone is pierced
+    when this cat is its only user. A sole-use ``aten.index`` is also accepted:
+    production cats often gather short columns that way, and folding those under
+    one convert is the same elementwise cast aten.cat would apply per input.
+    Multi-user intermediates stay out so packing cannot steal a producer.
+    """
+    if not isinstance(node, torch.fx.Node) or node.op != "call_function":
+        return None
+    while (
+        node.target is torch.ops.aten.clone.default
+        and len(node.args) == 1
+        and not node.kwargs
+        and len(node.users) == 1
+        and isinstance(node.args[0], torch.fx.Node)
+    ):
+        node = node.args[0]
+        if node.op != "call_function":
+            return None
+    if _rcasc_slice(node, dtype, out, cat_dim) is not None:
+        return node
+    if (
+        node.target is torch.ops.aten.index.Tensor
+        and len(node.users) == 1
+        and _rcasc_tensor(node, dtype, out.device) is not None
+        and _rcasc_compatible(node.meta["val"], out, cat_dim)
+    ):
+        return node
+    return None
+
+
 def _rcasc_parts(node, out, cat_dim):
     """Return (source dtype, slices) for an implicit/explicit conversion run.
 
@@ -3390,8 +3614,9 @@ def _rcasc_parts(node, out, cat_dim):
             return None
     elif torch.promote_types(source.dtype, out.dtype) != out.dtype:
         return None
-    if _rcasc_slice(candidate, source.dtype, out, cat_dim) is not None:
-        return source.dtype, [candidate]
+    packable = _rcasc_packable(candidate, source.dtype, out, cat_dim)
+    if packable is not None:
+        return source.dtype, [packable]
     if candidate is not node:
         return None
     is_cat, dim = check_cat_op(candidate)
@@ -3405,9 +3630,10 @@ def _rcasc_parts(node, out, cat_dim):
     parts = candidate.args[0]
     if not isinstance(parts, (list, tuple)) or len(parts) < 2:
         return None
-    if not all(_rcasc_slice(p, source.dtype, out, cat_dim) is not None for p in parts):
+    packed = [_rcasc_packable(p, source.dtype, out, cat_dim) for p in parts]
+    if any(p is None for p in packed):
         return None
-    return source.dtype, list(parts)
+    return source.dtype, packed
 
 
 @register_custom_pass(PassType.POST, ignore_inference_check=True)
@@ -3467,8 +3693,8 @@ def remove_cast_after_slice_by_add_cat(graph: torch.fx.Graph) -> None:
                     cast_val = torch.ops.prims.convert_element_type.default(
                         packed_val, out.dtype
                     )
-            except (RuntimeError, TypeError, ValueError) as exc:
-                log.debug("remove_cast_after_slice_by_add_cat: skip %s", exc)
+            except (AssertionError, RuntimeError, TypeError, ValueError):
+                log.debug("remove_cast_after_slice_by_add_cat: skip", exc_info=True)
                 continue
             with graph.inserting_before(cat):
                 packed = graph.call_function(
@@ -3532,7 +3758,11 @@ def _cat_pointwise_candidate(node, dim, arg_index, from_slice):
     if (arg_index not in _CAT_POINTWISE_ARGS.get(node.target, ())
             or len(node.users) != 1 or _cat_zero_clamp(node)):
         return None
-    normalized = normalize_function(node.target, node.args, node.kwargs)
+    try:
+        normalized = normalize_function(node.target, node.args, node.kwargs)
+    except (AssertionError, RuntimeError, TypeError, ValueError):
+        log.debug("[inductor_fx] sink_pointwise_cat skip: cannot normalize candidate", exc_info=True)
+        return None
     if normalized is None or arg_index >= len(normalized.args):
         return None
     args, kwargs = normalized
@@ -3543,8 +3773,8 @@ def _cat_pointwise_candidate(node, dim, arg_index, from_slice):
     # Keep rounding inside a branch: only its final operation may narrow dtype.
     if path is None or path[0]:
         return None
-    shape = get_node_shape(inp, allow_symbolic=True)
-    result_shape = get_node_shape(node, allow_symbolic=True)
+    shape = _msc_node_shape(inp)
+    result_shape = _msc_node_shape(node)
     if shape is None or result_shape is None or not shapes_statically_equal(shape, result_shape):
         return None
     src_dtype, dst_dtype = get_node_dtype(inp), get_node_dtype(node)
@@ -3555,7 +3785,7 @@ def _cat_pointwise_candidate(node, dim, arg_index, from_slice):
     shared[arg_index] = None
     for value in (*shared, *kwargs.values()):
         if isinstance(value, torch.fx.Node):
-            other = get_node_shape(value, allow_symbolic=True)
+            other = _msc_node_shape(value)
             if other is None or len(other) > len(shape):
                 return None
             axis = dim - (len(shape) - len(other))
@@ -3580,7 +3810,7 @@ def sink_pointwise_cat_pass(graph: torch.fx.Graph) -> None:
         if not isinstance(node, torch.fx.Node) or node.op != "call_function":
             return None
         if node.target is _MSC_SLICE_TARGET:
-            shape = get_node_shape(node, allow_symbolic=True)
+            shape = _msc_node_shape(node)
             if shape is None or len(shape) != 2:
                 return None
             segment = _msc_index_segment(node, get_node_dtype(node), shape[0])
@@ -3598,7 +3828,7 @@ def sink_pointwise_cat_pass(graph: torch.fx.Graph) -> None:
     changed = False
     while pending:
         cat, inside_chain = pending.pop()
-        shape = get_node_shape(cat, allow_symbolic=True)
+        shape = _msc_node_shape(cat)
         if (shape is None or len(shape) != 2 or not cat.args
                 or not isinstance(cat.args[0], (list, tuple)) or len(cat.args[0]) < 2):
             continue
@@ -3655,7 +3885,8 @@ def sink_pointwise_cat_pass(graph: torch.fx.Graph) -> None:
                     fake_args = list(fake_args)
                     fake_args[arg_index] = joined_value
                     result_value = target(*fake_args, **torch.fx.node.map_arg(kwargs, lambda n: n.meta["val"]))
-            except (KeyError, RuntimeError, TypeError):
+            except (AssertionError, KeyError, RuntimeError, TypeError, ValueError):
+                log.debug("[inductor_fx] sink_pointwise_cat skip: cannot infer metadata", exc_info=True)
                 start += 1
                 continue
             with graph.inserting_before(cat):
@@ -3698,9 +3929,11 @@ def _msc_index_segment(node, cat_dtype, rows):
     if step != 1:
         return None
     base = node.args[0]
-    shape = get_node_shape(base, allow_symbolic=True)
+    shape = _msc_node_shape(base)
+    if shape is None or len(shape) != 2:
+        return None
     dtype = get_node_dtype(base)
-    if shape is None or len(shape) != 2 or dtype not in supported:
+    if dtype not in supported:
         return None
     if not statically_known_eq(shape[0], rows):
         return None
@@ -3744,6 +3977,62 @@ def _msc_covers_whole_cat(runs, inputs):
     return len(runs) == 1 and len(runs[0][1]) == len(inputs)
 
 
+def _msc_column_window(name, columns):
+    """Where these columns sit inside the named table, if they sit in it at all."""
+    table = INDEX_TABLE_COLUMNS.get(name)
+    if table is None or len(columns) > len(table):
+        return None
+    for offset in range(len(table) - len(columns) + 1):
+        if table[offset:offset + len(columns)] == columns:
+            return offset
+    return None
+
+
+def _msc_index_window(graph, columns):
+    """The table these columns are read from, and where in it they start.
+
+    The pre_grad pass registers one table per candidate cat, read as widely as it
+    can; a run settled on here is a contiguous part of that reading, so it borrows
+    a window of that table rather than needing a table of its own. AOTAutograd
+    lifts the buffer into a graph input, so that is where the table usually comes
+    from; on a graph that still owns the module it is read as an attribute. A cat
+    that first appeared after pre_grad ran finds no table and stays a cat, because
+    only AOTAutograd can turn a tensor into a graph input.
+    """
+    columns = tuple(columns)
+    placeholders = []
+    for node in graph.nodes:
+        if node.op != "placeholder":
+            break
+        placeholders.append(node)
+        offset = _msc_column_window(
+            getattr(node.meta.get("desc"), "target", None), columns)
+        if offset is not None and _msc_valid_index_table(
+                node.meta.get("val"), offset, len(columns)):
+            return node, offset
+    module = graph.owning_module
+    if module is None:
+        return None
+    for name in INDEX_TABLE_COLUMNS:
+        if not hasattr(module, name):
+            continue
+        offset = _msc_column_window(name, columns)
+        value = getattr(module, name)
+        if offset is None or not _msc_valid_index_table(value, offset, len(columns)):
+            continue
+        existing = next((node for node in graph.nodes
+                         if node.op == "get_attr" and node.target == name), None)
+        if existing is not None:
+            if _msc_valid_index_table(existing.meta.get("val", value), offset, len(columns)):
+                return existing, offset
+            continue
+        with graph.inserting_after(placeholders[-1] if placeholders else None):
+            table = graph.get_attr(name)
+        table.meta["val"] = value
+        return table, offset
+    return None
+
+
 def _msc_fold_index_runs(graph, cat, inputs, dtype, rows, native_cat_limit,
                          legacy_covers_cat=False):
     runs = _msc_index_runs(inputs, dtype, rows)
@@ -3759,8 +4048,6 @@ def _msc_fold_index_runs(graph, cat, inputs, dtype, rows, native_cat_limit,
         value = base.meta.get("val")
         if value is None:
             continue
-        offsets = [segment[1] for segment in run]
-        widths = [segment[2] for segment in run]
         # Keep a complete native Cat within the existing copy-free input budget.
         native_cat = not is_ascend950 or len(inputs) > torch._inductor.config.max_pointwise_cat_inputs
         if (native_cat and len(run) == len(inputs) <= native_cat_limit
@@ -3771,18 +4058,30 @@ def _msc_fold_index_runs(graph, cat, inputs, dtype, rows, native_cat_limit,
         # and merely adds a gather plus its intermediate buffer.
         if not native_cat and native_cat_limit and len(run) != len(inputs):
             continue
+        columns = index_plan_columns([segment[1] for segment in run],
+                                     [segment[2] for segment in run])
+        # Finish candidate validation and fake propagation before inserting even
+        # a get_attr node, so a rejected candidate leaves the original graph intact.
+        if not _msc_valid_index_columns(value, columns):
+            continue
         try:
             with contextlib.ExitStack() as stack:
                 fake_mode = getattr(value, "fake_mode", None)
                 if fake_mode is not None:
                     stack.enter_context(fake_mode)
-                meta = _indexed_slice_concat_ref(value, offsets, widths, dtype)
-        except Exception as exc:
-            log.debug("[inductor_fx] indexed_slice_concat validation failed: %s", exc)
+                meta = value.new_empty((value.shape[0], len(columns)), dtype=dtype)
+        except (AssertionError, RuntimeError, TypeError, ValueError):
+            log.debug("[inductor_fx] indexed_slice_concat skip: cannot infer metadata", exc_info=True)
             continue
+        window = _msc_index_window(graph, columns)
+        if window is None:
+            log.debug("[inductor_fx] indexed_slice_concat skip: no usable table window")
+            continue
+        table, offset = window
         with graph.inserting_before(cat):
             fused = graph.call_function(
-                INDEXED_SLICE_CONCAT_TARGET, (base, offsets, widths, dtype)
+                INDEXED_SLICE_CONCAT_TARGET,
+                (base, table, offset, len(columns), dtype),
             )
         fused.meta["val"] = meta
         new_inputs[start:start + len(run)] = [fused]
@@ -3826,7 +4125,7 @@ def multi_slice_concat_pass(
         inputs = cat.args[0]
         if not isinstance(inputs, (list, tuple)) or len(inputs) < 2:
             continue
-        cat_shape = get_node_shape(cat, allow_symbolic=True)
+        cat_shape = _msc_node_shape(cat)
         cat_dtype = get_node_dtype(cat)
         if cat_shape is None or cat_dtype is None or len(cat_shape) != 2:
             continue
@@ -3839,7 +4138,7 @@ def multi_slice_concat_pass(
         if cat_dim == 1:
             rows = cat_shape[0]
         else:
-            in_shapes = [get_node_shape(inp, allow_symbolic=True) for inp in inputs]
+            in_shapes = [_msc_node_shape(inp) for inp in inputs]
             if any(shape is None or len(shape) != 2 for shape in in_shapes):
                 continue
             rows = in_shapes[0][0]

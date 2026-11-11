@@ -11,10 +11,12 @@ for _, module_name, _ in pkgutil.iter_modules(__path__):
 
 
 def run_register_pre_custom_passes(gm):
-    log.debug(f"before pre_grad graph optimizer pass, graph is: {gm}")
-    if is_inference_check():
-        for level in sorted(FxPassLevel):
-            for fn in ASCEND_CUSTOME_PASS_REGISTER[PassType.PRE][level]:
+    log.debug("before pre_grad graph optimizer pass, graph is: %s", gm)
+    inference = is_inference_check()
+    for level in sorted(FxPassLevel):
+        for fn in ASCEND_CUSTOME_PASS_REGISTER[PassType.PRE][level]:
+            # a pass marked ignore_inference_check also runs on training graphs.
+            if inference or getattr(fn, "ignore_inference_check", False):
                 fn(gm)
 
     for level in sorted(FxPassLevel):
@@ -22,11 +24,11 @@ def run_register_pre_custom_passes(gm):
             if fn.__name__ == "fusion_attention_v3_pass":
                 fn(gm)
 
-    log.debug(f"after pre_grad graph optimizer pass, graph is: {gm}")
+    log.debug("after pre_grad graph optimizer pass, graph is: %s", gm)
 
 
 def run_register_post_custom_passes(gm):
-    log.debug(f"before post_grad graph optimizer pass, graph is: {gm}")
+    log.debug("before post_grad graph optimizer pass, graph is: %s", gm)
     inference = is_inference_check()
     if inference:
         stable_topological_sort(gm)
@@ -36,4 +38,4 @@ def run_register_post_custom_passes(gm):
             if inference or getattr(fn, "ignore_inference_check", False):
                 fn(gm)
 
-    log.debug(f"after post_grad graph optimizer pass, graph is: {gm}")
+    log.debug("after post_grad graph optimizer pass, graph is: %s", gm)

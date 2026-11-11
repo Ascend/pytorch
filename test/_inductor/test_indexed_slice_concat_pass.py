@@ -20,6 +20,8 @@ class TestAlignment(unittest.TestCase):
         limits.setdefault("aclnn_copy_free_inputs", 0)
         gm = make_fx(fn, tracing_mode='fake')(*args)
         expected = gm(*args)
+        # The gather reads a table the pre_grad pass registers on the module.
+        self.ns['indexed_slice_concat_table_pass'](gm.graph)
         self.ns['multi_slice_concat_pass'](gm.graph, **limits)
         gm.graph.lint()
         gm.recompile()
@@ -39,7 +41,7 @@ class TestAlignment(unittest.TestCase):
     def test_645_slices_mixed_sum_and_dtype(self):
         def fn(x, s):
             return torch.cat([torch.ops.prims.convert_element_type.default(
-                torch.ops.aten.slice.Tensor(x, 1, i, i+1), torch.float32
+                torch.ops.aten.slice.Tensor(x, 1, i, i + 1), torch.float32
             ) for i in range(645)] + [s], dim=1)
         self.check(fn, (torch.randn(3, 700, dtype=torch.bfloat16), torch.randn(3, 1)), 1, 0)
 
@@ -93,6 +95,7 @@ class TestAlignment(unittest.TestCase):
         program = torch.export.export(Mod(), (torch.randn(5, 12),),
                                       dynamic_shapes=({0: batch},))
         gm = program.graph_module
+        self.ns['indexed_slice_concat_table_pass'](gm.graph)
         self.ns['multi_slice_concat_pass'](gm.graph, aclnn_copy_free_inputs=0)
         gm.graph.lint()
 
@@ -111,10 +114,14 @@ class TestAlignment(unittest.TestCase):
 
     def test_mask_and_multiple_sources_keep_legacy_route(self):
         def fn(x, y, mask):
-            return torch.cat([torch.where(mask, torch.full((4, 2), 0.),
-                torch.ops.aten.slice.Tensor(x, 1, 0, 2)),
-                torch.ops.aten.slice.Tensor(y, 1, 3, 6)], 1)
-        self.check(fn, (torch.randn(4, 12), torch.randn(4, 12), torch.tensor([[True], [False], [True], [False]])), 0, 1, aclnn_copy_free_inputs=0)
+            return torch.cat([
+                torch.where(mask, torch.full((4, 2), 0.), torch.ops.aten.slice.Tensor(x, 1, 0, 2)),
+                torch.ops.aten.slice.Tensor(y, 1, 3, 6),
+            ], 1)
+        self.check(
+            fn, (torch.randn(4, 12), torch.randn(4, 12), torch.tensor([[True], [False], [True], [False]])),
+            0, 1, aclnn_copy_free_inputs=0,
+        )
 
     def test_native_mixed_dtype_promotion(self):
         self.check(lambda x, y: torch.cat([x[:, :2], x[:, 3:5], y], 1),
@@ -129,8 +136,8 @@ class TestAlignment(unittest.TestCase):
 
     def test_partial_fusion_keeps_more_than_eight_remaining_inputs(self):
         def fn(x):
-            slices = [torch.ops.aten.slice.Tensor(x, 1, i, i+1) for i in range(10)]
-            others = [torch.ops.aten.slice.Tensor(x, 1, i, i+1).sin() for i in range(10, 19)]
+            slices = [torch.ops.aten.slice.Tensor(x, 1, i, i + 1) for i in range(10)]
+            others = [torch.ops.aten.slice.Tensor(x, 1, i, i + 1).sin() for i in range(10, 19)]
             return torch.cat(slices + others, 1)
         gm = self.check(fn, (torch.randn(4, 24),), 1, 0)
         cats = [n for n in gm.graph.nodes if n.target is torch.ops.aten.cat.default]
@@ -200,7 +207,7 @@ class TestAlignment(unittest.TestCase):
             gm = self.check(fn, (torch.randn(4, 20, dtype=torch.bfloat16),), 1, 0,
                             aclnn_copy_free_inputs=32)
         fused = next(n for n in gm.graph.nodes if n.target is self.ns['INDEXED_SLICE_CONCAT_TARGET'])
-        self.assertEqual(fused.args[3], torch.float32)
+        self.assertEqual(fused.args[4], torch.float32)
 
     def test_upstream_row_concat_retains_legacy_route(self):
         self.check(lambda x: torch.cat([torch.ops.aten.slice.Tensor(x, 1, 0, 2),
@@ -208,8 +215,155 @@ class TestAlignment(unittest.TestCase):
                    (torch.randn(4, 12),), 0, 1)
 
     def test_upstream_integer_dtype_retains_legacy_route(self):
-        self.check(lambda x: torch.cat([torch.ops.aten.slice.Tensor(x, 1, i, i+1)
+        self.check(lambda x: torch.cat([torch.ops.aten.slice.Tensor(x, 1, i, i + 1)
                    for i in range(35)], 1), (torch.arange(160).reshape(4, 40),), 0, 1)
+
+
+    def _unfused_cast_graph(self, prepare=True):
+        registry = patch.dict(ascend_graph_pass.INDEX_TABLE_COLUMNS, {}, clear=True)
+        registry.start()
+        self.addCleanup(registry.stop)
+        args = (torch.arange(32, dtype=torch.bfloat16).reshape(4, 8),)
+
+        def fn(x):
+            return torch.cat([
+                torch.ops.prims.convert_element_type.default(
+                    torch.ops.aten.slice.Tensor(x, 1, start, start + 2), torch.float32
+                ) for start in (0, 4)
+            ], 1)
+        gm = make_fx(fn, tracing_mode="fake")(*args)
+        expected = gm(*args)
+        if prepare:
+            ascend_graph_pass.indexed_slice_concat_table_pass(gm.graph)
+        return gm, args, expected
+
+    def _assert_skip_keeps_graph(self, gm, args, expected, action):
+        before = str(gm.graph)
+        with self.assertLogs(ascend_graph_pass.log.name, level="DEBUG") as logs:
+            action()
+        self.assertTrue(any("indexed_slice_concat skip" in line for line in logs.output))
+        self.assertEqual(str(gm.graph), before)
+        gm.graph.lint()
+        gm.recompile()
+        torch.testing.assert_close(gm(*args), expected, rtol=0, atol=0)
+
+    def test_legacy_reference_failure_keeps_original_graph(self):
+        args = (torch.arange(32, dtype=torch.float32).reshape(4, 8),)
+        gm = make_fx(lambda x: torch.cat([
+            torch.ops.aten.slice.Tensor(x, 1, start, start + 2)
+            for start in (0, 4)
+        ], 1), tracing_mode="fake")(*args)
+        expected = gm(*args)
+        before = str(gm.graph)
+        with patch.object(ascend_graph_pass, "_multi_slice_concat_ref",
+                          side_effect=RuntimeError("invalid segment plan")):
+            with self.assertLogs(ascend_graph_pass.log.name, level="DEBUG"):
+                ascend_graph_pass.multi_slice_concat_pass(
+                    gm.graph, indexed_same_source=False, aclnn_copy_free_inputs=0)
+        self.assertEqual(str(gm.graph), before)
+        gm.graph.lint()
+        gm.recompile()
+        torch.testing.assert_close(gm(*args), expected, rtol=0, atol=0)
+
+    def test_missing_tensor_metadata_keeps_original_graph(self):
+        passes = (ascend_graph_pass.indexed_slice_concat_table_pass,
+                  ascend_graph_pass.sink_pointwise_cat_pass,
+                  ascend_graph_pass.multi_slice_concat_pass)
+        for run_pass in passes:
+            for metadata in (None, ()):
+                with self.subTest(pass_name=run_pass.__name__, metadata=metadata):
+                    gm, args, expected = self._unfused_cast_graph(prepare=False)
+                    cat = next(n for n in gm.graph.nodes if n.target is torch.ops.aten.cat.default)
+                    cat.meta["val"] = metadata
+                    before = str(gm.graph)
+                    with self.assertLogs(ascend_graph_pass.log.name, level="DEBUG"):
+                        run_pass(gm.graph)
+                    self.assertEqual(str(gm.graph), before)
+                    gm.graph.lint()
+                    gm.recompile()
+                    torch.testing.assert_close(gm(*args), expected, rtol=0, atol=0)
+
+    def test_valid_registered_table_still_fuses(self):
+        gm, args, expected = self._unfused_cast_graph()
+        ascend_graph_pass.multi_slice_concat_pass(gm.graph)
+        self.assertEqual(sum(node.target is ascend_graph_pass.INDEXED_SLICE_CONCAT_TARGET
+                             for node in gm.graph.nodes), 1)
+        gm.graph.lint()
+        gm.recompile()
+        torch.testing.assert_close(gm(*args), expected, rtol=0, atol=0)
+
+    @parametrize("kind", ["float", "short", "missing_meta"])
+    def test_invalid_lifted_table_skips_fusion(self, kind):
+        from types import SimpleNamespace
+
+        gm, args, expected = self._unfused_cast_graph()
+        name, table = next(gm.named_buffers())
+        delattr(gm, name)
+        value = table.float() if kind == "float" else table[:2]
+        source = next(iter(gm.graph.nodes))
+        with gm.graph.inserting_after(source):
+            lifted = gm.graph.placeholder("lifted_table")
+        lifted.meta["desc"] = SimpleNamespace(target=name)
+        if kind != "missing_meta":
+            lifted.meta["val"] = value
+        self._assert_skip_keeps_graph(
+            gm, (*args, value), expected,
+            lambda: ascend_graph_pass.multi_slice_concat_pass(gm.graph))
+
+    @parametrize("kind", ["float", "matrix", "empty", "short", "strided", "missing"])
+    def test_invalid_registered_table_skips_fusion(self, kind):
+        gm, args, expected = self._unfused_cast_graph()
+        name, table = next(gm.named_buffers())
+        replacements = {
+            "float": table.float(), "matrix": table.reshape(2, 2),
+            "empty": table[:0], "short": table[:2],
+            "strided": torch.tensor([0, 9, 1, 9, 4, 9, 5, 9], dtype=torch.int32)[::2],
+        }
+        if kind == "missing":
+            delattr(gm, name)
+        else:
+            setattr(gm, name, replacements[kind])
+        self._assert_skip_keeps_graph(
+            gm, args, expected, lambda: ascend_graph_pass.multi_slice_concat_pass(gm.graph))
+
+    @parametrize("columns", [[], [-1], [8], [0, 8]])
+    def test_invalid_columns_skip_before_graph_changes(self, columns):
+        gm, args, expected = self._unfused_cast_graph()
+        with patch.object(ascend_graph_pass, "index_plan_columns", return_value=columns):
+            self._assert_skip_keeps_graph(
+                gm, args, expected, lambda: ascend_graph_pass.multi_slice_concat_pass(gm.graph))
+
+    @parametrize("offset", [-1, 1])
+    def test_invalid_window_keeps_original_graph(self, offset):
+        gm, args, expected = self._unfused_cast_graph()
+        # The plan has four columns and the table has exactly four entries.
+        with patch.object(ascend_graph_pass, "_msc_column_window", return_value=offset):
+            self._assert_skip_keeps_graph(
+                gm, args, expected, lambda: ascend_graph_pass.multi_slice_concat_pass(gm.graph))
+
+    @parametrize("error", [RuntimeError, AssertionError])
+    def test_fake_metadata_failure_skips_fusion(self, error):
+        gm, args, expected = self._unfused_cast_graph()
+        with patch.object(torch.Tensor, "new_empty", side_effect=error("unsupported metadata")):
+            self._assert_skip_keeps_graph(
+                gm, args, expected, lambda: ascend_graph_pass.multi_slice_concat_pass(gm.graph))
+
+    def test_prepass_invalid_columns_do_not_register_buffer(self):
+        gm, args, expected = self._unfused_cast_graph(prepare=False)
+        with patch.object(ascend_graph_pass, "index_plan_columns", return_value=[8]):
+            self._assert_skip_keeps_graph(
+                gm, args, expected, lambda: ascend_graph_pass.indexed_slice_concat_table_pass(gm.graph))
+        self.assertEqual(list(gm.named_buffers()), [])
+        self.assertEqual(ascend_graph_pass.INDEX_TABLE_COLUMNS, {})
+
+    @parametrize("error", [RuntimeError, AssertionError])
+    def test_prepass_buffer_failure_keeps_original_graph(self, error):
+        gm, args, expected = self._unfused_cast_graph(prepare=False)
+        with patch.object(gm, "register_buffer", side_effect=error("cannot register table")):
+            self._assert_skip_keeps_graph(
+                gm, args, expected, lambda: ascend_graph_pass.indexed_slice_concat_table_pass(gm.graph))
+        self.assertEqual(list(gm.named_buffers()), [])
+        self.assertEqual(ascend_graph_pass.INDEX_TABLE_COLUMNS, {})
 
 
 @instantiate_parametrized_tests
@@ -256,7 +410,9 @@ class TestIndexedSliceConcatDevice(unittest.TestCase):
                            if n.target is ascend_graph_pass.INDEXED_SLICE_CONCAT_TARGET)
 
         expected = fn(x)
-        with config.patch(post_grad_custom_post_pass=apply_pass):
+        with config.patch(
+                pre_grad_custom_pass=ascend_graph_pass.indexed_slice_concat_table_pass,
+                post_grad_custom_post_pass=apply_pass):
             actual, codes = run_and_get_code(
                 torch.compile(fn, fullgraph=True, dynamic=False), x
             )

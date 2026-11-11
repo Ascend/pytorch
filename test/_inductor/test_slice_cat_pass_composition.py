@@ -63,6 +63,8 @@ class TestSliceCatPassComposition(unittest.TestCase):
                         torch.empty(4, 1, device='npu'),
                     )
                 expected = gm(*inputs)
+                # The indexed route reads a table registered before AOT runs.
+                passes.indexed_slice_concat_table_pass(gm.graph)
                 for fn in PIPELINE:
                     before = str(gm.graph)
                     fn(gm.graph)
