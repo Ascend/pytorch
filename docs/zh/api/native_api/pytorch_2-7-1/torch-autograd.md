@@ -797,12 +797,10 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id120 -->
 
-**限制与说明**： 采集NPU上的profiling数据时，“`use_device`”需设置为“npu”，例如：
+**限制与说明**：
 
-```python
-with torch.autograd.profiler.profile(use_device="npu") as prof:
-    ...
-```
+- 可采集NPU算子调用的CPU侧事件。设置`use_device="npu"`时，上游事件解析器未将重命名后的NPU后端设备耗时计入结果，不能使用该结果统计NPU设备耗时。
+- `use_kineto=True`不采集NPU设备事件；`profile_memory=True`不记录NPU设备内存分配。
 
 </div>
 

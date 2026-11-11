@@ -797,11 +797,19 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id120 -->
 
-**限制与说明**： 采集NPU上的profiling数据时，“`use_device`”需设置为“npu”，例如：
+**限制与说明**：
+
+- 采集NPU上的profiling数据时，`use_device`需设置为`"npu"`。以下示例使用`use_kineto=False`。
+
+例如：
 
 ```python
-with torch.autograd.profiler.profile(use_device="npu") as prof:
-    ...
+import torch
+
+x = torch.ones(64, 64, device="npu")
+with torch.autograd.profiler.profile(use_device="npu", use_kineto=False) as prof:
+    y = x * x
+    torch.npu.synchronize()
 ```
 
 ### profile.export_chrome_trace
