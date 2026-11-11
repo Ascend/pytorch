@@ -18,7 +18,7 @@ from torch_npu.utils._dynamo import (
 # All backends need npu/cpu/mps device_op_overrides.
 from .codegen.common import register_device_op_overrides_npu, patch_cache_base_get_system
 from .graph import patch_codegen_with_cpp_wrapper
-from .utils import patch_has_triton, patch_device_supports_tma, patch_is_gpu, get_current_raw_stream
+from .utils import patch_cse_rand_ops, patch_has_triton, patch_device_supports_tma, patch_is_gpu, get_current_raw_stream
 from .cpp_builder import patch_get_optimization_cflags
 from ._npu_meta_registration import npu_patch_meta
 from .lowering_common import run_once
@@ -27,6 +27,7 @@ from .lowering_common import run_once
 npu_patch_meta()
 _dynamo_register_interface_for_device()
 register_device_op_overrides_npu()
+patch_cse_rand_ops()
 
 @run_once
 def _apply_common_patches():
