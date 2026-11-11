@@ -1810,8 +1810,8 @@ def _register_npu_inductor_bmm():
         if is_nonzero and use_triton_template(layout) and _degenerate_axis(
             mat1, mat2
         ):
-            mat1 = L.unsqueeze(mat1, -1)
-            mat2 = L.unsqueeze(mat2, 1)
+            mat1 = L.unsqueeze(ir.TensorBox.create(mat1), -1)
+            mat2 = L.unsqueeze(ir.TensorBox.create(mat2), 1)
             return L.sum_(L.mul(mat1, mat2), axis=2)
 
         batch_stride_largest_or_zero = is_batch_stride_largest_or_zero(mat1, mat2, layout)
