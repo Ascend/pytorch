@@ -1362,7 +1362,37 @@ def _enable_full_lowering_fallback():
 def _add_fallback_ops_for_torchgen():
     import torchgen.aoti.fallback_ops as fallback_ops
     from torchnpugen.aoti.fallback_ops import inductor_fallback_ops_npu, inductor_fallback_ops_npu_not_support
+
+    if getattr(ir.FallbackKernel.codegen, "_npu_device_aware", False):
+        return
+
+    # torchgen builds the cpu/cuda shims from the pristine table, while
+    # gen_npu_c_shim builds the npu shims from the merged table below; keep a
+    # pristine copy so non-NPU nodes can tell the difference.
+    upstream = frozenset(fallback_ops.inductor_fallback_ops)
+
     fallback_ops.inductor_fallback_ops = {
         k: v for k, v in (fallback_ops.inductor_fallback_ops | inductor_fallback_ops_npu).items()
         if k not in inductor_fallback_ops_npu_not_support
     }
+
+    # A non-NPU node of an NPU-only op would emit a symbol (e.g.
+    # aoti_torch_cpu_scatter_add) that the build never has; route it through
+    # the proxy executor instead.
+    orig_codegen = ir.FallbackKernel.codegen
+
+    def codegen(self, wrapper):
+        kernel = self.op_overload
+        if (
+            V.graph.cpp_wrapper
+            and not self.use_runtime_dispatch
+            and isinstance(kernel, torch._ops.OpOverload)
+            and kernel.namespace == "aten"
+        ):
+            device = self.get_device()
+            if (device is None or device.type != "npu") and str(kernel) not in upstream:
+                self.use_runtime_dispatch = True
+        return orig_codegen(self, wrapper)
+
+    codegen._npu_device_aware = True
+    ir.FallbackKernel.codegen = codegen
