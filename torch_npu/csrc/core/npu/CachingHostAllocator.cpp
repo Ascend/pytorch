@@ -13,9 +13,7 @@
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 
-#ifndef BUILD_LIBTORCH
-#include <Python.h>
-#endif
+#include "torch_npu/csrc/core/npu/PythonGilBridge.h"
 
 #include <cstdint>
 #include <deque>
@@ -1336,19 +1334,12 @@ static inline NPUCachingHostAllocator& getNPUCachingHostAllocator()
 
 void raw_local_deleter(void* ptr)
 {
-#ifndef BUILD_LIBTORCH
-    // check the current thread have hold GIL Lock.
-    if (PyGILState_Check()) {
-        // the current thread should not hold GIL.
-        Py_BEGIN_ALLOW_THREADS
-        getNPUCachingHostAllocator().free(ptr);
-        Py_END_ALLOW_THREADS
-    } else {
+  auto hook = c10_npu::impl::getPythonGilCallback();
+  if (hook != nullptr) {
+    hook([&] { getNPUCachingHostAllocator().free(ptr); });
+  } else {
         getNPUCachingHostAllocator().free(ptr);
     }
-#else
-    getNPUCachingHostAllocator().free(ptr);
-#endif
 }
 // END of DECLARE_HOST_ALLOCATOR
 

@@ -36,7 +36,7 @@ using std::vector;
 #define ASCEND_ALWAYS_INLINE inline
 #endif
 
-#define ACL_REQUIRE_OK_OP(expr, opstr)                                                             \
+#define ACL_REQUIRE_OK_OP_WITH_FUNCTION(expr, opstr, function_name)                                                             \
     do {                                                                                           \
         if (ASCEND_UNLIKELY((expr) != 0)) {                                                        \
             std::cout << (opstr) << std::endl;                                                     \
@@ -49,12 +49,14 @@ using std::vector;
                 std::string errmsg(c10_npu::c10_npu_get_error_message());                          \
                 TORCH_CHECK((expr) == 0, errmsg.empty() ? err_msg : errmsg);                       \
             } else {                                                                               \
-                TORCH_CHECK((expr) == 0, __func__, ":", __FILE__, ":", __LINE__,                   \
+                TORCH_CHECK((expr) == 0, function_name, ":", __FILE__, ":", __LINE__,               \
                         " NPU error,NPU error code is:", expr, "\n",                               \
                         c10_npu::acl::AclGetErrMsg(), OPS_ERROR(ErrCode::INTERNAL));               \
             }                                                                                      \
         }                                                                                          \
     } while (0)
+
+#define ACL_REQUIRE_OK_OP(expr, opstr) ACL_REQUIRE_OK_OP_WITH_FUNCTION(expr, opstr, __func__)
 
 using StorageAndOffsetMemSizePair = std::pair<const c10::StorageImpl *, int64_t>;
 
