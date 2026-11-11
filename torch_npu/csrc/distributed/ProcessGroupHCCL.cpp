@@ -5854,6 +5854,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base_uneven_inn
             auto numel = getNumelForHCCL(output);
             auto hcclReduceOp = getHcclReduceOp(opts.reduceOp, input);
             auto hcclType = getHcclDataType(input.scalar_type());
+            checkSupportedDataType(hcclType, "reduce_scatter_tensor_uneven");
             auto hccl_call = [
                 inputDataPtr,
                 inputCounts,
