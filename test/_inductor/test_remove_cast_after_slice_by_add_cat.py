@@ -1,5 +1,6 @@
 import contextlib
 import unittest
+from unittest import mock
 
 import torch
 from torch._subclasses.fake_tensor import FakeTensorMode
@@ -11,12 +12,14 @@ from torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass import
     INDEXED_SLICE_CONCAT_TARGET,
     MULTI_SLICE_CONCAT_TARGET,
     fold_cat,
+    indexed_slice_concat_table_pass,
     multi_slice_concat_pass,
     remove_cast_after_slice_by_add_cat as rewrite,
 )
 from torch_npu._inductor.fx_passes.ascend_custom_passes.register_custom_pass import (
     ASCEND_CUSTOME_PASS_REGISTER,
 )
+from torch_npu._inductor.fx_passes.utils.fx_pass_level import PassType
 
 CAT = torch.ops.aten.cat.default
 CAST = torch.ops.prims.convert_element_type.default
@@ -71,6 +74,20 @@ class TestGraph(unittest.TestCase):
         gm.recompile()
         self.assertEqual(gm.code, code)
         return gm
+
+    def test_fake_failure_keeps_original_graph(self):
+        from torch_npu._inductor.fx_passes.ascend_custom_passes import ascend_graph_pass as passes
+
+        gm = trace(pattern)
+        args = (torch.randn(7, 19).bfloat16(), torch.randn(7, 1))
+        expected, before = gm(*args), str(gm.graph)
+        with mock.patch.object(FakeTensorMode, "dispatch", side_effect=AssertionError("fake mode mismatch")):
+            with self.assertLogs(passes.log.name, level="DEBUG"):
+                rewrite(gm.graph)
+        self.assertEqual(str(gm.graph), before)
+        gm.graph.lint()
+        gm.recompile()
+        torch.testing.assert_close(gm(*args), expected, rtol=0, atol=0)
 
     def test_implicit_explicit_nested_and_empty_batch(self):
         for rows in (0, 7, 17):
@@ -137,6 +154,7 @@ class TestGraph(unittest.TestCase):
         for indexed in (False, True):
             with self.subTest(indexed=indexed):
                 gm = self.check(pattern)
+                indexed_slice_concat_table_pass(gm.graph)
                 multi_slice_concat_pass(
                     gm.graph, max_segments=64, aclnn_copy_free_inputs=0,
                     indexed_same_source=indexed,
@@ -172,6 +190,7 @@ class TestGraph(unittest.TestCase):
         expected = gm(x, z)
         rewrite(gm.graph)
         self.assertEqual(count(gm, CAST), 1)
+        indexed_slice_concat_table_pass(gm.graph)
         multi_slice_concat_pass(gm.graph, max_segments=64, aclnn_copy_free_inputs=0)
         gm.graph.lint()
         gm.recompile()
@@ -198,6 +217,51 @@ class TestGraph(unittest.TestCase):
         fold_cat(gm.graph)
         gm.recompile()
         self.assertEqual(gm.code, packed_code)
+
+    def test_index_clone_run_packs_under_one_cast(self):
+        # Board shape: wide f32 beside a cloned slice and a same-dtype nested cat of
+        # aten.index gathers. Without packing, aten.cat casts each narrow input;
+        # with packing there is one convert after one cat.
+        def fn(table, col0, col1, col2, col3, wide, idx):
+            clone = table[:, 3:7].clone()
+            gathers = [
+                torch.ops.aten.index.Tensor(col, [idx])
+                for col in (col0, col1, col2, col3)
+            ]
+            return torch.cat([wide, torch.cat([clone] + gathers, 1)], 1)
+
+        with FakeTensorMode():
+            table = torch.empty(7, 19, dtype=torch.float16, device="npu")
+            cols = [torch.empty(7, 2, dtype=torch.float16, device="npu") for _ in range(4)]
+            wide = torch.empty(7, 5, dtype=torch.float32, device="npu")
+            idx = torch.empty(7, dtype=torch.int64, device="npu")
+            gm = make_fx(fn)(table, *cols, wide, idx)
+        table = torch.randn(7, 19, dtype=torch.float16)
+        cols = [torch.randn(7, 2, dtype=torch.float16) for _ in range(4)]
+        wide = torch.randn(7, 5, dtype=torch.float32)
+        idx = torch.randint(0, 7, (7,), dtype=torch.int64)
+        expected = gm(table, *cols, wide, idx)
+        rewrite(gm.graph)
+        gm.graph.lint()
+        gm.recompile()
+        self.assertEqual(count(gm, CAST), 1)
+        cast = next(n for n in gm.graph.nodes if n.target == CAST)
+        self.assertEqual(cast.args[0].target, CAT)
+        torch.testing.assert_close(
+            gm(table, *cols, wide, idx), expected, rtol=0, atol=0
+        )
+        before = gm.code
+        fold_cat(gm.graph)
+        gm.recompile()
+        self.assertEqual(gm.code, before)
+
+    def test_remove_cast_runs_before_fold_cat(self):
+        names = [
+            fn.__name__
+            for level in sorted(ASCEND_CUSTOME_PASS_REGISTER[PassType.POST])
+            for fn in ASCEND_CUSTOME_PASS_REGISTER[PassType.POST][level]
+        ]
+        self.assertLess(names.index(rewrite.__name__), names.index(fold_cat.__name__))
 
 
 @contextlib.contextmanager

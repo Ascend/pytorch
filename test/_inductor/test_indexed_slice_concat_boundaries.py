@@ -1,29 +1,73 @@
 import unittest
+from unittest import mock
 
 import torch
+from torch._subclasses.fake_tensor import FakeTensorMode, is_fake
 from torch.fx.experimental.proxy_tensor import make_fx
 from torch.testing._internal.common_utils import instantiate_parametrized_tests, parametrize
 
 from torch_npu._inductor.fx_passes.ascend_custom_passes import ascend_graph_pass as passes
 
 
+def index_table(offsets, widths, device="cpu"):
+    """The column table the pass would register for this plan."""
+    return torch.tensor(passes.index_plan_columns(offsets, widths),
+                        dtype=torch.int32, device=device)
+
+
 @instantiate_parametrized_tests
 class TestIndexedSliceConcatPlans(unittest.TestCase):
-    @parametrize("plan", [
-        ([], [], "needs at least one segment"),
-        ([0], [], "disagree in length"),
-        ([-1], [1], "invalid offset"),
-        ([0], [0], "invalid offset"),
-        ([0], [-1], "invalid offset"),
-        ([8], [1], "beyond last dim"),
-        ([7], [2], "beyond last dim"),
-    ])
-    def test_invalid_plan_rejected(self, plan):
-        offsets, widths, message = plan
-        with self.assertRaisesRegex(RuntimeError, message):
+    @parametrize("columns", [[8], [-9], [0, 8], [3, 100]])
+    def test_column_outside_source_rejected(self, columns):
+        # Direct eager calls use aten's backend-specific bounds error; the pass
+        # validates its column plan before creating this internal operator.
+        with self.assertRaises((RuntimeError, IndexError)):
+            table = torch.tensor(columns, dtype=torch.int32)
             passes.INDEXED_SLICE_CONCAT_TARGET(
-                torch.empty(3, 8), offsets, widths, torch.float32
+                torch.empty(3, 8), table, 0, table.numel(), torch.float32
             )
+
+    @parametrize(
+        "plan",
+        [([], 0, 0), ([0], 0, 0), ([0], 0, -1),
+         ([0], -1, 1), ([0], 1, 1), ([0], 0, 2)],
+    )
+    def test_invalid_window_skipped(self, plan):
+        columns, offset, count = plan
+        table = torch.tensor(columns, dtype=torch.int32)
+        with self.assertLogs(passes.log.name, level="DEBUG"):
+            self.assertFalse(passes._msc_valid_index_table(table, offset, count))
+
+    @parametrize("dtype", [torch.int32, torch.int64])
+    def test_only_selected_window_is_checked(self, dtype):
+        src = torch.arange(24, dtype=torch.float32).reshape(3, 8)
+        table = torch.tensor([-1, 0, 7, 8], dtype=dtype)
+        actual = passes.INDEXED_SLICE_CONCAT_TARGET(src, table, 1, 2, src.dtype)
+        torch.testing.assert_close(actual, src[:, [0, 7]], rtol=0, atol=0)
+
+    @parametrize("mode", ["fake", "functional_fake", "meta"])
+    def test_metadata_propagation_does_not_read_table(self, mode):
+        if mode != "meta":
+            fake_mode = FakeTensorMode()
+            src = fake_mode.from_tensor(torch.empty(3, 8))
+            table = fake_mode.from_tensor(torch.tensor([-1, 8], dtype=torch.int32))
+            if mode == "functional_fake":
+                src = torch._to_functional_tensor(src)
+                table = torch._to_functional_tensor(table)
+        else:
+            src = torch.empty(3, 8, device="meta")
+            table = torch.empty(2, dtype=torch.int32, device="meta")
+        with mock.patch.object(torch.Tensor, "item", side_effect=AssertionError("table data read")):
+            # Exercise the reference directly too: dispatch may unwrap functional
+            # tensors before calling a CompositeExplicitAutograd implementation.
+            actual = passes._indexed_slice_concat_ref(src, table, 0, 2, torch.float16)
+            through_dispatch = passes.INDEXED_SLICE_CONCAT_TARGET(src, table, 0, 2, torch.float16)
+        self.assertEqual(actual.shape, (3, 2))
+        self.assertEqual(actual.dtype, torch.float16)
+        self.assertEqual(through_dispatch.shape, actual.shape)
+        self.assertTrue(actual.is_meta if mode == "meta" else is_fake(actual))
+        with self.assertLogs(passes.log.name, level="DEBUG"):
+            self.assertFalse(passes._msc_valid_index_table(table, 1, 2))
 
     @parametrize("columns", [1048576, 1048577])
     def test_index_table_limit(self, columns):
@@ -36,11 +80,9 @@ class TestIndexedSliceConcatPlans(unittest.TestCase):
         self.assertEqual(len(runs), int(columns == 1048576))
 
     @parametrize("shape", [(8,), (2, 3, 8)])
-    def test_non_matrix_rejected(self, shape):
-        with self.assertRaisesRegex(RuntimeError, "not 2D"):
-            passes.INDEXED_SLICE_CONCAT_TARGET(
-                torch.empty(shape), [0], [1], torch.float32
-            )
+    def test_non_matrix_skipped(self, shape):
+        with self.assertLogs(passes.log.name, level="DEBUG"):
+            self.assertFalse(passes._msc_valid_index_columns(torch.empty(shape), [0]))
 
 
 @instantiate_parametrized_tests
@@ -71,8 +113,10 @@ class TestIndexedSliceConcatBoundaries(unittest.TestCase):
         dtype = src.dtype if dtype is None else dtype
         before = src.clone()
 
+        table = index_table(offsets, widths, src.device)
+
         def fn(x):
-            return passes.INDEXED_SLICE_CONCAT_TARGET(x, offsets, widths, dtype)
+            return passes.INDEXED_SLICE_CONCAT_TARGET(x, table, 0, table.numel(), dtype)
 
         expected = torch.cat([src[:, off:off + width]
                               for off, width in zip(offsets, widths)], 1).to(dtype)
@@ -109,7 +153,8 @@ class TestIndexedSliceConcatBoundaries(unittest.TestCase):
         src = torch.tensor([values] * 5, dtype=torch.float32, device="npu")
 
         def fn(x):
-            packed = passes.INDEXED_SLICE_CONCAT_TARGET(x, [3, 0, 1], [1, 4, 2], dtype)
+            packed = passes.INDEXED_SLICE_CONCAT_TARGET(
+                x, index_table([3, 0, 1], [1, 4, 2], x.device), 0, 7, dtype)
             return packed.float() + 1.
 
         expected = torch.cat([src[:, 3:4], src, src[:, 1:3]], 1).to(dtype).float() + 1.
@@ -136,7 +181,7 @@ class TestIndexedSliceConcatBoundaries(unittest.TestCase):
 
         def fn(x):
             packed = passes.INDEXED_SLICE_CONCAT_TARGET(
-                x.bfloat16(), [3, 0, 1], [1, 4, 2], torch.bfloat16,
+                x.bfloat16(), index_table([3, 0, 1], [1, 4, 2], x.device), 0, 7, torch.bfloat16,
             )
             return packed.float()
 
@@ -164,7 +209,7 @@ class TestIndexedSliceConcatBoundaries(unittest.TestCase):
 
         def fn(src):
             return passes.INDEXED_SLICE_CONCAT_TARGET(
-                src, [66, 0, 3, 3], [1, 33, 9, 9], torch.float32
+                src, index_table([66, 0, 3, 3], [1, 33, 9, 9], src.device), 0, 52, torch.float32
             )
 
         compiled = torch.compile(fn, fullgraph=True, dynamic=False)
@@ -200,6 +245,8 @@ class TestIndexedSliceConcatBoundaries(unittest.TestCase):
 
         src = torch.randn(5, 67, device="npu", dtype=torch.bfloat16)
         with config.patch(
+            # The gather reads a table the pre_grad pass registers as a buffer.
+            pre_grad_custom_pass=passes.indexed_slice_concat_table_pass,
             post_grad_custom_post_pass=apply_pass,
             fx_graph_cache=False,
             fx_graph_remote_cache=False,

@@ -12,9 +12,11 @@ for _, module_name, _ in pkgutil.iter_modules(__path__):
 
 def run_register_pre_custom_passes(gm):
     log.debug("before pre_grad graph optimizer pass, graph is: %s", gm)
-    if is_inference_check():
-        for level in sorted(FxPassLevel):
-            for fn in ASCEND_CUSTOME_PASS_REGISTER[PassType.PRE][level]:
+    inference = is_inference_check()
+    for level in sorted(FxPassLevel):
+        for fn in ASCEND_CUSTOME_PASS_REGISTER[PassType.PRE][level]:
+            # a pass marked ignore_inference_check also runs on training graphs.
+            if inference or getattr(fn, "ignore_inference_check", False):
                 fn(gm)
 
     for level in sorted(FxPassLevel):
