@@ -157,6 +157,11 @@ KEEP_UPSTREAM_LOWERING = [control_deps] + [
         "index_put",
         "index_put_",
         "_local_scalar_dense",
+        # aten.cumsum: keep the upstream scan-based lowering. The blanket
+        # fallback below would otherwise lower cumsum to an ATen extern call, so
+        # the lifted scan combine helper (e.g. _triton_helper_fn_add0) is never
+        # emitted and cumsum drops out of the Triton (combo) kernel.
+        "cumsum",
     )
     if hasattr(aten, _name)
 ]
