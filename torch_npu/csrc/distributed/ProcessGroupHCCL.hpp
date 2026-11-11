@@ -295,6 +295,8 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
     // completion.
     void synchronize() override;
 
+    void blockCurrentStream() override;
+
     // Helper function to handle exception (throw if needed).
     void handleException(ErrorHandlingMode asyncErrorHandling);
 
@@ -386,6 +388,12 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
    private:
     // Helper function for synchronize
     void synchronizeInternal(std::chrono::milliseconds timeout);
+
+    // Helper function shared by synchronizeInternal and blockCurrentStream:
+    // establishes stream dependencies on the HCCL end events and releases
+    // allocator bookkeeping (recorded streams, stashed tensors). No barrier
+    // device sync, no blocking wait, so the host never blocks here.
+    void blockStreamsAndCleanupRecords();
 
     // Checks for HCCL errors and sets an appropriate exception_ptr.
     void checkAndSetException();

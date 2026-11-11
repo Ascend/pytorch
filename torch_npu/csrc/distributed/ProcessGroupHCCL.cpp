@@ -1067,18 +1067,16 @@ void ProcessGroupHCCL::WorkHCCL::checkAndThrowException() {
   }
 }
 
-// Waiting on the work's corresponding NPU events
-void ProcessGroupHCCL::WorkHCCL::synchronizeInternal(std::chrono::milliseconds timeout) {
+// Block the current stream on the HCCL end events, then erase recorded
+// streams and release tensors stashed for allocator safety. Only establishes
+// stream dependencies and host-side bookkeeping: no barrier device sync, no
+// blocking wait, so the host never blocks here.
+void ProcessGroupHCCL::WorkHCCL::blockStreamsAndCleanupRecords() {
   for (const auto i : c10::irange(devices_.size())) {
     auto currentStream = c10_npu::getCurrentNPUStream(devices_[i].index());
     // Block the current stream on the HCCL stream
     (*hcclEndEvents_)[i].block(currentStream);
     TORCH_NPU_HCCL_LOGI("Event: block hccl work is successfully executed, event=%p", (*hcclEndEvents_)[i].event());
-    // If we use the work to do barrier, we should block here
-    if (!barrierTensors_.empty()) {
-      c10_npu::NPUGuard npuGuard(devices_[i]);
-      c10_npu::npuSynchronizeDevice();
-    }
   }
 
   if (!recorded_inputs_.empty()) {
@@ -1106,6 +1104,26 @@ void ProcessGroupHCCL::WorkHCCL::synchronizeInternal(std::chrono::milliseconds t
     lazy_destroy_tensors_.clear();
   } else if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
     stashed_for_allocator_safety_->unstash();
+  }
+}
+
+void ProcessGroupHCCL::WorkHCCL::blockCurrentStream() {
+  blockStreamsAndCleanupRecords();
+  if (c10d::allow_inflight_collective_as_graph_input()) {
+    c10d::unregister_work(c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>::unsafe_reclaim_from_nonowning(this));
+  }
+}
+
+// Waiting on the work's corresponding NPU events
+void ProcessGroupHCCL::WorkHCCL::synchronizeInternal(std::chrono::milliseconds timeout) {
+  blockStreamsAndCleanupRecords();
+
+  // If we use the work to do barrier, we should block here
+  if (!barrierTensors_.empty()) {
+    for (const auto i : c10::irange(devices_.size())) {
+      c10_npu::NPUGuard npuGuard(devices_[i]);
+      c10_npu::npuSynchronizeDevice();
+    }
   }
 
   // In case of blocking, wait for the operation to complete.
