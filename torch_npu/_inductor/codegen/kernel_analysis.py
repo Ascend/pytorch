@@ -452,6 +452,13 @@ class ReductionAnalysis:
 
     def dense_post_reduction_list(self) -> List[str]:
         reduction_list_str = f"{' * '.join(self.dense_reduction_list())}"
+        if self.kernel._use_contiguous_sum_layout():
+            # Keep the original value-axis order, including outside reduction.
+            return [
+                f"{axis.name.upper()}BLOCK_SUB"
+                for axis in reversed(self.kernel.golden_var_list)
+                if axis.name[0] != "r"
+            ] + [reduction_list_str]
         no_reduction_list = []
         if self.kernel.permute_continous_reduction:
             for axis in self.kernel.tiling_axis:

@@ -97,7 +97,7 @@ import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
 from torch_npu._inductor.npu_compare import check_accuracy_triton
 
-from ..codegen.tile_generator import TileGenerator
+from ..codegen.tile_generator import TileGenerator, ub_overflow_retry_configs
 from ..codegen.combo_tile_generator import ComboTileGenerator
 from ..codegen.triton_utils import NPUKernelType
 from ..config import log, autotune_continue_on_failure
@@ -992,27 +992,71 @@ class NPUCachingAutotuner(CachingAutotuner):
             )
         self.compile_results = compile_results
 
-    def _precompile_configs(self, configs):
+    def _precompile_configs_once(self, configs):
+        compile_results = [None] * len(configs)
+        compile_exceptions = [None] * len(configs)
+        compile_exception_stacks = [""] * len(configs)
+        for index, candidate_config in enumerate(configs):
+            try:
+                compile_results[index] = self._precompile_config(candidate_config)
+            except Exception as exc:
+                import traceback
+                compile_exception_stacks[index] = traceback.format_exc()
+                compile_exceptions[index] = exc
+        return compile_results, compile_exceptions, compile_exception_stacks
+
+    def _precompile_configs_with(self, configs, compile_once):
         if not configs:
             raise NoTritonConfigsError("No triton configs are available")
 
-        compile_results = []
-        exc = None
-        exc_stack = ""
         compile_start_time = time.perf_counter()
-        for c in configs:
-            try:
-                compile_results.append(self._precompile_config(c))
-            except Exception as e:
-                import traceback
-                exc_stack = traceback.format_exc()
-                exc = e
-        if len(compile_results) == 0:
-            raise NoTritonConfigsError(
-                f"No valid triton configs. {type(exc).__name__}: {exc} \nStack trace:{exc_stack}"
+        attempted_configs = list(configs)
+        compile_results, exceptions, exception_stacks = compile_once(configs)
+        successful_results = [
+            result for result in compile_results if result is not None
+        ]
+        if not successful_results:
+            exc, exc_stack = next(
+                (
+                    (exc, stack)
+                    for exc, stack in zip(exceptions, exception_stacks)
+                    if exc is not None
+                ),
+                (None, ""),
             )
-        log.info(f"kernel: {self.get_fn_name()} compile cost time: {time.perf_counter() - compile_start_time}s")
-        return compile_results
+            error = NoTritonConfigsError(
+                f"No valid triton configs for kernel {self.get_fn_name()}. "
+                f"{type(exc).__name__}: {exc} \nStack trace:{exc_stack}"
+            )
+            # All compile tasks have finished. Only an entirely UB-overflow
+            # batch supplies feedback to the outer, one-shot search stage.
+            if type(self) is NPUCachingAutotuner and len(exceptions) == len(attempted_configs):
+                failures = []
+                for cfg, failure in zip(attempted_configs, exceptions):
+                    match = re.search(
+                        r"ub overflow.*?requires (\d+) bits while (\d+) bits available",
+                        str(failure), re.IGNORECASE,
+                    ) if failure is not None else None
+                    if match is None:
+                        break
+                    required, available = map(int, match.groups())
+                    if not required > available > 0:
+                        break
+                    failures.append((cfg, required, available))
+                else:
+                    error.ub_overflow_failures = tuple(failures)
+            raise error
+        log.debug(
+            "kernel: %s config compile elapsed time: %ss",
+            self.get_fn_name(),
+            time.perf_counter() - compile_start_time,
+        )
+        return successful_results
+
+    def _precompile_configs(self, configs):
+        return self._precompile_configs_with(
+            configs, self._precompile_configs_once
+        )
 
     def _precompile_current_configs(self, compile_fn):
         configs = self.configs
@@ -1025,7 +1069,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         self.configs = configs
         self.candidate_plan = plan
 
-    def _precompile_worker(self):
+    def _precompile_worker_with(self, compile_fn):
         if self.compile_results:
             for result in self.compile_results:
                 TritonBundler.put(
@@ -1036,7 +1080,67 @@ class NPUCachingAutotuner(CachingAutotuner):
         if self.launchers:
             raise AssertionError("Before _precompile_worker, launchers must bt empty")
 
-        self._precompile_current_configs(self._precompile_configs)
+        # Only the ordinary autotuner supports UB retry. Subclasses keep their
+        # existing precompile flow, including costmodel and grouped autotune.
+        if type(self) is not NPUCachingAutotuner:
+            self._precompile_current_configs(compile_fn)
+            return
+
+        try:
+            self._precompile_current_configs(compile_fn)
+        except NoTritonConfigsError as error:
+            failures = getattr(error, "ub_overflow_failures", ())
+            if not failures:
+                raise
+            try:
+                if self._retry_with_smaller_configs(compile_fn, failures):
+                    return
+            except NoTritonConfigsError:
+                pass
+            # A failed or unavailable retry must preserve the original batch error.
+            raise
+
+    def _retry_with_smaller_configs(self, compile_fn, failures):
+        if (
+            getattr(self, "_ub_retry_attempted", False)
+            or self.custom_kernel
+            or self.inductor_meta.get("group_enabled", False)
+        ):
+            return False
+        original_configs = unique_configs(self.configs)
+        constexpr_names = {self.fn.arg_names[index] for index in self.fn.constexprs}
+        extra_configs = ub_overflow_retry_configs(
+            original_configs, failures, self.inductor_meta, constexpr_names,
+            self.runtime_block_arg_names,
+            persistent_reduction=self.heuristic_type in (
+                HeuristicType.PERSISTENT_REDUCTION, HeuristicType.TEMPLATE,
+            ),
+        )
+        if not extra_configs:
+            return False
+        self._ub_retry_attempted = True
+        expanded_configs = [*original_configs, *extra_configs]
+        expanded_plan = build_candidate_plan(expanded_configs, self.runtime_block_arg_names)
+        extra_variant_ids = {
+            entry["variant_id"] for entry in expanded_plan["candidate_entries"][len(original_configs):]
+        }
+        extra_variants = [cfg for cfg in self._precompile_variant_configs(expanded_configs)
+                          if cfg._runtime_variant_id in extra_variant_ids]
+        log.warning(
+            "All original configs failed with UB overflow for %s; "
+            "retry adds %d smaller configs once: %s",
+            self.get_fn_name(), len(extra_variants), [cfg.kwargs for cfg in extra_variants],
+        )
+        # Compile the appended configs once, without recursive expansion.
+        compile_results = compile_fn(extra_variants)
+        # Publish the expanded candidate space only after the new batch succeeds.
+        self.configs = expanded_configs
+        self.candidate_plan = expanded_plan
+        self.compile_results = compile_results
+        return True
+
+    def _precompile_worker(self):
+        self._precompile_worker_with(self._precompile_configs)
 
     def parse_triton_ascend_options(self, tiling_kwargs, options):
         from triton.backends.ascend.compiler import NPUOptions
@@ -1287,10 +1391,7 @@ class NPUCachingAutotuner(CachingAutotuner):
 
         self.cuda_kernel_saved = True
 
-    def _precompile_configs_parallel(self, configs):
-        if not configs:
-            raise NoTritonConfigsError("No triton configs are available")
-
+    def _precompile_configs_parallel_once(self, configs):
         config_len = len(configs)
         compile_exc_results = [None for _ in range(config_len)]
         compile_exc_stack_results = ["" for _ in range(config_len)]
@@ -1312,35 +1413,22 @@ class NPUCachingAutotuner(CachingAutotuner):
         from torch._dynamo.device_interface import DeviceGuard
         device_interface = self.get_device_interface()
         # load binary to the correct device
-        compile_results = []
+        compile_results = [None] * config_len
         with DeviceGuard(device_interface, self.triton_meta["device"]):
             # need to initialize context
             device_interface.synchronize(device_interface.current_device())
-            for future in as_completed(tasks):
-                compiled_kernel = future.result()
-                if compiled_kernel is None:
-                    continue
-                compile_results.append(compiled_kernel)
+            for index, future in enumerate(tasks):
+                compile_results[index] = future.result()
 
-        if len(compile_results) == 0:
-            raise NoTritonConfigsError(
-                f"No valid triton configs for kernel {self.get_fn_name()}. {type(compile_exc_results[0]).__name__}: {compile_exc_results[0]} \nStack trace:{compile_exc_stack_results[0]}"
-            )
-        return compile_results
+        return compile_results, compile_exc_results, compile_exc_stack_results
+
+    def _precompile_configs_parallel(self, configs):
+        return self._precompile_configs_with(
+            configs, self._precompile_configs_parallel_once
+        )
 
     def _precompile_worker_parallel(self):
-        if self.compile_results:
-            for result in self.compile_results:
-                TritonBundler.put(
-                    triton_hash_to_path_key(result.kernel.hash),
-                    self.triton_meta.get("device", 0),
-                )
-            return
-
-        if self.launchers:
-            raise AssertionError("Before _precompile_worker, launchers must bt empty")
-
-        self._precompile_current_configs(self._precompile_configs_parallel)
+        self._precompile_worker_with(self._precompile_configs_parallel)
 
     # bench method is called by torch, grid can not be modified
     def bench(self, launcher, *args, with_profiler=False, runtime_blocks=None, **kwargs):
