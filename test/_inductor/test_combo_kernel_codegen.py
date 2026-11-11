@@ -21,6 +21,7 @@ from torch_npu._inductor.codegen.triton import (
     NPUIndexTritonKernel,
 )
 from torch_npu._inductor.codegen.triton_combo_kernel import NPUComboKernel
+from torch_npu._inductor.codegen.triton_utils import get_aligned_numel
 from torch_npu._inductor.runtime.triton_heuristics import SequentialComboKernelGrid
 
 
@@ -41,6 +42,103 @@ def make_axis(name, length, order=0):
 
 
 class TestComboKernelCodegen(unittest.TestCase):
+    def test_numel_partition_regroups_large_outliers(self):
+        nodes = list(range(6))
+        ratio = 4 * npu_config.num_vector_core
+        sizes = [ratio + 1, 2 * (ratio + 1), 1, 1, 1, 1]
+        kernels = {i: SimpleNamespace(sorted_axis=[make_axis('x0', n)])
+                   for i, n in enumerate(sizes)}
+        groups = NPUComboKernel._partition_by_numel(nodes, kernels)
+        self.assertEqual(groups, [[2, 3, 4, 5], [0, 1]])
+
+    def test_numel_partition_includes_reduction_extent(self):
+        nodes = list(range(5))
+        ratio = 4 * npu_config.num_vector_core
+        shapes = [(1, ratio + 1), (1, ratio + 1), (1, ratio + 1),
+                  (1, 1), (1, ratio + 1)]
+        kernels = {i: SimpleNamespace(sorted_axis=[make_axis('x0', x),
+                                                   make_axis('r1', r, 1)])
+                   for i, (x, r) in enumerate(shapes)}
+        groups = NPUComboKernel._partition_by_numel(nodes, kernels)
+        self.assertEqual(groups, [[3], [0, 1, 2, 4]])
+
+    def test_numel_partition_strict_boundary(self):
+        ratio = 4 * npu_config.num_vector_core
+        step = ratio + 1
+        for sizes, expected in [([1, ratio, ratio], [[0, 1, 2]]),
+                                ([1, step, step], [[0], [1, 2]])]:
+            with self.subTest(sizes=sizes):
+                nodes = list(range(len(sizes)))
+                kernels = {i: SimpleNamespace(sorted_axis=[make_axis('x0', n)])
+                           for i, n in enumerate(sizes)}
+                self.assertEqual(NPUComboKernel._partition_by_numel(nodes, kernels),
+                                 expected)
+
+    def test_numel_partition_preserves_dynamic_group(self):
+        nodes = [0, 1, 2]
+        kernels = {i: SimpleNamespace(sorted_axis=[make_axis('x0', n)])
+                   for i, n in enumerate([1, sympy.Symbol('s0', positive=True), 1000000])}
+        self.assertEqual(NPUComboKernel._partition_by_numel(nodes, kernels), [nodes])
+
+    def test_long_axis_dispatch_checks_access_layout(self):
+        for layout, expected in [('contiguous', 'x2'), ('transposed', 'x1'),
+                                 ('stride2', 'x1'), ('conflicting', 'x1'),
+                                 ('unknown', 'x1')]:
+            with self.subTest(layout=layout):
+                axes = [make_axis('x1', 2), make_axis('x2', 16)]
+                for axis in axes:
+                    axis.is_split_axis = True
+                x1, x2 = [axis.symbol() for axis in axes]
+                indexings = {'contiguous': [16*x1+x2],
+                             'transposed': [x1+2*x2],
+                             'stride2': [32*x1+2*x2],
+                             'conflicting': [16*x1+x2, x1+2*x2],
+                             'unknown': []}[layout]
+                member = SimpleNamespace(split_axis=axes.copy(), sorted_axis=axes,
+                                         persistent_reduction=False, no_x_dim=False,
+                                         load_store_indexing=indexings, low_dims=set())
+                with patch.object(combo_codegen, 'NPUIndexTritonKernel', return_value=member):
+                    actual = NPUComboKernel.create_triton_kernel({}, Mock(), True)
+                self.assertEqual([axis.name for axis in actual.split_axis], [expected])
+                self.assertEqual([axis.name for axis in axes if axis.is_split_axis], [expected])
+
+    def test_dynamic_split_order_is_preserved(self):
+        axes = [make_axis('x1', sympy.Symbol('s0', positive=True)), make_axis('x2', 16)]
+        for axis in axes:
+            axis.is_split_axis = True
+        member = SimpleNamespace(split_axis=axes.copy(), sorted_axis=axes,
+                                 persistent_reduction=False, no_x_dim=False,
+                                 load_store_indexing=[axes[1].symbol()], low_dims=set())
+        with patch.object(combo_codegen, 'NPUIndexTritonKernel', return_value=member):
+            actual = NPUComboKernel.create_triton_kernel({}, Mock(), True)
+        self.assertEqual([axis.name for axis in actual.split_axis], ['x1'])
+
+    def test_low_axis_alignment_boundary_and_single_axis_fallback(self):
+        max_programs = npu_config.num_vector_core * npu_config.combo_kernel_max_waves
+        boundary = (get_aligned_numel(torch.float32) - 1) * max_programs
+        for inner, expected in ((boundary, 'x1'), (boundary + 1, 'x0')):
+            axes = [make_axis('x1', 2, 0), make_axis('x0', inner, 1)]
+            x1, x0 = [axis.symbol() for axis in axes]
+            member = SimpleNamespace(
+                split_axis=axes.copy(), sorted_axis=axes, low_dims={1},
+                persistent_reduction=False, no_x_dim=False,
+                get_axis_dtype=lambda axis: torch.float32,
+                load_store_indexing=[inner*x1+x0],
+            )
+            with patch.object(combo_codegen, 'NPUIndexTritonKernel', return_value=member):
+                actual = NPUComboKernel.create_triton_kernel({}, Mock(), True)
+            self.assertEqual([axis.name for axis in actual.split_axis], [expected])
+        axis = make_axis('x0', 16, 0)
+        member = SimpleNamespace(
+            split_axis=[axis], sorted_axis=[axis], low_dims={0},
+            persistent_reduction=False, no_x_dim=False,
+            get_axis_dtype=lambda axis: torch.float32,
+            load_store_indexing=[axis.symbol()],
+        )
+        with patch.object(combo_codegen, 'NPUIndexTritonKernel', return_value=member):
+            actual = NPUComboKernel.create_triton_kernel({}, Mock(), True)
+        self.assertEqual(actual.split_axis, [axis])
+
     def test_regroup_fused_subkernels(self):
         def node(name, sizes, reduction=False):
             n = SimpleNamespace(

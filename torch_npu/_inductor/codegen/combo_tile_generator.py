@@ -15,6 +15,8 @@ class ComboTileGenerator(TileGenerator):
 
     def __init__(self, subkernels, input_ptr_num=0, npu_kernel_type=NPUKernelType.SIMD):
         self.subkernels = subkernels
+        self.max_waves = config.combo_kernel_max_waves
+        self._program_limit = config.num_vector_core * self.max_waves
         first = subkernels[0]
         axis_names = first["axis_names"]
         split_axis = first["split_axis"]
@@ -61,24 +63,24 @@ class ComboTileGenerator(TileGenerator):
         return programs
 
     def calcu_last_split_blocks(self, axis):
-        """Find the smallest shared block fitting one wave, including tails.
+        """Find the smallest shared block fitting the wave budget, including tails.
 
-        ceil(sum(extents) / cores) is only a lower bound: every subkernel has
+        ceil(sum(extents) / max_programs) is only a lower bound: every subkernel has
         its own final partial block. Program count is monotone in block size,
         so a binary search finds the exact boundary without enumerating sizes.
         """
-        lower = max(1, (self.numels[axis] + config.num_vector_core - 1)
-                    // config.num_vector_core)
+        lower = max(1, (self.numels[axis] + self.max_programs - 1)
+                    // self.max_programs)
         upper = max(item["size_hints"][self.axis_name[axis]]
                     for item in self.subkernels)
         blocks = self.blocks.copy()
         blocks[axis] = upper
-        if self.calculate_total_programs(blocks) > config.num_vector_core:
-            raise ValueError("Combo has more nonempty subkernels than vector cores")
+        if self.calculate_total_programs(blocks) > self.max_programs:
+            raise ValueError("Combo has more nonempty subkernels than the program limit")
         while lower < upper:
             middle = (lower + upper) // 2
             blocks[axis] = middle
-            if self.calculate_total_programs(blocks) > config.num_vector_core:
+            if self.calculate_total_programs(blocks) > self.max_programs:
                 lower = middle + 1
             else:
                 upper = middle
@@ -99,7 +101,11 @@ class ComboTileGenerator(TileGenerator):
                 else:
                     extent = cfg.get(f"{name.upper()}BLOCK_SUB", 1)
                 tile_numel *= extent
-            largest_tile = max(largest_tile, tile_numel)
+            # Compare each branch's resident bytes in the common dtype units
+            # consumed by the inherited resource checks.
+            branch_bytes = get_byte_per_numel(item["split_axis_dtype"])
+            normalized_numel = (tile_numel * branch_bytes + self.dtype_bytes - 1) // self.dtype_bytes
+            largest_tile = max(largest_tile, normalized_numel)
         return largest_tile
 
     def descend_split_axis_inner(self, axis_index):
@@ -116,7 +122,36 @@ class ComboTileGenerator(TileGenerator):
         self.sub_blocks = saved_sub_blocks
         return reached_stop
 
+    @property
+    def max_programs(self):
+        return self._program_limit
+
+    def descend_split_tiling(self):
+        # The parent keeps only the last few split seeds. Searching only at the
+        # maximum budget drops the one-wave boundary and intermediate seeds.
+        # Search every wave budget independently to retain all one-wave tiles,
+        # including their subtiles and compiler options, before deduplicating.
+        configs = []
+        seen = set()
+        minimum_programs = self.calculate_total_programs(self.numels)
+        program_limit = self._program_limit
+        try:
+            for waves in range(1, self.max_waves + 1):
+                self._program_limit = config.num_vector_core * waves
+                if minimum_programs > self.max_programs:
+                    continue
+                for candidate in super().descend_split_tiling():
+                    key = (tuple(sorted(candidate.kwargs.items())),
+                           candidate.num_warps, candidate.num_stages)
+                    if key not in seen:
+                        seen.add(key)
+                        configs.append(candidate)
+        finally:
+            self._program_limit = program_limit
+        self.configs = configs
+        return self.configs
+
     def add_to_configs(self, candi_block):
-        if self.calculate_total_programs(candi_block) > config.num_vector_core:
+        if self.calculate_total_programs(candi_block) > self.max_programs:
             return False
         return super().add_to_configs(candi_block)

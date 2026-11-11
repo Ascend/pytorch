@@ -115,6 +115,9 @@ def _obtain_and_limit_cube_vector_core_num():
 
 prop, num_cube_core, num_vector_core = _obtain_and_limit_cube_vector_core_num()
 
+# Shared by combo dispatch-axis selection and all tiling wave budgets.
+combo_kernel_max_waves = 8
+
 
 def _obtain_precompile_thread_num() -> int:
     """

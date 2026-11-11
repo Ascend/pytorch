@@ -1,5 +1,7 @@
 from typing import Any, cast, Optional
 
+import math
+
 import numpy as np
 import sympy
 from sympy import Integer
@@ -17,6 +19,8 @@ from torch.utils._ordered_set import OrderedSet
 
 from ..codegen.npu_kernel_features import NumelList
 from ..codegen.triton import NPUIndexTritonKernel
+from ..codegen.triton_utils import get_aligned_numel
+from .. import config as npu_config
 from ..runtime.triton_heuristics import SequentialComboKernelGrid
 
 
@@ -55,11 +59,36 @@ class NPUComboKernel(ComboKernel):
             # Grouped plans use a single kernel's axis arguments and grid.
             allow_grouped_autotune=False,
         )
-        kernel.split_axis = [
+        split_axes = [
             axis for axis in kernel.split_axis
             if not (axis.is_reduction and kernel.persistent_reduction)
             and not (axis.prefix == "x" and kernel.no_x_dim)
-        ][:1]
+        ]
+        selected = split_axes[:1]
+        if split_axes and all(isinstance(axis.length, (Integer, int)) for axis in split_axes):
+            max_programs = npu_config.num_vector_core * npu_config.combo_kernel_max_waves
+            # Keep short contiguous dimensions for vectorized access rather
+            # than dispatching sub-block fragments of them to separate cores.
+            # Long low dimensions may still supply full aligned transfers at
+            # the configured wave boundary. A single available axis keeps its ABI.
+            dispatch_axes = [
+                axis for axis in split_axes
+                if axis.sorted_order not in kernel.low_dims
+                or (int(axis.length) + max_programs - 1) // max_programs
+                >= get_aligned_numel(kernel.get_axis_dtype(axis))
+            ]
+            if not dispatch_axes:
+                dispatch_axes = split_axes[:1]
+            selected = dispatch_axes[:1]
+            longest = max(dispatch_axes, key=lambda axis: int(axis.length))
+            # Only change dispatch when every access using the longer axis is
+            # contiguous along it. Broadcasts are harmless; unknown, strided or
+            # conflicting layouts retain the original axis and tile alignment.
+            symbol = longest.symbol()
+            accesses = [index for index in (kernel.load_store_indexing or ()) if index.has(symbol)]
+            if accesses and all(not sympy.expand(index - symbol).has(symbol) for index in accesses):
+                selected = [longest]
+        kernel.split_axis = selected
         for axis in kernel.sorted_axis:
             if axis not in kernel.split_axis:
                 axis.is_split_axis = False
@@ -77,6 +106,41 @@ class NPUComboKernel(ComboKernel):
     def select_dispatch_strategy(self) -> None:
         if self.dispatch_class is None:
             self.dispatch_class = NPUComboKernel.SIMDDispatch
+
+    @staticmethod
+    def _partition_by_numel(nodes, kernel_map):
+        """Separate extreme static iteration sizes without changing block ABI."""
+        numels = {}
+        for node in nodes:
+            axes = kernel_map[node].sorted_axis
+            if any(not isinstance(axis.length, (Integer, int)) or axis.length <= 0
+                   for axis in axes):
+                # Do not specialize a partition on dynamic shape hints.
+                return [nodes]
+            numels[node] = math.prod(int(axis.length) for axis in axes)
+
+        ratio = 4 * npu_config.num_vector_core
+
+        def partition(group):
+            if len(group) < 2:
+                return [group] if group else []
+            values = sorted(numels[node] for node in group)
+            # Twice the arithmetic median, retaining exact integer boundaries.
+            median2 = values[(len(values) - 1) // 2] + values[len(values) // 2]
+            small, middle, large = [], [], []
+            for node in group:
+                if 2 * numels[node] * ratio < median2:
+                    small.append(node)
+                elif 2 * numels[node] > median2 * ratio:
+                    large.append(node)
+                else:
+                    middle.append(node)
+            if not small and not large:
+                return [group]
+            # Outliers remain eligible for combo fusion with one another.
+            return partition(small) + partition(middle) + partition(large)
+
+        return partition(nodes)
 
     @staticmethod
     def horizontal_partition(
@@ -126,7 +190,10 @@ class NPUComboKernel(ComboKernel):
                     ),
                 )
                 groups.setdefault(key, []).append(node)
-            compatible_partitions.extend(groups.values())
+            for group in groups.values():
+                compatible_partitions.extend(
+                    NPUComboKernel._partition_by_numel(group, kernel_map)
+                )
         return compatible_partitions
 
     def select_combo_heuristics(
