@@ -1,5 +1,10 @@
 __all__ = [
-    "is_hccl_available", "reinit_process_group", "reduce_scatter_tensor_uneven", "all_gather_into_tensor_uneven", "all_to_all_vc"
+    "is_hccl_available",
+    "reinit_process_group",
+    "reduce_scatter_tensor_uneven",
+    "all_gather_into_tensor_uneven",
+    "all_to_all_vc",
+    "functional_all_reduce",
 ]
 
 from torch.distributed import _make_nccl_premul_sum as _make_hccl_premul_sum
@@ -28,3 +33,5 @@ from torch_npu._C._distributed_c10d import (
 
 from torch_npu.distributed import tensor, nn
 from .distributed_c10d import is_hccl_available, reinit_process_group, _reduce_scatter_tensor_uneven as reduce_scatter_tensor_uneven, _all_gather_into_tensor_uneven as all_gather_into_tensor_uneven, _all_to_all_vc as all_to_all_vc
+
+from ._functional_collectives import functional_all_reduce
