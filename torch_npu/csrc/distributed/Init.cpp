@@ -27,7 +27,7 @@
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/distributed/Init.h"
-
+#include "torch_npu/csrc/distributed/PythonDebugAdapter.h"
 
 namespace {
 
@@ -206,7 +206,8 @@ void _register_builtin_comm_hook(
 
 PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs)
 {
-    auto torch_npu_C_module = THPObjectPtr(PyImport_ImportModule("torch_npu._C"));
+  c10d_npu::registerPythonDebugAdapter();
+  auto torch_npu_C_module = THPObjectPtr(PyImport_ImportModule("torch_npu._C"));
     if (!torch_npu_C_module) {
         throw python_error();
     }
