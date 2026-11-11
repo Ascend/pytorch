@@ -623,6 +623,14 @@ public:
         std::vector<at::Tensor>& tensors,
         const c10d::AllreduceOptions& opts = c10d::AllreduceOptions()) override;
 
+  static at::Tensor prepareFunctionalAllReduceInput(const at::Tensor& input);
+
+  // The independent functional entry supplies prepared input and separate output.
+  c10::intrusive_ptr<c10d::Work> allreduce_out(
+      const at::Tensor& input,
+      at::Tensor& output,
+      const c10d::AllreduceOptions& opts);
+
     c10::intrusive_ptr<c10d::Work> allreduce_coalesced(
         std::vector<at::Tensor>& tensors,
         const c10d::AllreduceCoalescedOptions& opts =
