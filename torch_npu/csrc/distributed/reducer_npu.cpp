@@ -1,7 +1,7 @@
 #include <c10d/reducer_timer.hpp>
 #include <c10d/debug.h>
 
-#include "torch_npu/csrc/npu/Event.h"
+#include "torch_npu/csrc/core/npu/NPUEvent.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 
 

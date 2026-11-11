@@ -13,7 +13,7 @@
 #include <c10d/Work.hpp>
 
 #include "torch_npu/csrc/distributed/LCCLUtils.hpp"
-#include "torch_npu/csrc/npu/Event.h"
+#include "torch_npu/csrc/core/npu/NPUEvent.h"
 
 
 namespace c10d_npu {
