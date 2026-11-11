@@ -7,7 +7,6 @@ on:
     paths:
       - '.github/workflows/nightly-a5.yml'
       - '.github/config/nightly_test_categories_a5.yml'
-      - '.github/config/disabled_testcases_a5_all.json'
   workflow_dispatch:
 
 permissions:
