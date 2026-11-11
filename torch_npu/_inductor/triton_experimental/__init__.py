@@ -73,6 +73,18 @@ def _activate():
     # Keep coordinate descent under the caller's configuration.
     inductor_config.split_reductions = False
 
+    # Keep the npu num_splits active here too. torch_npu/_inductor/__init__.py
+    # applies patch_num_splits() when it loads the triton backend; this
+    # triton_experimental loader never did, so an explicit
+    # split_reductions=True fell through to upstream's multi-layer split:
+    # Reduction.num_splits splits wide outer reductions and the resulting
+    # two-stage partial+combine form sets _split_size, which makes
+    # MixOrderReduction reject the fusion (the whole split_reductions=True
+    # parameterization of test_mix_order_reduction failed).
+    from torch_npu._inductor.ir import patch_num_splits
+
+    patch_num_splits()
+
     device.register_backend_for_npu()
 
     from torch_npu._inductor import _apply_common_npu_triton_patches
