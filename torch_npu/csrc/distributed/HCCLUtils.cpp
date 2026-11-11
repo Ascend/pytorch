@@ -4,6 +4,7 @@
 
 #include <torch/csrc/distributed/c10d/Utils.hpp>
 
+#include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/interface/HcclInterface.h"
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
 
@@ -67,6 +68,7 @@ std::map<at::ScalarType, HcclDataType> kScalarTypeToHcclDataType = {
     {at::kBFloat16, HCCL_DATA_TYPE_BFP16},
     {at::ScalarType::Float8_e4m3fn, HCCL_DATA_TYPE_FP8E4M3},
     {at::ScalarType::Float8_e5m2, HCCL_DATA_TYPE_FP8E5M2},
+    {at::ScalarType::Float8_e8m0fnu, HCCL_DATA_TYPE_FP8E8M0},
 };
 
 std::map<HcclDataType, std::string> kHcclDataTypeToStringMap = {
@@ -84,11 +86,17 @@ std::map<HcclDataType, std::string> kHcclDataTypeToStringMap = {
     {HCCL_DATA_TYPE_BFP16, "at::kBFloat16"},
     {HCCL_DATA_TYPE_FP8E4M3, "at::ScalarType::Float8_e4m3fn"},
     {HCCL_DATA_TYPE_FP8E5M2, "at::ScalarType::Float8_e5m2"},
+    {HCCL_DATA_TYPE_FP8E8M0, "at::ScalarType::Float8_e8m0fnu"},
 };
 
 // Helper function that gets the data type and issues error if not supported
 HcclDataType getHcclDataType(at::ScalarType type)
 {
+    // Other data types keep their existing mapping behavior without querying the SoC.
+    TORCH_CHECK(
+        type != at::ScalarType::Float8_e8m0fnu || c10_npu::GetSocVersion() == c10_npu::SocVersion::Ascend950,
+        "HCCL float8_e8m0fnu communication is only supported on Ascend950 (Atlas A5).",
+        DIST_ERROR(ErrCode::NOT_SUPPORT));
     try {
         return kScalarTypeToHcclDataType.at(type);
     } catch (std::out_of_range& e) {

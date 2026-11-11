@@ -398,16 +398,31 @@ endif()
 
 if (DEFINED BUILD_GTEST)
   enable_testing()
+  # Make internal HCCL utilities linkable from unit tests in test builds only.
+  if (COMPILER_SUPPORTS_HIDDEN_VISIBILITY)
+    set_property(SOURCE ${TORCHNPU_ROOT}/distributed/HCCLUtils.cpp
+      APPEND PROPERTY COMPILE_OPTIONS -fvisibility=default)
+  endif()
   SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/gtest)
   add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/googletest)
   include_directories(${PROJECT_SOURCE_DIR}/third_party/googletest/googletest/include)
 
   set(TORCH_API_TEST_SOURCES)
+  set(TORCH_HCCL_TEST_SOURCES)
   add_subdirectory(${PROJECT_SOURCE_DIR}/test/cpp/api)
   add_executable(test_api ${TORCH_API_TEST_SOURCES})
+  add_executable(test_hccl_utils ${TORCH_HCCL_TEST_SOURCES})
+  set_target_properties(test_hccl_utils PROPERTIES
+    BUILD_WITH_INSTALL_RPATH FALSE)
 
   target_link_libraries(test_api PUBLIC torch_npu)
   target_link_libraries(test_api PUBLIC gtest_main gtest)
+  target_link_libraries(test_hccl_utils PRIVATE torch_npu gtest_main gtest)
+  if (NOT DEFINED BUILD_LIBTORCH)
+    find_package(Python3 REQUIRED COMPONENTS Development.Embed)
+    target_link_libraries(test_hccl_utils PRIVATE Python3::Python)
+  endif()
+  add_test(NAME test_hccl_utils COMMAND test_hccl_utils)
 endif()
 
 if (DEFINED BUILD_LIBTORCH)
