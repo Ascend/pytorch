@@ -324,7 +324,12 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id30 -->
 
-**限制与说明**： 仅支持name、total_memory、L2_cache_size、cube_core_num和vector_core_num属性，原CUDA上支持的其余属性均返回空字段
+**限制与说明**：
+
+- 支持的属性范围：`name`、`total_memory`、`L2_cache_size`、`cube_core_num`、`vector_core_num`和`ubuf_size`；原CUDA上支持的其余属性均返回空字段。
+- 容量含义：`ubuf_size`返回ACL查询的原始容量值，表示每颗Vector Core的Unified Buffer容量，单位为字节；打印设备属性对象时按KB展示。
+- CANN要求：`ubuf_size`要求CANN版本不低于`9.0.0.beta2`；CANN版本低于`9.0.0.beta2`时不支持该属性，返回`None`。
+- 硬件范围：仅Ascend 950DT系列产品返回有效值；在Atlas A2、Atlas A3等其他硬件上返回`None`。
 
 </div>
 
