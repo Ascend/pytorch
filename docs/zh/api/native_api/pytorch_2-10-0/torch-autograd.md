@@ -1540,3 +1540,23 @@ with torch.autograd.profiler.profile(use_device="npu", use_kineto=False) as prof
 <!-- end id195 -->
 
 </div>
+
+### <code><i>class</i></code> torch.autograd.graph.GradientEdge
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.graph.GradientEdge](https://docs.pytorch.org/docs/2.10/autograd.html#torch.autograd.graph.GradientEdge)
+
+**产品支持情况**：
+
+<!-- npu="910b" id220 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id220 -->
+<!-- npu="A3" id221 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id221 -->
+<!-- npu="950" id222 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id222 -->
+
+</div>
