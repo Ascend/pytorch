@@ -34,6 +34,20 @@ def patch_has_triton():
     compile_fx.has_triton = has_triton
 
 
+def patch_cse_rand_ops():
+    from torch._functorch import compile_utils
+
+    for name in (
+        "_npu_dropout",
+        "npu_dropout_gen_mask",
+        "npu_dropout_do_mask",
+        "npu_dropout_with_add_softmax",
+    ):
+        op = getattr(torch.ops.npu, name, None)
+        if op is not None and op not in compile_utils.rand_ops:
+            compile_utils.rand_ops.append(op)
+
+
 def patch_device_supports_tma():
     @functools.lru_cache(None)
     def _device_supports_tma():
