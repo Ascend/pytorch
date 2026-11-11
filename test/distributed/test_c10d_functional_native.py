@@ -25,7 +25,8 @@ from torch.testing._internal.common_utils import (  # type: ignore[attr-defined]
     run_tests,
 )
 from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
-import torch_npu
+from torch_npu.testing.common_utils import SkipIfNotGteCANNVersion, SupportedDevices
+import torch_npu  # noqa: F401  # Register the NPU backend.
 
 
 def load_test_module(name):
@@ -272,6 +273,57 @@ class TestWithHccl(MultiProcessTestCase):
         assert not output.completed
         assert output.eq(expect).all()
         assert output.completed
+
+    @skipIfUnsupportMultiNPU(2)
+    @SupportedDevices(["Ascend950"])
+    @SkipIfNotGteCANNVersion("9.2.0")
+    def test_all_gather_into_tensor_e8m0(self) -> None:
+        self._init_process_group()
+
+        # Cover all byte encodings, including NaN, without E8M0 arithmetic.
+        codes = torch.arange(256, dtype=torch.int32).reshape(16, 16)
+        raw = ((codes + self.rank * 37) % 256).to(torch.uint8)
+        tensor = raw.to(self.device).view(torch.float8_e8m0fnu)
+        output = torch.ops._c10d_functional.all_gather_into_tensor(
+            tensor, self.world_size, "default"
+        )
+        output = torch.ops._c10d_functional.wait_tensor(output)
+
+        expected = torch.cat([
+            ((codes + rank * 37) % 256).to(torch.uint8) for rank in self.ranks
+        ])
+        self.assertEqual(output.dtype, torch.float8_e8m0fnu)
+        self.assertEqual(output.device, self.device)
+        self.assertEqual(output.shape, expected.shape)
+        self.assertEqual(output.view(torch.uint8).cpu(), expected)
+
+    @skipIfUnsupportMultiNPU(2)
+    @SupportedDevices(["Ascend950"])
+    @SkipIfNotGteCANNVersion("9.2.0")
+    def test_p2p_e8m0(self) -> None:
+        self._init_process_group()
+        # Initialize the full group before the first P2P operation.
+        warmup = torch.tensor([self.rank], dtype=torch.int32, device=self.device)
+        dist.broadcast(warmup, src=0)
+
+        codes = torch.arange(256, dtype=torch.int32).reshape(16, 16)
+        for sender in self.ranks:
+            expected = ((codes + sender * 37) % 256).to(torch.uint8)
+            if self.rank == sender:
+                tensor = expected.to(self.device).view(torch.float8_e8m0fnu)
+                pending = torch.ops._c10d_functional.isend(tensor, 1 - sender, 0, "default")
+                torch.ops._c10d_functional.wait_tensor(pending)
+                # isend tracks work on both its input and returned placeholder.
+                result = torch.ops._c10d_functional.wait_tensor(tensor)
+            else:
+                output = torch.empty((16, 16), dtype=torch.float8_e8m0fnu, device=self.device)
+                pending = torch.ops._c10d_functional.irecv(output, sender, 0, "default")
+                result = torch.ops._c10d_functional.wait_tensor(pending)
+
+            self.assertEqual(result.dtype, torch.float8_e8m0fnu)
+            self.assertEqual(result.device, self.device)
+            self.assertEqual(result.shape, expected.shape)
+            self.assertEqual(result.view(torch.uint8).cpu(), expected)
 
     @skipIfUnsupportMultiNPU(2)
     def test_all_gather_into_tensor_coalesced(self) -> None:
