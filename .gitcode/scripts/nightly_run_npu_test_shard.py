@@ -1090,6 +1090,19 @@ def _execute_worker_batch(
     results_file.unlink(missing_ok=True)
 
 
+def _is_jit_test_file(test_file: str) -> bool:
+    """判断用例文件是否属于 jit 家族, 需要提前初始化 GRAPH_EXECUTOR。
+
+    包含 test/jit/ 下的用例文件, 以及文件名以 test_jit 开头的文件
+    (如 test_jit.py / test_jit_fuser.py / test_jit_fuser_te.py /
+    test_jit_autocast.py 等汇总入口)。
+    """
+    rel = str(test_file).replace("\\", "/").lstrip("./")
+    return rel.startswith("test/jit/") or (
+        Path(rel).name.startswith("test_jit") and rel.endswith(".py")
+    )
+
+
 def _worker_main(worker_input_file: str) -> None:
     """
     Worker entry point. Called via:
@@ -1182,6 +1195,36 @@ def _worker_main(worker_input_file: str) -> None:
         if test_file_dir not in py_path.split(os.pathsep):
             os.environ["PYTHONPATH"] = test_file_dir + (
                 os.pathsep + py_path if py_path else "")
+
+    # torch release/2.15 moved GRAPH_EXECUTOR init from module import time into
+    # parse_cmd_line_args(), which only runs in __main__ mode (it reads
+    # --jit-executor). Under in-process pytest.main() that never happens, so
+    # jit tests hit `AssertionError: GRAPH_EXECUTOR must be set` (raised by
+    # enable_profiling_mode_for_profiling_tests / prof_callable in
+    # torch/testing/_internal/common_utils.py). Upstream CI runs jit files with
+    # --jit-executor profiling; pytest.main() cannot take that flag, so set the
+    # module global directly. Batches are same-file and each runs in its own
+    # worker subprocess, so this cannot leak into non-jit batches.
+    if cases:
+        _jit_batch = all(_is_jit_test_file(c["test_file"]) for c in cases)
+        if _jit_batch:
+            try:
+                from torch.testing._internal import common_utils as _cu
+
+                if getattr(_cu, "GRAPH_EXECUTOR", None) is None:
+                    _cu.GRAPH_EXECUTOR = _cu.ProfilingMode.PROFILING
+                    if verbose:
+                        print(
+                            f"  [Batch {batch_id}] GRAPH_EXECUTOR=PROFILING injected for jit file "
+                            f"{cases[0]['test_file']}",
+                            flush=True,
+                        )
+            except Exception as _ge_err:
+                if verbose:
+                    print(
+                        f"  [Batch {batch_id}] GRAPH_EXECUTOR injection skipped: {_ge_err}",
+                        flush=True,
+                    )
 
     # Case-level blacklist: full nodeid exact match (dict for O(1) lookup with reason)
     disabled_testcases = {}
