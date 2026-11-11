@@ -560,6 +560,9 @@
   "torch_npu.distributed.is_available": {
     "signature": "()"
   },
+  "torch_npu.distributed.functional_all_reduce": {
+    "signature": "(self: 'torch.Tensor', reduceOp: 'str', group: 'funcol.RANK_TYPES', tag: 'str' = '', *, premul_factor: 'float | None' = None) -> 'torch.Tensor'"
+  },
   "torch_npu.distributed.is_hccl_available": {
     "signature": "()"
   },

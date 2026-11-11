@@ -5359,6 +5359,213 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
         opts.asyncOp);
 }
 
+namespace {
+void checkFunctionalCommunicationType(const at::Tensor& input) {
+  auto dtype = input.scalar_type();
+  if (input.is_complex()) {
+    dtype = c10::toRealValueType(dtype);
+  } else if (dtype == at::kBool || dtype == at::kByte) {
+    dtype = at::kInt;
+  }
+  TORCH_CHECK(
+      dtype == at::kShort || dtype == at::kInt || dtype == at::kHalf || dtype == at::kFloat || dtype == at::kBFloat16,
+      "functional_all_reduce: actual communication dtype is outside the CCU_MS support matrix",
+      DIST_ERROR(ErrCode::NOT_SUPPORT));
+}
+
+} // namespace
+
+at::Tensor ProcessGroupHCCL::prepareFunctionalAllReduceInput(const at::Tensor& input) {
+  TORCH_CHECK(
+      torch_npu::utils::is_npu(input) && input.layout() == at::kStrided,
+      "functional_all_reduce requires a dense NPU tensor",
+      DIST_ERROR(ErrCode::TYPE));
+  // The device requirement also applies to empty and single-rank calls.
+  TORCH_CHECK(
+      c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend950,
+      "functional_all_reduce requires Ascend950 (A5) or later; deploy on supported topology",
+      DIST_ERROR(ErrCode::NOT_SUPPORT));
+  // Reject unsupported dtypes before layout conversion can fail in an unrelated
+  // NPU operator (notably complex128 and unsigned 64-bit test inputs).
+  checkFunctionalCommunicationType(input);
+  // Follow Functional.cpp's real-view ordering, but do not take a send snapshot.
+  // Base-format contiguous inputs share storage with the caller. Materialize
+  // only when the communication layout requires it; callers protect the input.
+  auto inputReal = input.is_complex() ? at::view_as_real(input) : input;
+  return cast_to_origin_format({inputReal})[0].contiguous();
+}
+
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce_out(
+    const at::Tensor& input,
+    at::Tensor& output,
+    const c10d::AllreduceOptions& opts) {
+  const bool restoreDtype = input.scalar_type() == at::kBool || input.scalar_type() == at::kByte;
+  const bool preMultiply = opts.reduceOp == c10d::ReduceOp::PREMUL_SUM;
+
+  // All calls require the same configuration, including empty/single-rank calls.
+  // HcclCommConfig (0/default, 1/host, 2/aicpu, 3/aiv) is NOT the
+  // HcclOpExpansionMode enum (CCU_MS=4). Use the documented environment mode.
+  const auto mode = options_->hccl_config.find("hccl_op_expansion_mode");
+  TORCH_CHECK(
+      mode == options_->hccl_config.end() ||
+          (std::holds_alternative<uint32_t>(mode->second) &&
+           std::get<uint32_t>(mode->second) == HCCL_COMM_DEFAULT_OP_EXPANSION_MODE),
+      "functional_all_reduce: remove the non-default hccl_op_expansion_mode group override "
+      "and configure HCCL_OP_EXPANSION_MODE=CCU_MS before communicator initialization",
+      DIST_ERROR(ErrCode::PARAM));
+  const char* expansion = std::getenv("HCCL_OP_EXPANSION_MODE");
+  TORCH_CHECK(
+      expansion != nullptr && std::string(expansion) == "CCU_MS",
+      "functional_all_reduce requires HCCL_OP_EXPANSION_MODE=CCU_MS before communicator initialization",
+      DIST_ERROR(ErrCode::PARAM));
+  const char* deterministic = std::getenv("HCCL_DETERMINISTIC");
+  TORCH_CHECK(
+      deterministic == nullptr || std::string(deterministic) != "strict",
+      "functional_all_reduce: HCCL_DETERMINISTIC=strict forces AI_CPU and conflicts with CCU_MS",
+      DIST_ERROR(ErrCode::PARAM));
+  // PR/DT, node count, topology and HCCL's final algorithm are not queryable
+  // through this backend. They remain deployment/target-verification conditions.
+
+  // The prepared input may alias caller storage. Keep it stable until wait.
+  if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {
+    at_npu::native::OpHook::GetInstance().PreHook("allreduce", input);
+  }
+  std::vector<at::Tensor> inputs = {input};
+  if (preMultiply) {
+    // Validate before out-of-place multiplication could promote an integer input.
+    getHcclReduceOp(opts.reduceOp, inputs[0]);
+  }
+  std::vector<at::Tensor> tensors_cp = {output};
+  // Work owns and describes the storage returned to the caller. A transformed
+  // receive buffer is protected separately and copied before the completion event.
+  std::vector<at::Tensor> outputs = {output};
+  std::string functionName = __FUNCTION__;
+  return collective(
+      inputs,
+      outputs,
+      [&](at::Tensor& input,
+          at::Tensor&,
+          HcclComm comm,
+          c10_npu::NPUStream& stream,
+          std::shared_ptr<bool> is_dispatched) {
+        auto hcclType = getHcclDataType(input.scalar_type());
+        checkSupportedDataType(hcclType, functionName);
+        RECORD_FUNCTION("HcclFunctionalAllreduce", std::vector<c10::IValue>({input}));
+
+        auto inputDataPtr = input.data_ptr();
+        auto outputDataPtr = tensors_cp[0].data_ptr();
+        auto numel = getNumelForHCCL(input);
+        auto hcclReduceOp = getHcclReduceOp(opts.reduceOp, input);
+        // Check the actual communication buffers after pre() has converted them.
+        const auto sendBegin = reinterpret_cast<uintptr_t>(inputDataPtr);
+        const auto recvBegin = reinterpret_cast<uintptr_t>(outputDataPtr);
+        const auto bytes = static_cast<uintptr_t>(numel * input.element_size());
+        TORCH_CHECK(
+            sendBegin < recvBegin ? bytes <= recvBegin - sendBegin : bytes <= sendBegin - recvBegin,
+            "functional_all_reduce: HCCL send/receive byte ranges must not overlap",
+            DIST_ERROR(ErrCode::PARAM));
+        TORCH_NPU_HCCL_LOGD(
+            "functional_all_reduce send=%p recv=%p count=%lld dtype=%d",
+            inputDataPtr,
+            outputDataPtr,
+            static_cast<long long>(numel),
+            static_cast<int>(hcclType));
+        auto hccl_call =
+            [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream, is_dispatched]() -> int {
+#ifndef BUILD_LIBTORCH
+          torch_npu::profiler::MstxRange range(
+              getMstxHcclMsg("HcclFunctionalAllreduce", numel, hcclType, comm, stream.id(), -1, -1),
+              stream.stream(false),
+              torch_npu::profiler::DOMAIN_COMMUNICATION);
+#endif
+          if (c10_npu::is_core_control_enabled()) {
+            c10_npu::UseStreamResInCurrentThread(stream.stream(false));
+          }
+          auto hccl_result =
+              hcclAllReduce(inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream.stream(false));
+          *is_dispatched = true;
+          return hccl_result;
+        };
+        at_npu::native::OpCommand::RunOpApiV3("HcclAllreduce", hccl_call, false, &stream);
+
+        return HCCL_SUCCESS;
+      },
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
+        const auto mode = c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse();
+        work->lazyDestroy(inputs);
+        auto protect = [&](const at::Tensor& tensor, bool returnedOutput) {
+          if (mode == c10_npu::option::AVOID_RECORD_STREAM) {
+            // Work owns returned outputs; collective() stashes them after dispatch.
+            if (!returnedOutput) {
+              work->stashed_for_allocator_safety_->stash(tensor);
+            }
+            return;
+          }
+          c10_npu::NPUCachingAllocator::recordStream(tensor.storage().data_ptr(), hcclStreams[0]);
+          // collective() already records its output for ERASE_RECORD_STREAM.
+          // Extra source/receive storage, and the optimize mode, need their own tracking.
+          if ((mode == c10_npu::option::ERASE_RECORD_STREAM && !returnedOutput) ||
+              mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
+            work->recorded_inputs_.push_back(std::make_pair(tensor.storage().getWeakStorageImpl(), hcclStreams[0]));
+            if (mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
+              auto block = c10_npu::NPUCachingAllocator::getBlockPtr(tensor.storage().data_ptr());
+              work->recorded_block_ptr_for_inputs_.push_back(block);
+              c10_npu::NPUCachingAllocator::recordHcclWorkForBlock(block, static_cast<void*>(work.get()));
+            }
+          }
+        };
+        if (restoreDtype || preMultiply) {
+          // Unlike in-place allreduce, Work's output does not retain the source
+          // read by a cast or out-of-place premultiplication on the HCCL stream.
+          // Wrapped/imported storage may not support local stream recording.
+          const auto& sourceDataPtr = inputs[0].storage().data_ptr();
+          if (sourceDataPtr.get_deleter() != c10_npu::NPUCachingAllocator::get()->raw_deleter() ||
+              c10_npu::NPUCachingAllocator::getBlockPtr(sourceDataPtr) == nullptr) {
+            work->stashed_for_allocator_safety_->stash(inputs[0]);
+          } else {
+            protect(inputs[0], false);
+          }
+          c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+          if (restoreDtype) {
+            // Allocate the receive buffer before enqueueing the cast that reads the source.
+            tensors_cp[0] = at::empty(inputs[0].sizes(), inputs[0].options().dtype(at::kInt));
+            inputs[0] = at_npu::native::custom_ops::_npu_dtype_cast(inputs[0], at::kInt);
+          }
+          if (preMultiply) {
+            const auto* preMulSupplement =
+                reinterpret_cast<c10d::NCCLPreMulSumSupplement*>(opts.reduceOp.supplement_.get());
+            auto scale_factor = preMulSupplement->double_factor;
+            inputs[0] = inputs[0].mul(scale_factor);
+          }
+          work->lazyDestroy(inputs);
+        }
+        protect(output, true);
+        if (!tensors_cp[0].is_alias_of(output)) {
+          work->lazyDestroy(tensors_cp);
+          protect(tensors_cp[0], false);
+        }
+      },
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
+        if (opts.reduceOp == c10d::ReduceOp::AVG) {
+          c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+          bool is_atlas_a5 = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend950;
+          for (auto& tensor : tensors_cp) {
+            if (is_atlas_a5 && at::isIntegralType(tensor.scalar_type(), /*includeBool=*/false)) {
+              tensor.div_(getSize(), "trunc");
+            } else {
+              tensor.div_(getSize());
+            }
+          }
+        }
+        if (restoreDtype) {
+          c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+          output.copy_(tensors_cp[0]);
+        }
+      },
+      c10d::OpType::ALLREDUCE,
+      opts.asyncOp);
+}
+
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv_inner(
     std::vector<std::string>& op_type,
     std::vector<at::Tensor>& tensors,
