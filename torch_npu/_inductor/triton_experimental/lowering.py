@@ -884,7 +884,7 @@ def npu_unsafe_index(x, indices):
         from torch._inductor.lowering import index_impl
 
         return index_impl(x, indices, check=False)
-    return _index_select_rewrite(x, indices, _up_unsafe_index)
+    return _index_select_rewrite(x, indices, _up_unsafe_index_tail)
 
 
 def npu_index(x, indices):
@@ -894,11 +894,66 @@ def npu_index(x, indices):
         from torch._inductor.lowering import index_impl
 
         return index_impl(x, indices, check=True)
-    return _index_select_rewrite(x, indices, _up_index)
+    return _index_select_rewrite(x, indices, _up_index_tail)
 
 
-_up_unsafe_index = fallback_handler(torch.ops.aten._unsafe_index.Tensor)
-_up_index = fallback_handler(torch.ops.aten.index.Tensor)
+import torch._inductor.lowering as _il_mod
+
+
+def _upstream_index_lowering_or_fallback(name, op):
+    handler = getattr(_il_mod, name, None)
+    fallback = fallback_handler(op)
+    if not callable(handler):
+        return fallback
+
+    def _lower(*args, **kwargs):
+        try:
+            return handler(*args, **kwargs)
+        except (NotImplementedError, AttributeError):
+            return fallback(*args, **kwargs)
+
+    return _lower
+
+
+_up_unsafe_index = _upstream_index_lowering_or_fallback(
+    "_unsafe_index", torch.ops.aten._unsafe_index.Tensor
+)
+_up_index = _upstream_index_lowering_or_fallback(
+    "index", torch.ops.aten.index.Tensor
+)
+
+
+def _index_tail(upstream, fallback):
+    """Pick the tail lowering once ``_index_select_rewrite`` rejects a form.
+
+    The upstream triton index lowering is required for a single tensor index
+    on the leading dimension: it fuses the resulting indirect load into a
+    staged kernel, whereas the aclnn extern gather would introduce a memory
+    planning cycle.  It is *not* numerically correct for indices on
+    non-leading dimensions (e.g. x[:, :, i] with i rank >= 3), so those keep
+    the aclnn fallback used by the guard-only rewrite.
+    """
+    def _tail(x, indices):
+        from torch._inductor.ir import TensorBox
+
+        tensor_pos = [i for i, t in enumerate(indices) if t is not None]
+        if (
+            len(tensor_pos) == 1
+            and tensor_pos[0] == 0
+            and isinstance(indices[0], TensorBox)
+        ):
+            return upstream(x, indices)
+        return fallback(x, indices)
+
+    return _tail
+
+
+_up_unsafe_index_tail = _index_tail(
+    _up_unsafe_index, fallback_handler(torch.ops.aten._unsafe_index.Tensor)
+)
+_up_index_tail = _index_tail(
+    _up_index, fallback_handler(torch.ops.aten.index.Tensor)
+)
 # _activate() imports the module first, THEN calls
 # _register_npu_inductor_fallbacks(), whose make_fallback loop would clobber a
 # directly-registered overwrite. Rebind the module-level registrar so the
