@@ -31,6 +31,7 @@
 #include "torch_npu/csrc/custom_dtype/Init.h"
 #include "torch_npu/csrc/npu/Stress_detect.h"
 #include "torch_npu/csrc/utils/TensorType.h"
+#include "torch_npu/csrc/utils/PythonGilAdapter.h"
 #include "torch_npu/csrc/utils/AutocastMode.h"
 #include "torch_npu/csrc/core/npu/NPURecoveryBindings.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
@@ -233,8 +234,9 @@ extern "C"
 PyObject* initModule()
 {
     at::internal::lazy_init_num_threads();
+  torch_npu::utils::registerPythonGilAdapter();
 
-    AddPyMethodDefs(methods, TorchNpuMethods);
+  AddPyMethodDefs(methods, TorchNpuMethods);
 #ifndef BUILD_LIBTORCH
     AddPyMethodDefs(methods, TorchSanitizerMethods);
 #endif
