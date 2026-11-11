@@ -1156,6 +1156,26 @@
 
 <a class="method_anchor" id="torch_autograd_profiler_util_StringTable_values"></a>
 
+> <font size="3">clear()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler_util.StringTable.clear](https://pytorch.org/docs/2.7/generated/torch.autograd.profiler_util.StringTable.html#torch.autograd.profiler_util.StringTable.clear)
+
+**产品支持情况**：
+
+<!-- npu="910b" id266 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id266 -->
+<!-- npu="A3" id267 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id267 -->
+<!-- npu="950" id268 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id268 -->
+
+</div>
+
 > <font size="3">values()</font>
 
 <div style="margin-left: 2em">
