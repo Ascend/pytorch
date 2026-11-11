@@ -49,7 +49,7 @@ Ascend Extension for PyTorch branch names follow the naming convention **\{PyTor
 
 |Ascend Extension for PyTorch Version|CANN Version|Related Product Version Compatibility|
 |--|--|--|
-|26.0.0|CANN 9.0.0<br>CANN 8.5.0<br>CANN 8.3.RC1<br>CANN 8.2.RC1<br>CANN 8.1.RC1|-|
+|26.0.X|CANN 9.0.X<br>CANN 8.5.0<br>CANN 8.3.RC1<br>CANN 8.2.RC1<br>CANN 8.1.RC1|-|
 |7.3.0|CANN 8.5.0<br>CANN 8.3.RC1<br>CANN 8.2.RC1<br>CANN 8.1.RC1<br>CANN 8.0.0|Driving SDK 7.3.0 is compatible with CANN 8.1.RC1, CANN 8.2.RC1, CANN 8.3.RC1, CANN 8.5.0|
 |7.2.0|CANN 8.3.RC1<br>CANN 8.2.RC1<br>CANN 8.1.RC1<br>CANN 8.0.0<br>CANN 8.0.RC3<br>CANN 8.0.RC2|Driving SDK 7.2.RC1 is compatible with CANN 8.1.RC1, CANN 8.2.RC1, CANN 8.3.RC1|
 |7.1.0|CANN 8.3.RC1<br>CANN 8.2.RC1<br>CANN 8.1.RC1<br>CANN 8.0.0<br>CANN 8.0.RC3<br>CANN 8.0.RC2|Driving SDK 7.1.RC1 is compatible with CANN 8.0.0, CANN 8.1.RC1, and CANN 8.2.RC1|
