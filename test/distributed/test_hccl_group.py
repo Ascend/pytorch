@@ -72,6 +72,9 @@ class TestHcclGroupStartEnd(DTensorTestBase):
 
         for req in reqs:
             req.wait()
+        # wait() orders the current NPU stream; synchronize before the CPU query.
+        torch.npu.current_stream().synchronize()
+        for req in reqs:
             self.assertTrue(req.is_completed())
 
         if self.rank == 1:
