@@ -44,6 +44,22 @@ from ..config import log
 from ..select_algorithm import NPUFlexAttentionDkdvTemplateBuffer
 
 
+# Ascend profiler derived tables keep at most 49 visible kernel-name characters.
+MAX_TRITON_KERNEL_NAME_LENGTH = 49
+
+
+def _make_triton_kernel_name(
+    kernel_category: str, fused_name: str, suffix: str
+) -> str:
+    fixed_name_length = len("triton") + len(kernel_category) + len(suffix) + 3
+    fused_name_length = max(
+        0, MAX_TRITON_KERNEL_NAME_LENGTH - fixed_name_length
+    )
+    return "_".join(
+        ["triton", kernel_category, fused_name[:fused_name_length], suffix]
+    )
+
+
 def flatten_groups(nums):
     res = []
     for i in nums:
@@ -868,11 +884,9 @@ class NPUTritonScheduling(TritonScheduling):
                     if config.triton.descriptive_names
                     else ""
                 )
-                if len(fused_name) > 35:
-                    fused_name = fused_name[0:35]
                 kernel_category = get_kernel_category_by_source_code(src_code)[:3]
-                kernel_name = "_".join(
-                    ["triton", kernel_category, fused_name, wrapper.next_kernel_suffix()]
+                kernel_name = _make_triton_kernel_name(
+                    kernel_category, fused_name, wrapper.next_kernel_suffix()
                 )
             else:
                 wrapper.next_kernel_suffix()
