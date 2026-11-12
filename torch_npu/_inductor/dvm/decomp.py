@@ -27,6 +27,7 @@ decomps_to_exclude_npu = [
     aten.gelu_backward.default,
     aten.grid_sampler_2d,
     aten.grid_sampler_2d_backward,
+    aten.im2col,
     aten.linalg_vector_norm,
     aten.max_pool2d_with_indices,
     aten.max_pool2d_with_indices_backward,
