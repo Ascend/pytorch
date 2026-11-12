@@ -224,6 +224,66 @@ def _replace_qr_fallback_example_output(result, example_output):
     return result
 
 
+def _npu_fix_generator_state_fallback():
+    # Upstream Inductor materializes GeneratorState through
+    # torch.cuda.default_generators while building fallback kernels. For NPU
+    # GeneratorState, reuse the upstream code path with a temporary same-name
+    # CUDA sentinel and an NPU generator clone installed at the matching slot.
+    from torch._inductor import ir
+    from torch.utils import _pytree as pytree
+    from torch_npu._compat.accelerator import get_default_generator
+
+    orig = ir.ExternKernel.__dict__["process_kernel"].__func__
+    if getattr(orig, "_npu_generator_state_patched", False):
+        return
+
+    def clone_npu_generator_state(device):
+        if device.type != "npu":
+            return None
+        device_index = torch.npu.current_device() if device.index is None else device.index
+        return device_index, get_default_generator(device_index).clone_state()
+
+    def process_kernel(cls, kernel, *args, **kwargs):
+        npu_generator_states = {}
+
+        def replace_npu_generator_state(x):
+            if not isinstance(x, ir.GeneratorState):
+                return x
+            cloned = clone_npu_generator_state(x.device)
+            if cloned is None:
+                return x
+            device_index, generator_state = cloned
+            npu_generator_states[device_index] = generator_state
+            return ir.GeneratorState(
+                name=x.name, device=torch.device("cuda", device_index)
+            )
+
+        new_args = pytree.tree_map(replace_npu_generator_state, args)
+        new_kwargs = pytree.tree_map(replace_npu_generator_state, kwargs)
+        if not npu_generator_states:
+            return orig(cls, kernel, *args, **kwargs)
+
+        old_default_generators = torch.cuda.default_generators
+        max_device_index = max(npu_generator_states)
+        default_generators = list(old_default_generators)
+        if len(default_generators) <= max_device_index:
+            default_generators.extend(
+                [None] * (max_device_index + 1 - len(default_generators))
+            )
+        for device_index, generator_state in npu_generator_states.items():
+            default_generators[device_index] = generator_state
+
+        torch.cuda.default_generators = tuple(default_generators)
+        try:
+            return orig(cls, kernel, *new_args, **new_kwargs)
+        finally:
+            torch.cuda.default_generators = old_default_generators
+
+    process_kernel._npu_generator_state_patched = True
+    process_kernel._npu_generator_state_orig = orig
+    ir.ExternKernel.process_kernel = classmethod(process_kernel)
+
+
 def _npu_fix_qr_fallback_layouts():
     # torch_npu's eager linalg_qr (aclnn) returns row-major Q/R, while the
     # ATen meta kernel declares the LAPACK column-major convention. Inductor
@@ -270,4 +330,5 @@ def _npu_fix_qr_fallback_layouts():
     ir.FallbackKernel.process_kernel = classmethod(process_kernel)
 
 
+_npu_fix_generator_state_fallback()
 _npu_fix_qr_fallback_layouts()

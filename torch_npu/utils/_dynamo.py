@@ -614,6 +614,11 @@ def _lazy_inductor_setup():
     from torch_npu.utils._graph_tree import _apply_npugraph_tree_methods
     _apply_npugraph_tree_methods()
 
+    from torch_npu.utils._inductor import (
+        patch_functionalized_rng_wrapper_for_npu_graphsafe,
+    )
+    patch_functionalized_rng_wrapper_for_npu_graphsafe()
+
     _inject_inductor_npu_backend_config()
 
 

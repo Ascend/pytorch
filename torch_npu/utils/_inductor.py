@@ -1,11 +1,15 @@
-from typing import Optional
-from functools import reduce
-import torch
+import contextlib
 import operator
+from functools import reduce
+from typing import Optional
+
+import torch
 from torch._prims_common import TensorLike
 from torch._prims.rng_prims import register_rng_prim
 
 aten = torch.ops.aten
+
+
 def _max_unpoolnd_patch(
     self: TensorLike, indices: TensorLike, output_size: list[int], dim: int
 ):
@@ -93,6 +97,71 @@ def patch_register_philox_rand():
 
     torch._prims.rng_prims.register_philox_rand = get_register_philox_rand_patch
     torch._prims.rng_prims.register_philox_rand()
+
+
+def patch_rng_state_helper_for_npu():
+    from torch._prims_common import CUDARngStateHelper
+
+    helper = CUDARngStateHelper
+    if getattr(helper, "_npu_patched", False):
+        return
+
+    original_get_torch_state_as_tuple = helper.get_torch_state_as_tuple
+    original_set_torch_state_tensor = helper.set_torch_state_tensor
+    original_set_new_offset = helper.set_new_offset
+
+    def _should_use_npu_rng_state():
+        return hasattr(torch, "npu") and torch.npu.is_available()
+
+    def align_npu_offset(offset):
+        return ((int(offset) + 3) // 4) * 4
+
+    def get_torch_state_as_tuple(fake_mode=contextlib.nullcontext()):
+        if not _should_use_npu_rng_state():
+            return original_get_torch_state_as_tuple(fake_mode)
+
+        with fake_mode:
+            seed = torch.tensor(torch.npu.initial_seed())
+            offset = torch.tensor(torch.npu._get_rng_state_offset())
+            return seed, offset
+
+    def set_torch_state_tensor(seed, offset):
+        if not _should_use_npu_rng_state():
+            return original_set_torch_state_tensor(seed, offset)
+
+        seed_portion = seed.reshape([1]).view(torch.uint8)
+        offset_portion = offset.reshape([1]).view(torch.uint8)
+        new_state = torch.cat([seed_portion, offset_portion])
+        torch.npu.set_rng_state(new_state)
+
+    def set_new_offset(relative_offset):
+        if not _should_use_npu_rng_state():
+            return original_set_new_offset(relative_offset)
+
+        torch.npu._set_rng_state_offset(align_npu_offset(relative_offset.item()))
+
+    helper.get_torch_state_as_tuple = staticmethod(get_torch_state_as_tuple)
+    helper.set_torch_state_tensor = staticmethod(set_torch_state_tensor)
+    helper.set_new_offset = staticmethod(set_new_offset)
+    helper._npu_patched = True
+
+
+def patch_functionalized_rng_decomp_for_npu():
+    from torch._decomp import decompositions_for_rng
+
+    if getattr(decompositions_for_rng.throw_on_non_cuda, "_npu_patched", False):
+        return
+
+    original_throw_on_non_cuda = decompositions_for_rng.throw_on_non_cuda
+
+    def throw_on_non_cuda(device):
+        if device.type == "npu":
+            return
+        return original_throw_on_non_cuda(device)
+
+    throw_on_non_cuda._npu_patched = True
+    decompositions_for_rng.throw_on_non_cuda = throw_on_non_cuda
+
 
 def patch_register_run_and_save_rng_state_op():
     from torch._prims import rng_prims
@@ -206,6 +275,92 @@ def patch_register_run_with_rng_state_op():
         FakeTensorMode
     ] = fake_tensor_mode_with_npu
 
+
+def patch_register_graphsafe_run_with_rng_state_op():
+    from torch._prims import rng_prims
+    from torch._functorch._aot_autograd.utils import (
+        register_graphsafe_rng_device_type,
+    )
+
+    graphsafe_run_with_rng_state = getattr(
+        rng_prims, "graphsafe_run_with_rng_state", None
+    )
+    if graphsafe_run_with_rng_state is None or getattr(
+        graphsafe_run_with_rng_state, "_npu_patched", False
+    ):
+        return
+
+    register_graphsafe_rng_device_type("npu")
+    graphsafe_run_with_rng_state._npu_patched = True
+
+
+def patch_functionalized_rng_wrapper_for_npu_graphsafe():
+    from torch._functorch._aot_autograd import runtime_wrappers
+    from torch._prims_common import CUDARngStateHelper
+    from torch._functorch._aot_autograd.runtime_wrappers import config
+
+    wrapper_cls = runtime_wrappers.FunctionalizedRngRuntimeWrapper
+    if getattr(wrapper_cls, "_npu_graphsafe_rng_patched", False):
+        return
+
+    orig_pre_compile = wrapper_cls.pre_compile
+    orig_post_compile = wrapper_cls.post_compile
+
+    def has_npu_graphsafe_rng(metadata):
+        device = getattr(metadata, "graphsafe_rng_device", None)
+        return (
+            getattr(metadata, "num_graphsafe_rng_states", 0) > 0
+            and device is not None
+            and device.type == "npu"
+        )
+
+    def pre_compile(self, fw_module, flat_args, aot_config, *, fw_metadata):
+        if not config.functionalize_rng_ops or not has_npu_graphsafe_rng(fw_metadata):
+            return orig_pre_compile(
+                self, fw_module, flat_args, aot_config, fw_metadata=fw_metadata
+            )
+
+        fake_mode = runtime_wrappers.detect_fake_mode()
+        if fake_mode is None:
+            raise AssertionError(
+                "fake_mode must not be None when functionalize_rng_ops is True"
+            )
+        seed, offset = CUDARngStateHelper.get_torch_state_as_tuple(fake_mode)
+        insert_at = len(flat_args) - fw_metadata.num_graphsafe_rng_states
+        flat_args[insert_at:insert_at] = [seed, offset]
+
+    def post_compile(self, compiled_fn, aot_config, *, runtime_metadata):
+        if not (
+            runtime_metadata.is_rng_op_functionalized
+            and has_npu_graphsafe_rng(runtime_metadata)
+        ):
+            return orig_post_compile(
+                self, compiled_fn, aot_config, runtime_metadata=runtime_metadata
+            )
+
+        num_graphsafe_rng_states = runtime_metadata.num_graphsafe_rng_states
+
+        def compiled_fn_with_npu_rng_order(runtime_args):
+            seed_offset = runtime_args[-2:]
+            del runtime_args[-2:]
+            insert_at = len(runtime_args) - num_graphsafe_rng_states
+            runtime_args[insert_at:insert_at] = seed_offset
+            return compiled_fn(runtime_args)
+
+        compiled_fn_with_npu_rng_order._boxed_call = getattr(
+            compiled_fn, "_boxed_call", True
+        )
+        return orig_post_compile(
+            self,
+            compiled_fn_with_npu_rng_order,
+            aot_config,
+            runtime_metadata=runtime_metadata,
+        )
+
+    wrapper_cls.pre_compile = pre_compile
+    wrapper_cls.post_compile = post_compile
+    wrapper_cls._npu_graphsafe_rng_patched = True
+
 def patch_rng_prims_device():
     from torch._prims import rng_prims
     src_get_device = rng_prims.get_device
@@ -221,6 +376,9 @@ def patch_rng_prims_device():
 
 patch_register_run_and_save_rng_state_op()
 patch_register_run_with_rng_state_op()
+patch_register_graphsafe_run_with_rng_state_op()
+patch_rng_state_helper_for_npu()
+patch_functionalized_rng_decomp_for_npu()
 patch_philox_rand_offset()
 patch_register_philox_rand()
 patch_rng_prims_device()
