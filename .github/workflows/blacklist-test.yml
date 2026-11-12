@@ -111,16 +111,20 @@ jobs:
           fi
 
   # ==========================================================================
-  # Look up already-built objects in the shared OBS 7-day cache, one complete
-  # (source + wheels-pytorch + wheels-torchnpu) triple per platform. The
-  # nightly a3/a5 pipelines build with the SAME builder image tags as build-a3/
-  # build-a5 below, so any triple present today was produced by a recent
-  # nightly and is byte-identical to what a build here would produce. When a
-  # triple is found the corresponding build job is skipped and the tests run
-  # the nightly's wheels, which is what keeps this pipeline from re-compiling
-  # and re-uploading the same ~1GB objects every night. When no complete triple
-  # exists (cold cache, drifted image tag) the build jobs run as before, so the
-  # pipeline can never end up without wheels.
+  # Look up already-built objects, one complete (source + wheels-pytorch +
+  # wheels-torchnpu) triple per platform. The wheels objects live in the
+  # dedicated Guiyang bucket (pytorch-torchnpu, cn-south-west-2, key pair
+  # ACCESSKEY_GUIYANG/SECRETACCESSKEY_GUIYANG); the source tarballs stay in
+  # the legacy ap-southeast-1 bucket, so this job switches obsutil between
+  # the two endpoints as it goes. The nightly a3/a5 pipelines build with the
+  # SAME builder image tags as build-a3/build-a5 below, so any triple present
+  # today was produced by a recent nightly and is byte-identical to what a
+  # build here would produce. When a triple is found the corresponding build
+  # job is skipped and the tests run the nightly's wheels, which is what
+  # keeps this pipeline from re-compiling and re-uploading the same ~1GB
+  # objects every night. When no complete triple exists (cold cache, drifted
+  # image tag) the build jobs run as before, so the pipeline can never end up
+  # without wheels.
   #
   # The wheels object keys embed the builder image tag (which pins CANN and the
   # compiler) and a recipe version, so a name match guarantees ABI
@@ -182,18 +186,25 @@ jobs:
 
       - name: Pick reusable OBS wheels triples
         id: pick
+        env:
+          # Guiyang (wheels) and legacy (source) buckets use different key
+          # pairs; the script switches obsutil between the endpoints.
+          WHEELS_AK: ${{ secrets.ACCESSKEY_GUIYANG }}
+          WHEELS_SK: ${{ secrets.SECRETACCESSKEY_GUIYANG }}
+          SOURCE_AK: ${{ secrets.ACCESSKEY }}
+          SOURCE_SK: ${{ secrets.SECRETACCESSKEY }}
         run: |
           export PATH="${HOME}/.local/obsutil:${PATH}"
-          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
           python3 - <<'PY'
           import os
           import re
           import subprocess
           import sys
 
-          BUCKET = "pytorch-ci-cache"
-          PREFIX = "7day-cache"
-          BASE = f"obs://{BUCKET}/{PREFIX}"
+          WHEELS_BASE = "obs://pytorch-torchnpu/7day-cache"
+          SOURCE_BASE = "obs://pytorch-ci-cache/7day-cache"
+          WHEELS_ENDPOINT = "obs.cn-southwest-2.myhuaweicloud.com"
+          SOURCE_ENDPOINT = "obs.ap-southeast-1.myhuaweicloud.com"
 
           # Builder image tags. MUST stay identical to the docker_image tags
           # passed to build-a3 / build-a5 below: the wheels object key embeds
@@ -214,8 +225,21 @@ jobs:
           def obsutil(*args):
               return subprocess.run(["obsutil", *args], capture_output=True, text=True)
 
+          def use_wheels_config():
+              obsutil("config",
+                      f"-i={os.environ['WHEELS_AK']}",
+                      f"-k={os.environ['WHEELS_SK']}",
+                      f"-e={WHEELS_ENDPOINT}")
+
+          def use_source_config():
+              obsutil("config",
+                      f"-i={os.environ['SOURCE_AK']}",
+                      f"-k={os.environ['SOURCE_SK']}",
+                      f"-e={SOURCE_ENDPOINT}")
+
           def ls_objects(object_prefix):
-              result = obsutil("ls", f"{BASE}/{object_prefix}", "-limit=1000")
+              use_wheels_config()
+              result = obsutil("ls", f"{WHEELS_BASE}/{object_prefix}", "-limit=1000")
               if result.returncode != 0:
                   print(
                       f"WARNING: obsutil ls {object_prefix} failed "
@@ -232,7 +256,8 @@ jobs:
 
           def source_last_modified(upstream_short):
               """LastModified of the source tarball, or None when it is absent."""
-              result = obsutil("stat", f"{BASE}/pytorch-source-{upstream_short}.tar.gz")
+              use_source_config()
+              result = obsutil("stat", f"{SOURCE_BASE}/pytorch-source-{upstream_short}.tar.gz")
               if result.returncode != 0:
                   return None
               match = LAST_MODIFIED_RE.search(result.stdout)
@@ -332,6 +357,11 @@ jobs:
       runner_label: 'linux-aarch64-cpu-24'
       max_jobs: '23'
       artifact_suffix: '-a3'
+      # Fallback builds upload to the same dedicated Guiyang wheels bucket
+      # the resolve job probes, so this pipeline's own builds become
+      # reusable triples too.
+      wheels_obs_endpoint: 'obs.cn-southwest-2.myhuaweicloud.com'
+      wheels_obs_bucket: 'pytorch-torchnpu/7day-cache'
 
   shard-a3:
     # Sharding only reads the blacklist config, so it no longer waits for the
@@ -418,6 +448,9 @@ jobs:
       runner_label: 'linux-amd64-a5-2'
       max_jobs: '23'
       artifact_suffix: '-a5'
+      # Same dedicated Guiyang wheels bucket as build-a3 above.
+      wheels_obs_endpoint: 'obs.cn-southwest-2.myhuaweicloud.com'
+      wheels_obs_bucket: 'pytorch-torchnpu/7day-cache'
 
   shard-a5:
     # Same as shard-a3: independent of the build, runs even when build-a5 is

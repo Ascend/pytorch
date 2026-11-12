@@ -54,6 +54,13 @@ jobs:
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-builder-x86_64-torch-master-202610160227-8a315d17
       runner_label: 'linux-amd64-a5-2'
       max_jobs: '23'
+      # Wheels cache moved to the dedicated Guiyang bucket
+      # (pytorch-torchnpu, cn-southwest-2); the PyTorch source tarball
+      # stays on the legacy ap-southeast-1 bucket. Guiyang bucket
+      # credentials (ACCESSKEY_GUIYANG/SECRETACCESSKEY_GUIYANG) are
+      # selected by the wheel steps via the cn-southwest-2 endpoint match.
+      wheels_obs_endpoint: 'obs.cn-southwest-2.myhuaweicloud.com'
+      wheels_obs_bucket: 'pytorch-torchnpu/7day-cache'
 
   test:
     needs: build
@@ -79,6 +86,9 @@ jobs:
         .github/config/temporary_skiped_testcases.json
       runner_label: 'linux-amd64-a5-2'
       test_max_parallel: 3
+      # Same dedicated Guiyang wheels bucket as the build job above.
+      wheels_obs_endpoint: 'obs.cn-southwest-2.myhuaweicloud.com'
+      wheels_obs_bucket: 'pytorch-torchnpu/7day-cache'
       # Same triton-ascend -std=c++17 -> c++20 workaround as nightly-a5:
       # this image is the original hotspot (549 npu_utils compile
       # failures without the patch, see nightly-a5.yml). The C++20-only

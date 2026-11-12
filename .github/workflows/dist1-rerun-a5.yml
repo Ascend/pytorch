@@ -249,6 +249,12 @@ jobs:
       report_to_upstream: false
       runner_label: linux-amd64-a5-8
       device_env: privateuse1,cpu
+      # Wheels are downloaded from the dedicated Guiyang bucket: fresh
+      # (post-switch) nightly wheel names live there. The stale default
+      # above references a legacy object that has long expired from the
+      # old 7-day cache either way — pass explicit wheel names via inputs.
+      wheels_obs_endpoint: 'obs.cn-southwest-2.myhuaweicloud.com'
+      wheels_obs_bucket: 'pytorch-torchnpu/7day-cache'
 
   # ==========================================================================
   # 3. 汇总: 聚合 N 个分片的执行统计，输出总览（部分分片失败也不阻塞）

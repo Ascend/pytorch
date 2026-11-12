@@ -101,12 +101,17 @@ jobs:
 
       - name: Download pytorch wheels from OBS
         run: |
-          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+          # Wheels live in the dedicated Guiyang bucket
+          # (pytorch-torchnpu, cn-southwest-2, key pair
+          # ACCESSKEY_GUIYANG/SECRETACCESSKEY_GUIYANG); the source
+          # download above and the coverage upload below stay on the
+          # legacy ap-southeast-1 endpoint.
+          obsutil config -i=${{ secrets.ACCESSKEY_GUIYANG }} -k=${{ secrets.SECRETACCESSKEY_GUIYANG }} -e=obs.cn-southwest-2.myhuaweicloud.com
 
           TARBALL="${{ steps.sha.outputs.pytorch_wheels_tarball }}"
           for attempt in 1 2; do
             echo "=== Download attempt ${attempt} ==="
-            if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "./${TARBALL}" -vlength; then
+            if obsutil cp "obs://pytorch-torchnpu/7day-cache/${TARBALL}" "./${TARBALL}" -vlength; then
               echo "Download succeeded on attempt ${attempt}"
               exit 0
             fi
@@ -119,12 +124,14 @@ jobs:
       - name: Download torch_npu wheels from OBS
         if: steps.sha.outputs.torchnpu_wheels_tarball != ''
         run: |
-          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+          # Same dedicated Guiyang wheels bucket as the pytorch wheels
+          # download above.
+          obsutil config -i=${{ secrets.ACCESSKEY_GUIYANG }} -k=${{ secrets.SECRETACCESSKEY_GUIYANG }} -e=obs.cn-southwest-2.myhuaweicloud.com
 
           TARBALL="${{ steps.sha.outputs.torchnpu_wheels_tarball }}"
           for attempt in 1 2; do
             echo "=== Download attempt ${attempt} ==="
-            if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "./${TARBALL}" -vlength; then
+            if obsutil cp "obs://pytorch-torchnpu/7day-cache/${TARBALL}" "./${TARBALL}" -vlength; then
               echo "Download succeeded on attempt ${attempt}"
               exit 0
             fi

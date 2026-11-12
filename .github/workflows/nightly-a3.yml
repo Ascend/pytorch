@@ -31,6 +31,13 @@ jobs:
       report_to_upstream: false
       runner_label: 'linux-aarch64-cpu-24'
       max_jobs: '23'
+      # Wheels cache moved to the dedicated Guiyang bucket
+      # (pytorch-torchnpu, cn-southwest-2); source stays on the legacy
+      # ap-southeast-1 bucket. Guiyang bucket credentials
+      # (ACCESSKEY_GUIYANG/SECRETACCESSKEY_GUIYANG) are selected by the
+      # wheel steps via the cn-southwest-2 endpoint match.
+      wheels_obs_endpoint: 'obs.cn-southwest-2.myhuaweicloud.com'
+      wheels_obs_bucket: 'pytorch-torchnpu/7day-cache'
 
   test:
     needs: build
@@ -50,6 +57,9 @@ jobs:
       full_scan: true
       device_env: 'privateuse1,cpu'
       runner_label: 'linux-aarch64-a3-800i-2-cn12-001'
+      # Same dedicated Guiyang wheels bucket as the build job above.
+      wheels_obs_endpoint: 'obs.cn-southwest-2.myhuaweicloud.com'
+      wheels_obs_bucket: 'pytorch-torchnpu/7day-cache'
       skip_list: |-
         .github/config/disabled_testcases_a3_all.json
         .github/config/running_skiped_testcases.json

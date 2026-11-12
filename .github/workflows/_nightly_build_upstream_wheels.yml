@@ -74,6 +74,25 @@ on:
         type: string
         default: ''
         description: Suffix appended to artifact names to avoid conflicts within one workflow run.
+      wheels_obs_endpoint:
+        required: false
+        type: string
+        default: 'obs.ap-southeast-1.myhuaweicloud.com'
+        description: >-
+          OBS endpoint for the wheels cache objects (wheel probe, upload
+          and download). The PyTorch source tarball always stays on the
+          legacy ap-southeast-1 endpoint regardless of this input.
+      wheels_obs_bucket:
+        required: false
+        type: string
+        default: 'pytorch-ci-cache/7day-cache'
+        description: >-
+          Bucket (with optional key prefix) holding the wheels cache
+          objects; wheel operations address obs://<bucket>/<tarball>.
+          The cn-southwest-2 (Guiyang) bucket is owned by a different
+          key pair: wheel steps pick ACCESSKEY_GUIYANG/
+          SECRETACCESSKEY_GUIYANG when the endpoint is cn-southwest-2,
+          ACCESSKEY/SECRETACCESSKEY otherwise.
     outputs:
       resolved_sha:
         description: Full SHA of the upstream PyTorch commit the torch wheel was built from (wheel git_version)
@@ -261,12 +280,18 @@ jobs:
         run: |
           set +e
           export PATH="${HOME}/.local/obsutil:${PATH}"
-          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+          # Source stays on the legacy ap-southeast-1 endpoint; the
+          # wheels object lives in the caller-selectable wheels bucket.
+          # The cn-southwest-2 (Guiyang) bucket uses a different key
+          # pair, so the credentials follow the endpoint.
+          WHEELS_ENDPOINT='${{ inputs.wheels_obs_endpoint }}'
+          WHEELS_BUCKET='${{ inputs.wheels_obs_bucket }}'
 
           SOURCE_TARBALL="${{ steps.names.outputs.source_tarball }}"
           WHEELS_TARBALL="${{ steps.names.outputs.pytorch_wheels_tarball }}"
 
           SOURCE_HIT=false
+          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
           if obsutil stat "obs://pytorch-ci-cache/7day-cache/${SOURCE_TARBALL}" >/dev/null 2>&1; then
             SOURCE_HIT=true
             echo "PyTorch source already cached in OBS, skipping source checkout+packaging"
@@ -275,8 +300,13 @@ jobs:
           fi
           echo "source_hit=${SOURCE_HIT}" >> "$GITHUB_OUTPUT"
 
+          if [[ "${WHEELS_ENDPOINT}" == *cn-southwest-2* ]]; then
+            obsutil config -i=${{ secrets.ACCESSKEY_GUIYANG }} -k=${{ secrets.SECRETACCESSKEY_GUIYANG }} -e=${WHEELS_ENDPOINT}
+          else
+            obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${WHEELS_ENDPOINT}
+          fi
           WHEELS_HIT=false
-          if obsutil stat "obs://pytorch-ci-cache/7day-cache/${WHEELS_TARBALL}" >/dev/null 2>&1; then
+          if obsutil stat "obs://${WHEELS_BUCKET}/${WHEELS_TARBALL}" >/dev/null 2>&1; then
             WHEELS_HIT=true
             echo "Upstream wheels already cached in OBS, skipping wheel packaging+upload"
           else
@@ -308,12 +338,21 @@ jobs:
         run: |
           set -e
           export PATH="${HOME}/.local/obsutil:${PATH}"
-          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+          # Wheels go to the caller-selectable wheels bucket; the
+          # credentials follow the endpoint because the cn-southwest-2
+          # (Guiyang) bucket uses a different key pair.
+          WHEELS_ENDPOINT='${{ inputs.wheels_obs_endpoint }}'
+          WHEELS_BUCKET='${{ inputs.wheels_obs_bucket }}'
+          if [[ "${WHEELS_ENDPOINT}" == *cn-southwest-2* ]]; then
+            obsutil config -i=${{ secrets.ACCESSKEY_GUIYANG }} -k=${{ secrets.SECRETACCESSKEY_GUIYANG }} -e=${WHEELS_ENDPOINT}
+          else
+            obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${WHEELS_ENDPOINT}
+          fi
 
           TARBALL="${{ steps.names.outputs.pytorch_wheels_tarball }}"
           for attempt in 1 2; do
             echo "=== Upload attempt ${attempt} ==="
-            if obsutil cp "./${TARBALL}" "obs://pytorch-ci-cache/7day-cache/${TARBALL}" -f -vlength; then
+            if obsutil cp "./${TARBALL}" "obs://${WHEELS_BUCKET}/${TARBALL}" -f -vlength; then
               echo "Upload succeeded on attempt ${attempt}"
               exit 0
             fi
@@ -472,11 +511,20 @@ jobs:
         id: wheels_cache
         run: |
           set +e
-          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+          # Wheels cache bucket/endpoint are caller-selectable; the
+          # credentials follow the endpoint because the cn-southwest-2
+          # (Guiyang) bucket uses a different key pair.
+          WHEELS_ENDPOINT='${{ inputs.wheels_obs_endpoint }}'
+          WHEELS_BUCKET='${{ inputs.wheels_obs_bucket }}'
+          if [[ "${WHEELS_ENDPOINT}" == *cn-southwest-2* ]]; then
+            obsutil config -i=${{ secrets.ACCESSKEY_GUIYANG }} -k=${{ secrets.SECRETACCESSKEY_GUIYANG }} -e=${WHEELS_ENDPOINT}
+          else
+            obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${WHEELS_ENDPOINT}
+          fi
 
           TORCHNPU_HIT=false
           TORCHNPU_TARBALL="${{ steps.torchnpu_name.outputs.torchnpu_wheels_tarball }}"
-          if obsutil stat "obs://pytorch-ci-cache/7day-cache/${TORCHNPU_TARBALL}" >/tmp/obs_torchnpu_wheels_stat.log 2>&1; then
+          if obsutil stat "obs://${WHEELS_BUCKET}/${TORCHNPU_TARBALL}" >/tmp/obs_torchnpu_wheels_stat.log 2>&1; then
             TORCHNPU_HIT=true
             echo "torch_npu wheels tarball already cached in OBS, torch_npu build will be skipped"
           else
@@ -493,12 +541,21 @@ jobs:
       - name: Download upstream wheels from OBS
         if: steps.wheels_cache.outputs.torchnpu_hit != 'true'
         run: |
-          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+          # Wheels come from the caller-selectable wheels bucket; the
+          # credentials follow the endpoint because the cn-southwest-2
+          # (Guiyang) bucket uses a different key pair.
+          WHEELS_ENDPOINT='${{ inputs.wheels_obs_endpoint }}'
+          WHEELS_BUCKET='${{ inputs.wheels_obs_bucket }}'
+          if [[ "${WHEELS_ENDPOINT}" == *cn-southwest-2* ]]; then
+            obsutil config -i=${{ secrets.ACCESSKEY_GUIYANG }} -k=${{ secrets.SECRETACCESSKEY_GUIYANG }} -e=${WHEELS_ENDPOINT}
+          else
+            obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${WHEELS_ENDPOINT}
+          fi
 
           TARBALL="${{ needs.fetch.outputs.pytorch_wheels_tarball }}"
           for attempt in 1 2; do
             echo "=== Download attempt ${attempt} ==="
-            if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "./${TARBALL}" -vlength; then
+            if obsutil cp "obs://${WHEELS_BUCKET}/${TARBALL}" "./${TARBALL}" -vlength; then
               echo "Download succeeded on attempt ${attempt}"
               exit 0
             fi
@@ -623,12 +680,20 @@ jobs:
       - name: Upload torch_npu wheel to OBS
         if: steps.wheels_cache.outputs.torchnpu_hit != 'true'
         run: |
-          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
+          # Same caller-selectable wheels bucket/endpoint as the upstream
+          # wheels steps; credentials follow the endpoint.
+          WHEELS_ENDPOINT='${{ inputs.wheels_obs_endpoint }}'
+          WHEELS_BUCKET='${{ inputs.wheels_obs_bucket }}'
+          if [[ "${WHEELS_ENDPOINT}" == *cn-southwest-2* ]]; then
+            obsutil config -i=${{ secrets.ACCESSKEY_GUIYANG }} -k=${{ secrets.SECRETACCESSKEY_GUIYANG }} -e=${WHEELS_ENDPOINT}
+          else
+            obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${WHEELS_ENDPOINT}
+          fi
 
           TARBALL="${{ steps.torchnpu_name.outputs.torchnpu_wheels_tarball }}"
           for attempt in 1 2; do
             echo "=== Upload attempt ${attempt} ==="
-            if obsutil cp "./${TARBALL}" "obs://pytorch-ci-cache/7day-cache/${TARBALL}" -f -vlength; then
+            if obsutil cp "./${TARBALL}" "obs://${WHEELS_BUCKET}/${TARBALL}" -f -vlength; then
               echo "Upload succeeded on attempt ${attempt}"
               exit 0
             fi
