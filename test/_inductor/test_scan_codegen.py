@@ -4,8 +4,10 @@ from types import SimpleNamespace
 import sympy
 
 import torch
+from torch._inductor import config
 from torch._inductor.codegen.common import CSE
 from torch._inductor.codegen.triton import HelperFunctions, TritonCSEVariable
+from torch._inductor.runtime.hints import ReductionHint
 from torch._inductor.shape_propagation import get_broadcasted_shape
 from torch._inductor.sizevars import SizeVarAllocator
 from torch._inductor.utils import IndentedBuffer, run_and_get_code
@@ -15,6 +17,32 @@ from torch.utils._sympy.value_ranges import ValueRanges
 
 from torch_npu._inductor.codegen.triton import NPUIndexTritonKernel
 from torch_npu._inductor.codegen.triton_utils import NPUKernelType
+from torch_npu._inductor.ir import num_splits
+
+
+class TestScanSplitting(TestCase):
+    def test_split_selection(self):
+        graph = SimpleNamespace(sizevars=SizeVarAllocator(), has_feature=lambda *_: False)
+        cases = (
+            ("npu", "scan", [], (ReductionHint.INNER, 1)),
+            ("npu", "scan", [31], (ReductionHint.DEFAULT, 1)),
+            ("cuda", "scan", [], (ReductionHint.INNER, 100)),
+            ("npu", "sum", [], (ReductionHint.INNER, 100)),
+        )
+        with V.set_graph_handler(graph), config.patch(split_reductions=True):
+            for device, reduction_type, ranges, expected in cases:
+                with self.subTest(device=device, reduction_type=reduction_type, ranges=ranges):
+                    actual = num_splits(
+                        device=torch.device(device),
+                        dst_dtype=torch.float32,
+                        src_dtype=torch.float32,
+                        inner_fn=None,
+                        ranges=ranges,
+                        reduction_ranges=[100],
+                        reduction_type=reduction_type,
+                        reduction_numel=100,
+                    )
+                    self.assertEqual(actual, expected)
 
 
 class TestScanCodegen(TestCase):

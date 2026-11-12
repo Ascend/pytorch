@@ -97,6 +97,11 @@ def num_splits(
         # We don't support unbacked symints
         return ReductionHint.DEFAULT, 1
 
+    if reduction_type == "scan" and device.type == "npu":
+        # Upstream SplitScan uses CUDA look-back workspace/atomics. NPU scan
+        # currently carries prefixes between tiles inside a single program.
+        return (ReductionHint.INNER if numel_hint == 1 else ReductionHint.DEFAULT), 1
+
     should_split = reduction_type == "scan" or (
         not V.graph.has_feature(device, BackendFeature.REDUCE_TO_SINGLE_ELEMENT)
         and reduction_type
