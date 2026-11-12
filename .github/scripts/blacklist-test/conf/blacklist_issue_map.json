@@ -12,9 +12,9 @@
       "temporary_skiped_testcases.json",
       "running_skiped_testcases.json"
     ],
-    "generated_at": "2026-11-12 10:35:29 +0800",
+    "generated_at": "2026-11-12 14:31:51 +0800",
     "category_count": 5,
-    "issue_count": 79
+    "issue_count": 80
   },
   "categories": {
     "device not supported": {
@@ -916,6 +916,9 @@
     "temporarily skipped": {
       "https://gitcode.com/Ascend/pytorch/issues/5067": [
         "acl not supported: aclnnInplaceIndexFill (DT_INT8)"
+      ],
+      "https://gitcode.com/Ascend/pytorch/issues/6026": [
+        "NPU sparse/CSR 稀疏算子实现不完整"
       ],
       "https://onebox.huawei.com/v/2490e37c86f9f6c499944b85ce5e053d?type=1&sheet=API支持数据": [
         "ATen算子未实现: Tensor.log_normal_",
