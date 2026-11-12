@@ -677,8 +677,12 @@ void NPUGraph::end_capture_to_conditional_node() {
 
   auto stream = conditional_node_streams_.top().current_stream();
   aclmdlRI ended_model_ri = nullptr;
-  NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureEnd(stream, &ended_model_ri));
+  aclError endCaptureErr = c10_npu::acl::AclmdlRICaptureEnd(stream, &ended_model_ri);
+  // Mark before propagating the status: the counter gates the queue drain for
+  // every wait on this device, and AclmdlRICaptureEnd ends the capture on
+  // failure too (see capture_end()).
   c10_npu::NPUCachingAllocator::markCaptureEnd(capture_dev_);
+  NPU_CHECK_ERROR(endCaptureErr);
   TORCH_CHECK(ended_model_ri == child_model_ri, "Invalid conditional capture end modelRI.", PTA_ERROR(ErrCode::PARAM));
   NPUGRAPH_LOGD(
       "NPUGRAPH Conditional end: child_model_ri=%p, stream=%p, mempool_id=(%lu,%lu)",

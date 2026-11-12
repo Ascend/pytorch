@@ -2388,9 +2388,16 @@ class DeviceCachingAllocator {
     num_active_captures_--;
   }
 
+  // Device-wide on purpose: the only caller is NPUEvent::block(), which asks
+  // this after enqueuing a WAIT to decide whether to drain the task queue. A
+  // per-stream answer is circular there -- the WAIT is what adds the stream to
+  // the capture, and the drain is what executes it -- so it reports "not
+  // capturing" for exactly the stream whose allocation comes next, and that
+  // allocation lands in the default pool (0, 0) instead of the graph's. The
+  // counter is decidable up front and covers nested captures.
   bool hasCapturesUnderway() {
     std::lock_guard<std::recursive_mutex> lock(mutex);
-    return is_capture_context();
+    return num_active_captures_ > 0;
   }
 
   // Returns true iff the calling thread's current stream is in an active
