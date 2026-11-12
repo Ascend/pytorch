@@ -515,16 +515,11 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
         codegen_mask = self.is_tiling_axis and (
             not self.is_no_loop_axis or allow_dynamic
         )
-        if V.kernel.is_unified_simt_kernel() or (V.kernel.persistent_reduction and self.is_reduction):
+        if V.kernel.is_unified_simt_kernel():
             codegen_mask = self.is_tiling_axis
         if self.is_vectorized_split:
             codegen_mask = True
         if codegen_mask:
-            if V.kernel._has_constant_axis_mask(self):
-                self.writeline(f"{self.name}_mask = True")
-                for var in self.var_directions:
-                    self.writeline(f"{var.name}_mask = True")
-                return
             BLOCK_NAME = f"{self.name.upper()}BLOCK"
             upper = (
                 f"min({BLOCK_NAME}+{self.symbol()}_offset, {self.name}_numel)"
@@ -3106,9 +3101,13 @@ class NPUIndexTritonKernel(TritonKernel):
                 continue
 
             node = self.range_tree_nodes[symbol]
-            val = self._get_static_reduction_block_size(node)
-            if val is None:
+            simplified_tree_numel = V.graph.sizevars.simplify(node.length)
+            if isinstance(simplified_tree_numel, (sympy.Integer, int)):
+                val = int(simplified_tree_numel)
+            else:
                 continue
+            if self.is_unified_simt_kernel():
+                val = next_power_of_2(val)
             code.writeline(f"{node.name.upper()}BLOCK_SUB: tl.constexpr = {val}")
 
         for axis in self.sorted_axis:
@@ -3667,8 +3666,6 @@ class NPUIndexTritonKernel(TritonKernel):
 
     # for creat constant tensor, if have two axis, constant=tl.full([1,1]) else  tl.full([1])
     def triton_tensor_ndim(self):
-        if self._use_contiguous_sum_layout():
-            return len(self.golden_var_list) - self.numof_reduction_axis() + 1
         if self.numof_reduction_axis() > 1:
             if self.is_contiguous_reduction():
                 return len(self.tiling_axis) - self.numof_reduction_axis() + 1
@@ -4513,36 +4510,6 @@ class NPUIndexTritonKernel(TritonKernel):
             sizes[i] = f"{axis.name.upper()}BLOCK_SUB"
         return sizes
 
-    def _use_contiguous_sum_layout(self):
-        # Limit the layout correction to sum kernels with adjacent value
-        # reduction axes and at least one preserved output axis. In particular,
-        # do not change indexed/statistical reductions or mixed reduction kernels.
-        num_red = self.numof_reduction_axis()
-        if num_red <= 1 or self.permute_continous_reduction:
-            return False
-
-        node_schedule = getattr(self, "node_schedule", None)
-        if node_schedule is None:
-            node_schedule = self.features.node_schedule
-        reductions = [
-            node.node.data
-            for node in self._iter_schedule_nodes(node_schedule)
-            if isinstance(node.node.data, ir.Reduction)
-        ]
-        if not reductions or any(node.reduction_type != "sum" for node in reductions):
-            return False
-
-        if not self.golden_var_list:
-            self.select_golden_varlist()
-        reduction_dims = [
-            i for i, axis in enumerate(self.golden_var_list) if axis.name[0] == "r"
-        ]
-        return (
-            len(reduction_dims) == num_red
-            and num_red < len(self.golden_var_list)
-            and reduction_dims[-1] - reduction_dims[0] + 1 == num_red
-        )
-
     def is_contiguous_reduction(self):
         def is_contiguous_axis(axis_list):
             axis_set = set(axis_list)  # noqa: set_linter
@@ -4563,7 +4530,7 @@ class NPUIndexTritonKernel(TritonKernel):
             for i, x in enumerate(reversed(stride_sorted_var_list)):
                 if x.name[0] == "r":
                     reduction_dim_list.append(i)
-            return is_contiguous_axis(reduction_dim_list) or self._use_contiguous_sum_layout()
+            return is_contiguous_axis(reduction_dim_list)
         return False
 
     def dense_size_str(self):
@@ -4629,34 +4596,6 @@ class NPUIndexTritonKernel(TritonKernel):
             or self.npu_kernel_type == NPUKernelType.SIMD_SIMT_MIX
         )
 
-    def _get_static_reduction_block_size(self, node):
-        numel = V.graph.sizevars.simplify(node.length)
-        if not isinstance(numel, (int, sympy.Integer)):
-            return None
-        block = int(numel)
-        return next_power_of_2(block) if self.is_unified_simt_kernel() else block
-
-    def _has_constant_axis_mask(self, node):
-        if (
-            not self.optimize_mask
-            or not self.persistent_reduction
-            or not node.is_reduction
-            or node.is_vectorized_split
-        ):
-            return False
-        # Match CUDA's divisibility proof, using the BLOCK_SUB actually emitted
-        # for this axis. NPU autotuning does not require power-of-two blocks.
-        # Persistent split axes also cover the full extent: their runtime BLOCK
-        # is fixed to numel by set_reduction_runtime_blocks_to_numel, and their
-        # generated index has no program offset.
-        block = self._get_static_reduction_block_size(node)
-        return (
-            block is not None
-            and block > 0
-            and V.graph.sizevars.statically_known_gt(node.length, 0)
-            and V.graph.sizevars.statically_known_multiple_of(node.length, block)
-        )
-
     def filter_masks(self, mask_vars, index_vars=None):
         variable_mask_vars = {  # noqa: set_linter
             mask_var
@@ -4687,10 +4626,22 @@ class NPUIndexTritonKernel(TritonKernel):
                 {str(var) for var in index_vars}  # noqa: set_linter
             )
 
+        # cumsum is codegen'ed as ops.scan, which relies on keeping the axis
+        # masks (including the persistent reduction axis) for its partial
+        # scan / accumulator update.  Other kernels must drop the redundant
+        # persistent reduction axis masks, otherwise the generated
+        # tl.load/tl.store carries useless masks (e.g. Layernorm perf
+        # regression).
+        kernel_features = getattr(self, "features", None)
+        keep_persistent_reduction_mask = (
+            kernel_features is not None and kernel_features.contains_op("scan")
+        )
+
         for node in self.sorted_axis:
             allow_dynamic = get_allow_dynamic()
-            if self._has_constant_axis_mask(node):
-                continue
+            is_persistent_reduction_axis = (
+                self.persistent_reduction and node.is_reduction
+            )
             if node.is_vectorized_split:
                 masked_axis_name.append(node.name)
                 continue
@@ -4701,10 +4652,10 @@ class NPUIndexTritonKernel(TritonKernel):
                 if (
                     not node.is_tiling_axis
                     or (
-                        node.is_no_loop_axis
-                        and not allow_dynamic
-                        and not (self.persistent_reduction and node.is_reduction)
+                        is_persistent_reduction_axis
+                        and not keep_persistent_reduction_mask
                     )
+                    or (node.is_no_loop_axis and not allow_dynamic)
                 ):
                     continue
 
@@ -4748,22 +4699,6 @@ class NPUIndexTritonKernel(TritonKernel):
             return []
         return root.var_list
 
-    def _reduction_value_masks(self, masks):
-        if not self.persistent_reduction or self.numof_reduction_axis() != 1:
-            return masks
-        reduction_node = self.range_tree_nodes[self.reduction_axis_list()[0]]
-        if not self._has_constant_axis_mask(reduction_node):
-            return masks
-
-        # A preserved output axis is either valid for every reduction element,
-        # or its result is not observed. Only remove its mask from the reduction
-        # input condition; loads, stores and result mask metadata still need it.
-        # Keep semantic load masks even when they also name an output-axis mask.
-        output_masks = {
-            f"{node.symbol()}_mask" for node in self.sorted_axis if not node.is_reduction
-        }
-        return [mask for mask in masks if mask not in output_masks or mask == self._load_mask]
-
     def reduction(
         self,
         dtype: torch.dtype,
@@ -4773,7 +4708,14 @@ class NPUIndexTritonKernel(TritonKernel):
     ) -> CSEVariable | tuple[CSEVariable, ...]:
         if not self.inside_reduction:
             raise RuntimeError("assert self.inside_reduction")
-        masks = {f"{node.symbol()}_mask" for node in self.sorted_axis}  # noqa: set_linter
+        if self.persistent_reduction and self.numof_reduction_axis() == 1:
+            masks = {  # noqa: set_linter
+                f"{node.symbol()}_mask"
+                for node in self.sorted_axis
+                if node.name[0] != "r"
+            }
+        else:
+            masks = {f"{node.symbol()}_mask" for node in self.sorted_axis}  # noqa: set_linter
         self.filter_masks(masks)
         masks = sorted(masks)
         if self._load_mask:
@@ -4783,14 +4725,6 @@ class NPUIndexTritonKernel(TritonKernel):
 
         dense_size_str = self.dense_size_str()
         value_shape = tuple(self.dense_size_list())
-        use_contiguous_sum_layout = self._use_contiguous_sum_layout()
-        broadcast_shape = (
-            tuple(self.reduce_analysis.dense_size_list())
-            if use_contiguous_sum_layout else value_shape
-        )
-        broadcast_size_str = (
-            f"[{', '.join(broadcast_shape)}]" if use_contiguous_sum_layout else dense_size_str
-        )
         permute_order = None
         need_permute = False
         axis_list = []
@@ -4799,13 +4733,13 @@ class NPUIndexTritonKernel(TritonKernel):
                 if str(axis) in str(index) and (axis not in axis_list):
                     axis_list.append(axis)
 
-        if len(axis_list) < len(broadcast_shape):
+        if len(axis_list) < len(self.dense_size_list()):
             value = self._map_tuple_or_scalar(
                 lambda v: self.cse.generate(
                     self.compute,
-                    f"tl.broadcast_to({v}, {broadcast_size_str})",
+                    f"tl.broadcast_to({v}, {dense_size_str})",
                     dtype=v.dtype,
-                    shape=broadcast_shape,
+                    shape=value_shape,
                 ),
                 value,
             )
@@ -4902,57 +4836,14 @@ class NPUIndexTritonKernel(TritonKernel):
         dim = self.reduction_dim()
         acc_type = triton_acc_type(src_dtype)
         torch_acc_type = upcast_acc_dtype(src_dtype)
-        if use_contiguous_sum_layout:
-            result_shape = [
-                "1" if axis.name[0] == "r" else size
-                for axis, size in zip(reversed(self.golden_var_list), broadcast_shape)
-            ]
-        else:
-            result_shape = list(self.dense_size_list())
-            result_shape[dim] = "1"
+        result_shape = list(self.dense_size_list())
+        result_shape[dim] = "1"
         result_var: Any = self.cse.newvar(dtype=torch_acc_type, shape=tuple(result_shape))
         result_var.mask_vars = {var for var in masks if var[0] != "r"}  # noqa: set_linter
-        value_masks = self._reduction_value_masks(masks)
-        cond_expr = " & ".join(value_masks)
-        if not cond_expr:
-            cond = ""
-        else:
-            num_reduction_axes = self.numof_reduction_axis()
-            rebuild_axis_masks = self.persistent_reduction or num_reduction_axes > 1
-            if rebuild_axis_masks:
-                value_order = list(reversed(self.golden_var_list))
-                full_shape = self.reduce_analysis.dense_size_list()
-                mask_terms = []
-                for node in self.sorted_axis:
-                    mask_name = f"{node.symbol()}_mask"
-                    if mask_name not in value_masks or node.symbol() not in value_order:
-                        continue
-                    mask_shape = ["1"] * len(value_order)
-                    mask_shape[value_order.index(node.symbol())] = (
-                        f"{node.name.upper()}BLOCK_SUB"
-                    )
-                    mask_terms.append(
-                        f"{mask_name}.reshape([{', '.join(mask_shape)}])"
-                    )
-                if mask_terms:
-                    cond_expr = " & ".join(mask_terms)
-                    if num_reduction_axes > 1:
-                        cond_expr = f"tl.broadcast_to(({cond_expr}), [{', '.join(full_shape)}])"
-                    else:
-                        cond_expr = f"({cond_expr})"
-            else:
-                cond_expr = f"({cond_expr})"
-            if need_permute:
-                cond_expr = f"({cond_expr}).permute({permute_order})"
-            if self.persistent_reduction and num_reduction_axes == 1:
-                cond = f"tl.broadcast_to({cond_expr}, {dense_size_str})"
-            else:
-                cond = f"tl.reshape({cond_expr}, {dense_size_str})"
-            if rebuild_axis_masks:
-                axis_mask_names = {f"{node.symbol()}_mask" for node in self.sorted_axis}
-                for mask in value_masks:
-                    if mask not in axis_mask_names:
-                        cond = f"({cond}) & ({mask})"
+        cond_expr = f"({' & '.join(masks)})"
+        if need_permute:
+            cond_expr = f"{cond_expr}.permute({permute_order})"
+        cond = f"{cond_expr}.reshape({dense_size_str})"
 
         def where_cond(tval, fval):
             if not cond:
@@ -4960,40 +4851,7 @@ class NPUIndexTritonKernel(TritonKernel):
             return TritonKernelOverrides.where(cond, tval, fval)
 
         if self.persistent_reduction:
-            if reduction_type == "welford_reduce":
-                # NPU's dedicated SIMD Welford path covers the full static
-                # reduction and handles its outer-axis layout separately.
-                masked_value = value
-            else:
-                default = ir.Reduction.default_value(reduction_type, src_dtype)
-
-                def update_constant_dtype(constant, src_dtype, dst_dtype):
-                    # Match upstream: an integer extremum must match the actual
-                    # value dtype, which can differ from the reduction source.
-                    if src_dtype.is_floating_point or src_dtype == torch.bool:
-                        return constant
-                    if src_dtype == dst_dtype or constant == 0:
-                        return constant
-                    if constant == torch.iinfo(src_dtype).max:
-                        return torch.iinfo(dst_dtype).max
-                    if constant == torch.iinfo(src_dtype).min:
-                        return torch.iinfo(dst_dtype).min
-                    return constant
-
-                def mask_value(current_value, current_default):
-                    current_default = update_constant_dtype(current_default, src_dtype, current_value.dtype)
-                    default_str = self._map_tuple_or_scalar(constant_repr, current_default)
-                    return self.cse.generate(
-                        self.compute,
-                        where_cond(current_value, default_str),
-                        dtype=current_value.dtype,
-                        shape=current_value.shape,
-                    )
-
-                if isinstance(value, tuple):
-                    masked_value = [mask_value(v, d) for v, d in zip(value, default)]
-                else:
-                    masked_value = mask_value(value, default)
+            masked_value = value
 
             if reduction_type in {"argmax", "argmin", "max", "min"}:
                 if reduction_type == "argmax" or reduction_type == "argmin":
@@ -5002,10 +4860,7 @@ class NPUIndexTritonKernel(TritonKernel):
                     reshape_str = self.reduce_analysis.get_reduce_dim_reshape(
                         reduce_axis
                     )
-                    broadcast_string = (
-                        f"tl.broadcast_to({reduce_axis.symbol()}.reshape({reshape_str}), "
-                        f"{masked_value}.shape)"
-                    )
+                    broadcast_string = f"tl.broadcast_to({reduce_axis.symbol()}.reshape({reshape_str}), {masked_value}.shape)"
                     accumulator_index = str(
                         self.cse.generate(
                             self.compute, broadcast_string, dtype=torch.int64, shape=masked_value.shape,
@@ -5214,7 +5069,7 @@ class NPUIndexTritonKernel(TritonKernel):
                     self.compute,
                     final_reduction(masked_value),
                     dtype=masked_value.dtype,
-                    shape=tuple(result_shape) if use_contiguous_sum_layout else masked_value.shape,
+                    shape=masked_value.shape,
                 )
         else:
             accumulator = self.cse.namedvar(f"_{result_var}", dtype=torch_acc_type, shape=tuple(self.dense_size_list()))
@@ -5873,12 +5728,12 @@ class NPUIndexTritonKernel(TritonKernel):
                 ):
                     # scroll to next group with remaining elements
                     current_group += 1
-                if current_group >= len(remaining):
-                    raise CantSplit
                 if sv.statically_known_gt(size, remaining[current_group]):
                     # add multiple ranges (two or more) to the list, as well as the getter funcs
                     add_multiple_range(size, return_getters)
                 else:
+                    if current_group >= len(remaining):
+                        raise CantSplit
                     return_getters.append(
                         operator.itemgetter(add_range(current_group, size))
                     )
