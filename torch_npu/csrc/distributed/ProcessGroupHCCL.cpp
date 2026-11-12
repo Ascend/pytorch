@@ -7067,8 +7067,10 @@ void ProcessGroupHCCL::startCoalescing()
     coalescedP2PFormatCasts_.clear();
     coalescing_state_ |= CoalActive;
     c10_npu::OptionalNPUGuard npuGuard;
-    // Infer device from the global rank to support sub process groups.
-    npuGuard.set_index(getDeviceForRank(static_cast<int>(groupRanks()[getRank()])).index());
+    // Visible device count may exceed local process count; use the actual local device.
+    const auto boundDevice = getBoundDeviceId();
+    const auto startDevice = boundDevice ? boundDevice->index() : c10_npu::current_device();
+    npuGuard.set_index(startDevice);
     groupStart();
 }
 
