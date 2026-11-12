@@ -4,9 +4,15 @@
 # 注释）里的用例，在 A3 与 A5 上**各自拆成 4 个分片并行执行**，并按
 # a3/a5 nightly 的报告格式**分别生成一份报告**。更新用例只需改这个文件。
 #
-# 为什么不编译: resolve job 按 builder 镜像 tag 去 OBS 7day-cache 匹配两套
+# 平台选择: workflow_dispatch 入参 platform = both(默认) / a3 / a5。选单个平台时
+#   只解析/生成/执行该平台：OBS triple 解析、分片、测试、报告都只跑它一个，
+#   另一个平台的 job 与 step 会被跳过。
+#   注意: push 触发不带 inputs，走兼容值——当前临时设为 a3（只跑 A3）。要恢复
+#   双平台，把两处 `inputs.platform || 'a3'` 改回 'both' 即可。
+#
+# 为什么不编译: resolve job 按 builder 镜像 tag 去 OBS 7day-cache 匹配选中平台
 # 完整的 source + wheels triple（nightly-a3 / nightly-a5 每次构建都会写入）。
-# 任一平台匹配不到就直接失败，不会退化成编译，也不做任何用例收集。
+# 任一选中平台匹配不到就直接失败，不会退化成编译，也不做任何用例收集。
 #
 # 报告格式: 与 a3/a5 nightly 一致，直接复用 generate_npu_full_test_report.py
 # （_test-report.yml 用的同一个脚本），每个平台产出
@@ -40,6 +46,15 @@ on:
       - '.github/config/custom_test_cases'
   workflow_dispatch:
     inputs:
+      platform:
+        description: '要执行的平台'
+        required: true
+        type: choice
+        options:
+          - both
+          - a3
+          - a5
+        default: a3
       max_workers:
         description: '单机并发 worker 数'
         required: true
@@ -112,6 +127,7 @@ jobs:
       - name: Pick reusable a3/a5 OBS triples
         id: pick
         env:
+          PLATFORM: ${{ inputs.platform || 'a3' }}
           WHEELS_AK: ${{ secrets.ACCESSKEY_GUIYANG }}
           WHEELS_SK: ${{ secrets.SECRETACCESSKEY_GUIYANG }}
           SOURCE_AK: ${{ secrets.ACCESSKEY }}
@@ -136,6 +152,15 @@ jobs:
               "a3": "torch-npu-builder-aarch64-torch-master-202610160225-8a315d17",
               "a5": "torch-npu-builder-x86_64-torch-master-202610160227-8a315d17",
           }
+          # platform 入参: both(默认) / a3 / a5，只解析选中的平台。
+          selected_platform = os.environ.get("PLATFORM", "both")
+          PLATFORMS = {
+              name: tag for name, tag in PLATFORMS.items()
+              if selected_platform == "both" or selected_platform == name
+          }
+          if not PLATFORMS:
+              sys.exit(f"ERROR: invalid platform input: {selected_platform!r}")
+          print(f"platform selection: {selected_platform} -> {sorted(PLATFORMS)}")
           MAX_STAT = 80
           LAST_MODIFIED_RE = re.compile(
               r"LastModified[A-Za-z]*\s*[:：]?\s*(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})"
@@ -256,6 +281,8 @@ jobs:
     timeout-minutes: 20
     outputs:
       total_cases: ${{ steps.build.outputs.total_cases }}
+      run_a3: ${{ steps.build.outputs.run_a3 }}
+      run_a5: ${{ steps.build.outputs.run_a5 }}
     steps:
       - name: Checkout this repo
         uses: actions/checkout@v6
@@ -266,6 +293,7 @@ jobs:
         id: build
         env:
           CASES_FILE: .github/config/custom_test_cases
+          PLATFORM: ${{ inputs.platform || 'a3' }}
         run: |
           python3 - <<'PY'
           import json
@@ -283,6 +311,14 @@ jobs:
           cases_file = Path(os.environ["CASES_FILE"])
           if not cases_file.is_file():
               sys.exit(f"ERROR: cases file not found: {cases_file}")
+
+          # platform 入参: both(默认) / a3 / a5，只为选中的平台生成分片。
+          platform_select = os.environ.get("PLATFORM", "both")
+          selected = [p for p, _ in PLATFORM_CATEGORIES
+                      if platform_select == "both" or platform_select == p]
+          if not selected:
+              sys.exit(f"ERROR: invalid platform input: {platform_select!r}")
+          print(f"platform selection: {platform_select} -> {selected}")
 
           by_file = {}
           for raw in cases_file.read_text(encoding="utf-8").splitlines():
@@ -303,6 +339,8 @@ jobs:
               sys.exit(f"ERROR: no nodeid in {cases_file}")
 
           for platform, category in PLATFORM_CATEGORIES:
+              if platform not in selected:
+                  continue
               out_dir = Path(f"cases-shards-{platform}")
               out_dir.mkdir(parents=True, exist_ok=True)
               for i in range(1, NUM_SHARDS + 1):
@@ -342,18 +380,22 @@ jobs:
 
           with open(os.environ["GITHUB_OUTPUT"], "a") as handle:
               handle.write(f"total_cases={len(nodeids)}\n")
+              handle.write(f"run_a3={'true' if 'a3' in selected else 'false'}\n")
+              handle.write(f"run_a5={'true' if 'a5' in selected else 'false'}\n")
 
           summary = os.environ.get("GITHUB_STEP_SUMMARY")
           if summary:
               with open(summary, "a") as handle:
-                  handle.write("### Custom test case file (a3 + a5, 4 shards)\n\n")
+                  handle.write("### Custom test case file (4 shards)\n\n")
                   handle.write(f"- cases file: `{cases_file}`\n")
+                  handle.write(f"- platforms: {', '.join(selected)} (input: `{platform_select}`)\n")
                   handle.write(f"- unique nodeids: {len(nodeids)}\n")
                   handle.write(f"- shards per platform: {NUM_SHARDS}\n")
                   handle.write(f"- source files: {len(by_file)}\n")
           PY
 
       - name: Upload a3 case file
+        if: steps.build.outputs.run_a3 == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: custom_test_cases-a3
@@ -362,6 +404,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload a5 case file
+        if: steps.build.outputs.run_a5 == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: custom_test_cases-a5
@@ -385,7 +428,7 @@ jobs:
     needs:
       - resolve
       - prepare
-    if: ${{ !cancelled() && needs.prepare.result == 'success' && needs.resolve.result == 'success' }}
+    if: ${{ !cancelled() && needs.prepare.result == 'success' && needs.resolve.result == 'success' && needs.prepare.outputs.run_a3 == 'true' }}
     uses: ./.github/workflows/_blacklist_test-category.yml
     secrets: inherit
     with:
@@ -410,7 +453,7 @@ jobs:
     needs:
       - resolve
       - prepare
-    if: ${{ !cancelled() && needs.prepare.result == 'success' && needs.resolve.result == 'success' }}
+    if: ${{ !cancelled() && needs.prepare.result == 'success' && needs.resolve.result == 'success' && needs.prepare.outputs.run_a5 == 'true' }}
     uses: ./.github/workflows/_blacklist_test-category.yml
     secrets: inherit
     with:
@@ -451,7 +494,7 @@ jobs:
           ref: ci-test
 
       - name: Download a3 shard reports
-        if: always()
+        if: always() && needs.prepare.outputs.run_a3 == 'true'
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
@@ -460,7 +503,7 @@ jobs:
           merge-multiple: true
 
       - name: Download a5 shard reports
-        if: always()
+        if: always() && needs.prepare.outputs.run_a5 == 'true'
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
@@ -481,7 +524,7 @@ jobs:
         run: mkdir -p report-a3 report-a5
 
       - name: Generate a3 report
-        if: always()
+        if: always() && needs.prepare.outputs.run_a3 == 'true'
         continue-on-error: true
         working-directory: report-a3
         env:
@@ -505,7 +548,7 @@ jobs:
           cat npu-full-test-summary.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Generate a5 report
-        if: always()
+        if: always() && needs.prepare.outputs.run_a5 == 'true'
         continue-on-error: true
         working-directory: report-a5
         env:
@@ -529,7 +572,7 @@ jobs:
           cat npu-full-test-summary.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload a3 report
-        if: always()
+        if: always() && needs.prepare.outputs.run_a3 == 'true'
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
@@ -539,7 +582,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Upload a5 report
-        if: always()
+        if: always() && needs.prepare.outputs.run_a5 == 'true'
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
