@@ -8,4 +8,4 @@
   - [Building with Clang](references/building_with_clang.md)
   - [Building libtorch\_npu](references/building_libtorch_npu.md)
   - [Checking Versions](references/check_installed_versions.md)
-  - [Troubleshooting](references/faq.md)
+  - [FAQs](references/faq.md)

@@ -1,4 +1,4 @@
-# Troubleshooting
+# FAQs
 
 ## Build Issues
 
@@ -32,7 +32,7 @@ Add the link to the torch.libs/\*.so library in the CMakeLists.txt build file. T
 ```cmake
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
-# Add the search path of the torch.libs/*.so library during compilation and linking. Replace the library path in the following command with the actual path.
+# Add the search path of torch.libs/*.so libraries during compilation and linking. Replace the library path in the following command line with the actual one
 link_directories(/usr/local/python3.8.5/lib/python3.8/site-packages/torch.libs)  
 
 add_executable(libtorch_resnet libtorch_resnet.cpp)
@@ -112,8 +112,10 @@ You can try using the dos2unix tool to resolve this.
 ```bash
 # Install the dos2unix tool
 yum install -y dos2unix
+# or
+apt-get install -y dos2unix
 
-# Convert text files in batches (select the files to convert based on your requirements and the error messages)
+# Convert text files in batch (select the files to convert based on your needs and error messages)
 find /home/pytorch -type f \
   \( -name "*.sh" -o -name "*.py" -o -name "*.cpp" -o -name "*.h" \
   -o -name "*.c" -o -name "*.cmake" -o -name "CMakeLists.txt" \
@@ -145,9 +147,13 @@ CMake Error at third_party/Tensorpipe/third_party/libuv/CMakeLists.txt:1 (cmake_
 
 This means the CMake version in your container is relatively new (≥ 3.27). Starting from CMake 3.27, projects with a cmake_minimum_required lower than 3.5 are no longer compatible, and CMake exits directly with an error.
 
+> [!NOTE]
+>
+> `DCMAKE_POLICY_VERSION_MINIMUM=3.5` takes effect only on newer CMake (4.x). On CMake 3.27 to 3.x, it does not take effect even if passed.
+
 **Solution**
 
-You can try to resolve this by adding `cmake_args.append('-DCMAKE_POLICY_VERSION_MINIMUM=3.5')` in the `run` function of `class CPPLibBuild` in the setup.py file, so that CMake processes the old cmake_minimum_required declaration in compatibility mode.
+You can add `cmake_args.append('-DCMAKE_POLICY_VERSION_MINIMUM=3.5')` to the `run` function of `class CPPLibBuild` in the setup.py file to resolve this, allowing CMake to process the legacy `cmake_minimum_required` declaration in compatibility mode.
 
 ### Issue 5: Build Error: Linker Issue
 
@@ -320,4 +326,4 @@ Query the installed TorchNPU version.
     torch_npu     2.12.0
     ```
 
-2. Query the corresponding TorchNPU version based on the TorchNPU installation package version number. For details about the compatibility, see [TorchNPU Version Compatibility Table](https://gitcode.com/Ascend/pytorch/blob/master/COMPATIBILITY.en.md).
+2. Query the corresponding TorchNPU version based on the TorchNPU installation package version number. For details about the compatibility, see [TorchNPU Version Mapping](https://gitcode.com/Ascend/pytorch/blob/master/COMPATIBILITY.en.md).

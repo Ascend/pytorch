@@ -1,4 +1,4 @@
-# Graph Compilation (torch.compile / Inductor)
+# Graph Compilation (torch.compile/Inductor)
 
 Find configurations for backend selection, caching, fusion tuning, and debugging diagnostics by compilation workflow.
 

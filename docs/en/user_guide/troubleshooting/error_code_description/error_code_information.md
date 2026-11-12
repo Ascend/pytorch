@@ -217,7 +217,7 @@ Calling the ACL API returns some errors.
 Check CANN-related errors in logs and find the CANN Error Code.
 
 > [!NOTE]  
-> For details about the errors related to the CANN software, see *[CANN Fault Handling](https://gitcode.com/cann/docs/blob/9.2.0/docs/en/troubleshooting/troubleshooting_intro.md)*.
+> For details about the errors related to the CANN software, see [CANN Troubleshooting Overview](https://gitcode.com/cann/docs/blob/9.2.0/docs/en/troubleshooting/troubleshooting_intro.md).
 
 ## ERR\*\*200
 
@@ -236,7 +236,7 @@ Calling the HCCL API returns some errors.
 Check CANN-related errors in logs and find the CANN Error Code.
 
 > [!NOTE]  
-> For details about the errors related to the CANN software, see *[CANN Fault Handling](https://gitcode.com/cann/docs/blob/9.2.0/docs/en/troubleshooting/troubleshooting_intro.md)*.
+> For details about the errors related to the CANN software, see [CANN Troubleshooting Overview](https://gitcode.com/cann/docs/blob/9.2.0/docs/en/troubleshooting/troubleshooting_intro.md).
 
 ## ERR\*\*300
 
@@ -255,7 +255,7 @@ Calling the GE API returns some errors.
 Check CANN-related errors in logs and find the CANN Error Code.
 
 > [!NOTE]  
-> For details about the errors related to the CANN software, see *[CANN Fault Handling](https://gitcode.com/cann/docs/blob/9.2.0/docs/en/troubleshooting/troubleshooting_intro.md)*.
+> For details about the errors related to the CANN software, see [CANN Troubleshooting Overview](https://gitcode.com/cann/docs/blob/9.2.0/docs/en/troubleshooting/troubleshooting_intro.md).
 
 ## ERR\*\*999
 

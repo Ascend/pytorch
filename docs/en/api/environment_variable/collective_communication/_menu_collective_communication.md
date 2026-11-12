@@ -11,7 +11,7 @@ Configure HCCL process groups, communication synchronization, timeout diagnosis,
 - [RANK_TABLE_FILE](RANK_TABLE_FILE.md)
 - [ROOTINFO_SCALABLE_ENABLE](ROOTINFO_SCALABLE_ENABLE.md)
 - [TORCH_HCCL_RANKS_PER_ROOT](TORCH_HCCL_RANKS_PER_ROOT.md)
-- [（beta）TORCH_HCCL_ZERO_COPY](（beta）TORCH_HCCL_ZERO_COPY.md)
+- [(beta) TORCH_HCCL_ZERO_COPY](beta_TORCH_HCCL_ZERO_COPY.md)
 
 ## Timeout Monitoring and Fault Recording
 

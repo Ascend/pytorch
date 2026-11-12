@@ -21,7 +21,7 @@ The new TorchNPU modules do not support configuration through the native `TORCH_
 
 TorchNPU enhances the native logging print function and supports log printing on the C++ side.
 
-- When configured, logging information printing is enabled, and the log information of the specified modules is printed on the screen of the primary node.
+- When configured, logging information printing is enabled, and the log information of the specified modules is printed on the screen of the first node.
 - When not configured, logging information printing is disabled, and log information is not printed on the screen.
 
 This environment variable is not configured by default.

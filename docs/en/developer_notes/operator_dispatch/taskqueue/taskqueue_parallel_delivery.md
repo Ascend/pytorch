@@ -21,7 +21,7 @@ In this scenario, the operator dispatch process is executed and returned layer b
 - **Inference applications**: The main thread of the Python business process, or a Python thread manually created by the user.
 - **Training applications**: The forward phase uses the main thread of the Python business process, and the backward phase uses the backward thread created internally by PyTorch.
 
-### Scenario 2: Asynchronous Operator Dispatch Process (TASK_QUEUE_ENABLE=1, default)
+### Scenario 2: Asynchronous Operator Dispatch Process (TASK_QUEUE_ENABLE=1, Default)
 
 ![Scenario 2 operator dispatch process](../../../figures/taskqueue_parallel_delivery_fig_02.png)
 

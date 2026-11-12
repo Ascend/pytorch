@@ -1,6 +1,6 @@
 # Performance Optimization and Profiling
 
-Configures CPU binding, Eager operator fusion, and dynamic Profiler collection.
+Configures CPU binding, Eager operator fusion, and Profiler dynamic profiling.
 
 ## Execution Optimization
 

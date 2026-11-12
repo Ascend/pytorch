@@ -1,4 +1,4 @@
-# Calling Example
+# Call Examples
 
 After completing the development of the adaptation plugin for the PyTorch framework, you can call Ascend C custom operators from the PyTorch framework. The following uses the custom `npu_add_custom` operator as an example to describe the operator adaptation development process under the PyTorch 2.7.1 framework.
 

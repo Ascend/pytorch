@@ -12,11 +12,11 @@
 
     PyTorch uses OpenMP by default during build. The PyTorch runtime environment requires installing the Bisheng compiler package and setting the `LD_LIBRARY_PATH` environment variable so that the dynamic library `libomp.so` can be correctly located.
 
-- “fatal error: 'filesystem' file not found.”
+- "fatal error: 'filesystem' file not found."
 
     The gcc version is too low. Run the command gcc --version to check the version, and use gcc 8 or later. For details, see [Installing GCC](https://ubuntu.com/developers/docs/howto/gcc-setup/).
 
-- “Error while loading shared libraries: libomp.so: cannot open shared object file: No such file or directory.”
+- "Error while loading shared libraries: libomp.so: cannot open shared object file: No such file or directory."
 
     TorchNPU uses OpenMP by default during build. The TorchNPU runtime environment requires installing the Bisheng compiler package and setting the `LD_LIBRARY_PATH` environment variable so that the dynamic library `libomp.so` can be correctly located.
 

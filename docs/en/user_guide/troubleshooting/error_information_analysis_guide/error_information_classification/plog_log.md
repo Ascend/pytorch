@@ -19,4 +19,4 @@ As shown in [Figure 3](#plog-log-example-hccl), you can view the log level (for 
 ![](../../../../figures/plog_log_OOM.png)
 
 > [!NOTE]
-> For more details about logs, see *[CANN Log Reference](https://gitcode.com/cann/runtime/blob/9.2.0/docs/en/log_ref/log_overview.md)*.
+> For more details about logs, see [CANN Log Overview](https://gitcode.com/cann/runtime/blob/9.2.0/docs/en/log_ref/log_overview.md).

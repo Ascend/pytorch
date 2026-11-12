@@ -2,73 +2,73 @@
 
 ## Function Description
 
-This environment variable controls the behavior of the cache allocator. Configuring this environment variable changes memory usage and may cause performance fluctuations.
+This environment variable controls the behavior of the caching allocator. Configuring this environment variable changes memory usage and may cause performance fluctuations.
 
 > [!CAUTION]  
 >
 > Starting from TorchNPU 26.2.0 and PyTorch 2.10.0 and later versions, torch\_npu also supports configuring caching allocator parameters through the [PYTORCH_ALLOC_CONF](PYTORCH_ALLOC_CONF.md) environment variable. The configuration method and supported parameters are the same as PYTORCH\_NPU\_ALLOC\_CONF. Configure either one. Configuring both at the same time reports an error and exits the program. It is recommended to use the PYTORCH\_ALLOC\_CONF environment variable to configure caching allocator behavior.
 
-The cache allocator uses different memory pools based on the size of the requested memory. Requests smaller than 1 MB use the small block memory pool, and requests of other sizes use the large block memory pool. With the virtual memory feature, the physical memory allocation granularity (`segment_size_mb`) for the large block memory pool defaults to 20 MB, and that for the small block memory pool defaults to 2 MB (non-configurable). In LLM scenarios, the small block memory pool typically has low memory usage. Therefore, certain environment configuration items (`page_size`, `segment_size_mb`) apply only to the large block memory pool.
+The caching allocator uses different memory pools based on the size of the requested memory. Requests smaller than 1 MB use the small block memory pool, and requests of other sizes use the large block memory pool. With the virtual memory feature, the physical memory allocation granularity (segment\_size\_mb) for the large block memory pool defaults to 20 MB, and that for the small block memory pool defaults to 2 MB (non-configurable). In LLM scenarios, the small block memory pool typically has low memory usage. Therefore, certain environment configuration items (page\_size, segment\_size\_mb) apply only to the large block memory pool.
 
 Optional parameters:
 
-- `max_split_size_mb:<value\>`, the upper limit for splitting memory blocks.
+- max\_split\_size\_mb:<value\>, the upper limit for splitting memory blocks.
 
-    Memory blocks larger than the configured value are not split during use, which helps reduce memory fragmentation. This option is mainly used for optimization when a model is interrupted due to OOM (Out of Memory) and a large number of inactive split memory blocks exist. The default value of `<value\>` is infinite, in MB, meaning that memory blocks of all sizes can be split. The minimum configurable value is greater than 20 MB.
+    Memory blocks larger than the configured value are not split during use, which helps reduce memory fragmentation. This option is mainly used for optimization when a model is interrupted due to OOM (Out of Memory) and a large number of inactive split memory blocks exist. The default value of <value\> is infinite, in MB, meaning that memory blocks of all sizes can be split. The minimum configurable value is greater than 20 MB.
 
-- `garbage_collection_threshold:<value\>`, the garbage collection threshold.
+- garbage\_collection\_threshold:<value\>, the garbage collection threshold.
 
     Actively reclaims unused NPU memory blocks. After the value threshold is set (for example, 0.8), if NPU memory capacity usage exceeds the threshold (that is, 80% of the total memory allocated to the NPU application), the caching allocator starts reclaiming NPU memory blocks, preferentially releasing the blocks that were allocated first and have not been reused for a long time, while avoiding releasing blocks that are actively reused. The <value\> value range is \(0.0,1.0\). This feature is disabled by default. The garbage collection threshold must be used together with the memory factor. For the memory factor, see "torch\_npu.npu.set\_per\_process\_memory\_fraction" in [Custom APIs](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/en/custom_APIs/overview.md).
 
-- `expandable_segments:<value\>`, enables the memory pool segment expansion feature, that is, the virtual memory feature.
+- expandable\_segments:<value\>, enables the memory pool segment expansion feature, that is, the virtual memory feature.
 
-    The default value is False. If set to True, this setting instructs the cache allocator to create specific memory block allocations that can be expanded later to better handle scenarios where memory usage size changes frequently. If set to False, the memory pool expandable segment feature is disabled and the original memory allocation method is used.
+    The default value is False. If set to True, this setting instructs the caching allocator to create specific memory block allocations that can be expanded later to better handle scenarios where memory usage size changes frequently. If set to False, the memory pool expandable segment feature is disabled and the original memory allocation method is used.
 
-- `base_addr_aligned_kb:<value\>`, the alignment granularity of the memory base address.
+- base\_addr\_aligned\_kb:<value\>, the alignment granularity of the memory base address.
 
-    The value range is 0 to 16, and the value must be an integer, in KB. The default value is 16. This parameter takes effect only when `expandable_segments` is set to True. If this parameter is configured as 16, when large block memory (greater than or equal to 2 MB) is requested, the base address of the requested memory is kept aligned to 16 KB as much as possible. If configured as 0, the base address of the requested memory is aligned to 512 B.
+    The value range is 0 to 16, and the value must be an integer, in KB. The default value is 16. This parameter takes effect only when expandable\_segments is set to True. If this parameter is configured as 16, when large block memory (greater than or equal to 2 MB) is requested, the base address of the requested memory is kept aligned to 16 KB as much as possible. If configured as 0, the base address of the requested memory is aligned to 512 B.
 
 <!-- npu="950,A3,910b" id7 -->
-- `page_size:<value\>`, sets the size for requesting large page memory.
+- page\_size:<value\>, sets the size for requesting large page memory.
 
-    The value supports only 1 GB. Refer to [Configuration Example](#configuration-example). The memory allocation granularity is 1 GB. Amounts less than 1 GB are rounded up to 1 GB, and the allocated amount is always an integer multiple of 1 GB. With the virtual memory feature, this configuration item applies only to the large block memory pool of the cache allocator.
+    The value supports only 1 GB. Refer to [Configuration Example](#configuration-example). The memory allocation granularity is 1 GB. Amounts less than 1 GB are rounded up to 1 GB, and the allocated amount is always an integer multiple of 1 GB. With the virtual memory feature, this configuration item applies only to the large block memory pool of the caching allocator.
 
     When this option is not configured, the memory allocation granularity is 2 MB. To request 1 GB of large page memory, 1024/2 = 512 page table entries are occupied. After this option is set, the memory allocation granularity is 1 GB, and 1 GB of large page memory occupies only 1 page table entry. This effectively reduces the number of page table entries and expands the address range covered by the TLB (Translation Lookaside Buffer) cache, improving the performance of scattered access.
 
     The TLB is a hardware module for high-speed caching in Ascend AI processors, storing the mapping from recently used virtual addresses to physical addresses.
 <!-- end id7 -->
 
-- `segment_size_mb:<value\>`, sets the allocation granularity of physical memory under the virtual memory feature.
+- segment\_size\_mb:<value\>, sets the allocation granularity of physical memory under the virtual memory feature.
 
     The value range is 20\~512. The configured value must be an integer, in MB, and defaults to 20 when not configured. It takes effect only when expandable\_segments is set to True. This configuration item applies only to the large-block memory pool of the caching allocator. When configured together with page\_size, only page\_size takes effect. When configured together with large\_segment\_size\_mb, only large\_segment\_size\_mb takes effect.
-    Increasing `segment_size_mb` can reduce the number of calls to memory allocation and memory mapping interfaces, thereby improving memory allocation efficiency, but it may also bring more memory fragmentation. Therefore, in scenarios where memory usage is at its limit, you are advised to increase this value with caution.
+    Increasing segment\_size\_mb can reduce the number of calls to memory allocation and memory mapping interfaces, thereby improving memory allocation efficiency, but it may also bring more memory fragmentation. Therefore, in scenarios where memory usage is at its limit, you are advised to increase this value with caution.
 
     > [!NOTE]
     >
     > segment\_size\_mb is deprecated; large\_segment\_size\_mb is recommended. large\_segment\_size\_mb supports both virtual memory and non-virtual memory scenarios, providing more comprehensive functionality.
 
-- `roundup_power2_divisions:<value\>` or `roundup_power2_divisions:[<size1\>:<value1\>,<size2\>:<value2\>,...]`, rounds up the requested allocation size to the nearest power-of-2 segment, thereby reusing memory blocks more efficiently.
+- roundup\_power2\_divisions:<value\> or roundup\_power2\_divisions:\[<size1\>:<value1\>,<size2\>:<value2\>,...\], rounds up the requested allocation size to the nearest power-of-2 segment, thereby reusing memory blocks more efficiently.
 
     When not configured, the allocation size is aligned up in units of 512 bytes, which works well for smaller allocation sizes. For larger allocation requests with similar sizes, this strategy may be inefficient. Because each request is allocated to a memory block of a different size, these memory blocks are difficult to reuse, which in turn produces a large number of insufficiently reused memory blocks and wastes memory capacity.
 
     Two configuration modes are supported:
 
     - **Single value**: sets the same number of segments for each memory block, for example, "4".
-    - **Key-value pair array**: sets the number of segments separately for each power-of-2 interval. For example, when configured as "[256:1,512:2,1024:4,>:8]", 1 segment is set for all allocations below 256 MB, 2 segments for allocations between 256 MB and 512 MB, 4 segments for allocations between 512 MB and 1 GB, and 8 segments for larger allocations.
+    - **Key-value pair array**: sets the number of segments separately for each power-of-2 interval. For example, when configured as "\[256:1,512:2,1024:4,\>:8\]", 1 segment is set for all allocations below 256 MB, 2 segments for allocations between 256 MB and 512 MB, 4 segments for allocations between 512 MB and 1 GB, and 8 segments for larger allocations.
 
-- `multi_stream_lazy_reclaim:<value\>`, delays Events querying during memory allocation in multi-stream scenarios.
+- multi\_stream\_lazy\_reclaim:<value\>, delays Events querying during memory allocation in multi-stream scenarios.
 
     The default value is False, meaning that an Events query is executed for every memory allocation. When set to True, each memory allocation preferentially uses free memory blocks, and an Events query is triggered only when the number of Events exceeds the threshold of 512 or no available memory block is found. By reducing the number of Events queries, CPU resource usage is reduced and host-side performance is improved. This configuration affects only the frequency of Events status queries and does not change the memory release conditions or the memory peak. Memory blocks are released only after all related Events complete.
 
-- `pinned_use_background_threads:<value\>`, whether to enable background threads to process events.
+- pinned\_use\_background\_threads:<value\>, whether to enable background threads to process events.
 
     The default value is False, meaning that background threads are not enabled. When set to True, background threads are enabled to query and process events in the background, reducing the blocking time of the main thread.
 
-- `pin_memory_expandable_segments:<value\>`, enables the pin_memory memory pool expandable segment feature, that is, the virtual memory feature.
+- pin\_memory\_expandable\_segments:<value\>, enables the pin_memory memory pool expandable segment feature, that is, the virtual memory feature.
 
-    The default value is False. If set to True, this setting instructs the pin_memory cache allocator to use a physical memory allocation granularity of 20 MB (non-configurable) for the memory pool. The created memory blocks can be expanded later to better handle frequent memory size changes during usage. In addition, statistics related to the pin_memory memory block count are excluded from statistics (default value: 0). If set to False, the pin_memory memory pool expandable segment feature is disabled and the original memory allocation method is used.
+    The default value is False. If set to True, this setting instructs the pin_memory caching allocator to use a physical memory allocation granularity of 20 MB (non-configurable) for the memory pool. The created memory blocks can be expanded later to better handle frequent memory size changes during usage. In addition, statistics related to the pin_memory memory block count are excluded from statistics (default value: 0). If set to False, the pin_memory memory pool expandable segment feature is disabled and the original memory allocation method is used.
 
-- `pinned_mem_register:<value\>`, sets whether to enable the host register function for pin_memory memory.
+- pinned\_mem\_register:<value\>, sets whether to enable the host register function for pin_memory memory.
 
     The default value is False. If set to True, this setting instructs pin_memory to enable the host register function, registering the pin_memory memory mapping as a memory address accessible to the Device. If set to False, the host register function is disabled.
 
@@ -116,7 +116,7 @@ Optional parameters:
 
     When D is less than or equal to C, this variable does not take effect.
 
-- release\_lock\_on\_npumalloc:<value\>: A device memory allocation lock control item that decides whether to release some locks when allocating device memory. The controlled items remain consistent with the native community.
+- release\_lock\_on\_npumalloc:<value\>: A device memory allocation lock control item that decides whether to release some locks when allocating device memory. The controlled items remain consistent with the PyTorch community.
 
     The value is of bool type: True or False, and defaults to False. After configuration, device memory allocation releases some locks, which can alleviate host computing overhead pressure but may cause more resource occupation. Custom-developed device memory management may have compatibility issues; use it with caution.
 
@@ -138,14 +138,13 @@ Example 2:
 export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True,base_addr_aligned_kb:16
 ```
 
-<!-- npu="950,A3,910b" id8 -->
+<!-- npu="950,A3,910b" id10 -->
 Example 3:
 
 ```bash
 export PYTORCH_NPU_ALLOC_CONF=page_size:1g
 ```
-<!-- end id8 -->
-
+<!-- end id10 -->
 Example 4:
 
 ```bash
@@ -236,7 +235,7 @@ export PYTORCH_NPU_ALLOC_CONF=release_lock_on_npumalloc:True
 
 - The `expandable_segments` feature must be used on Ascend HDK 23.0.0 or later.
 - When either `max_split_size_mb` or `garbage_collection_threshold` is set to a non-default value, `expandable_segments` must be set to False.
-<!-- npu="950,A3,910b" id10 -->
+<!-- npu="950,A3,910b" id8 -->
 - The `page_size` feature requires Ascend HDK 25.0.RC1 or later and CANN Commercial Use 8.1.RC1 or later, and supports the following products:
 
     <!-- npu="910b" id1 -->
@@ -245,16 +244,15 @@ export PYTORCH_NPU_ALLOC_CONF=release_lock_on_npumalloc:True
     <!-- npu="A3" id2 -->
     - <term>Atlas A3 training products</term>
     <!-- end id2 -->
-    <!-- npu="950" id9 -->
+    <!-- npu="950" id22 -->
     - <term>Ascend 950DT products</term>
-    <!-- end id9 -->
+    <!-- end id22 -->
 - When the `page_size` feature is configured together with other features, only the `page_size` configuration takes effect. Notes on requesting memory are as follows:
     - When the requested memory is greater than 1 MB:
         - If `page_size` is configured, the memory allocation granularity is 1 GB.
         - If `page_size` is not configured, the memory allocation granularity is 2 MB.
-
     - When the requested memory is less than or equal to 1 MB: `page_size` does not take effect even if configured, and the memory allocation granularity is 2 MB.
-<!-- end id10 -->
+<!-- end id8 -->
 - The `pin_memory_expandable_segments` feature requires TorchNPU 7.3.0 or later, Ascend HDK 25.5.0 or later, and CANN Commercial Use 8.5.0 or later.
 - The `pinned_use_background_threads` feature requires TorchNPU 26.0.0 or later and PyTorch 2.8.0 or later.
 - Notes on using `pinned_mem_register` are as follows:

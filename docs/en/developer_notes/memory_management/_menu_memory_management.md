@@ -11,4 +11,4 @@
 <!-- npu="A3,910b,910" id2 -->
 -   [Memory Sharing (IPC)](memory_sharing_ipc.md)
 <!-- end id2 -->
--   [FAQ](memory_faq.md)
+-   [FAQs](memory_faq.md)

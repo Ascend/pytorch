@@ -35,11 +35,11 @@ Parameter settings:
     - You can configure multiple binding ranges for one NPU card. For example, if you set the environment variable `CPU_AFFINITY_CONF=1,npu0:0-2,npu0:4-5`, the binding range of NPU card 0 is [0,2] and [4,5].
     - You can configure binding ranges for multiple NPU cards. For example, if you set the environment variable `CPU_AFFINITY_CONF=1,npu0:0-0,npu2:1-2,npu2:4-4`, the binding range of NPU card 0 is changed to [0,0], the binding range of NPU card 2 is changed to [1,2] and [4,4], and the binding ranges of other NPU cards remain unchanged.
 
-<!-- npu="910b" id6 -->
+<!-- npu="910b" id7 -->
 - `npu_affine:<value4>`: Optional parameter. Specifies whether to enable NPU affinity binding.
     - `0` or not set: Disables affinity binding.
     - `1`: Enables affinity binding.
-<!-- end id6 -->
+<!-- end id7 -->
 
 CPU binding is disabled by default. If you need to improve performance through CPU binding, you are advised to use fine-grained binding.
 
@@ -82,19 +82,19 @@ When the container limits the available cores through Cgroup, set `force:1` to s
 export CPU_AFFINITY_CONF=2,force:1,npu0:0-3
 ```
 
-<!-- npu="910b" id7 -->
+<!-- npu="910b" id5 -->
 Example 5: NPU affinity binding
 
 ```bash
 export CPU_AFFINITY_CONF=1,npu_affine:1
 ```
-<!-- end id7 -->
+<!-- end id5 -->
 
-<!-- npu="910b" id5 -->
+<!-- npu="910b" id8 -->
 ## Usage Constraints
 
 Affinity binding is supported only on <term>Atlas A2 training products</term>.
-<!-- end id5 -->
+<!-- end id8 -->
 
 ## Supported Products
 

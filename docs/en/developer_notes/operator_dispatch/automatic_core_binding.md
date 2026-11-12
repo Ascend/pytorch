@@ -87,16 +87,14 @@ The core binding feature is disabled by default. If you need to improve performa
     ```shell
     export CPU_AFFINITY_CONF=2,force:1,npu0:0-3
     ```
-
-<!-- npu="910b" id3 -->
+<!-- npu="910b" id4 -->
 - NPU affinity binding example:
 
     ```shell
     export CPU_AFFINITY_CONF=1,npu_affine:1
     ```
-<!-- end id3 -->
-
-<!-- npu="910b" id1 -->
+<!-- end id4 -->
+<!-- npu="910b" id5 -->
 ## Constraints
 
 Affinity core binding only supports <term>Atlas A2 training products</term>.

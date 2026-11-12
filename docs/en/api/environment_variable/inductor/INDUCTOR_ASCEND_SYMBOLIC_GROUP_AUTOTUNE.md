@@ -19,7 +19,7 @@ export INDUCTOR_ASCEND_SYMBOLIC_GROUP_AUTOTUNE=1
 
 - It only takes effect for Triton kernels with dynamic shape dimensions; the behavior of static shape kernels is not affected.
 - It only takes effect for pointwise, reduction, and persistent_reduction template kernels. The template types involved in tuning can be controlled by `INDUCTOR_ASCEND_SYMBOLIC_GROUP_TEMPLATES`.
-- This variable is currently a grayscale switch. When the grouping plan is not supported, or the memory usage of the grouped benchmark exceeds the budget (controlled by `INDUCTOR_ASCEND_SYMBOLIC_GROUP_MAX_BENCHMARK_MEMORY_RATIO`), it automatically falls back to the normal autotune process.
+- This variable is currently a gray-release switch. When the grouping plan is not supported, or the memory usage of the grouped benchmark exceeds the budget (controlled by `INDUCTOR_ASCEND_SYMBOLIC_GROUP_MAX_BENCHMARK_MEMORY_RATIO`), it automatically falls back to the normal autotune process.
 
 ## Supported Products
 

@@ -1,8 +1,8 @@
 # Main Processes and Threads
 
-This document helps users quickly identify and understand the various processes and threads in the system when running torch and TorchNPU training or inference tasks. When users need to troubleshoot performance bottlenecks, diagnose abnormal processes/threads, understand system resource usage, or evaluate whether program behavior meets expectations, they can query the ownership, trigger conditions, and lifecycles of each process/thread through this document.
+This document helps users quickly identify and understand the various processes and threads in the system when running torch and TorchNPU training or inference tasks. When users need to troubleshoot performance bottlenecks, diagnose abnormal processes/threads, understand system resource usage, or evaluate whether program behavior meets expectations, they can query the ownership, trigger conditions, and lifecycle of each process/thread through this document.
 
-For the processes/threads started by CANN itself during the construction of AI applications based on CANN, see *[CANN Environment Variable Reference](https://gitcode.com/cann/docs/blob/9.2.0/docs/en/env-vars/README.md)*.
+For the processes/threads started by CANN itself during the construction of AI applications based on CANN, see [CANN Environment Variable Reference](https://gitcode.com/cann/docs/blob/9.2.0/docs/en/env-vars/README.md).
 
 ## Main Processes and Threads
 

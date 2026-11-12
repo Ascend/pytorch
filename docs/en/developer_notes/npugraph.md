@@ -28,7 +28,7 @@ The following figure shows the advantages of NPUGraph:
 >
 > When the CPU launches a series of short kernels one by one, the CPU launch overhead creates significant gaps between kernels. Using NPUGraph to replace this kernel sequence initially requires more time to build the graph and launch the entire graph at once, but subsequent executions are much faster because the gaps between kernels are very small. The difference becomes more obvious when the same operation sequence is repeated many times (for example, when the number of training steps is very large). The initial cost of building and launching the graph is amortized over the total number of training iterations.
 
-## Applicable Scenarios
+## Application Scenarios
 
 **Recommended scenarios for using NPUGraph:**
 

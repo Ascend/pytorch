@@ -4,7 +4,7 @@ Before compilation, ensure that the compiler settings are correct:
 
 ```bash
 export CC=clang
-export CC=clang++
+export CCXX=clang++
 ```
 
 ## Compiling PyTorch with Clang
@@ -25,7 +25,7 @@ python setup.py build bdist_wheel 2>&1 | tee build.log
 
 > [!NOTE]
 >
-> When compiling PyTorch 2.12 with Clang 20, there is a known compilation issue. For details, see the [related issue](https://github.com/pytorch/pytorch/issues/185618) in the upstream community. Modify the code by referring to the content in the [fixing PR](https://github.com/pytorch/pytorch/pull/185785) before compiling.
+> When compiling PyTorch 2.12 with Clang 20, there is a known compilation issue. For details, see the [related issues](https://github.com/pytorch/pytorch/issues/185618) in the upstream community. Modify the code by referring to the content in the [fixing PR](https://github.com/pytorch/pytorch/pull/185785) before compiling.
 
 After compiling PyTorch, install the build artifacts in the dist directory.
 

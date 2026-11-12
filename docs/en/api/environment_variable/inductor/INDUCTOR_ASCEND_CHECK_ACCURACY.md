@@ -42,7 +42,7 @@ export INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL="rtol=1e-6,atol=1e-7"
 
 > [!NOTE]
 >
-> To configure different accuracy thresholds for different data types (such as float32, float16, bfloat16, etc.), manually modify the acc_comp_tol dictionary in the source code of the corresponding mode. The configuration file paths for each mode are as follows:
+> To configure different accuracy thresholds for different data types (such as float32, float16, bfloat16, etc.), manually modify the acc_comp_tol dictionary in the source code of the corresponding modes. The configuration file paths for each mode are as follows:
 >
 > - Triton: [config](../../../../../torch_npu/_inductor/config.py)
 > - DVM: [config](../../../../../torch_npu/_inductor/ascend_npu_ir/ascend_npu_ir/config.py)

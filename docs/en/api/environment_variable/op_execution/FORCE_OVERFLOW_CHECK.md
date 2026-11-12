@@ -22,11 +22,11 @@ print(torch_npu.npu.utils.get_npu_overflow_flag())  # True, detected via the ove
 ```
 <!-- end id5 -->
 
+<!-- npu="950" id6 -->
 > [!NOTE]  
 >
-> <!-- npu="950" id4 -->
-> - <term>Ascend 950DT products</term> do not support using APIs such as `get_npu_overflow_flag` to query the overflow status. When the environment variable switch is enabled on <term>Ascend 950DT products</term>, you need to confirm that the overflow check switch has taken effect through the `aclrtSetStreamOverflowSwitch`-related logs in plog (with `ASCEND_GLOBAL_LOG_LEVEL=1` configured).
-> <!-- end id4 -->
+> <term>Ascend 950DT products</term> do not support using APIs such as `get_npu_overflow_flag` to query the overflow status. When the environment variable switch is enabled on <term>Ascend 950DT products</term>, you need to confirm that the overflow check switch has taken effect through the `aclrtSetStreamOverflowSwitch`-related logs in plog (with `ASCEND_GLOBAL_LOG_LEVEL=1` configured).
+<!-- end id6 -->
 
 This environment variable is provided by TorchNPU. PyTorch does not have a directly corresponding environment variable.
 

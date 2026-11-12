@@ -12,7 +12,7 @@ When HCCL is used as the communication backend, this environment variable contro
 > - The current version is also compatible with the old name `HCCL_BLOCKING_WAIT`.
 > - When both `TORCH_HCCL_BLOCKING_WAIT` and `HCCL_BLOCKING_WAIT` are configured, `TORCH_HCCL_BLOCKING_WAIT` takes precedence.
 > - When this environment variable is enabled, `wait()` and `synchronize()` return only after the current HCCL communication actually completes, reports an error, or times out on the host side.
-> - When this environment variable is enabled, no watchdog thread is created.
+> - When this environment variable is enabled, no `watchdog` thread is created.
 
 ## Configuration Example
 

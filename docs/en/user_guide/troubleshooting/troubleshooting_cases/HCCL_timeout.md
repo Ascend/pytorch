@@ -21,4 +21,4 @@ One of the cards exits abnormally, causing other cards to report errors after a 
 
 ## Solution
 
-According to error code EI0002, see the "[EI0002 Communication_Error_Timeout](https://gitcode.com/cann/hcomm/blob/9.2.0/docs/en/error_codes/EI0002-Communication_Error_Timeout.md)" section in *CANN Fault Handling* for troubleshooting.
+According to error code EI0002, see the "[EI0002 Communication_Error_Timeout](https://gitcode.com/cann/hcomm/blob/9.2.0/docs/en/error_codes/EI0002-Communication_Error_Timeout.md)" section in *CANN Troubleshooting Overview* for troubleshooting.

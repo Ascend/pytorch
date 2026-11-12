@@ -4,7 +4,7 @@
 
 This environment variable configures the list of template types that participate in grouped autotune for dynamic shapes. Multiple templates are separated by commas, and the default value is `pointwise,reduction,persistent_reduction`.
 
-After `INDUCTOR_ASCEND_SYMBOLIC_GROUP_AUTOTUNE=1` is set to enable grouped autotune, only the template kernels in the list go through the grouped autotune process; the other template kernels still go through the normal autotune process. This is used to control the range of kernels participating in grouped tuning during grayscale release.
+After `INDUCTOR_ASCEND_SYMBOLIC_GROUP_AUTOTUNE=1` is set to enable grouped autotune, only the template kernels in the list go through the grouped autotune process; the other template kernels still go through the normal autotune process. This is used to control which kernels participate in grouped tuning for gray-release purposes.
 
 - When not configured: uses the default value `pointwise,reduction,persistent_reduction`, meaning all three types of template kernels participate in grouped autotune, equivalent to no range restriction.
 - Set to `pointwise`: element-wise template kernels participate in grouped autotune.
@@ -24,7 +24,7 @@ export INDUCTOR_ASCEND_SYMBOLIC_GROUP_TEMPLATES=pointwise
 
 - This variable only takes effect when `INDUCTOR_ASCEND_SYMBOLIC_GROUP_AUTOTUNE=1`.
 - The value must be any combination of `pointwise`, `reduction`, and `persistent_reduction`; other values are ignored.
-- This variable is currently a grayscale switch, used to control the rollout range of grouped autotune.
+- This variable is currently a gray-release switch, used to control the rollout range of grouped autotune.
 
 ## Supported Products
 

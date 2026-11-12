@@ -111,7 +111,7 @@
   - [TORCH_HCCL_RANKS_PER_ROOT](collective_communication/TORCH_HCCL_RANKS_PER_ROOT.md)
   <!-- end id35 -->
   <!-- npu="A3" id36 -->
-  - [(beta) TORCH_HCCL_ZERO_COPY](collective_communication/（beta）TORCH_HCCL_ZERO_COPY.md)
+  - [(beta) TORCH_HCCL_ZERO_COPY](collective_communication/beta_TORCH_HCCL_ZERO_COPY.md)
   <!-- end id36 -->
   <!-- npu="950,A3,910b,910,310p" id37 -->
   - [TORCH_HCCL_DESYNC_DEBUG](collective_communication/TORCH_HCCL_DESYNC_DEBUG.md)
@@ -160,7 +160,7 @@
   <!-- end id51 -->
 <!-- end id52 -->
 <!-- npu="950,A3,910b,910" id57 -->
-- [Performance Optimization and Collection](performance_tuning/_menu_performance_tuning.md)
+- [Performance Optimization and Profiling](performance_tuning/_menu_performance_tuning.md)
   <!-- npu="950,A3,910b,910" id53 -->
   - [CPU_AFFINITY_CONF](performance_tuning/CPU_AFFINITY_CONF.md)
   <!-- end id53 -->
@@ -175,7 +175,7 @@
   <!-- end id56 -->
 <!-- end id57 -->
 <!-- npu="950,A3,910b,910" id77 -->
-- [Graph Compilation (torch.compile / Inductor)](inductor/_menu_inductor.md)
+- [Graph Compilation (torch.compile/Inductor)](inductor/_menu_inductor.md)
   <!-- npu="950,A3,910b,910" id58 -->
   - [TORCHINDUCTOR_NPU_BACKEND](inductor/TORCHINDUCTOR_NPU_BACKEND.md)
   <!-- end id58 -->

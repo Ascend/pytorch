@@ -4,7 +4,7 @@
 
 `guard_filter_fn` is a compilation option at the PyTorch Dynamo layer. It takes effect in the graph capture phase and is independent of downstream compilation backends. The generation and verification logic of guards is uniformly managed by Dynamo, so `guard_filter_fn` applies to all backends.
 
-PyTorch Dynamo (PyTorch's graph capture frontend, responsible for converting Python bytecode into computation graphs) generates a set of guards (guard conditions) each time a compilation entry point is entered, to detect whether the runtime state has changed. When a guard becomes invalid, recompilation is triggered, which seriously affects inference performance.
+PyTorch Dynamo (PyTorch's graph capture frontend, responsible for converting Python bytecode into computation graphs) generates a set of guards (guard conditions) each time a compilation entry is invoked, to detect whether the runtime state has changed. When a guard becomes invalid, recompilation is triggered, which seriously affects inference performance.
 
 **Table 1** Supported backends
 
@@ -12,7 +12,7 @@ PyTorch Dynamo (PyTorch's graph capture frontend, responsible for converting Pyt
 |---|---|---|
 | inductor | NPU/CPU inference and training | Supported |
 | npugraph_ex | NPU inference and training | Supported |
-| npugraph | NPU inference and training | Supported |
+| npugraphs | NPU inference and training | Supported |
 | aot_eager | Debugging purposes | Supported |
 | TorchAir-GE | NPU inference and training | Supported |
 
@@ -26,7 +26,7 @@ In NPU training and inference scenarios, the following types of guards may frequ
 
 | Guard Type | Trigger Scenario |
 |---|---|
-| `DICT_VERSION` / `DICT_KEYS` / `DICT_KEYS_MATCH` / `DICT_CONTAINS` | HuggingFace `generation_config`, KV cache state dict, and attention kwargs, where version increments at each step |
+| `DICT_VERSION` / `DICT_KEYS` / `DICT_KEYS_MATCH` / `DICT_CONTAINS` | HuggingFace `generation_config`, KV cache state dict, and attention kwargs, where the version increments at each step |
 | `TYPE_MATCH` / `OPTIONAL_TENSOR` | `past_key_values=None` (prefill) ↔ `tuple` (decode), `attention_mask=None` ↔ Tensor |
 | `HASATTR` / `NOT_PRESENT_IN_GENERIC_DICT` | Feature switches and fields attached only after the first forward call |
 | `GRAD_MODE` / `TORCH_FUNCTION_STATE` / `DEFAULT_DEVICE` / `DETERMINISTIC_ALGORITHMS` / `AUTOCAST_STATE` / `FSDP_TRAINING_STATE` | Process-level one-time configurations, but a guard is generated at every compilation entry |
@@ -59,13 +59,13 @@ Parameters
 def filter_fn(entries: list) -> list[bool]:
     """
     Parameters:
-        entries: list of guard entries, each entry containing the following attributes:
-            - guard_type (str): guard type, such as "DICT_VERSION" and "GRAD_MODE"
-            - name (str): variable name associated with the guard
-            - is_global (bool): whether the guard is for a global variable
-            - value: value associated with the guard (optional)
+        entries: The list of guard entries. Each entry contains the following attributes:
+            - guard_type (str): The guard type, such as "DICT_VERSION" and "GRAD_MODE".
+            - name (str): The variable name associated with the guard.
+            - is_global (bool): Whether the guard is for a global variable.
+            - value: The value associated with the guard (optional).
     Returns:
-        A boolean list of the same length as entries; True means keep the guard, and False means filter it out
+        A boolean list of the same length as entries. True indicates that the guard is kept, and False indicates that it is filtered out.
     """
 ```
 
@@ -94,7 +94,7 @@ _DICT_GUARD_TYPES = frozenset({
 def filter_dict_guards(entries):
     return [entry.guard_type not in _DICT_GUARD_TYPES for entry in entries]
 
-model = MyModel().npu()  # Note: MyModel here is only a sample placeholder class; replace it with your own real model class in actual use
+model = MyModel().npu()  # Note: MyModel here is only a placeholder example class. Replace it with your actual custom model class in practice
 compiled = torch.compile(model, options={"guard_filter_fn": filter_dict_guards})
 ```
 
@@ -115,14 +115,14 @@ _RUNTIME_STATE_GUARD_TYPES = frozenset({
 def filter_runtime_state_guards(entries):
     return [entry.guard_type not in _RUNTIME_STATE_GUARD_TYPES for entry in entries]
 
-model = MyModel().npu()  # Note: MyModel here is only a sample placeholder class; replace it with your own real model class in actual use
+model = MyModel().npu()  # Note: MyModel here is only a placeholder example class. Replace it with your actual custom model class in practice
 compiled = torch.compile(model, options={"guard_filter_fn": filter_runtime_state_guards})
 
 # Switching grad mode does not trigger recompilation
 with torch.no_grad():
     compiled(x)
 with torch.enable_grad():
-    compiled(x)  # No recompilation occurs
+    compiled(x)  # Not recompiled
 ```
 
 Example 3: Combine filtering of multiple guard types
@@ -134,9 +134,9 @@ import torch
 import torch_npu
 
 _FILTER_GUARD_TYPES = frozenset({
-    # Dictionary version
+    # Dict version
     "DICT_VERSION", "DICT_KEYS", "DICT_KEYS_MATCH", "DICT_CONTAINS",
-    # Optional types
+    # Optional type
     "TYPE_MATCH", "OPTIONAL_TENSOR",
     # hasattr
     "HASATTR", "NOT_PRESENT_IN_GENERIC_DICT",
@@ -149,7 +149,7 @@ _FILTER_GUARD_TYPES = frozenset({
 def npu_guard_filter(entries):
     return [entry.guard_type not in _FILTER_GUARD_TYPES for entry in entries]
 
-model = MyModel().npu()  # Note: MyModel here is only a sample placeholder class; replace it with your own real model class in actual use
+model = MyModel().npu()  # Note: MyModel here is only a placeholder example class. Replace it with your actual custom model class in practice
 compiled = torch.compile(model, options={"guard_filter_fn": npu_guard_filter})
 ```
 
@@ -185,7 +185,7 @@ import torch_npu
 def filter_globals(entries):
     return [not entry.is_global for entry in entries]
 
-model = MyModel().npu()  # Note: MyModel here is only a sample placeholder class; replace it with your own real model class in actual use
+model = MyModel().npu()  # Note: MyModel here is only a placeholder example class. Replace it with your actual custom model class in practice
 compiled = torch.compile(model, options={"guard_filter_fn": filter_globals})
 ```
 
@@ -195,8 +195,8 @@ Example 6: Use with built-in helpers
 import torch
 import torch_npu
 
-# Use PyTorch's built-in nn.Module guard filtering
-model = MyModel().npu()  # Note: MyModel here is only a sample placeholder class; replace it with your own real model class in actual use
+# Filtering using the nn.Module guard built into PyTorch
+model = MyModel().npu()  # Note: MyModel here is only a placeholder example class. Replace it with your actual custom model class in practice
 compiled = torch.compile(
     model,
     options={
@@ -217,14 +217,17 @@ compiled = torch.compile(
   # First compilation
   compiled(x)
 
+  # Change the state corresponding to the target guard. Replace it with the operation in the actual scenario
+  change_target_state()
+
   # Verify that no recompilation occurs
   with torch.compiler.set_stance("fail_on_recompile"):
-      compiled(x)  # An exception is raised if recompilation occurs
+      compiled(x)  # An exception is thrown if recompilation occurs
   ```
 
 - View guard logs
 
-  Enable guard logs through the environment variable to identify the guard types that trigger recompilation:
+  Enable guard logs through environment variables to identify the guard types that trigger recompilation:
 
   ```bash
   TORCH_LOGS=guards,recompiles python your_script.py
@@ -232,7 +235,7 @@ compiled = torch.compile(
 
 - Verify output correctness
 
-  After filtering guards, be sure to verify that the compilation output is consistent with Eager mode:
+  After filtering guards, verify that the compiled output is consistent with the eager mode:
 
   ```python
   model.eval()
@@ -248,10 +251,14 @@ compiled = torch.compile(
   assert torch.allclose(eager_out, compiled_out, atol=1e-5)
   ```
 
+> [!NOTE]
+>
+> After runtime state changes, add verification based on the impact, for example, the output device, dtype, or `requires_grad`; when gradients need to be computed, also verify the gradient results. All items should be consistent with the eager mode under the same state.
+
 ## Constraints
 
-- PyTorch version: Must be 2.9.0 or later.
-- TorchNPU version: You must install the version matching the PyTorch version. For details, refer to [Version Compatibility](https://gitcode.com/Ascend/pytorch/blob/master/COMPATIBILITY.en.md).
+- PyTorch version: Must be 2.10.0 or later.
+- TorchNPU version: You must install the version matching the PyTorch version. For details, refer to [Version Mapping](https://gitcode.com/Ascend/pytorch/blob/master/COMPATIBILITY.en.md).
 
 ## Related Documentation
 

@@ -1,145 +1,111 @@
-# TorchNPU Contribution Guide
+# PyTorch Contribution Guide
 
-Thank you for considering contributing to TorchNPU! We welcome contributions in any form, including bug fixes, feature enhancements, documentation improvements, and more. Whether you're an experienced developer or a first-time open source project, your help is invaluable.
+Thank you for considering contributing to PyTorch. We welcome all kinds of contributions, including bug fixes, feature enhancements, documentation improvements, and so on. Whether you are an experienced developer or a first-time participant in an open-source project, your help is highly valuable.
 
 ## Project Introduction
 
-TorchNPU is a deep learning adaptation plug-in based on Ascend NPU. It is optimized and adapted to Huawei Ascend NPU. This project provides API compatibility with the upstream PyTorch and fully utilizes the computing capability of the Ascend chip.
+PyTorch is a deep learning framework distribution based on the Ascend NPU, deeply optimized and adapted for Huawei Ascend NPUs. This project provides API compatibility with the official PyTorch and fully leverages the computing power of Ascend chips.
 
 ### Project Architecture
 
 ```text
 pytorch
-├── docs/                           # Project Documentation
-├── ci/                             # Script for building the CI.
-├── tools/                          # Development tool
-├── cmake/                          # CMake Configuration
-├── torch_npu/                      # NPU Core Adaptation Module
+├── docs/                           # Project documentation
+├── ci/                             # CI build scripts
+├── tools/                          # Development tools
+├── cmake/                          # CMake configuration
+├── torch_npu/                      # NPU core adaptation modules
 │   ├── csrc/                       # C++ backend implementation
-│   ├── distributed/                # Distributed Python interface
+│   ├── distributed/                # Distributed Python interfaces
 │   ├── _inductor/                  # Inductor backend adaptation
-│   ├── dynamo/                     # Dynamo Compiler Adaptation
-│   ├── npu/                        # NPU Python interface
-│   ├── profiler/                   # Performance Analysis Python Interface
-│   ├── _afd/                       # AFD Python Interface
-│   ├── _logging/                   # Python interface of the log module
+│   ├── dynamo/                     # Dynamo compiler adaptation
+│   ├── npu/                        # NPU Python interfaces
+│   ├── profiler/                   # Profiling Python interfaces
+│   ├── _afd/                       # AFD Python interfaces
+│   ├── _logging/                   # Logging module Python interfaces
 │   ├── asd/                        # Asynchronous detection tool
-│   ├── contrib/                    # Extended Modules Contributed
+│   ├── contrib/                    # Contributed extension modules
 │   ├── onnx/                       # ONNX adaptation
 │   └── optim/                      # Optimizer adaptation
-├── third_party/                    # Third-Party Dependency
+├── third_party/                    # Third-party dependencies
 ├── torchnpugen/                    # Code generation tool
-├── examples/                       # Sample Code
-└── test/                           # Test Case
+├── examples/                       # Example code
+└── test/                           # Test cases
 ```
 
 ### Core Module Description
 
-| Module                     | Description                                                                                                                                               |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `torch_npu/csrc/core/npu`  | NPU core components: event management (NPUEvent), flow management (NPUStream), graph execution (NPUGraph), device guard (NPUGuard), and memory management |
-| `torch_npu/csrc/aten`      | ATen operator NPU backend: operator registration, scheduling, and adaptation                                                                              |
-| `torch_npu/csrc/framework` | Operator command framework: OpCommand, Kernel scheduling, and operator builder                                                                            |
-| `torch_npu/npu/aclnn`      | ACLNN operator Python interface: AscendCL NPU operator library encapsulation                                                                              |
-| `torch_npu/npu/amp`        | Automatic blending precision: GradScaler, FP16/BF16 support                                                                                               |
-| `torchnpugen`              | Code generation tools: automatic differential code generation, code templates                                                                             |
-| `examples`                 | Sample code: distributed communication, model inference, ResNet example                                                                                   |
-| `third_party/op-plugin`    | Operator plug-in: custom operator implementation and TorchNPU operator coverage                                                                          |
-| `test/npu`                 | NPU function test: device management, memory allocation, and operator test                                                                                |
+| Module                         | Description                                                                       |
+|----------------------------|--------------------------------------------------------------------------|
+| `torch_npu/csrc/core/npu`  | NPU core components: event management (NPUEvent), stream management (NPUStream), graph execution (NPUGraph), device guard (NPUGuard), memory management |
+| `torch_npu/csrc/aten`      | ATen operator NPU backend: operator registration, dispatch, implementation adaptation                                              |
+| `torch_npu/csrc/framework` | Operator command framework: OpCommand, Kernel dispatch, operator builder                                         |
+| `torch_npu/npu/aclnn`      | ACLNN operator Python interfaces: AscendCL NPU operator library encapsulation                                    |
+| `torch_npu/npu/amp`        | Automatic mixed precision: GradScaler, FP16/BF16 support                                           |
+| `torchnpugen`              | Code generation tool: automatic differentiation code generation, code templates                                                     |
+| `examples`                 | Example code: distributed communication, model inference, ResNet examples                                                |
+| `third_party/op-plugin`    | Operator plugin: custom operator implementation, PyTorch operator override                                                |
+| `test/npu`                 | NPU functional tests: device management, memory allocation, operator tests                                                  |
 
-## Contribution Overview
+## Ways to Contribute
 
-### Contribution Modes
+We eagerly look forward to your participation. Every contribution is an important force driving PyTorch forward:
 
-We look forward to your joining! Every contribution is an important driving force for TorchNPU's progress:
+- **Report issues**: Report bugs or submit feature suggestions to help us discover and resolve problems
+- **Contribute code**: Submit code fixes or new feature implementations to directly participate in project development
+- **Improve documentation**: Improve the documentation or supplement missing content to enhance the readability of the project
+- **Review code**: Review pull requests to help improve code quality
+- **Share and promote**: Share the project on blogs or social media, and give the repository a star
 
-- **Report issues**: Report bugs or submit feature suggestions to help us discover and solve problems
-- **Submit proposals**: Propose technical solutions or architectural designs to guide project evolution
-- **Contribute code**: Submit code fixes or new feature implementations, directly participating in project development
-- **Improve documentation**: Improve documentation or supplement missing content to enhance project readability
-- **Code review**: Review Pull Requests to help improve code quality
-- **Assist the community**: Answer questions and share solutions to help more developers
-- **Share and promote**: Share the project on blogs and social media to expand community influence
+## Contribution Scenarios
 
-### Communication Channels
+This project warmly welcomes all kinds of contributions. We look forward to your participation.
 
-We provide multiple communication channels for you to engage in community interaction:
+### 1. Requirements and Feature Suggestions
 
-- **[Issues](https://gitcode.com/Ascend/pytorch/issues)**: For reporting bugs and proposing feature suggestions
-- **[Pull Requests](https://gitcode.com/Ascend/pytorch/pulls)**: For code review and discussion
-- **[SIG](https://gitcode.com/Ascend/community/tree/master/AscendForPyTorch/sigs)**: Community collaboration organizations divided by technical area, responsible for code review and technical decisions
+If you have new feature suggestions or performance optimization ideas, we warmly invite you to submit an Issue for in-depth discussion with the community.
 
-### Contribution Scenarios
+**Issue Type**: Requirement/Feature Suggestion
 
-Submitting an Issue is the first step in contributing. When [creating an Issue](https://gitcode.com/Ascend/pytorch/issues/create/choose), please select the corresponding template:
+**Content to Include**:
 
-#### Bug Report
+- **Feature background**: What problem this feature solves and what value it brings to users
+- **Feature description**: Describe the suggested feature in detail
+- **Design proposal**: Technical approach, key module design, and upstream and downstream component relationships
+- **Expected benefits**: Feature objectives, performance metrics, and accuracy performance
 
-When you find a bug, please use the 🐛 Bug report template to submit an Issue. The template includes the following required fields:
+### 2. Bug Reporting and Fixing
 
-- **Environment information**: Operating system, Ascend hardware information, CANN software version, and installed software versions
-- **🐛 Problem description**: Clearly and concisely describe the specific phenomenon and occurrence scenario of the bug; if reproducible, provide a **minimal reproducible example** (stripped of irrelevant code and business dependencies, directly runnable), and paste the error message including the **full traceback**
+If you find bugs or documentation issues, we sincerely welcome your feedback and fixing suggestions.
 
-> ⚠️ Please desensitize: Before submitting, remove sensitive information such as API keys, passwords, private addresses, and personal data; use placeholders such as `<TOKEN>` if necessary.
+**Bug Report Format**:
 
-#### Feature Request
+- **Environment information**: PyTorch version, OS, Python version, CANN version, and so on
+- **Problem description**: Add labels to highlight the issue on the dashboard
+- **Reproduction steps**: Describe in as much detail as possible how to reproduce the problem
+- **Expected behavior**: Describe the behavior you expect
+- **Special notes for reviewers**: Include any special circumstances
 
-When you have new feature suggestions or performance optimization ideas, please use the ✨ Feature request template to submit. The template includes the following fields:
+**Fixing process**:
 
-- **💻 Requirement background, current status, expected feature content, specific design proposal, and test plan** (required): Explain the requirement scenario, why current capabilities are insufficient, the proposed feature content and design approach; relevant Issue/PR links may be attached
-- **Alternative solutions**: Describe other implementation approaches you have considered
-- **Additional notes**: Other relevant notes or screenshots
+1. Find the corresponding bug description in the Issue
+2. Comment `/assign` to claim the task
+3. Create a branch for the fix
+4. Submit a Pull Request
 
-#### RFC (Request for Comments)
+### 3. Community Co-Building
 
-For major architectural changes or technical proposals, please use the 📜 RFC (Request for Comments) template to initiate an RFC, which will be advanced after community discussion and review. The RFC template is a structured document with the following main sections:
+If you can help solve problems raised by others, we eagerly look forward to your sharing your solutions in the Issue.
 
-- **Overview**: Introduction, motivation, goals and non-goals
-- **Use case analysis**: Scenario use cases, key performance indicators, security/privacy and DFX requirements
-- **Design proposal**: Overall proposal, technology selection, functional and performance design, security/privacy and DFX design, programming and invocation design (including interface definitions)
-- **Test design**: Unit tests, integration tests, end-to-end tests
-- **Drawbacks and risks**: Breaking changes, performance regression, implementation cost, compatibility, etc.
-- **Prior art**: Similar designs referenced from other projects/communities
-- **Unresolved questions**: Open questions awaiting community discussion and decision
+## Contribution Workflow
 
-## Contribution Process
+### Contributor License Agreement
 
-To ensure smooth contributions, please follow this process:
+You need to sign the [CLA](https://clasign.osinfra.cn/sign-cla/690ca9ddf91c03dee6082ab1/individual) before submitting code to the PyTorch community for the first time.
 
-### Step 1: Sign the CLA
+### Development and Testing
 
-Before you submit code to the TorchNPU community for the first time, you need to sign the CLA (Contributor License Agreement).
-
-- **Individual contributors**: please refer to the [ICLA online document](https://clasign.osinfra.cn/sign-cla/690ca9ddf91c03dee6082ab1/individual)
-- **Corporate contributors**: please refer to the [CCLA online document](https://clasign.osinfra.cn/sign-cla/690ca9ddf91c03dee6082ab1/employee)
-
-### Step 2: Submit an Issue
-
-Before starting development, please submit an Issue describing the problem you want to solve or the feature you propose, so that the community can understand and discuss it. For the detailed format requirements of Issues, please refer to [Contribution Scenarios](#contribution-scenarios).
-
-### Step 3: Community Discussion
-
-After submitting an Issue, please discuss it in the community and confirm the proposal is feasible before starting development.
-
-#### Claim a Task
-
-If you want to fix a bug, please comment `/assign` under the corresponding Issue to claim the task and avoid duplicate work by multiple people.
-
-#### SIG Review
-
-The following types of changes require community review through the SIG (Special Interest Group) mechanism:
-
-- **Patch replacement**: Patch replacement of TorchNPU native interfaces
-- **Header file macro update**: Add or modify macro definitions
-- **API interface change**: Add, modify, or delete public APIs
-- **Core component change**: Modifications to core modules such as memory management and device management
-- **RFC proposal**: Major architectural changes or technical proposals that require initiating an RFC to solicit community input
-
-A SIG is a community collaboration organization divided by technical area, responsible for code review and technical decisions. For the detailed SIG list, please refer to the [Ascend community SIG page](https://gitcode.com/Ascend/community/tree/master/AscendForPyTorch/sigs). For changes involving the above types, please declare community review through the SIG mechanism in the PR.
-
-### Step 4: Fork and Clone
-
-1. **Fork the repository**: On the GitCode platform, click the "Fork" button in the upper right corner of the repository to create a copy under your personal account
+1. **Fork the repository**: On the GitCode platform, click the "Fork" button at the top right of the repository page to clone the repository to your personal account
 
 2. **Clone to local**:
 
@@ -154,196 +120,135 @@ A SIG is a community collaboration organization divided by technical area, respo
    git checkout -b {new_branch_name} origin/master
    ```
 
-### Step 5: Code Development
+4. **Develop code**: Follow the **[code standards](#code-standards)**
 
-Please follow the coding styles below to make TorchNPU easy to develop, review, and maintain.
+5. **Test the code**: Run tests to ensure the code functions properly
 
-#### Coding Guide
+6. **Gate check**: Run CI checks to ensure the code passes compilation, static checks, and UT tests
 
-- **Python**: recommended [PEP 8 Coding Style](https://pep8.org/)
-- **C++**: recommended [Google C++ Coding Guide](http://google.github.io/styleguide/cppguide.html)
+7. **Submit a Pull Request**: Submit a PR and wait for code review
 
-#### Refactoring Guide
+8. **Community review**: If the update involves patches, header file macros, API interfaces, and so on, a community review must be submitted
 
-Developers are encouraged to refactor the code to eliminate code smells. All code should conform to the coding style and test style requirements.
+### Code Merge Review Requirements
 
-#### Environment Setup
+The following types of modifications require community review:
 
-For detailed installation guidance (including dependencies and environment requirements for each version), please refer to the [Ascend community installation guide](https://www.hiascend.com/document/detail/zh/Pytorch/master/installguide/ref/docs/zh/installation_guide/references/building_from_source.md).
+- **Patch replacement**: Patch replacement of PyTorch native interfaces
+- **Header file macro updates**: Adding or modifying macro definitions
+- **API interface changes**: Adding, modifying, or deleting public APIs
+- **Core component changes**: Modifications to core modules such as memory management and device management
 
-Quick build commands:
+## Code Standards
+
+Follow these styles to make PyTorch easy to develop, review, and maintain.
+
+### Coding Guide
+
+- **Python**: It is advised to use the [PEP 8 coding style](https://pep8.org/)
+- **C++**: It is advised to use the [Google C++ Style Guide](http://google.github.io/styleguide/cppguide.html)
+
+To run code checks, refer to [Local Static Check](#local-static-check).
+
+### Unit Testing Guide
+
+- **Python**: It is advised to use [pytest](http://pytest.org/en/latest/)
+- **C++**: It is advised to use the [Googletest Primer](https://github.com/google/googletest/blob/master/docs/primer.md)
+
+The design intent of a test case should be reflected through its comment name.
+
+### Refactoring Guide
+
+We encourage developers to refactor code to eliminate code smells. All code should meet the requirements of coding style and testing style.
+
+## Hands-on Guide
+
+### Environment Setup and Build
+
+**Build and compilation**:
 
 ```bash
-# Install dependencies and compile
+# Install dependencies and build
 bash ci/build.sh --python=3.10
 
-# Build for a specified PyTorch version (supporting version 2.13 and later. The available version is the version.txt file.)
-# --The value of torch indicates the version of the package to be built, which can contain the post number. (For example, 2.13.0.post1 indicates the post build of the 2.13 main line.)
-# The PyTorch corresponding to major.minor has been installed.
-bash ci/build.sh --python=3.10 --torch=2.14.0
+# Build for a specified PyTorch version (supports 2.10.0 / 2.11.0 / 2.12.0)
+# The corresponding PyTorch version must be installed in the environment
+bash ci/build.sh --python=3.10 --torch=2.10.0
 
-# Or manually compile with CMake
+# Or manually build using CMake
 mkdir build && cd build
 cmake ..
 make -j$(nproc)
 ```
 
-To speed up compilation, the project has built-in automatic detection for Ninja, Mold linker, and CCache. For usage, see [Build Acceleration](docs/en/installation_guide/references/build_acceleration.md).
+### Tips for Build Acceleration
 
-### Step 6: Local Static Check
+#### Using Ninja Build
 
-After completing code development, please run static checks locally to ensure code style and quality meet the requirements. For details, see [Appendix A: Local Static Check](#appendix-a-local-static-check).
+By default, CMake uses the Makefile generator. Installing the Ninja build system can significantly speed up compilation.
 
-### Building with Clang
+The `setup.py` of this project automatically detects whether Ninja is installed in the system. If the `CMAKE_GENERATOR` environment variable is set to `ninja`, or the `ninja` command is available in the `PATH`, Ninja is automatically used as the build system.
 
-For instructions on compiling with Clang, please refer to [Building with Clang](docs/en/installation_guide/references/building_with_clang.md)
+```bash
+pip install ninja
+```
 
-### Step 7: Local Functional Verification
+After installing Ninja, the compilation takes effect automatically without additional configuration. If you have compiled before, you need to perform a cleanup once after installing Ninja:
 
-Please write and run unit tests to ensure the code functions correctly. If new features are added, corresponding test cases must be added. For details, see [Appendix B: Unit Tests and Functional Verification](#appendix-b-unit-tests-and-functional-verification).
+```bash
+python setup.py clean
+```
 
-### Step 8: Submit a Pull Request
+#### Using the Mold Linker
 
-1. **Push code to the remote repository**:
+In a development loop where a single file is frequently modified and recompiled, linking time dominates. The system linker (GNU `ld`) included with most Linux distributions is slow, and using a faster linker can significantly improve the build experience.
 
-   ```bash
-   git add .
-   git status
-   git commit -m "feat(module): brief description of changes"
-   git commit -s --amend  # Add a detailed description
-   git push origin {new_branch_name}
-   ```
+The `CMakeLists.txt` of this project has built-in linker auto-detection logic: it prioritizes detecting the mold linker and automatically enables it if present (`-fuse-ld=mold`).
 
-   > **Note**: One PR per commit is the recommended practice for this project. If multiple incremental commits are produced during development, please use `git rebase -i` to squash them into a single commit before pushing, to keep the commit history clean.
+```bash
+sudo apt install mold
+# Or install from source: https://github.com/rui314/mold
+```
 
-2. **Create a Pull Request**
+After installation, recompilation takes effect automatically. To confirm whether the linker is correctly enabled, check whether the link options in the compilation output include `-fuse-ld=mold`.
 
-Create a Pull Request on GitCode, filling it out completely according to the [PR template](./.gitcode/PULL_REQUEST_TEMPLATE.md):
+#### Using CCache
 
-- Merge source
-- Modification proposal
-- Documentation changes
-- Interface changes
-- Functional verification
-- Checklist
+Even if dependency tracking is based on file modification time, files are still repeatedly compiled in many scenarios. Using ccache can effectively avoid repeated compilation and save a lot of time.
 
-After confirming the information is complete and accurate, submit the Pull Request and wait for code review.
+The `CMakeLists.txt` of this project has built-in ccache auto-detection logic, which is enabled automatically after ccache is installed. However, you are advised to adjust the ccache configuration (such as the cache directory, cache size, and compression) based on your own environment for optimal results:
 
-### Step 9: Trigger Gate Checks
+```bash
+sudo apt install ccache
+# or
+sudo yum install ccache
+```
 
-After submitting the PR, type `compile` in the PR comment area to trigger the gate checks. For more bot command details, refer to the [Ascend community bot usage guide](https://gitcode.com/Ascend/infrastructure/blob/master/docs/robot/robot%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97.md).
+Verify whether ccache is effective: run two consecutive full compilations, and the second one should be noticeably faster than the first. If it is not effective, check whether the `CMAKE_C_COMPILER_LAUNCHER` and `CMAKE_CXX_COMPILER_LAUNCHER` variables in `build/CMakeCache.txt` contain ccache:
 
-Gate check failures mainly include the following types. Please resolve them according to the related prompts:
+```cmake
+//C compiler launcher
+CMAKE_C_COMPILER_LAUNCHER:PATH=/usr/bin/ccache
 
-- **Compilation error**: Check the cause of the code compilation failure, resolve the issue, and recompile
-- **Static check exception**: Follow the prompts to find and resolve issues in the code (such as code style, potential bugs, etc.)
-- **UT test failure**: Locate the failing test cases according to the prompts and investigate the cause
+//CXX compiler launcher
+CMAKE_CXX_COMPILER_LAUNCHER:PATH=/usr/bin/ccache
+```
 
-### Step 10: Code Review and Merge
+#### Building Only the Required Target
 
-#### PR Merge Requirements
+If you only need to rebuild `torch_npu.so`, you can directly specify the target in the build directory to avoid a full build:
 
-**Merge checklist** (for detailed requirements, see the [PR template](./.gitcode/PULL_REQUEST_TEMPLATE.md)):
+```bash
+cd build && ninja torch_npu
+```
 
-- [ ] Code compiles successfully
-- [ ] Static checks pass (CppLint, CppCheck, etc.)
-- [ ] UT test cases pass
-- [ ] Code style complies with specifications (PEP 8, Google C++ Style)
-- [ ] Commit message is standardized (Conventional Commits compliant)
-- [ ] PR title correctly uses type labels (feat, fix, refactor, docs, test, etc.)
-- [ ] Code comments are complete and error logs are recorded correctly
-- [ ] Code implementation includes return value and null pointer validation
+If Ninja is not installed, replace `ninja` with `make`.
 
-#### Code Review Process
+### Local Static Check
 
-1. **Reviewer review**: After the reviewer of the corresponding module reviews the code, type `/lgtm` in the PR comment area to indicate approval
-2. **Committer approval**: After the committer of the corresponding module reviews and approves, type `/approve` in the PR comment area to indicate consent to merge
-3. **Automatic merge**: After the PR meets the merge conditions, the bot will automatically merge the code
+The project uses [lintrunner](https://github.com/suo/lintrunner) for static checks. It supports running check items fully consistent with CI locally, including Python code style (Flake8, Ruff, PYFMT), C++ formatting (ClangFormat, ClangTidy), spell checking (Codespell), and so on.
 
-> **Tip**: The complete list of reviewers and committers can be viewed by clicking the corresponding link in the first comment of the PR.
-
-## Advanced Guide
-
-### AI-Assisted R&D
-
-The TorchNPU project encourages the use of AI-assisted R&D and document development to improve contribution efficiency. We provide the official Ascend agent-skills repository, which contains a series of AI Agent Skill configurations for the Ascend ecosystem, helping you better utilize AI coding assistants during development.
-
-- **agent-skills repository**: [https://gitcode.com/Ascend/agent-skills](https://gitcode.com/Ascend/agent-skills)
-- This repository provides Skill templates and tools commonly used in Ascend chip scenarios, applicable to code generation, problem diagnosis, performance analysis, and more.
-- The skills in the repository are continuously updated. New skills are welcome, as are improvement suggestions for existing skills.
-
-When using AI-assisted R&D, please note:
-
-- AI-generated code still requires manual review to ensure code quality, security, and correctness.
-- Follow the project's [Coding Guide](#step-5-code-development) and [Appendix B: Unit Tests and Functional Verification](#appendix-b-unit-tests-and-functional-verification).
-- Submitted code must pass gate checks (compilation, static checks, UT tests, etc.).
-
-### Document Development Notes
-
-#### Document Hosting
-
-This project's documentation is in Markdown format, stored in the `docs/en/` directory of the repository, and hosted on the GitCode platform together with the code.
-
-> **Note**: Documentation is hosted on long-term stable version branches, such as `v2.7.1`. If you need to view or modify documentation, please switch to the corresponding long-term stable version branch.
-
-The documentation mainly includes the following categories:
-
-- **Installation Guide** (`installation_guide/`): Environment preparation, source compilation, pip installation, etc.
-- **Quick Start** (`quick_start/`): Quick start tutorials.
-- **Native API Documentation** (`native_apis/`): TorchNPU native API support status for each version.
-- **Framework Feature Guide** (`framework_feature_guide_pytorch/`): NPU graph mode, Inductor, memory optimization, and other feature descriptions.
-- **Environment Variables** (`environment_variable_reference/`): NPU-related environment variable descriptions.
-- **Troubleshooting** (`troubleshooting/`): Common problems and error code analysis.
-- **Security Statement** (`SECURITYNOTE.md`): Security-related notes.
-- **Contribution Guide** (`CONTRIBUTING.en.md`): This document.
-
-#### How to Submit Documentation
-
-The documentation submission process is the same as the code submission process. Please refer to [Contribution Process](#contribution-process):
-
-1. Fork the repository and create a local branch.
-2. Add or modify the corresponding Markdown file in the `docs/en/` directory.
-3. When writing documentation, note:
-   - Use clear and accurate English expressions.
-   - Code examples must be runnable.
-   - Follow the format and style of existing documentation.
-4. Submit a Pull Request and describe the documentation changes in the PR description.
-
-#### CI Documentation Checks
-
-After a documentation Pull Request is submitted, the CI gate will automatically perform the following checks on the changed Markdown files:
-
-- **Newline check (NEWLINE)**: Ensure the file has exactly one newline at the end and no redundant blank lines.
-- **Trailing space check (SPACES)**: Ensure no extra spaces at the end of each line.
-- **Tab check (TABS)**: Ensure spaces are used for indentation instead of tabs (Tab).
-- **Spell check (CODESPELL)**: Check English spelling errors using the codespell tool.
-
-## Community Guidelines
-
-### Code of Conduct
-
-We are committed to providing a friendly, safe, and inclusive environment for all participants:
-
-- **Respect differences**: Respect different viewpoints and experiences, and embrace multiculturalism
-- **Open mind**: Accept constructive criticism, and keep learning and improving
-- **Focus on contributions**: Focus on what is most beneficial to the community and drive project development
-- **Empathy**: Show empathy to other community members and help each other
-
-## Question Consultation
-
-We warmly welcome every developer to actively participate in community discussions! Looking forward to growing together with you:
-
-- **Unresolved issues found**: Feel free to comment in Issues to showcase your solution
-- **Long-unhandled issues**: Pre-checking before solving is recommended to avoid duplicate work
-- **Successfully solved your own reported issue**: Please also share your solution so the community can learn and progress together
-
-If you have any questions, feel free to discuss in the community at any time. We look forward to your wonderful contributions!
-
-## Appendix A: Local Static Check
-
-The project uses [lintrunner](https://github.com/suo/lintrunner) for static checks, supporting running check items locally that are fully consistent with CI, including Python code style (Flake8, Ruff, PYFMT), C++ format (ClangFormat, ClangTidy), and spell check (Codespell).
-
-### Install Dependencies
+#### Installing Dependencies
 
 ```bash
 # Install lintrunner and uv (required by some linters)
@@ -351,53 +256,57 @@ pip install lintrunner
 pip install uv
 ```
 
-### Initialize (run once on first use or update)
+#### Initialization (Run Once on First Use or Update)
 
 ```bash
-# Download external binary tools required by lintrunner (clang-format, clang-tidy, etc.)
+# Download the external binary tools required by lintrunner (clang-format, clang-tidy, and so on)
 lintrunner init
 ```
 
-### Run Static Checks
+#### Running Static Checks
 
 ```bash
-# Check file deltas of current workspace changes and HEAD commit (workspace + HEAD)
+# Check the incremental changes of files in the current workspace and the HEAD commit (workspace + HEAD)
 lintrunner
 
-# Run only specified check items
+# Run only the specified check items
 lintrunner --take FLAKE8,RUFF,PYFMT,SPACES,TABS,NEWLINE
 
-# Automatically fix auto-fixable issues (formatter linters; skip PYREFLY if needed)
+# Automatically fix auto-fixable issues (formatter-type linters, such as ignoring PYREFLY)
 lintrunner --skip PYREFLY -a
 
-# Check only file deltas of current workspace changes
+# Only check the incremental changes of files modified in the current workspace
 git diff --name-only HEAD | xargs lintrunner
 ```
 
-> **Tip**: The `--take` parameter specifies running only some check items. Common items:
+> **Tip**: The `--take` parameter specifies that only some check items are run. Common items are as follows:
 >
-> | Code            | Description                                                                                                                                     |
-> |-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
-> | `FLAKE8`        | Python syntax and style check                                                                                                                    |
-> | `RUFF`          | Python fast lint and import sorting                                                                                                             |
-> | `PYFMT`         | Python code formatting (usort + ruff-format)                                                                                                     |
-> | `CLANGFORMAT`   | C++ code formatting                                                                                                                              |
-> | `CLANGTIDY`     | C++ static analysis                                                                                                                              |
-> | `SPACES`        | Trailing space check                                                                                                                             |
-> | `TABS`          | Tab character check                                                                                                                              |
-> | `NEWLINE`       | End-of-file newline check                                                                                                                        |
-> | `CODESPELL`     | Spell check. If a false positive occurs, add the word in lexicographic order to `tools/linter/dictionary.txt` and re-check |
+> | Code            | Description                                                             |
+> |---------------|----------------------------------------------------------------|
+> | `FLAKE8`      | Python syntax and style check                                                 |
+> | `RUFF`        | Python fast lint and import sorting                                     |
+> | `PYFMT`       | Python code formatting (usort + ruff-format)                              |
+> | `CLANGFORMAT` | C++ code formatting                                                      |
+> | `CLANGTIDY`   | C++ static analysis                                                       |
+> | `SPACES`      | Trailing whitespace check                                                         |
+> | `TABS`        | Tab character check                                                       |
+> | `NEWLINE`     | End-of-file newline check                                                       |
+> | `CODESPELL`   | Spell check. If it is a false positive, add the false positive word to `tools/linter/dictionary.txt` in lexicographical order and run the check again |
 
-For more commands, see the [lintrunner wiki](https://github.com/pytorch/pytorch/wiki/lintrunner).
+For more execution commands, refer to the [lintrunner wiki](https://github.com/pytorch/pytorch/wiki/lintrunner).
 
-## Appendix B: Unit Tests and Functional Verification
+### PR Merge Requirements
 
-### Unit Test Guide
+**Merge checklist** (for detailed requirements, refer to the [PR Template](./.gitcode/PULL_REQUEST_TEMPLATE.md)):
 
-- **Python**: recommended [pytest](http://pytest.org/en/latest/)
-- **C++**: recommended [Googletest Primer](https://github.com/google/googletest/blob/main/docs/primer.md)
-
-The design intent of a test case should be reflected by its annotation name.
+- [ ] Code compiles successfully
+- [ ] Static checks pass (CppLint, CppCheck, and so on)
+- [ ] UT test cases pass
+- [ ] Code style complies with the specifications (PEP 8, Google C++ Style)
+- [ ] Commit messages comply with the specifications (Conventional Commits)
+- [ ] PR titles correctly use type tags (feat, fix, refactor, docs, test, and so on)
+- [ ] Code comments are complete and error logs are correctly recorded
+- [ ] Code implementation performs validation such as return value and null pointer checks
 
 ### Functional Verification Guide
 
@@ -408,7 +317,7 @@ The design intent of a test case should be reflected by its annotation name.
 - `test/distributed/` - Distributed tests
 - `test/dynamo/` - Compiler tests
 
-**Run tests** (for details, see the [test documentation](./test/README.md)):
+**Running tests** (for details, refer to the [test documentation](./test/README.md)):
 
 ```bash
 # Install test dependencies
@@ -424,10 +333,125 @@ python test_autocast.py
 # Or use run_test.py
 python run_test.py -i test_autocast
 
-# Run a specified test case
+# Run specified test cases
 python test_autocast.py -v -k test_autocast_nn_fp32
 
-# Run the full UT
+# Run all UT tests
 cd ..
 python ci/access_control_test.py --all
 ```
+
+### Gate Exception Handling
+
+Gate exceptions mainly include the following types. Resolve them according to the related prompts:
+
+- **Compilation exception**: Check the cause of the code compilation failure, resolve the problem, and then recompile
+- **Static check exception**: Find and resolve the problems in the code according to the prompts (such as code style and potential bugs)
+- **UT test failure**: Find the test cases that fail to pass according to the prompts and check the cause
+
+### AI-Assisted Development
+
+The PyTorch NPU project encourages the use of AI to assist in development and documentation to improve contribution efficiency. We provide the official Ascend agent-skills repository, which contains a series of AI Agent Skill configurations suitable for the Ascend ecosystem, helping you better use AI coding assistants during development.
+
+- **agent-skills repository**: [https://gitcode.com/Ascend/agent-skills](https://gitcode.com/Ascend/agent-skills)
+- This repository provides common Skill templates and tools for Ascend chip scenarios, which can be used in scenarios such as code generation, problem diagnosis, and performance analysis.
+- The skills in the repository are continuously updated, and contributions of new Skills or suggestions for improving existing Skills are welcome.
+
+Note the following when using AI-assisted development:
+
+- AI-generated code still requires manual review to ensure code quality, security, and correctness.
+- Follow the [code standards](#code-standards) and [unit testing guide](#unit-testing-guide) of the project.
+- Submitted code must pass gate checks (compilation, static checks, UT tests, and so on).
+
+### Documentation Development Instructions
+
+#### Documentation Hosting Method
+
+The documentation of this project is in Markdown format, stored in the `docs/en/` directory of the repository, and hosted on the GitCode platform together with the code.
+
+> **Note**: The documentation is hosted in the branch of the long-term stable version, such as `v2.7.1`. If you need to view or modify the documentation, switch to the corresponding long-term stable version branch.
+
+The documentation mainly includes the following categories:
+
+- **Software installation** (`installation_guide/`): Instructions on environment preparation, source code compilation, pip installation, and so on.
+- **Quick start** (`quick_start/`): A quick start tutorial.
+- **Native APIs** (`native_apis/`): Support status of PyTorch native APIs for each version.
+- **Framework features** (`framework_feature_guide_pytorch/`): Descriptions of features such as NPU graph mode, Inductor, and memory optimization.
+- **Environment variables** (`environment_variable_reference/`): Descriptions of NPU-related environment variables.
+- **Troubleshooting** (`troubleshooting/`): Analysis of common issues and error codes.
+- **Security statement** (`SECURITYNOTE.md`): Security-related instructions.
+- **Contribution guide** (`CONTRIBUTING.md`): This document.
+
+#### How to Submit Documentation
+
+The submission process for documentation is the same as that for code. Refer to [Contribution Workflow](#contribution-workflow):
+
+1. Fork the repository and create a branch locally.
+2. Add or modify the corresponding Markdown files in the `docs/en/` directory.
+3. When writing documentation, please note the following:
+   - Use clear and accurate English expressions.
+   - Ensure that code examples are runnable.
+   - Follow the format and style of the existing documentation.
+4. Submit a Pull Request and describe the documentation changes in the PR description.
+
+#### CI Documentation Check
+
+After submitting a Pull Request for documentation, the CI gate automatically performs the following checks on the changed Markdown files:
+
+- **Newline check (NEWLINE)**: Ensures that the file has exactly one newline at the end and does not contain extra blank lines.
+- **Trailing space check (SPACES)**: Ensures that no line ends with extra spaces.
+- **Tab check (TABS)**: Ensures that the file uses space indentation instead of tabs.
+- **Spell check (CODESPELL)**: Checks English spelling errors using the codespell tool.
+
+## Submitting a Pull Request
+
+1. **Push code to the remote repository**:
+
+   ```bash
+   git add .
+   git status
+   git commit -m "Your commit title"
+   git commit -s --amend  # Add detailed description
+   git push origin {new_branch_name}
+   ```
+
+2. **Create a Pull Request**
+
+Create a Pull Request on GitCode and fill it out completely according to the [PR Template](./.gitcode/PULL_REQUEST_TEMPLATE.md):
+
+- Merge source
+- Modification plan
+- Documentation changes
+- Interface changes
+- Functional verification
+- Checklist
+
+After confirming that the information is complete and accurate, submit the Pull Request and wait for code review.
+
+## Community Guidelines
+
+### Code of Conduct
+
+We are committed to providing a friendly, safe, and inclusive environment for all participants:
+
+- **Respect differences**: Respect different viewpoints and experiences, and embrace diverse cultures
+- **Open mindset**: Accept constructive criticism, and continuously learn and improve
+- **Focus on contribution**: Focus on what is most beneficial to the community and drive the project forward
+- **Empathy**: Show empathy to other community members and help each other
+
+### Communication Channels
+
+We provide multiple communication channels to facilitate your participation in community interaction:
+
+- **[Issues](https://gitcode.com/Ascend/pytorch/issues)**: Used to report bugs and propose feature suggestions
+- **[Pull Requests](https://gitcode.com/Ascend/pytorch/pulls)**: Used for code review and discussion
+
+### Questions and Inquiries
+
+We warmly welcome every developer to actively participate in community discussions. We look forward to growing together with you:
+
+- **Found an unresolved issue**: Welcome to comment on the Issue and share your solution
+- **Encountered an issue that has been unresolved for a long time**: You are advised to perform a pre-check before solving it to avoid duplicated work
+- **Successfully resolved an issue you reported**: Please also share your solution so that the community can learn and improve together
+
+If you have any questions, feel free to discuss them in the community. We look forward to your outstanding contributions.

@@ -30,7 +30,7 @@ This environment variable is not configured by default.
 >- If the configured file path exists but the configuration information is incorrect, collective communicator links are not established through the default negotiation process. Instead, a corresponding error is reported during actual communication.
 >- The configured file path cannot be a symbolic link and must have read permission.
 
-For details on using this environment variable, see the "[RANK\_TABLE\_FILE](../../../api/environment_variable/collective_communication/RANK_TABLE_FILE.md)" section in Environment Variables.
+For details on using this environment variable, see the "[RANK\_TABLE\_FILE](../../../api/environment_variable/collective_communication/RANK_TABLE_FILE.md)" section in *Environment Variables*.
 
 ## Usage Examples
 

@@ -35,18 +35,18 @@ Source-code installation applies to secondary development scenarios. For example
 
 > [!NOTICE]
 >
-> You are advised to use a non-root user to install and run programs, and to properly manage the permissions of the directories and files where the installer is located: set folder permissions to 750 and file permissions to 640. You can control the permissions of installed files by setting umask, for example, setting umask to 0027. For more security-related content, see the "File Permission Control" description for each component in *[Security Statement](../../reference/security_statement.md)*.
+> You are advised to use a non-root user to install and run programs, and to properly manage the permissions of the directories and files where the installer is located: set folder permissions to 750 and file permissions to 640. You can control the permissions of installed files by setting umask, for example, setting umask to 0027. For more security-related content, see the "File Permission Control" description for each component in [Security Statement](../../reference/security_statement.md).
 
-- Install the matching versions of the NPU driver and firmware and CANN software (Toolkit, ops, and NNAL), and configure CANN environment variables. For details, refer to *[CANN Software Installation](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/920/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)*.
+- Install the matching versions of the NPU driver and firmware and CANN software (Toolkit, ops, and NNAL), and configure CANN environment variables. For details, refer to [CANN Software Installation](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/920/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum).
 
-        CANN software provides a process-level environment variable setting script. Before using the NPU to execute service code in training or inference scenarios, you must call this script. Otherwise, the service code cannot be executed.
+    CANN software provides a process-level environment variable setting script. Before using the NPU to execute service code in training or inference scenarios, you must call this script. Otherwise, the service code cannot be executed.
 
     ```bash
     source /usr/local/Ascend/cann/set_env.sh
     source /usr/local/Ascend/nnal/atb/set_env.sh
     ```
 
-        The preceding commands use the default path after installation by the root user as an example. Replace it with the actual path of set\_env.sh.
+    The preceding commands use the default path after installation by the root user as an example. Replace it with the actual path of set\_env.sh.
 
 - Python 3.11 offers better scheduling (that is, dispatch) performance than Python 3.10. You are advised to use Python 3.11 or later.
 
@@ -74,53 +74,33 @@ The following steps use the installation of PyTorch 2.13.0 and Python 3.10.0 as 
 
     2. Build and start the container.
 
-        There are two ways to obtain the development image: pull the pre-built image directly from the Ascend image repository, or build it yourself using the Dockerfile.
+        TorchNPU provides a usable Dockerfile that can automatically detect the architecture and pull the corresponding image. You can read the README file in the directory (pytorch/docker/devel) for more information and build your own development environment according to its guidance. Alternatively, you can directly use the devcontainer tool to build the development environment.
 
-        - Pull the image directly
+        ```bash
+        cd pytorch/docker/devel
+        export DOCKER_BUILDKIT=1
+        docker build -t manylinux-builder:v1 .
+        ```
 
-            We have provided a usable development image for you to compile and build TorchNPU. You can pull it directly from the Ascend image repository: [torch-npu-devel](https://www.hiascend.com/developer/ascendhub/detail/3b0ca76864884546acd07845f6153ee6)
+        Or directly use the one-click container creation script builder.sh.
 
-            Taking Atlas A2 training products as an example, the command to pull the image is as follows:
+        ```bash
+        cd pytorch/docker/devel
+        export DOCKER_BUILDKIT=1
+        bash builder.sh --cann
+        ```
 
-            ```bash
-            docker pull swr.cn-south-1.myhuaweicloud.com/ascendhub/torch-npu-devel:2.13.0-cann9.1.0-910b-manylinux_2_28
-            ```
+        > [!NOTE]
+        >
+        > - The Dockerfile automatically pulls the corresponding image based on the current architecture (ARM/X86).
+        > - If you need to specify more specific build parameters, refer to the README in the directory (pytorch/docker/devel).
+        > - Be careful not to omit the "." at the end of the command.
 
-            After the image is pulled, use the following command to start and enter the Docker container, and mount the TorchNPU source code into the container:
+        After the image is built, use the following command to start and enter the Docker container, and mount the TorchNPU source code into the container:
 
-            ```bash
-            docker run -it -v /{code_path}/pytorch:/home/pytorch swr.cn-south-1.myhuaweicloud.com/ascendhub/torch-npu-devel:2.13.0-cann9.1.0-910b-manylinux_2_28 bash
-            ```
-
-        - Build the image yourself
-
-            We also provide a usable Dockerfile that can automatically detect the architecture and pull the corresponding image. You can read the README file in the directory (pytorch/docker/devel) for more information and build your own development environment according to its guidance. Alternatively, you can directly use the devcontainer tool to build the development environment.
-
-            ```bash
-            cd pytorch/docker/devel
-            export DOCKER_BUILDKIT=1
-            docker build -t manylinux-builder:v1 .
-            ```
-
-            Or directly use the one-click container creation script builder.sh.
-
-            ```bash
-            cd pytorch/docker/devel
-            export DOCKER_BUILDKIT=1
-            bash builder.sh --cann
-            ```
-
-            > [!NOTE]
-            >
-            > - The Dockerfile automatically pulls the corresponding image based on the current architecture (ARM/X86).
-            > - If you need to specify more specific build parameters, refer to the README in the directory (pytorch/docker/devel).
-            > - Be careful not to omit the "." at the end of the command.
-
-            After the image is built, use the following command to start and enter the Docker container, and mount the TorchNPU source code into the container:
-
-            ```bash
-            docker run -it -v /{code_path}/pytorch:/home/pytorch manylinux-builder:v1 bash
-            ```
+        ```bash
+        docker run -it -v /{code_path}/pytorch:/home/pytorch manylinux-builder:v1 bash
+        ```
 
         _{code_path}_ indicates the path to the TorchNPU source code. Replace it based on the actual situation.
 
@@ -133,9 +113,9 @@ The following steps use the installation of PyTorch 2.13.0 and Python 3.10.0 as 
 
         Before compilation, pay attention to whether the torch version installed in the environment is consistent with the TorchNPU version to be compiled. To change the version, use the following command:
 
-       ```bash
-       pip3 install torch==2.13.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu # Install the CPU version of torch as needed
-       ```
+        ```bash
+        pip3 install torch==2.13.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu # Install the CPU version of torch as needed
+        ```
 
         After environment preparation is complete, use the following command to compile:
 
@@ -149,29 +129,29 @@ The following steps use the installation of PyTorch 2.13.0 and Python 3.10.0 as 
         > 
         > The Release version is compiled by default. To compile the Debug version, set the environment variable `DEBUG=1` when executing the build command.
         
-    4. Install the generated TorchNPU plugin package in the runtime environment. If you install as a non-root user, append `--user` to the command.
+    4. Install the generated TorchNPU plugin package in the runtime environment. If you install as a non-root user, add `--user` to the command.
 
         ```bash
         pip3 install --upgrade dist/torch_npu-2.13.0rc1-cp310-cp310-linux_aarch64.whl
         ```
 
-        Change the TorchNPU package name in the command based on the actual situation.
+        Replace the TorchNPU package name in the command based on the actual situation.
 
-    5. Install the dependency file requirements_2.13.txt in the pytorch directory of the runtime environment.
+    5. Install the dependency file requirements_2.13.txt in the pytorch directory in the runtime environment.
 
         ```bash
         pip3 install -r requirements_2.13.txt
         ```
 
-- **Method 2: Physical Machine and Virtual Machine Scenarios**
+- **Method 2: Physical Machine and VM Scenario**
 
-    1. Install the system dependencies.
+    1. Install system dependencies
 
-        1. Based on the operating system type, select the corresponding command to install the required dependencies.
+        1. Select the corresponding command to install the required dependencies based on the type of operating system.
 
             - openEuler, CentOS, Kylin, BCLinux, UOS V20, AntOS, AliOS, CTyunOS, CULinux, Tlinux, MTOS, vesselOS:
 
-                1. Install the dependencies (except gcc and cmake).
+                1. Install dependencies (except gcc and cmake).
 
                     ```bash
                     yum install -y patch libjpeg-turbo-devel dos2unix openblas git
@@ -183,7 +163,7 @@ The following steps use the installation of PyTorch 2.13.0 and Python 3.10.0 as 
 
             - Debian, Ubuntu, veLinux:
 
-                1. Install the dependencies (except gcc and cmake).
+                1. Install dependencies (except gcc and cmake).
 
                     ```bash
                     apt-get install -y patch build-essential libbz2-dev libreadline-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev liblzma-dev m4 dos2unix libopenblas-dev git
@@ -193,7 +173,7 @@ The following steps use the installation of PyTorch 2.13.0 and Python 3.10.0 as 
 
                     Install the corresponding gcc and cmake versions based on the actual situation. For version information and installation guidance, see [Table 1](#gcc_cmake).
 
-                    **Table 1**  gcc and cmake version requirements<a id="gcc_cmake"></a>
+                    **Table 1**  gcc and cmake Version Requirements<a id="gcc_cmake"></a>
 
                     |PyTorch Version|System Architecture|gcc Version|cmake Version|
                     |--|--|--|--|
@@ -210,11 +190,11 @@ The following steps use the installation of PyTorch 2.13.0 and Python 3.10.0 as 
                     |2.13.0|X86_64|13.3.0|3.18.4|
                     |2.13.0|AArch64|13.3.0|4.3.2|
                     |2.14.0|X86_64|13.3.0|3.18.4|
-                    |2.14.0|AArch64|13.3.0|4.4.3|                            
+                    |2.14.0|AArch64|13.3.0|4.4.3|
 
                     > [!NOTE]
                     >
-                    > For installation guidance, see [Installing gcc](https://ubuntu.com/developers/docs/howto/gcc-setup/) and [Installing cmake](https://cmake.org/download/).
+                    > For installation guidance, see [Install gcc](https://ubuntu.com/developers/docs/howto/gcc-setup/) and [Install cmake](https://cmake.org/download/).
 
     2. Compile and generate the Whl installation package of the TorchNPU plugin.
         1. Download the v2.13.0-26.2.0 branch code and enter the root directory of the TorchNPU plugin.
@@ -224,13 +204,13 @@ The following steps use the installation of PyTorch 2.13.0 and Python 3.10.0 as 
             cd pytorch
             ```
 
-        2. Install the environment dependencies.
+        2. Install environment dependencies.
 
             ```bash
             pip3 install -r requirements.txt
             ```
 
-            If you install as a non-root user, append `--user` to the command, for example: **pip3 install -r requirements.txt --user**.
+            If you install as a non-root user, add `--user` to the command, for example: **pip3 install -r requirements.txt --user**.
 
         3. Compile and generate the Whl installation package.
 
@@ -251,13 +231,13 @@ The following steps use the installation of PyTorch 2.13.0 and Python 3.10.0 as 
             > 
             > The Release version is compiled by default. To compile the Debug version, set the environment variable `DEBUG=1` when executing the build command.
 
-    3. Install the generated TorchNPU plugin package in the pytorch/dist directory. If you install as a non-root user, append `--user` to the command.
+    3. Install the plugin TorchNPU package generated in the pytorch/dist directory. If you install as a non-root user, add `--user` to the command.
 
         ```bash
         pip3 install --upgrade dist/torch_npu-2.13.0rc1-cp310-cp310-linux_aarch64.whl
         ```
 
-        Change the TorchNPU package name in the command based on the actual situation.
+        Replace the TorchNPU package name in the command based on the actual situation.
 
 ## Post-Installation Verification
 

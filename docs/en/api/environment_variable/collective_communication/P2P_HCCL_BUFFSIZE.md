@@ -21,9 +21,9 @@ export P2P_HCCL_BUFFSIZE=20
 
 - The memory requested by this environment variable is exclusive to HCCL and cannot be reused by other service memory.
 - Each communicator additionally occupies memory of size "2\*P2P\_HCCL\_BUFFSIZE", which is used for sending and receiving data respectively.
-- This resource is managed at the granularity of communicators, with each domain exclusively occupying a set of memory of size "2\*P2P\_HCCL\_BUFFSIZE".
+- This resource is managed at the granularity of communicators, with each communicator exclusively occupying a set of memory of size "2\*P2P\_HCCL\_BUFFSIZE".
 - In TorchNPU 7.1.0, this environment variable is configured to 20 MB by default. If an OOM error occurs after the upgrade, you can set this environment variable to 0 on the model side.
-- If an independent communicator was not previously created for P2P, configuring this environment variable will independently create a P2P communicator. If there is a long interval between send and recv dispatch on the model side, a timeout may occur. In this case, you need to set HCCL\_CONNECT\_TIMEOUT to a longer value. The recommended value is 600s, and the specific value must be adjusted based on the actual model script. For details about HCCL\_CONNECT\_TIMEOUT, see the "[HCCL\_CONNECT\_TIMEOUT](https://gitcode.com/cann/hccl/blob/9.2.0/docs/en/user_guide/hccl_env/HCCL_CONNECT_TIMEOUT.md)" section in the *CANN HCCL Library*.
+- If an independent communicator was not previously created for P2P, configuring this environment variable will independently create a P2P communicator. If there is a long interval between send and recv dispatch on the model side, a timeout may occur. In this case, you need to set HCCL\_CONNECT\_TIMEOUT to a longer value. The recommended value is 600s, and the specific value must be adjusted based on the actual model script. For details about HCCL\_CONNECT\_TIMEOUT, see the "[HCCL\_CONNECT\_TIMEOUT](https://gitcode.com/cann/hccl/blob/9.2.0/docs/en/user_guide/hccl_env/HCCL_CONNECT_TIMEOUT.md)" section in the *CANN HCCL Collective Communication Library*.
 
 ## Supported Products
 

@@ -10,24 +10,24 @@ Operators, as the smallest computational units in deep learning tasks (such as c
 
 From a technical perspective, operator adaptation serves as a "bridge" connecting upper-layer PyTorch framework operators with underlying Ascend hardware computing resources, addressing two core challenges: first, semantic compatibility — eliminating cross-platform interface differences and data format incompatibilities to ensure operator functionality is executable; second, capability mapping — translating PyTorch framework computation requests into execution instructions recognizable by Ascend hardware, maximizing hardware utilization.
 
-> [!NOTE] 
+> [!NOTE]
 >
-> - ATen IR (ATen Intermediate Representation) is the core intermediate representation at the underlying layer of the PyTorch deep learning framework, serving as the key bridge connecting PyTorch's upper-layer user interfaces with underlying hardware execution logic.
+> - ATen Intermediate Representation (ATen IR) is the core intermediate representation at the underlying layer of the PyTorch deep learning framework, serving as the key bridge connecting PyTorch's upper-layer user interfaces with underlying hardware execution logic.
 > - ATen IR is defined by PyTorch officially, encapsulating the core semantic information of operators (name, input/output parameter types, computation logic description), shielding the syntactic differences of upper-layer APIs and the implementation details of underlying hardware. It serves as the unified "language" for operator dispatch, compilation optimization, and cross-hardware adaptation within the PyTorch framework. For ATen IR interface documentation, refer to [pytorch/aten/src/ATen/native](https://github.com/pytorch/pytorch/tree/main/aten/src/ATen/native#readme).
 
 ## Why Operator Adaptation Is Necessary
 
 Operator adaptation is not merely a technical retrofit, but a critical initiative to bridge the collaboration barriers between the PyTorch ecosystem and the Ascend platform, unleash hardware potential, and meet diverse business requirements. Its core value is reflected in the following aspects:
 
-1. Compatibility assurance: achieving functional executability of operators on the Ascend platform, ensuring that operator input/output formats, data types, and computation semantics align with native PyTorch operators, eliminating cross-platform interface differences and data format incompatibilities, and avoiding runtime errors or computation result deviations.
+1. Compatibility assurance: Achieve functional executability of operators on the Ascend platform, ensuring that operator input/output formats, data types, and computation semantics align with native PyTorch operators, eliminating cross-platform interface differences and data format incompatibilities, and avoiding runtime errors or computation result deviations.
 
-2. Ecosystem adaptation completeness: support deep integration between the PyTorch ecosystem and the Ascend platform, ensuring that deep learning models developed with PyTorch (in both training and inference scenarios) can seamlessly migrate to the Ascend platform and run efficiently without modifying upper-layer model code, thereby strengthening the AI ecosystem support capabilities of Ascend hardware.
+2. Ecosystem adaptation completeness: Support deep integration between the PyTorch ecosystem and the Ascend platform, ensuring that deep learning models developed with PyTorch (in both training and inference scenarios) can seamlessly migrate to the Ascend platform and run efficiently without modifying upper-layer model code, thereby strengthening the AI ecosystem support capabilities of Ascend hardware.
 
-3. Custom capability extension: support the development of new custom operators for the Ascend NPU, providing operator-level functional extensions for specific business scenarios (such as proprietary algorithms and industry-specific computing logic), bridging capability gaps in native framework operators or existing adapted operators, meeting differentiated and personalized computing requirements, and further expanding the application boundaries of the Ascend NPU.
+3. Custom capability extension: Support the development of new custom operators for the Ascend NPU, providing operator-level functional extensions for specific business scenarios (such as proprietary algorithms and industry-specific computing logic), bridging capability gaps in native framework operators or existing adapted operators, meeting differentiated and personalized computing requirements, and further expanding the application boundaries of the Ascend NPU.
 
-4. Performance maximization: fully leverage the architectural advantages of Ascend hardware (such as the parallel computing capability of the AI Core, heterogeneous storage hierarchy, and dedicated acceleration instruction sets) through computation optimization, data layout adjustment, and memory access optimization, thereby reducing operator computation latency, memory footprint, and power consumption, and achieving optimal operator performance on the target platform.
+4. Performance maximization: Fully leverage the architectural advantages of Ascend hardware (such as the parallel computing capability of the AI Core, heterogeneous storage hierarchy, and dedicated acceleration instruction sets) through computation optimization, data layout adjustment, and memory access optimization, thereby reducing operator computation latency, memory footprint, and power consumption, and achieving optimal operator performance on the target platform.
 
 ## How to Perform Operator Adaptation
 
 - For detailed operations on single-operator adaptation, refer to the subsequent chapters.
-- For graph-mode operator development, refer to the "[Custom Operator Graph Integration](https://gitcode.com/Ascend/torchair/blob/26.2.0/docs/en/custom_op_graph/overview.md)" section in *TorchAir*.
+- For graph-mode operator development, refer to the "[Custom Operator Graph Capture](https://gitcode.com/Ascend/torchair/blob/26.2.0/docs/en/custom_op_graph/overview.md)" section in *TorchAir*.

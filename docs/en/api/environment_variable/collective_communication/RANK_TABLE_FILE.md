@@ -35,7 +35,7 @@ unset RANK_TABLE_FILE
 ## Usage Constraints
 
 - The configured file path cannot be a symbolic link and must have read permission.
-- The configured file must be in JSON format. For details, see the "[Cluster Information Configuration](https://gitcode.com/cann/hccl/blob/9.2.0/docs/en/user_guide/cluster_info_config/intro.md)" chapter in CANN HCCL Library.
+- The configured file must be in JSON format. For details, see the "[Cluster Information Configuration](https://gitcode.com/cann/hccl/blob/9.2.0/docs/en/user_guide/cluster_info_config/intro.md)" chapter in *CANN HCCL Collective Communication Library*.
 
 ## Supported Products
 

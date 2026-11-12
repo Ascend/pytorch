@@ -6,7 +6,7 @@
 ├── op_plugin
 │   ├── config                                 # Directory of operator adaptation configuration files
 │   │   ├── derivatives.yaml                   # Configuration file for forward/backward binding of operators
-│   │   └── op_plugin_functions.yaml           # Configuration file for operator external interfaces
+│   │   └── op_plugin_functions.yaml           # Configuration file for operator external APIs
 │   ├── ops                                    # Directory of operator adaptation code implementation files
 │   │   ├── aclops                             # Directory for aclop operator adaptation
 │   │   │   ├── AbsKernelNpu.cpp
@@ -17,18 +17,18 @@
 │   ├── python
 │   │   └── meta
 │   │       └── _meta_registrations.py         # File for operator meta implementation registration
-│   ├── OpInterface.h                          # Header file of the OpPlugin external interfaces automatically generated during compilation, used by the framework to call operators
-│   ├── OpInterface.cpp                        # Routing implementation of OpPlugin external interfaces automatically generated during compilation, implementing branch selection code for different types of operators
+│   ├── OpInterface.h                          # Header file of the OpPlugin external APIs automatically generated during compilation, used by the framework to call operators
+│   ├── OpInterface.cpp                        # Routing implementation of OpPlugin external APIs automatically generated during compilation, implementing branch selection code for different types of operators
 │   ├── AclOpsInterface.h                      # Header file corresponding to aclop operator plugin adaptation, automatically generated during compilation 
 │   ├── OpApiInterface.h                       # Header file corresponding to aclnn operator plugin adaptation, automatically generated during compilation
 │   └── ...
 ├── codegen
 │   └── templates
-│       └── _op_plugin_docs.py                 # Documentation of operator external interfaces
+│       └── _op_plugin_docs.py                 # Documentation of operator external APIs
 ├── test
-│   ├── allowlist_for_publicAPI.json           # Whitelist of public external interfaces
+│   ├── allowlist_for_publicAPI.json           # Whitelist of public external APIs
 │   ├── core_tests
-│   │   └── torch_npu_OpApi_schema_all.json    # Configuration file of the operator interface schema
+│   │   └── torch_npu_OpApi_schema_all.json    # Configuration file of the operator API schema
 │   └── test_custom_ops                        # Test directory for operator developers
 │       └── ...
 ```
@@ -72,11 +72,11 @@ Parameters
 
 - `all_version`: Indicates all versions supported by the current PyTorch. The version list will be adjusted as torch_npu evolves, and the actual code shall prevail. You can use `[]` to specify the version range supported by an operator. For example, `[v2.1, newest]` indicates that the operator supports versions from v2.1 to the latest.
 - `official` and `custom`: Respectively indicate that operators under these fields are PyTorch native operators and custom operators. The `symint` field indicates that the operator supports symint-type input parameters. For such operators, refer to [Symint Operator Adaptation](#symint-operator-adaptation).
-- `func`: Defines the operator schema (operator description specification). Its content fully follows the schema definition rules of PyTorch native Aten IR operators and completely describes the operator calling interface and semantic constraints through the structured form of "operator name + input parameter list + return parameter". For specific rules, refer to [PyTorch schema rules](reference.md#section001).
+- `func`: Defines the operator schema (operator description specification). Its content fully follows the schema definition rules of PyTorch native Aten IR operators and completely describes the operator calling API and semantic constraints through the structured form of "operator name + input parameter list + return parameter". For specific rules, refer to [PyTorch schema rules](reference.md#section001).
 - `acl_op`: Indicates that acl_op calls are supported in this version. If the supported versions are the same as the versions indicated by `all_version`, you can use `all_version` instead. This is an optional field.
 - `op_api`: Indicates that op_api calls are supported in this version. If the supported versions are the same as the versions indicated by `all_version`, you can use `all_version` instead. This is an optional field.
 - `gen_opapi`: For operators that support op_api calls, if the adaptation code is simple and the underlying operator can be called directly without additional adaptation, you can consider using structured adaptation to automatically generate the adaptation code. For details, see [(Optional) Structured Adaptation](#optional-structured-adaptation).
-- `exposed`: Indicates the versions supported by commercial operators. Generally, only the forward operator interface needs to be set.
+- `exposed`: Indicates the versions supported by commercial operators. Generally, only the forward operator API needs to be set.
 - internal_format_opapi: Indicates a whitelist mechanism that supports dispatching data in the Ascend-friendly NZ format to op_api operator calls. Currently, data whose input parameters are in the Ascend-friendly format is dispatched to acl_op calls by default; only when an operator explicitly adds the internal_format_opapi field and is added to the whitelist will NZ-format data be dispatched to the op_api call path.
 
 > [!NOTE]  
@@ -125,10 +125,10 @@ backward:
 
 Parameters
 
-- `name`: The operator interface that requires forward-backward binding, same as the function declaration in `op_plugin_functions.yaml`.
-- `self` and operator interface input parameters: Define the gradient computation method for input parameters. Simple cases can be described directly using mathematical formulas, while complex cases are declared through the backward functions implemented at the lower layer.
+- `name`: The operator API that requires forward-backward binding, same as the function declaration in `op_plugin_functions.yaml`.
+- `self` and operator API input parameters: Define the gradient computation method for input parameters. Simple cases can be described directly using mathematical formulas, while complex cases are declared through the backward functions implemented at the lower layer.
 - output_differentiability: Defines the differentiability of outputs. A list is used to define which of the multiple outputs are differentiable.
-- `result`: The return result of the operator interface.
+- `result`: The return result of the operator API.
 
 > [!NOTE]  
 > Forward-backward bindings of operators of all versions are defined in the same `derivatives.yaml`, with different versions distinguished by the `version` field.
@@ -190,20 +190,20 @@ To add a custom operator, you need to create the corresponding operator adaptati
 
 The adaptation file path for aclnn operators is `op_plugin/ops/opapi/AbsKernelNpuOpApi.cpp`. The file naming convention is Operator Name + `KernelNpuOpApi`, with the first letter of the operator name capitalized. The specific steps are as follows:
 
-1. Create the operator adaptation file and include the dependency header files, including the aclnn external interface, operator declarations, base functions, and so on.
-2. Implement the operator interface adaptation. aclnn operators must be defined in the `op_api` namespace, and the input and output parameters of the implementation function must be consistent with the torch API.
+1. Create the operator adaptation file and include the dependency header files, including the aclnn external API, operator declarations, base functions, and so on.
+2. Implement the operator API adaptation. aclnn operators must be defined in the `op_api` namespace, and the input and output parameters of the implementation function must be consistent with the torch API.
 
     ```cpp
     //Operator adaptation implementation path: op_plugin/ops/opapi/AbsKernelNpuOpApi.cpp 
     // 1. Include dependent header files
-    // External interface header file, containing the function prototypes of all ACLNN operators of op_plugin
+    // External API header file, containing the function prototypes of all ACLNN operators of op_plugin
     #include "op_plugin/OpApiInterface.h" 
     // Include the header file declaring ACLOP operators
     #include "op_plugin/AclOpsInterface.h" 
     // Header file corresponding to the basic functions that torch depends on when calling ACLNN operators
     #include "op_plugin/utils/op_api_common.h" 
 
-    // 2. Operator interface adaptation implementation
+    // 2. Operator API adaptation implementation
     // ACLNN operators are defined in the op_api namespace
     namespace op_api { 
     using npu_preparation = at_npu::native::OpPreparation; 
@@ -225,9 +225,9 @@ The adaptation file path for aclnn operators is `op_plugin/ops/opapi/AbsKernelNp
     ```
 
     > [!NOTE]  
-    > For more common API interfaces used in operator adaptation, see [LINK](reference.md#section002). For more common macro definitions, see [LINK](reference.md#section003).
+    > For more common APIs used in operator adaptation, see [LINK](reference.md#section002). For more common macro definitions, see [LINK](reference.md#section003).
 
-3. If the interface contains multiple variants, such as a variant with an `out` parameter or an in-place operation variant, you need to add the corresponding adaptation code. Refer to the following for adaptation:
+3. If the API contains multiple variants, such as a variant with an `out` parameter or an in-place operation variant, you need to add the corresponding adaptation code. Refer to the following for adaptation:
 
     - Variant with an `out` parameter:
 
@@ -247,7 +247,7 @@ The adaptation file path for aclnn operators is `op_plugin/ops/opapi/AbsKernelNp
     - In-place operation variant:
 
       ```cpp
-      // Implementation function of the abs_ API, with a unique name and parameters consistent with the torch API. This interface performs an in-place operation, that is, the output result is stored in the input tensor
+      // Implementation function of the abs_ API, with a unique name and parameters consistent with the torch API. This API performs an in-place operation, that is, the output result is stored in the input tensor
       at::Tensor& abs_(at::Tensor& self)
       {
           DO_COMPATIBILITY(aclnnAbs, acl_op::abs_(self));
@@ -323,8 +323,8 @@ There are two YAML configuration methods, and you can choose either based on the
     The fields are described as follows:
 
     - `gen_opapi`: Indicates that the corresponding API supports structured adaptation. Other fields must be configured under this field.
-    - `out`: Represents the output of the function. This field contains the `size` and `dtype` fields. If there are multiple outputs, you can configure them as out0, out1, and so on. For out-type interfaces, this field cannot be customized and must be the same as the output parameter name defined in the Aten IR. For inplace-type interfaces, this field does not need to be configured.
-    - `size`: Configures the shape of the output tensor. If the size is the same as a parameter in the schema, it can be configured as the name of that input parameter. You can also configure it as a custom infershape function, which must be implemented in `KernelNpuOutputSize.h`. For out-type interfaces, if the output shape remains unchanged, this field can be omitted. The configuration methods mainly include the following:
+    - `out`: Represents the output of the function. This field contains the `size` and `dtype` fields. If there are multiple outputs, you can configure them as out0, out1, and so on. For out-type APIs, this field cannot be customized and must be the same as the output parameter name defined in the Aten IR. For inplace-type APIs, this field does not need to be configured.
+    - `size`: Configures the shape of the output tensor. If the size is the same as a parameter in the schema, it can be configured as the name of that input parameter. You can also configure it as a custom infershape function, which must be implemented in `KernelNpuOutputSize.h`. For out-type APIs, if the output shape remains unchanged, this field can be omitted. The configuration methods mainly include the following:
 
         ```yaml
         # Aten IR definition:
@@ -342,7 +342,7 @@ There are two YAML configuration methods, and you can choose either based on the
           size: broadcast_ops_npu_output_size(arg0, arg1)
         ```
 
-    - `dtype`: Configures the dtype of the output tensor. If the dtype is the same as a parameter in the schema, it can be configured as the name of that input parameter. You can also configure it as a custom inferdtype function, which must be implemented in `KernelNpuOutputDtype.h`. For out-type interfaces, if the output dtype does not need to be checked, this field can be omitted. The configuration methods mainly include the following:
+    - `dtype`: Configures the dtype of the output tensor. If the dtype is the same as a parameter in the schema, it can be configured as the name of that input parameter. You can also configure it as a custom inferdtype function, which must be implemented in `KernelNpuOutputDtype.h`. For out-type APIs, if the output dtype does not need to be checked, this field can be omitted. The configuration methods mainly include the following:
 
         ```yaml
         # Aten IR definition:
@@ -381,7 +381,7 @@ There are two YAML configuration methods, and you can choose either based on the
         structured_inherit: func_name.out
     ```
 
-    `structured_inherit`: If the field configuration of the original function or an inplace-type interface is the same as that of an out-type interface, you can use this field to inherit the corresponding out-type interface.
+    `structured_inherit`: If the field configuration of the original function or an inplace-type API is the same as that of an out-type API, you can use this field to inherit the corresponding out-type API.
 
     Taking abs as an example, the out attributes and exec of the original function and the out-type function are the same, so they can be inherited through the `structured_inherit` field.
 
@@ -405,23 +405,23 @@ There are two YAML configuration methods, and you can choose either based on the
 <!-- npu="A3,910b,910" id3 -->
 aclop operators are an earlier operator implementation method and are not recommended. The adaptation file path is `op_plugin/ops/aclops/AbsKernelNpu.cpp`. The file naming convention is Operator Name + `KernelNpu`, with the first letter of the operator name capitalized. The specific steps are as follows:
 
-1. Create the operator adaptation file and include the dependency header files, including the aclop external interface, operator declarations, base functions, and so on.
-2. Implement the operator interface adaptation. aclop operators must be defined in the `acl_op` namespace, and the input and output parameters of the implementation function must be consistent with the torch API.
+1. Create the operator adaptation file and include the dependency header files, including the aclop external API, operator declarations, base functions, and so on.
+2. Implement the operator API adaptation. aclop operators must be defined in the `acl_op` namespace, and the input and output parameters of the implementation function must be consistent with the torch API.
 
     ```cpp
     // Operator adaptation implementation file path: op_plugin/ops/aclops/AbsKernelNpu.cpp 
     // 1. Include dependent header files
-    // External interface header file, containing the function prototypes of all aclop operators of op_plugin
+    // External API header file, containing the function prototypes of all aclop operators of op_plugin
     #include "op_plugin/AclOpsInterface.h" 
     // Header file corresponding to the basic functions that torch depends on when calling ACLOP operators
     #include "op_plugin/utils/OpAdapter.h" 
     
-    // 2. Operator interface adaptation implementation
+    // 2. Operator API adaptation implementation
     // CANN operators are defined in the acl_op namespace
     namespace acl_op { 
     using npu_preparation = at_npu::native::OpPreparation; 
     using npu_utils = at_npu::native::NpuUtils; 
-    // Interfaces not exposed externally are defined in the anonymous namespace. Common examples are xx_nocheck, functions that directly call ACLOP operators without performing memory or shape checks. 
+    // APIs not exposed externally are defined in the anonymous namespace. Common examples are xx_nocheck, functions that directly call ACLOP operators without performing memory or shape checks. 
     namespace{ 
     at::Tensor& abs_out_nocheck(at::Tensor& result, const at::Tensor& self)
     { 
@@ -447,7 +447,7 @@ aclop operators are an earlier operator implementation method and are not recomm
     } // namespace acl_op
     ```
 
-3. If the interface contains multiple variants, such as a variant with an `out` parameter or an in-place operation variant, you need to add the corresponding adaptation code. Refer to the following for adaptation:
+3. If the API contains multiple variants, such as a variant with an `out` parameter or an in-place operation variant, you need to add the corresponding adaptation code. Refer to the following for adaptation:
 
     - Variant with an `out` parameter:
 
@@ -474,10 +474,10 @@ aclop operators are an earlier operator implementation method and are not recomm
     - In-place operation variant:
 
       ```cpp
-      // Implementation function of the abs_ API, with a unique name and parameters consistent with the torch API. This interface performs an in-place operation, that is, the output result is stored in the input tensor。
+      // Implementation function of the abs_ API, with a unique name and parameters consistent with the torch API. This API performs an in-place operation, that is, the output result is stored in the input tensor
       at::Tensor& abs_(at::Tensor& self)
       {
-          // Call the out interface to avoid errors in the result of directly calling the ACLOP operator in non-contiguous scenarios where self is used as the output.
+          // Call the out API to avoid errors in the result of directly calling the ACLOP operator in non-contiguous scenarios where self is used as the output.
           return acl_op::abs_out(self, self);
       }
       ```
@@ -522,9 +522,9 @@ aclop operators are an earlier operator implementation method and are not recomm
 > [!NOTE]  
 > The following auxiliary adaptation for npu_transpose is provided as an example only. You need to modify it based on your actual scenarios.
 
-### Interface Documentation Adaptation
+### API Documentation Adaptation
 
-Add the documentation of the new interface in the `codegen/templates/_op_plugin_docs.py` file. Generally, only the forward operator is set. The specific example is as follows:
+Add the documentation of the new API in the `codegen/templates/_op_plugin_docs.py` file. Generally, only the forward operator is set. The specific example is as follows:
 
   ```python
   _add_torch_npu_docstr(
@@ -551,9 +551,9 @@ Add the documentation of the new interface in the `codegen/templates/_op_plugin_
   )
   ```
 
-### Public Interface Adaptation
+### Public API Adaptation
 
-To expose a public interface, you need to add the interface configuration in the following files:
+To expose a public API, you need to add the API configuration in the following files:
 
   - test/allowlist\_for\_publicAPI.json
 
@@ -568,7 +568,7 @@ To expose a public interface, you need to add the interface configuration in the
 
   - test/core\_tests/torch\_npu\_OpApi\_schema\_all.json
     > [!NOTE]  
-    > Entries prefixed with "op-api:" represent Python interfaces, while entries prefixed with "func:" represent C++ interfaces.
+    > Entries prefixed with "op-api:" represent Python APIs, while entries prefixed with "func:" represent C++ APIs.
     
       ```json
       {
@@ -583,7 +583,7 @@ To expose a public interface, you need to add the interface configuration in the
 
 ### Meta Implementation Adaptation
 
-When using features such as fx and compile, you need to register the meta implementation of the operator interface so that it can run normally when using fake tensors. Currently, the meta implementations of operators are uniformly registered in the file `op_plugin/python/meta/_meta_registrations.py`.
+When using features such as fx and compile, you need to register the meta implementation of the operator API so that it can run normally when using fake tensors. Currently, the meta implementations of operators are uniformly registered in the file `op_plugin/python/meta/_meta_registrations.py`.
 
   ```python
   @impl(m, "npu_transpose")

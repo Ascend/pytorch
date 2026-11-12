@@ -6,7 +6,7 @@ This environment variable configures the disk cache mode for operator compilatio
 
 - Configured as `enable`: enables the operator compilation cache. Once enabled, it avoids repeated compilation of operators with the same compilation parameters and operator parameters, thereby improving compilation speed.
 - Configured as `disable`: disables the operator compilation cache.
-- Configured as `force`: forcibly refreshes the cache. When your Python or dependency libraries change, you need to set the mode to `force` to clear the existing cache.
+- Configured as `force`: forcibly refreshes the cache. When your Python environment or dependent libraries change, you need to set the mode to `force` to clear the existing cache.
 
 The default configuration is `enable`.
 

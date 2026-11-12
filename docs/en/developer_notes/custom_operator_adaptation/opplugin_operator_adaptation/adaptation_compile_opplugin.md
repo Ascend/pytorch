@@ -1,4 +1,4 @@
-# Compilation Verification
+# Compilation and Verification
 
 1. After operator adaptation is complete, the TorchNPU package must be compiled. It is recommended to compile and install in a container scenario. For details, see "Method 1 (Recommended): Container Scenario" in [Building from Source](../../../installation_guide/references/building_from_source.md).
 2. After TorchNPU is installed, perform a unit test (UT) on the newly added operator interfaces. UT ensures that the operator implementation meets expectations through functional correctness verification and boundary condition coverage, reducing joint debugging costs. It also serves as a quality baseline for long-term maintenance, ensuring the stability of the operator adaptation throughout its lifecycle. The test directory for custom operator adaptation is `test/test_custom_ops`.

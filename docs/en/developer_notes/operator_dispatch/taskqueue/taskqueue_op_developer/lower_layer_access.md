@@ -89,7 +89,7 @@ This access method applies to non-aclnn scenarios such as Ascend C kernel launch
     The function signature of the `RunOpApiV2` interface is `RunOpApiV2(const string &op_name, const PROC_FUNC &func, bool sync = false)`. The parameter information is as follows:
     
     - `PROC_FUNC`: A type alias of `std::function<int()>`, i.e., the operator execution callback function passed by the user, returning an `int` error code (0 indicates success).
-    - `op_name`: The operator name (such as `Add`), used for `RECORD_FUNCTION`, `profiling`, and t`race` marking. If the length exceeds 99 bytes, it will be truncated.
+    - `op_name`: The operator name (such as `Add`), used for `RECORD_FUNCTION`, `profiling`, and `trace` marking. If the length exceeds 99 bytes, it will be truncated.
     - `func`: The operator execution callback. `RunOpApiV2` passes it by constant reference (to avoid copying).
     - `sync`: Whether to block and synchronize the current stream after operator dispatch. The default is `false`.
 
@@ -146,7 +146,7 @@ at::Tensor ascendc_add_good(const at::Tensor &x, const at::Tensor &y)
 > }
 > ```
 
-For custom operator extension development methods, see: [Custom Operator C++ Extension Development Example](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/examples/cpp_extension/README_en.md).
+For custom operator extension development methods, see: [Custom Operator C++ Extension Development Sample](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/examples/cpp_extension/README_en.md).
 
 ### Data Type Capture Examples
 

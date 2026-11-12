@@ -23,4 +23,4 @@ An error occurs when the underlying interface is called during initialization, a
 
 ## Solution
 
-See the "[Process Interruption Problem Locating](https://gitcode.com/cann/docs/blob/9.2.0/docs/en/troubleshooting/process_interrupt_analysis.md)" section in *CANN Fault Handling* for troubleshooting.
+See the "[Process Interruption Problem Locating](https://gitcode.com/cann/docs/blob/9.2.0/docs/en/troubleshooting/process_interrupt_analysis.md)" section in *CANN Troubleshooting Overview* for troubleshooting.

@@ -12,9 +12,9 @@ torch.compile includes the following core components:
 
 For general usage and core concepts, see the [Reference Documentation](#reference-documentation) section in this document.
 
-## Interface Description
+## API Description
 
-### Interface Prototype
+### API Prototype
 
 ```python
 torch.compile(model, *, fullgraph=False, dynamic=None, backend="inductor",

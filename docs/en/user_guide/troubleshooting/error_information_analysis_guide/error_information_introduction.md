@@ -5,4 +5,4 @@ During model training, users may encounter various error information, including 
 > [!NOTE]
 >
 > - Main principle for locating errors: pay attention to the first error message.
-> - For details about errors related to the CANN software, see *[CANN Fault Handling](https://gitcode.com/cann/docs/blob/9.2.0/docs/en/troubleshooting/troubleshooting_intro.md)*.
+> - For details about errors related to the CANN software, see [CANN Troubleshooting Overview](https://gitcode.com/cann/docs/blob/9.2.0/docs/en/troubleshooting/troubleshooting_intro.md).

@@ -28,7 +28,7 @@ The error code is expressed in the command output as follows:
 
 ## CANN Software Error Code
 
-Due to different scenarios, test cases, and fault causes, the printed error code information differs. Therefore, in the example, \[%s\] variables are used to replace the actual printed logs, and the actual logs replaced by \[%s\] prevail. For details about CANN software error codes, see the "[Error Code Reference](https://gitcode.com/cann/docs/blob/9.2.0/docs/en/troubleshooting/error_code_desc.md)" section in *CANN Fault Handling*.
+Due to different scenarios, test cases, and fault causes, the printed error code information differs. Therefore, in the example, \[%s\] variables are used to replace the actual printed logs, and the actual logs replaced by \[%s\] prevail. For details about CANN software error codes, see the "[Error Code Reference](https://gitcode.com/cann/docs/blob/9.2.0/docs/en/troubleshooting/error_code_desc.md)" section in *CANN Troubleshooting Overview*.
 
 For example, the E10035 error code is expressed in the manual as follows:
 

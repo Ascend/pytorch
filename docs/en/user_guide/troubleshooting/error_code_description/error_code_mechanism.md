@@ -2,7 +2,7 @@
 
 ## Generation Mechanism
 
-When exceptions or errors occur while the user is building models, running inference, executing training scripts, or performing other operations, for example, input errors are detected (incorrect command-line input parameters, incorrect API input parameters, incorrect input files, unsupported operators, unsupported shapes/formats, and so on) or environment errors occur, the system displays the error code information of the error on the user interface. In actual problem locating, you need to locate the problem based on the specific error information and plog logs.
+When exceptions or errors occur while the user is building models, running inference, executing training scripts, or performing other operations, for example, input errors are detected (incorrect command-line input parameters, incorrect API input parameters, incorrect input files, unsupported operators, unsupported shapes/formats, and so on) or environment errors occur, the system displays the error code information of the error on the user interface. In actual problem locating, you need to locate the problem based on the specific error information and plogs.
 
 ## Display Mode
 
@@ -11,7 +11,7 @@ When exceptions or errors occur while the user is building models, running infer
 > Generally, ERR\*\*005 indicates an internal error. You can submit an issue on the [Ascend Community](https://gitcode.com/Ascend/pytorch/issues) for help.
 > The error code information described in this topic has been fully displayed when an error is printed on the screen, including possible causes, solutions, and so on. Therefore, this topic only lists the related content for reference.
 
-Due to different scenarios, test cases, and fault causes, the printed error code information differs. Therefore, in this topic, \\[%s\\] variables are used to replace the actual printed logs, and the actual logs prevail.
+Due to different scenarios, test cases, and fault causes, the printed error code information differs. Therefore, in this topic, \[%s\] variables are used to replace the actual printed logs, and the actual logs prevail.
 
 For example, the ERR00002 error code is expressed in the manual as follows:
 

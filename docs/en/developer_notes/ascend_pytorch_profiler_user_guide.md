@@ -2,24 +2,126 @@
 
 ## Tool Usage Navigation
 
+Performance tuning tools for PyTorch scenarios in the Ascend NPU environment include the following two:
+
+[Native torch.profiler API](#native-torchprofiler-api): The native torch.profiler API can be used directly in the Ascend NPU environment for performance data profiling.
+
+For users who have already used the native torch.profiler API, this approach is recommended.
+
+[Ascend PyTorch Profiler API](#ascend-pytorch-profiler-api): A Profiler tool developed specifically for the Ascend NPU environment, whose API naming and functionality differ from the native API.
+
+### Native torch.profiler API
+
+The method for profiling Ascend NPU environment performance data using the native torch.profiler API is as follows:
+
+1. Add the native torch.profiler API to the training script.
+
+   For detailed descriptions of the native torch.profiler interface, see *[torch.profiler](https://docs.pytorch.org/docs/stable/profiler.html)*.
+
+2. Change the CUDA fields in the native torch.profiler interface to NPU accordingly.
+
+> [!NOTE]
+>
+> Torch and torch_npu must be version 2.12.0 or later.
+
+The following is executable sample code, and the highlighted positions are the added native torch.profiler interfaces.
+
+<details>
+<summary><b>Click to expand the example</b></summary>
+
+```diff
+from pathlib import Path
+
++import torch
++from torch import nn
+
+
+class TinyModel(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.network = nn.Sequential(
+            nn.Linear(1024, 2048),
+            nn.ReLU(),
+            nn.Linear(2048, 1024),
+            nn.ReLU(),
+            nn.Linear(1024, 10),
+        )
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        return self.network(inputs)
+
+def main() -> None:
+    steps = 8
+    batch_size = 32
+    output_dir = Path("profiler_output")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    device = torch.device("npu:0")
+    model = TinyModel().to(device)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
+    loss_function = nn.CrossEntropyLoss()
+    inputs = torch.randn(batch_size, 1024, device=device)
+    labels = torch.randint(0, 10, (batch_size,), device=device)
+
++    with torch.profiler.profile(
++        activities = [
++            torch.profiler.ProfilerActivity.CPU,
++            torch.profiler.ProfilerActivity.NPU,
++        ],
++        schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=1),
++        on_trace_ready=torch.profiler.tensorboard_trace_handler(str(output_dir)),
++        record_shapes=True,
++        profile_memory=True,
++        with_stack=True,
++        with_modules=True,
++    ) as profiler:
+        for step in range(steps):
+            optimizer.zero_grad(set_to_none=True)
+            predictions = model(inputs)
+            loss = loss_function(predictions, labels)
+            loss.backward()
+            optimizer.step()
+            torch.npu.synchronize()
++            profiler.step()
+
++    events = profiler.events()
++    for index, event in enumerate(events[:20]):
++        print(
++            f"[{index}] name={event.name}, "
++            f"device_type={event.device_type}, "
++            f"self_cpu_time_total={event.self_cpu_time_total:.3f} us, "
++            f"self_device_time_total={event.self_device_time_total:.3f} us, "
++            f"input_shapes={event.input_shapes}"
++        )
+
++    summary = profiler.key_averages(group_by_input_shape=True).table(
++        sort_by="self_device_time_total", row_limit=30
++    )
++    (output_dir / "operator_summary.txt").write_text(summary, encoding="utf-8")
++    print(summary)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+</details><br>
+
+### Ascend PyTorch Profiler API
+
 Ascend PyTorch Profiler supports performance data profiling and parsing, and can be used in the following order.
 
 | Procedure             | Corresponding Section                                                     |
 | -------------------- | ------------------------------------------------------------ |
-| Data Profiling             | You can choose any one of the following profiling methods based on actual requirements. Note that no more than two methods can be used for profiling in the same process.<br>[Profiling and Automatic Parsing](#profiling-and-automatic-parsing)<br>&#8226; [Profile and Parse Performance Data (torch\_npu.profiler.profile)](#profiling-and-parsing-performance-data-torch-npu-profiler-profile)<br>(Recommended) Provides complete profiling interfaces. You can freely select the content to profile by manually adding interfaces to the code.<br>&#8226; [Profile and Parse Performance Data (dynamic\_profile)](#profiling-and-parsing-performance-data-dynamic-profile)<br>(Recommended) Supports starting profiling at any time during training, and supports starting profiling without modifying user code, offering a more flexible profiling method. |
+| Data Profiling             | You can choose any one of the following profiling methods based on actual requirements. Note that only one profiling method can be used at a time in the same process.<br>[Profiling and Automatic Parsing](#profiling-and-automatic-parsing)<br>&#8226; [Profile and Parse Performance Data (torch\_npu.profiler.profile)](#profiling-and-parsing-performance-data-torch-npu-profiler-profile)<br>(Recommended) Provides complete profiling interfaces. You can freely select the content to profile by manually adding interfaces to the code.<br>&#8226; [Profile and Parse Performance Data (dynamic\_profile)](#profiling-and-parsing-performance-data-dynamic-profile)<br>(Recommended) Supports starting profiling at any time during training, and supports starting profiling without modifying user code, offering a more flexible profiling method. |
 | (Optional) Extended Profiling Features | If you need to profile other data, you can use the following features.<br>[Extended Profiling Features](#extended-profiling-features)<br/>&#8226; [Profile and Parse mstx Data](#profiling-and-parsing-mstx-data)<br>&#8226; [Profile Environment Variable Information](#profiling-environment-variable-information)<br>&#8226; [Mark the Performance Data Profiling Process](#marking-the-performance-data-profiling-process)<br>&#8226; [Device Memory Visualization](#memory-visualization)<br>&#8226; [Create a Profiler Subthread for Profiling](#profiling-in-a-profiler-subthread) |
 | (Optional) Data Parsing      | [Offline Parsing](#offline-parsing)<br>Generally, data profiling interfaces perform automatic parsing during profiling. Therefore, offline parsing is applicable to scenarios where unparsed raw performance data needs to be parsed. |
 | Data Analysis             | After profiling and automatic parsing or offline parsing is completed, you can view the corresponding performance data files in the performance data directory. For details about the files, see [Output Result File Description](#output-result-files-description), or import the performance data into the [MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/26.2.0/docs/en/user_guide/overview.md) tool for analysis. |
 
 ## Introduction
 
-Ascend PyTorch Profiler is a performance analysis tool developed for the PyTorch framework. By adding Ascend PyTorch Profiler to PyTorch training/online inference scripts, it collects performance data during training/online inference and directly outputs visualized performance data files after training/online inference is complete, improving the efficiency of performance analysis.
+Ascend PyTorch Profiler is a performance analysis tool developed for the PyTorch framework. By adding Ascend PyTorch Profiler to PyTorch training/online inference scripts, it profiles performance data during training/online inference and directly outputs visualized performance data files after training/online inference is complete, improving the efficiency of performance analysis.
 
 Ascend PyTorch Profiler can comprehensively profile performance data in PyTorch training/online inference scenarios, mainly including PyTorch-layer operator information, CANN-layer operator information, underlying NPU operator information, and operator memory usage information, enabling all-round analysis of the performance status during PyTorch training/online inference.
-
-> [!NOTE]
->
-> Ascend PyTorch Profiler is a Profiler tool developed specifically for the Ascend NPU environment. Its API naming and functions differ from the native interfaces. For specific usage, see this document. In addition, the Ascend NPU environment is also compatible with the native torch.profiler. To use the native interface, see [Profiling Performance Data in the Ascend NPU Environment Using the Native torch.profiler Interface](#profiling-performance-data-in-the-ascend-npu-environment-using-the-native-torchprofiler-interface).
 
 ## Before You Start
 
@@ -42,9 +144,9 @@ Before using this tool, understand the related usage constraints:
 
 - Execution constraints
     - It is not recommended to use the performance data profiling function and the Dump function at the same time. Dump operations affect system performance. If the profiling function and the Dump function are enabled at the same time, the collected performance data metrics will be inaccurate. Disable data Dump before starting profiling.
-    - The Ascend PyTorch Profiler interface supports multiple profiling methods, and different profiling methods cannot be enabled at the same time.
-    - Ensure that calls to the Ascend PyTorch Profiler interface and the business process to be collected are in the same process.
-    - When the Ascend PyTorch Profiler interface performs profiling tasks, the relationship between processes and Devices is as follows:
+    - The Ascend PyTorch Profiler API supports multiple profiling methods, and different profiling methods cannot be enabled at the same time.
+    - Ensure that calls to the Ascend PyTorch Profiler API and the business process to be collected are in the same process.
+    - When the Ascend PyTorch Profiler API performs profiling tasks, the relationship between processes and Devices is as follows:
         - Multi-process multi-Device scenario: A profiling process can be set for each Device.
         - Single-process multi-Device scenario: Supported. It must be used with PyTorch 2.1.0post14, 2.5.1post2, 2.6.0, and later versions.
         - Multi-process single-Device scenario: Ensure that profiling actions between multiple processes are serial, that is, profiling actions do not start at the same time, and each profiling action must include complete start and stop operations.
@@ -79,7 +181,7 @@ Before using this tool, understand the related usage constraints:
 
 **Performing Profiling**
 
-1. In the Ascend NPU environment, create a training script (the pytorch_main.py file) and add the Ascend PyTorch Profiler interface tool. The complete code is as follows.
+1. In the Ascend NPU environment, create a training script (the pytorch_main.py file) and add the Ascend PyTorch Profiler API tool. The complete code is as follows.
 
    <details>
    <summary><b>Click to expand the example</b></summary>
@@ -614,7 +716,7 @@ Before using this tool, understand the related usage constraints:
    >
    > Performance data occupies a certain amount of disk space, and there is a risk that the disk may become full, making the server unavailable. The space required for performance data is closely related to the model parameters, profiling switch configuration, and the number of collected iterations. You must ensure sufficient available disk space in the write directory.
 
-2. Run the training script command. The tool collects performance data during model training.
+2. Run the training script command. The tool profiles performance data during model training.
 
    ```bash
    python pytorch_main.py -a resnet50 -b 32 --gpu 1 --dummy
@@ -622,7 +724,7 @@ Before using this tool, understand the related usage constraints:
 
 3. View the collected PyTorch training performance data result files.
 
-   After training ends, a performance data result directory of the Ascend PyTorch Profiler interface is generated in the directory specified by the **torch_npu.profiler.tensorboard_trace_handler** interface, as shown in the following example.
+   After training ends, a performance data result directory of the Ascend PyTorch Profiler API is generated in the directory specified by the **torch_npu.profiler.tensorboard_trace_handler** interface, as shown in the following example.
 
    ```ColdFusion
    └── msprof_1784298_20260114085947065_ascend_pt
@@ -675,7 +777,7 @@ None
     > - For detailed descriptions of the torch\_npu.profiler.profile interface and parameters in the following sample code, see [Ascend PyTorch Profiler Interface Description](#ascend-pytorch-profiler-interface-description).
     > - The following provides two sample codes that call the **torch\_npu.profiler.profile** interface in different ways. You can use either one.
 
-    - Example 1: Use the with statement to call the torch\_npu.profiler.profile interface, which automatically creates a Profiler and collects performance data of the code segment within the with block.
+    - Example 1: Use the with statement to call the torch\_npu.profiler.profile interface, which automatically creates a Profiler and profiles the performance data of the code segment covered by the with statement.
 
         ```python
         import torch
@@ -683,14 +785,14 @@ None
 
         ...
 
-        # Add the Profiling profiling extension configuration parameters. For detailed parameter introduction, see the parameter description below.
+        # Add the Profiling extension configuration parameters. For detailed parameter introduction, see the parameter description below.
         experimental_config = torch_npu.profiler._ExperimentalConfig(
             export_type=torch_npu.profiler.ExportType.Text,
             profiler_level=torch_npu.profiler.ProfilerLevel.Level0,
             aic_metrics=torch_npu.profiler.AiCMetrics.AiCoreNone
         )
 
-        # Add the Profiling profiling basic configuration parameters. For detailed parameter introduction, see the parameter description below.
+        # Add the Profiling basic configuration parameters. For detailed parameter introduction, see the parameter description below.
         with torch_npu.profiler.profile(
             activities=[
                 torch_npu.profiler.ProfilerActivity.CPU,
@@ -715,14 +817,14 @@ None
         import torch_npu
         ...
 
-        # Add the Profiling profiling extension configuration parameters. For detailed parameter introduction, see the parameter description below.
+        # Add the Profiling extension configuration parameters. For detailed parameter introduction, see the parameter description below.
         experimental_config = torch_npu.profiler._ExperimentalConfig(
             export_type=torch_npu.profiler.ExportType.Text,
             profiler_level=torch_npu.profiler.ProfilerLevel.Level0,
             aic_metrics=torch_npu.profiler.AiCMetrics.AiCoreNone
         )
 
-        # Add the Profiling profiling basic configuration parameters. For detailed parameter introduction, see the parameter description below.
+        # Add the Profiling basic configuration parameters. For detailed parameter introduction, see the parameter description below.
         prof = torch_npu.profiler.profile(
             activities=[
                 torch_npu.profiler.ProfilerActivity.CPU,
@@ -936,11 +1038,11 @@ For details, see *[torch_npu.profiler Interface List](https://gitcode.com/Ascend
 
 **Feature Description**
 
-To address the issues of large data volume and complex analysis processes in traditional Profiling for large-scale cluster scenarios, mstx enables the custom instrumentation function. You can customize the profiling time period or the start and end time points of key functions to identify key functions, iterations, and other information, quickly locating performance problems.
+To address the issues of large data volume and complex analysis processes in traditional Profiling for large-scale cluster scenarios, mstx enables the custom instrumentation function. You can customize the profiling time period or the start and end time points of key functions to identify key functions, iterations, and other information, quickly delineating performance problems.
 
 The usage process is as follows:
 
-1. Add the Ascend PyTorch Profiler interface to the PyTorch script and enable the custom instrumentation function through the `mstx` parameter of [experimental\_config](#experimental-parameters-description).
+1. Add the Ascend PyTorch Profiler API to the PyTorch script and enable the custom instrumentation function through the `mstx` parameter of [experimental\_config](#experimental-parameters-description).
 2. (Optional) Set the profiler\_level switch to Level\_none (you can configure the corresponding level based on actual profiling requirements) together with the domain filtering attributes of mstx\_domain\_include or mstx\_domain\_exclude to profile instrumentation data.
 3. In the PyTorch script, call the [torch\_npu.npu.mstx](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/en/custom_APIs/torch_npu-npu/torch_npu-npu_list.md#table17382716193111) series of interfaces for the events you want to profile, to profile the duration of the corresponding events.
 
@@ -1106,7 +1208,7 @@ Open the instrumentation data with the MindStudio Insight tool. The visualizatio
 
 ![](../figures/profiler/dot_result.png "../figures/profiler/dot_result.png")
 
-By default, the mstx function collects performance data of communication operators, dataloader duration, and checkpoint saving interface duration. The data content formats are as follows:
+By default, the mstx function profiles performance data of communication operators, dataloader duration, and checkpoint saving interface duration. The data content formats are as follows:
 
 - Format: \{"streamId": "\{pg streamId\}","count": "\{count\}","dataType": "\{dataType\}",\["srcRank": "\{srcRank\}"\],\["destRank": "\{destRank\}"\],"groupName": "\{groupName\}","opName": "\{opName\}"\}
 
@@ -1125,7 +1227,7 @@ By default, the mstx function collects performance data of communication operato
 
 In addition, the mstx function can also obtain performance data of the four key phases of the PyTorch model — dataloader, forward, step, and save\_checkpoint — through **mstx\_torch\_plugin**. For details, see *[mstx\_torch\_plugin](https://gitcode.com/Ascend/mstt/blob/26.2.0/profiler/example/mstx_torch_plugin/README_EN.md)*.
 
-With this function, you can view the execution and scheduling of user-defined instrumentation from the framework side to the CANN layer and then to the NPU side, helping identify the key functions or events you want to observe and locate performance problems.
+With this function, you can view the execution and scheduling of user-defined instrumentation from the framework side to the CANN layer and then to the NPU side, helping identify the key functions or events you want to observe and delineate performance problems.
 
 For detailed descriptions of the mstx profiling result data, see [msproftx Data Description](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/en/user_guide/profile_data_file_references.md#msproftx%E6%95%B0%E6%8D%AE%E8%AF%B4%E6%98%8E).
 
@@ -1133,7 +1235,7 @@ For detailed descriptions of the mstx profiling result data, see [msproftx Data 
 
 **Feature Description**
 
-When performance data is collected through the Ascend PyTorch Profiler interface, environment variable information is collected by default. The environment variables currently supported for profiling are as follows:
+When performance data is collected through the Ascend PyTorch Profiler API, environment variable information is collected by default. The environment variables currently supported for profiling are as follows:
 
 - "ASCEND\_GLOBAL\_LOG\_LEVEL"
 - "HCCL\_RDMA\_TC"
@@ -1157,7 +1259,7 @@ None
 
     Configure the environment variables based on actual requirements.
 
-2. Execute the Ascend PyTorch Profiler interface to profile data.
+2. Execute the Ascend PyTorch Profiler API to profile data.
 
 **Output Description**
 
@@ -1192,7 +1294,7 @@ add\_metadata and add\_metadata\_json can be configured under torch\_npu.profile
 
 **Output Description**
 
-The metadata data passed in when calling this interface is written to the profiler\_metadata.json file in the root directory of the Ascend PyTorch Profiler profiling results.
+The metadata passed in when calling this interface is written to the profiler\_metadata.json file in the root directory of the Ascend PyTorch Profiler profiling results.
 
 ### Device Memory Visualization <a id="memory-visualization"></a>
 
@@ -1352,7 +1454,7 @@ In the preceding figure, Thread 455385 is the main thread, which can be collecte
 
 **Feature Description**
 
-When the performance data collected using the Ascend PyTorch Profiler interface is large, directly using the on\_trace\_ready interface for automatic parsing in the current environment may cause excessive resource occupation and stuttering. In this case, you can remove the on\_trace\_ready interface and set the write directory through the environment variable ASCEND\_WORK\_PATH (for example: export ASCEND\_WORK\_PATH=xx/xx), and perform offline parsing after performance data profiling is complete.
+When the performance data collected using the Ascend PyTorch Profiler API is large, directly using the on\_trace\_ready interface for automatic parsing in the current environment may cause excessive resource occupation and stuttering. In this case, you can remove the on\_trace\_ready interface and set the write directory through the environment variable ASCEND\_WORK\_PATH (for example: export ASCEND\_WORK\_PATH=xx/xx), and perform offline parsing after performance data profiling is complete.
 
 **Precautions**
 
@@ -1409,14 +1511,14 @@ The performance data write directory structure is as follows:
   >
   > - The performance data files output by PyTorch frameworks in this scenario are basically the same. The data of the two frameworks is introduced together below, and individual differences will be described in the comments.
   > - You do not need to open the following data files. You can use the [MindStudio Insight](https://gitcode.com/Ascend/msinsight/blob/26.2.0/docs/en/user_guide/overview.md) tool to view and analyze performance data.
-  > - If a null StepID value appears in kernel\_details.csv, you can view the Step information of the operator through the trace\_view.json file, or profile Profiling data again.
+  > - If a null StepID value appears in kernel\_details.csv, you can view the Step information of the operator through the trace\_view.json file, or collect the Profiling data again.
   > - The following data is collected based on the actual environment. If the environment does not have the corresponding conditions, the corresponding data or files will not be generated. For example, if the model has no AI CPU operators, the corresponding data\_preprocess.csv file will not be generated even if profiling is performed.
 
   ```text
   └── localhost.localdomain_139247_20230628101435_ascend_pt    // Performance data result directory. Naming format: {worker_name}_{timestamp}_ascend_{framework}. By default, {worker_name} is {hostname}_{pid}, {timestamp} is a timestamp, and {framework} is the abbreviation of the PyTorch framework (pt).
       ├── profiler_info_{Rank_ID}.json    // Used to record Profiler-related metadata. In the PyTorch single-device scenario, the file name does not display {Rank_ID}.
       ├── profiler_metadata.json    // Used to save the information added by users through the add_metadata interface and other Profiler-related metadata.
-      ├── ASCEND_PROFILER_OUTPUT    // Directory of performance data collected and parsed by the Ascend PyTorch Profiler interface.
+      ├── ASCEND_PROFILER_OUTPUT    // Directory of performance data collected and parsed by the Ascend PyTorch Profiler API.
       │   ├── analysis.db    // Generated by default in scenarios with communication, such as PyTorch multi-device or clusters.
       │   ├── task_time.csv    // Generated when the torch_npu.profiler.ProfilerActivity.NPU switch is enabled and profiler_level is configured as Level0, Level1, or Level2.
       │   ├── api_statistic.csv    // Generated when profiler_level is configured as Level1 or Level2.
@@ -1449,11 +1551,11 @@ The performance data write directory structure is as follows:
   ├── localhost.localdomain_139247_20230628101435_ascend_pt_op_arg    // Directory of operator information statistics files in PyTorch scenarios. Generated when record_op_args is set to True to enable it.
   ```
 
-  The Ascend PyTorch Profiler interface associates and integrates framework-side data with CANN Profiling data to form performance data files such as trace, Kernel, and memory. They are saved in the ASCEND\_PROFILER\_OUTPUT directory, including the json and csv format [timeline and summary data](#timeline-and-summary-data), [ascend\_pytorch\_profiler\_\{Rank\_ID\}.db data](#ascend-pytorch-profiler-rank-id-db-data), and [analysis.db data](#analysis-db-data).
+  The Ascend PyTorch Profiler API associates and integrates framework-side data with CANN Profiling data to form performance data files such as trace, Kernel, and memory. They are saved in the ASCEND\_PROFILER\_OUTPUT directory, including the json and csv format [timeline and summary data](#timeline-and-summary-data), [ascend\_pytorch\_profiler\_\{Rank\_ID\}.db data](#ascend-pytorch-profiler-rank-id-db-data), and [analysis.db data](#analysis-db-data).
 
   The PROF directory contains the performance data collected by CANN Profiling, mainly saved in the mindstudio\_profiler\_output directory and msprof\_\*.db files. For data descriptions, see [Performance Data File Reference](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/en/user_guide/profile_data_file_references.md).
 
-- In PyTorch scenarios, when the export\_chrome\_trace method is called, the Ascend PyTorch Profiler interface writes the parsed trace data to the \*.json file, where \* is the file name. If the file does not exist, it is automatically created in the specified path.
+- In PyTorch scenarios, when the export\_chrome\_trace method is called, the Ascend PyTorch Profiler API writes the parsed trace data to the \*.json file, where \* is the file name. If the file does not exist, it is automatically created in the specified path.
 
 ### Timeline and Summary Data <a id="timeline-and-summary-data"></a>
 
@@ -1488,7 +1590,7 @@ When with\_stack is enabled, the upper-layer application operators in trace\_vie
 
 In the profiling result in Figure 4, the time period of the Python GC layer is the execution time of this GC.
 
-When GC is executed, the current process is blocked and must wait for GC to complete. If GC takes too long, you can adjust the GC parameters (refer to gc.set\_threshold in [Garbage Collector](https://docs.python.org/3.15/library/gc.html)) to alleviate the process blocking caused by GC.
+When GC is executed, the current process is blocked and must wait for GC to complete. If GC takes too long, you can adjust the GC parameters (refer to gc.set\_threshold in [Garbage Collector](https://docs.python.org/3/library/gc.html)) to alleviate the process blocking caused by GC.
 
 **kernel\_details.csv**
 
@@ -1520,7 +1622,7 @@ The field information is shown in Table 1.
 |Duration(us)|Execution duration of the current operator, in us.|
 |Wait Time(us)|Waiting time for operator execution, in us.|
 |Block Num|Number of running splits, corresponding to the number of cores used when the task is executed.|
-|Mix Block Num|Some operators are executed on both the AI Core and Vector Core. The Block Num of the primary accelerator is described in the Block Num field, and the Block Num of the secondary accelerator is described in this field. This field is not collected by default at Level0.<br>Supported only on Atlas A2 products and Atlas A3 products.|
+|Mix Block Num|Some operators are executed on both the AI Core and Vector Core. The Block Num of the primary accelerator is described in the Block Num field, and the Block Num of the secondary accelerator is described in this field. This field is not collected by default at Level0.<br>Supported only on Atlas A2 training products and Atlas A3 training products.|
 |HF32 Eligible|Indicates whether the HF32 precision mark is used. YES indicates used, and NO indicates not used.|
 |Input Shapes|Shape of the operator input.|
 |Input Data Types|Data type of the operator input.|
@@ -1575,7 +1677,7 @@ The file contains the memory occupation details of operators, mainly recording t
 |Allocation Total Active(MB)|Total memory requested by the current stream when the operator memory is allocated (including unreleased memory reused by other streams), in MB.|
 |Release Total Allocated(MB)|Total memory allocated when the operator memory is released (when the operator name in the Name field starts with aten, it is TorchNPU memory; when the operator name starts with cann, it is GE memory), in MB.|
 |Release Total Reserved(MB)|Total memory occupied when the operator memory is released (when the operator name in the Name field starts with aten, it is TorchNPU memory; when the operator name starts with cann, it is GE memory), in MB.|
-|Release Total Active(MB)|Total memory reused by other Streams in the memory when the operator memory is released (when the operator name in the Name field starts with aten, it is TorchNPU memory; when the operator name starts with cann, it is GE memory), in MB.|
+|Release Total Active(MB)|Total memory in the memory pool reused by other streams when the operator memory is released (when the operator name in the Name field starts with aten, it is TorchNPU memory; when the operator name starts with cann, it is GE memory), in MB.|
 |Stream Ptr|Memory address of the AscendCL stream, used to mark different AscendCL streams.|
 |Device Type|Device type and device ID, involving only the NPU.|
 
@@ -1701,7 +1803,7 @@ No switch. Records the String ID mapping relationship used on the CANN side, usu
 
 Framework-side API data, currently containing only torch\_npu API data.
 
-Controlled by the torch\_npu.profiler.ProfilerActivity.CPU switch of the Ascend PyTorch Profiler interface.
+Controlled by the torch\_npu.profiler.ProfilerActivity.CPU switch of the Ascend PyTorch Profiler API.
 
 **Table 2**  Format
 
@@ -1723,7 +1825,7 @@ Controlled by the torch\_npu.profiler.ProfilerActivity.CPU switch of the Ascend 
 
 Association relationship data between framework-side APIs and themselves or CANN APIs.
 
-Controlled by the torch\_npu.profiler.ProfilerActivity.CPU switch of the Ascend PyTorch Profiler interface.
+Controlled by the torch\_npu.profiler.ProfilerActivity.CPU switch of the Ascend PyTorch Profiler API.
 
 **Table 3**  Format
 
@@ -1736,7 +1838,7 @@ Controlled by the torch\_npu.profiler.ProfilerActivity.CPU switch of the Ascend 
 
 Framework-side stack information.
 
-Controlled by the with\_stack parameter of the Ascend PyTorch Profiler interface.
+Controlled by the with\_stack parameter of the Ascend PyTorch Profiler API.
 
 **Table 4**  Format
 
@@ -1750,7 +1852,7 @@ Controlled by the with\_stack parameter of the Ascend PyTorch Profiler interface
 
 Framework-side device memory occupation records.
 
-Controlled by the profile\_memory parameter of the Ascend PyTorch Profiler interface.
+Controlled by the profile\_memory parameter of the Ascend PyTorch Profiler API.
 
 **Table 5**  Format
 
@@ -1768,7 +1870,7 @@ Controlled by the profile\_memory parameter of the Ascend PyTorch Profiler inter
 
 Framework-side operator memory occupation information integrated based on MEMORY\_RECORD.
 
-Controlled by the profile\_memory parameter of the Ascend PyTorch Profiler interface.
+Controlled by the profile\_memory parameter of the Ascend PyTorch Profiler API.
 
 **Table 6**  Format
 
@@ -1807,7 +1909,7 @@ No corresponding switch. Generated by default when the ascend\_pytorch\_profiler
 
 Saves the start time of the steps collected by Profiler.
 
-Controlled by the parameters of the torch\_npu.profiler.schedule class of the Ascend PyTorch Profiler interface.
+Controlled by the parameters of the torch\_npu.profiler.schedule class of the Ascend PyTorch Profiler API.
 
 **Table 8**  Format
 
@@ -1821,7 +1923,7 @@ Controlled by the parameters of the torch\_npu.profiler.schedule class of the As
 
 Saves the GC events collected by Profiler.
 
-Controlled by the gc\_detect\_threshold parameter of the Ascend PyTorch Profiler interface.
+Controlled by the gc\_detect\_threshold parameter of the Ascend PyTorch Profiler API.
 
 **Table 9**  Format
 
@@ -2033,7 +2135,7 @@ This file is a table structure file. It is recommended to view it with the MindS
 |schedule|Optional|Sets the behavior of different steps, of the Callable type, controlled by the schedule class. No operation is performed by default.<br/>The torch_npu.profiler._KinetoProfile does not support this parameter.|
 |on_trace_ready|Optional|Operation automatically executed when profiling ends, of the Callable type. Currently, the tensorboard_trace_handler function operation is supported. When the collected data volume is too large and it is not suitable to directly parse performance data in the current environment, or when the training/online inference process is interrupted during profiling and only part of the performance data is collected, you can use [Offline Parsing](#offline-parsing).<br/>No operation is performed by default.<br/>The torch_npu.profiler._KinetoProfile does not support this parameter.<br/>For multi-card large cluster scenarios using shared storage, directly using on_trace_ready to execute the tensorboard_trace_handler function to write performance data to disk may cause performance expansion because data from multiple cards is directly written to shared storage. For the solution, see [How to Avoid Performance Expansion When Performance Data Is Directly Written to Shared Storage in PyTorch Multi-Card Large Cluster Scenarios](#avoiding-performance-bloat-from-performance-data-directly-written-to-shared-storage).|
 |record_shapes|Optional|Records the InputShapes and InputTypes data of framework-layer operators, and enables recording the Shape and Block Num data of CANN-layer operators at torch_npu.profiler.ProfilerLevel.Level0, of the Bool type. Values:<br/>&#8226; True: Enabled.<br/>&#8226; False: Disabled.<br/>Disabled by default.|
-|profile_memory|Optional|Records the device memory occupation of operators, of the Bool type. Values:<br/>&#8226; True: Enabled.<br/>&#8226; False: Disabled.<br/>Disabled by default.<br/>When torch_npu.profiler.ProfilerActivity.CPU is enabled, the framework device memory occupation is collected; when torch_npu.profiler.ProfilerActivity.NPU is enabled, the CANN device memory occupation is collected.<br/>It is known that profiling memory data on an environment with glibc<2.34 may trigger a known glibc [Bug 19329](https://sourceware.org/bugzilla/show_bug.cgi?id=19329). This problem can be resolved by upgrading the glibc version of the environment.|
+|profile_memory|Optional|Records the device memory occupation of operators, of the Bool type. Values:<br/>&#8226; True: Enabled.<br/>&#8226; False: Disabled.<br/>Disabled by default.<br/>When torch_npu.profiler.ProfilerActivity.CPU is enabled, the framework device memory occupation is collected; when torch_npu.profiler.ProfilerActivity.NPU is enabled, the CANN device memory occupation is collected.<br/>It is known that profiling memory data in an environment with glibc<2.34 may trigger a known glibc [Bug 19329](https://sourceware.org/bugzilla/show_bug.cgi?id=19329). This problem can be resolved by upgrading the glibc version of the environment.|
 |with_stack|Optional|Records the operator call stack, of the Bool type. It includes the call information of the framework layer and the CPU operator layer. Values:<br/>&#8226; True: Enabled.<br/>&#8226; False: Disabled.<br/>Disabled by default.<br/>It takes effect when torch_npu.profiler.ProfilerActivity.CPU is enabled.<br/>Enabling this configuration introduces additional performance expansion.|
 |with_modules|Optional|Records the Python call stack at the modules level, that is, the framework-layer call information, of the Bool type. Values:<br/>&#8226; True: Enabled.<br/>&#8226; False: Disabled.<br/>Disabled by default.<br/>It takes effect when torch_npu.profiler.ProfilerActivity.CPU is enabled.<br/>Enabling this configuration introduces additional performance expansion.|
 |with_flops|Optional|Records the floating-point operations of operators (parsing performance data is not supported for this parameter yet). Values:<br/>&#8226; True: Enabled.<br/>&#8226; False: Disabled.<br/>Disabled by default.<br/>It takes effect when torch_npu.profiler.ProfilerActivity.CPU is enabled.|
@@ -2046,7 +2148,7 @@ This file is a table structure file. It is recommended to view it with the MindS
 | Method Name | Description |
 |--|--|
 |step|Divides different iterations. The torch_npu.profiler._KinetoProfile does not support this method.|
-|export_chrome_trace|Exports the trace. Writes the trace data to the specified .json file. The Trace shows the running time and association relationship of each operator and interface after the Ascend PyTorch Profiler interface integrates the framework-side CANN software stack and NPU data. Parameters:<br>&#8226; *path*: Path of the trace file (.json). The path format of the file location only supports strings consisting of letters, digits, and underscores, and does not support symbolic links. Required.<br>In multi-card scenarios, different cards need to be configured with different file names.<br>Sample code:<br>`pid = os.getpid()`<br/>`prof.export_chrome_trace(f'./chrome_trace_{pid}.json')`|
+|export_chrome_trace|Exports the trace. Writes the trace data to the specified .json file. The Trace shows the running time and association relationship of each operator and interface after the Ascend PyTorch Profiler API integrates the framework-side CANN software stack and NPU data. Parameters:<br>&#8226; *path*: Path of the trace file (.json). The path format of the file location only supports strings consisting of letters, digits, and underscores, and does not support symbolic links. Required.<br>In multi-card scenarios, different cards need to be configured with different file names.<br>Sample code:<br>`pid = os.getpid()`<br/>`prof.export_chrome_trace(f'./chrome_trace_{pid}.json')`|
 |export_stacks|Exports the stack information to a file. Parameters:<br>&#8226; *path*: Path for saving the stack file. The file name must be configured as "\*.log". You can specify a path, for example: /home/*.log. When only the file name is configured, the file is saved in the current directory. The path format only supports strings consisting of letters, digits, and underscores, and does not support symbolic links. Required.<br/>&#8226; metric: The chip type to be saved can be CPU or NPU, configured as "self_cpu_time_total" or "self_npu_time_total". Required.<br/>It has the same position as the export_chrome_trace method in the training/online inference script, as shown in the following example:<br/>`export_stacks('result_dir/stack.log', metric='self_npu_time_total')`<br/>The exported result file can be viewed using the FlameGraph tool. The operation method is as follows:<br/>`git clone https://github.com/brendangregg/FlameGraph`<br/>`cd FlameGraph`<br/>`./flamegraph.pl --title "NPU time" --countname "us." profiler.stacks > perf_viz.svg`|
 |export_memory_timeline|For detailed descriptions, see [Device Memory Visualization](#memory-visualization).|
 |start|Sets the position where profiling starts. Refer to the following example: add start and stop before and after the training/online inference code for which performance data needs to be collected:<br/>`prof = torch_npu.profiler.profile(`<br/>`on_trace_ready=torch_npu.profiler.tensorboard_trace_handler("./result"))`<br/>`for step in range(steps):`<br/>`if step == 5:`<br/>`prof.start()`<br/>`train_one_step()`<br/>`if step == 5:`<br/>`prof.stop()`|
@@ -2115,7 +2217,7 @@ The content of the profiler\_config.json file is as follows, taking the default 
 |prof_dir|Optional|Storage path of the collected performance data. The default path is: ./. The path format only supports strings consisting of letters, digits, and underscores, and does not support symbolic links.|
 |analyse|Optional|Switch for automatic parsing of performance data. Values:<br/>&#8226; true: Enables automatic parsing.<br/>&#8226; false: Disables automatic parsing, that is, manual parsing. The collected performance data can be parsed using [Offline Parsing](#offline-parsing).<br/>Disabled by default.|
 |record_shapes|Optional|Records the InputShapes and InputTypes data of framework-layer operators, and enables recording the Shape and Block Num data of CANN-layer operators when profiler_level is Level0. Values:<br/>&#8226; true: Enabled.<br/>&#8226; false: Disabled.<br/>Disabled by default.|
-|profile_memory|Optional|Records the device memory occupation of operators. Values:<br/>&#8226; true: Enabled.<br/>&#8226; false: Disabled.<br/>Disabled by default.<br/>When activities enables CPU, the framework memory occupation is collected; when activities enables NPU, the CANN device memory occupation is collected.<br/>It is known that profiling memory data on an environment with glibc<2.34 may trigger a known glibc [Bug 19329](https://sourceware.org/bugzilla/show_bug.cgi?id=19329). This problem can be resolved by upgrading the glibc version of the environment.|
+|profile_memory|Optional|Records the device memory occupation of operators. Values:<br/>&#8226; true: Enabled.<br/>&#8226; false: Disabled.<br/>Disabled by default.<br/>When activities enables CPU, the framework memory occupation is collected; when activities enables NPU, the CANN device memory occupation is collected.<br/>It is known that profiling memory data in an environment with glibc<2.34 may trigger a known glibc [Bug 19329](https://sourceware.org/bugzilla/show_bug.cgi?id=19329). This problem can be resolved by upgrading the glibc version of the environment.|
 |with_stack|Optional|Records the operator call stack, including the call information of the framework layer and the CPU operator layer. Values:<br/>&#8226; true: Enabled.<br/>&#8226; false: Disabled.<br/>Disabled by default.<br/>It takes effect when activities is configured as CPU.|
 |with_flops|Optional|Records the floating-point operations of operators (parsing performance data is not supported for this parameter yet). Values:<br/>&#8226; true: Enabled.<br/>&#8226; false: Disabled.<br/>Disabled by default.<br/>It takes effect when activities is configured as CPU.|
 |with_modules|Optional|Records the Python call stack at the modules level, that is, the framework-layer call information. Values:<br/>&#8226; true: Enabled.<br/>&#8226; false: Disabled.<br/>Disabled by default.<br/>It takes effect when activities is configured as CPU.|
@@ -2136,7 +2238,7 @@ All experimental\_config parameters are optional. The supported extended profili
 | Parameter | Description |
 |--|--|
 |profiler_level|Level level for profiling. Values:<br/>&#8226; Level_none: Does not profile data controlled by all Level tiers, that is, disables profiler_level.<br/>&#8226; Level0: Collects upper-layer application data, underlying NPU data, and operator information executed on the NPU. When this parameter is configured, only part of the data is collected, and part of the operator information is not collected. For details, see [op_summary (Operator Detailed Information)](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/en/user_guide/profile_data_file_references.md#op_summary%EF%BC%88%E7%AE%97%E5%AD%90%E8%AF%A6%E7%BB%86%E4%BF%A1%E6%81%AF%EF%BC%89).<br/>&#8226; Level1: In addition to Level0, collects CANN-layer AscendCL data and AI Core performance metric information executed on the NPU, enables aic_metrics=torch_npu.profiler.AiCMetrics.PipeUtilization, and generates the communication.json and communication_matrix.json of communication operators and the api_statistic.csv file.<br/>&#8226; Level2: In addition to Level1, collects CANN-layer Runtime data and AI CPU (data_preprocess.csv file) data.<br/>The default value is Level0.|
-|aic_metrics|AI Core performance metric profiling items. Values:<br/>The result data of the following profiling items will be presented in the Kernel View.<br/>For the meaning of the result data of the following profiling items, see [op_summary (Operator Detailed Information)](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/en/user_guide/profile_data_file_references.md#op_summary%EF%BC%88%E7%AE%97%E5%AD%90%E8%AF%A6%E7%BB%86%E4%BF%A1%E6%81%AF%EF%BC%89), but the specific profiling results shall prevail over the actual situation.<br/>&#8226; AiCoreNone: Disables AI Core performance metric profiling.<br/>&#8226; PipeUtilization: Duration proportion of compute units and move units.<br/>&#8226; ArithmeticUtilization: Proportion statistics of various computation metrics.<br/>&#8226; Memory: Proportion of external memory read/write instructions.<br/>&#8226; MemoryL0: Proportion of internal L0 memory read/write instructions.<br/>&#8226; ResourceConflictRatio: Proportion of pipeline queue instructions.<br/>&#8226; MemoryUB: Proportion of internal UB memory read/write instructions.<br/>&#8226; L2Cache: Number of read/write cache hits and reallocations after misses.<br/>&#8226; MemoryAccess: Bandwidth data volume of operator memory access on the core.<br/>When profiler_level is set to Level_none or Level0, the default value is AiCoreNone. When profiler_level is set to Level1 or Level2, the default value is PipeUtilization.|
+|aic_metrics|AI Core performance metric profiling items. Values:<br/>The result data of the following profiling items will be presented in the Kernel View.<br/>For the meaning of the result data of the following profiling items, see [op_summary (Operator Detailed Information)](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/en/user_guide/profile_data_file_references.md#op_summary%EF%BC%88%E7%AE%97%E5%AD%90%E8%AF%A6%E7%BB%86%E4%BF%A1%E6%81%AF%EF%BC%89), but the actual situation prevails.<br/>&#8226; AiCoreNone: Disables AI Core performance metric profiling.<br/>&#8226; PipeUtilization: Duration proportion of compute units and move units.<br/>&#8226; ArithmeticUtilization: Proportion statistics of various computation metrics.<br/>&#8226; Memory: Proportion of external memory read/write instructions.<br/>&#8226; MemoryL0: Proportion of internal L0 memory read/write instructions.<br/>&#8226; ResourceConflictRatio: Proportion of pipeline queue instructions.<br/>&#8226; MemoryUB: Proportion of internal UB memory read/write instructions.<br/>&#8226; L2Cache: Number of read/write cache hits and reallocations after misses.<br/>&#8226; MemoryAccess: Bandwidth data volume of operator memory access on the core.<br/>When profiler_level is set to Level_none or Level0, the default value is AiCoreNone. When profiler_level is set to Level1 or Level2, the default value is PipeUtilization.|
 |l2_cache|Controls the L2 Cache data profiling switch. Values:<br/>&#8226; true: Enabled.<br/>&#8226; false: Disabled.<br/>Disabled by default.<br/>This profiling item generates the l2_cache.csv file in ASCEND_PROFILER_OUTPUT. For descriptions of the result fields, see [l2_cache (L2 Cache Hit Rate)](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/en/user_guide/profile_data_file_references.md#l2_cache%EF%BC%88l2-cache%E5%91%BD%E4%B8%AD%E7%8E%87%EF%BC%89).|
 |op_attr|Controls the switch for profiling operator attribute information. Currently, only aclnn operators are supported. Values:<br/>&#8226; true: Enabled.<br/>&#8226; false: Disabled.<br/>Disabled by default.<br/>This parameter does not take effect at Level_none.|
 |gc_detect_threshold|GC detection threshold. The value range is a number greater than or equal to 0, in ms. When the threshold set by the user is a number, GC detection is enabled, and only GC events exceeding the threshold are collected.<br/>When configured as 0, all GC events are collected (this may cause the collected data volume to be too large; configure with caution). It is recommended to set 1ms.<br/>The default value is null, meaning the GC detection function is not enabled.<br/>**GC** is the memory reclamation performed by the Python process for destroyed objects.<br/>The parsing result of this parameter is to generate a GC layer in trace_view.json or generate a GC_RECORD table in ascend_pytorch_profiler_{Rank_ID}.db.|
@@ -2163,7 +2265,7 @@ All experimental\_config parameters are optional. The supported extended profili
 |mstx or msprof_tx|Instrumentation control switch. The custom instrumentation function is enabled through this switch, of the bool type. Values:<br/>&#8226; True: Enabled.<br/>&#8226; False: Disabled.<br/>Disabled by default.<br/>For the usage of this parameter, see [Profile and Parse mstx Data](#profiling-and-parsing-mstx-data). The original parameter name msprof_tx has been changed to mstx. The new version is still compatible with the original parameter name msprof_tx.|
 |mstx_domain_include|Outputs the required domain data. When calling the [torch_npu.npu.mstx](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/en/custom_APIs/torch_npu-npu/torch_npu-npu-mstx.md) series of instrumentation interfaces and using the default domain or a specified domain for instrumentation, you can choose to output only the domain data configured in this parameter.<br/>The domain name is the domain passed in when the user calls the torch_npu.npu.mstx series of interfaces, or the default domain ('default'). The domain name is input using the List type.<br/>It is mutually exclusive with the mstx_domain_exclude parameter. If both are configured, only mstx_domain_include takes effect.<br/>mstx=True must be configured.|
 |mstx_domain_exclude|Filters out unwanted domain data. When calling the [torch_npu.npu.mstx](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/en/custom_APIs/torch_npu-npu/torch_npu-npu-mstx.md) series of instrumentation interfaces and using the default domain or a specified domain for instrumentation, you can choose not to output the domain data configured in this parameter.<br/>The domain name is the domain passed in when the user calls the torch_npu.npu.mstx series of interfaces, or the default domain ('default'). The domain name is input using the List type.<br/>It is mutually exclusive with the mstx_domain_include parameter. If both are configured, only mstx_domain_include takes effect.<br/>mstx=True must be configured.|
-|aic_metrics|AI Core performance metric profiling items. Values:<br/>The result data of the following profiling items will be presented in the Kernel View.<br/>For the meaning of the result data of the following profiling items, see [op_summary (Operator Detailed Information)](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/en/user_guide/profile_data_file_references.md#op_summary%EF%BC%88%E7%AE%97%E5%AD%90%E8%AF%A6%E7%BB%86%E4%BF%A1%E6%81%AF%EF%BC%89), but the specific profiling results shall prevail over the actual situation.<br/>&#8226; AiCoreNone: Disables AI Core performance metric profiling.<br/>&#8226; PipeUtilization: Duration proportion of compute units and move units.<br/>&#8226; ArithmeticUtilization: Proportion statistics of various computation metrics.<br/>&#8226; Memory: Proportion of external memory read/write instructions.<br/>&#8226; MemoryL0: Proportion of internal L0 memory read/write instructions.<br/>&#8226; ResourceConflictRatio: Proportion of pipeline queue instructions.<br/>&#8226; MemoryUB: Proportion of internal UB memory read/write instructions.<br/>&#8226; L2Cache: Number of read/write cache hits and reallocations after misses.<br/>&#8226; MemoryAccess: Bandwidth data volume of operator memory access on the core.<br/>When profiler_level is set to torch_npu.profiler.ProfilerLevel.Level_none or torch_npu.profiler.ProfilerLevel.Level0, the default value is AiCoreNone. When profiler_level is set to torch_npu.profiler.ProfilerLevel.Level1 or torch_npu.profiler.ProfilerLevel.Level2, the default value is PipeUtilization.|
+|aic_metrics|AI Core performance metric profiling items. Values:<br/>The result data of the following profiling items will be presented in the Kernel View.<br/>For the meaning of the result data of the following profiling items, see [op_summary (Operator Detailed Information)](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/en/user_guide/profile_data_file_references.md#op_summary%EF%BC%88%E7%AE%97%E5%AD%90%E8%AF%A6%E7%BB%86%E4%BF%A1%E6%81%AF%EF%BC%89), but the actual situation prevails.<br/>&#8226; AiCoreNone: Disables AI Core performance metric profiling.<br/>&#8226; PipeUtilization: Duration proportion of compute units and move units.<br/>&#8226; ArithmeticUtilization: Proportion statistics of various computation metrics.<br/>&#8226; Memory: Proportion of external memory read/write instructions.<br/>&#8226; MemoryL0: Proportion of internal L0 memory read/write instructions.<br/>&#8226; ResourceConflictRatio: Proportion of pipeline queue instructions.<br/>&#8226; MemoryUB: Proportion of internal UB memory read/write instructions.<br/>&#8226; L2Cache: Number of read/write cache hits and reallocations after misses.<br/>&#8226; MemoryAccess: Bandwidth data volume of operator memory access on the core.<br/>When profiler_level is set to torch_npu.profiler.ProfilerLevel.Level_none or torch_npu.profiler.ProfilerLevel.Level0, the default value is AiCoreNone. When profiler_level is set to torch_npu.profiler.ProfilerLevel.Level1 or torch_npu.profiler.ProfilerLevel.Level2, the default value is PipeUtilization.|
 |l2_cache|Controls the L2 Cache data profiling switch, of the bool type. Values:<br/>&#8226; True: Enabled.<br/>&#8226; False: Disabled.<br/>Disabled by default.<br/>This profiling item generates the l2_cache.csv file in ASCEND_PROFILER_OUTPUT. For descriptions of the result fields, see [l2_cache (L2 Cache Hit Rate)](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/en/user_guide/profile_data_file_references.md#l2_cache%EF%BC%88l2-cache%E5%91%BD%E4%B8%AD%E7%8E%87%EF%BC%89).|
 |op_attr|Controls the switch for profiling operator attribute information. Currently, only aclnn operators are supported, of the bool type. Values:<br/>&#8226; True: Enabled.<br/>&#8226; False: Disabled.<br/>Disabled by default.<br/>The performance data collected by this parameter takes effect only in db format files. At torch_npu.profiler.ProfilerLevel.Level_none, this parameter does not take effect.|
 |data_simplification|Data simplification mode. After being enabled, redundant data is deleted after performance data export, retaining only the profiler_*.json files, the ASCEND_PROFILER_OUTPUT directory, the raw performance data in the PROF_XXX directory, the FRAMEWORK directory, and the logs directory, to save storage space, of the bool type. Values:<br/>&#8226; True: Enabled.<br/>&#8226; False: Disabled.<br/>Enabled by default.|
@@ -2257,104 +2359,13 @@ profiler_config_path/
 - monitor\_dp\_ubuntu\_xxxxxx.log.1: Log aging backup file. The storage limit of the monitor\_dp\_ubuntu\_xxxxxx.log file is 200KB. When the limit is reached, the oldest log records are transferred to monitor\_dp\_ubuntu\_xxxxxx.log.1. The storage limit of the monitor\_dp\_ubuntu\_xxxxxx.log.1 file is also 200KB. When the limit is reached, the oldest log records are aged and deleted.
 - shm directory: To adapt to Python 3.7, dynamic\_profile generates an shm directory in the py37 environment, in which a binary file (DynamicProfileNpuShm+time) is generated to map shared memory. The file is automatically cleaned up after the program ends normally. When the program is terminated with pkill, because it is an abnormal termination, the program cannot release resources, and you need to manually clean up this file. Otherwise, starting dynamic\_profile with the same configuration path within a short time (&lt;1h) causes dynamic\_profile to become abnormal. For Python 3.8 and later versions, the binary file (DynamicProfileNpuShm+time) is stored in the /dev/shm directory. When the program is terminated with pkill, this file also needs to be manually cleaned up.
 
-### Profiling Performance Data in the Ascend NPU Environment Using the Native torch.profiler Interface
-
-The Ascend NPU environment is compatible with using the native torch.profiler interface to profile performance data, as follows:
-
-1. Add the native torch.profiler interface to the training script.
-
-   For detailed descriptions of the native torch.profiler interface, see *[torch.profiler](https://docs.pytorch.org/docs/stable/profiler.html)*.
-
-2. Change the CUDA fields in the native torch.profiler interface to NPU accordingly.
-
-> [!NOTE]
->
-> Torch and torch_npu must be version 2.12.0 or later.
-
-The following is executable sample code, and the highlighted positions are the added native torch.profiler interfaces.
-
-```diff
-from pathlib import Path
-
-+import torch
-+from torch import nn
-
-
-class TinyModel(nn.Module):
-    def __init__(self) -> None:
-        super().__init__()
-        self.network = nn.Sequential(
-            nn.Linear(1024, 2048),
-            nn.ReLU(),
-            nn.Linear(2048, 1024),
-            nn.ReLU(),
-            nn.Linear(1024, 10),
-        )
-
-    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        return self.network(inputs)
-
-def main() -> None:
-    steps = 8
-    batch_size = 32
-    output_dir = Path("profiler_output")
-    output_dir.mkdir(parents=True, exist_ok=True)
-    device = torch.device("npu:0")
-    model = TinyModel().to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
-    loss_function = nn.CrossEntropyLoss()
-    inputs = torch.randn(batch_size, 1024, device=device)
-    labels = torch.randint(0, 10, (batch_size,), device=device)
-
-+    with torch.profiler.profile(
-+        activities = [
-+            torch.profiler.ProfilerActivity.CPU,
-+            torch.profiler.ProfilerActivity.NPU,
-+        ],
-+        schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=1),
-+        on_trace_ready=torch.profiler.tensorboard_trace_handler(str(output_dir)),
-+        record_shapes=True,
-+        profile_memory=True,
-+        with_stack=True,
-+        with_modules=True,
-+    ) as profiler:
-        for step in range(steps):
-            optimizer.zero_grad(set_to_none=True)
-            predictions = model(inputs)
-            loss = loss_function(predictions, labels)
-            loss.backward()
-            optimizer.step()
-            torch.npu.synchronize()
-+            profiler.step()
-
-+    events = profiler.events()
-+    for index, event in enumerate(events[:20]):
-+        print(
-+            f"[{index}] name={event.name}, "
-+            f"device_type={event.device_type}, "
-+            f"self_cpu_time_total={event.self_cpu_time_total:.3f} us, "
-+            f"self_device_time_total={event.self_device_time_total:.3f} us, "
-+            f"input_shapes={event.input_shapes}"
-+        )
-
-+    summary = profiler.key_averages(group_by_input_shape=True).table(
-+        sort_by="self_device_time_total", row_limit=30
-+    )
-+    (output_dir / "operator_summary.txt").write_text(summary, encoding="utf-8")
-+    print(summary)
-
-
-if __name__ == "__main__":
-    main()
-```
-
 ## FAQs<a id="FAQ"></a>
 
 ### How to Avoid Performance Expansion When Performance Data Is Directly Written to Shared Storage in PyTorch Multi-Card Large Cluster Scenarios <a id="avoiding-performance-bloat-from-performance-data-directly-written-to-shared-storage"></a>
 
 **Symptom**
 
-In PyTorch multi-card large cluster scenarios, when the Ascend PyTorch Profiler interface is used to profile performance data and write it to disk, the performance data is written to disk by using on\_trace\_ready to execute the tensorboard\_trace\_handler function.
+In PyTorch multi-card large cluster scenarios, when the Ascend PyTorch Profiler API is used to profile performance data and write it to disk, the performance data is written to disk by using on\_trace\_ready to execute the tensorboard\_trace\_handler function.
 
 The duration of performance data profiling expands.
 

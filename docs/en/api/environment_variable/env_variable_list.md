@@ -16,8 +16,8 @@ For the correspondence and differences with PyTorch, see [PyTorch Environment Va
 | [Memory Management](memory_management/_menu_memory_management.md) | Configure the caching allocator, memory reuse, OOM snapshots, and symmetric memory. |
 | [Distributed Communication and Diagnosis](collective_communication/_menu_collective_communication.md) | Configure the HCCL process group, communication synchronization, timeout diagnosis, and status collection. |
 | [Logs and Alarms](alarm_message_printing/_menu_alarm_message_printing.md) | Configure TorchNPU general logs, alarms, and error output; dedicated diagnosis configurations for communication and graph compilation are retained in the corresponding categories. |
-| [Feature Value Detection](eigenvalue_detection/_menu_eigenvalue_detection.md) | Configure the eigenvalue detection feature and its detection thresholds. |
-| [Performance Optimization and Profiling](performance_tuning/_menu_performance_tuning.md) | Configure CPU core binding, Eager operator fusion, and dynamic Profiler collection. |
+| [Feature Value Detection](eigenvalue_detection/_menu_eigenvalue_detection.md) | Configure feature value detection and its detection thresholds. |
+| [Performance Optimization and Profiling](performance_tuning/_menu_performance_tuning.md) | Configure CPU core binding, Eager operator fusion, and Profiler dynamic profiling. |
 | [Graph Compilation (torch.compile / Inductor)](inductor/_menu_inductor.md) | Look up backend selection, caching, fusion tuning, and debugging diagnosis configurations by compilation workflow. |
 
 ## Device Initialization and Management
@@ -89,7 +89,7 @@ Configure the HCCL process group, communication synchronization, timeout diagnos
 |[RANK_TABLE_FILE](collective_communication/RANK_TABLE_FILE.md)|Use this environment variable to configure the path of the RANK_TABLE_FILE file, used for link establishment in the collective communicator.|
 |[ROOTINFO_SCALABLE_ENABLE](collective_communication/ROOTINFO_SCALABLE_ENABLE.md)|Use this environment variable to control whether Scalable RootInfo hierarchical link establishment is enabled.|
 |[TORCH_HCCL_RANKS_PER_ROOT](collective_communication/TORCH_HCCL_RANKS_PER_ROOT.md)|After Scalable RootInfo is enabled, use this environment variable to configure the number of ranks that each root is expected to manage.|
-|[(beta) TORCH_HCCL_ZERO_COPY](collective_communication/（beta）TORCH_HCCL_ZERO_COPY.md)|In training or online inference scenarios, you can use this environment variable to enable the on-chip zero-copy feature of collective communication, reducing the number of on-chip copies performed by communication operators during communication, improving collective communication efficiency, and reducing communication latency. In computing-communication parallel scenarios, it also reduces the preemption of memory bandwidth during communication.|
+|[(beta) TORCH_HCCL_ZERO_COPY](collective_communication/beta_TORCH_HCCL_ZERO_COPY.md)|In training or online inference scenarios, you can use this environment variable to enable the on-chip zero-copy feature of collective communication, reducing the number of on-chip copies performed by communication operators during communication, improving collective communication efficiency, and reducing communication latency. In computing-communication parallel scenarios, it also reduces the preemption of memory bandwidth during communication.|
 
 ### Timeout Monitoring and Fault Recording
 
@@ -97,7 +97,7 @@ Configure the HCCL process group, communication synchronization, timeout diagnos
 | --- | --- |
 |[TORCH_HCCL_DESYNC_DEBUG](collective_communication/TORCH_HCCL_DESYNC_DEBUG.md)|When HCCL is used as the communication backend, use this environment variable to control whether communication timeout analysis is performed.|
 
-### Status Profiling
+### Status Collection
 
 | Environment Variable Name | Description |
 | --- | --- |
@@ -119,18 +119,18 @@ Configure TorchNPU general logs, alarms, and error output; dedicated diagnosis c
 
 ## Feature Value Detection
 
-Configure the eigenvalue detection feature and its detection thresholds.
+Configure the feature value detection function and its detection thresholds.
 
 | Environment Variable Name | Description |
 | --- | --- |
-|[NPU_ASD_ENABLE](eigenvalue_detection/NPU_ASD_ENABLE.md)|In TorchNPU 7.0.0 and earlier versions, use this environment variable to control whether the eigenvalue detection feature is enabled.|
-|[NPU_ASD_UPPER_THRESH](eigenvalue_detection/NPU_ASD_UPPER_THRESH.md)|In TorchNPU 7.0.0 and earlier versions, use this environment variable to configure the absolute threshold of the eigenvalue detection feature.|
-|[NPU_ASD_SIGMA_THRESH](eigenvalue_detection/NPU_ASD_SIGMA_THRESH.md)|In TorchNPU 7.0.0 and earlier versions, use this environment variable to configure the relative threshold of the eigenvalue detection feature.|
-|[NPU_ASD_CONFIG](eigenvalue_detection/NPU_ASD_CONFIG.md)|In TorchNPU 7.1.0 and later versions, use this environment variable to control whether the TorchNPU eigenvalue detection feature is enabled.|
+|[NPU_ASD_ENABLE](eigenvalue_detection/NPU_ASD_ENABLE.md)|In TorchNPU 7.0.0 and earlier versions, use this environment variable to enable or disable feature value detection.|
+|[NPU_ASD_UPPER_THRESH](eigenvalue_detection/NPU_ASD_UPPER_THRESH.md)|In TorchNPU 7.0.0 and earlier versions, use this environment variable to configure the absolute threshold of feature value detection.|
+|[NPU_ASD_SIGMA_THRESH](eigenvalue_detection/NPU_ASD_SIGMA_THRESH.md)|In TorchNPU 7.0.0 and earlier versions, use this environment variable to configure the relative threshold of feature value detection.|
+|[NPU_ASD_CONFIG](eigenvalue_detection/NPU_ASD_CONFIG.md)|In TorchNPU 7.1.0 and later versions, use this environment variable to control whether the TorchNPU feature value detection is enabled.|
 
 ## Performance Optimization and Profiling
 
-Configure CPU core binding, Eager operator fusion, and dynamic Profiler collection.
+Configure CPU core binding, Eager operator fusion, and Profiler dynamic profiling.
 
 ### Execution Optimization
 
@@ -143,8 +143,8 @@ Configure CPU core binding, Eager operator fusion, and dynamic Profiler collecti
 
 | Environment Variable Name | Description |
 | --- | --- |
-|[PROF_CONFIG_PATH](performance_tuning/PROF_CONFIG_PATH.md)|In TorchNPU training scenarios, use this environment variable to specify the path of the profiler_config.json configuration file of the dynamic_profile collection function of the TorchNPU Profiler interface.|
-|[KINETO_USE_DAEMON](performance_tuning/KINETO_USE_DAEMON.md)|This environment variable is used in training scenarios to set whether to enable the dynamic_profile collection function through the msMonitor nputrace method.|
+|[PROF_CONFIG_PATH](performance_tuning/PROF_CONFIG_PATH.md)|In TorchNPU training scenarios, use this environment variable to specify the path of the profiler_config.json configuration file of the dynamic_profile function of the TorchNPU Profiler interface.|
+|[KINETO_USE_DAEMON](performance_tuning/KINETO_USE_DAEMON.md)|This environment variable is used in training scenarios to set whether to enable the dynamic_profile function through the msMonitor nputrace method.|
 
 ## Graph Compilation (torch.compile / Inductor)
 
@@ -191,5 +191,5 @@ Look up backend selection, caching, fusion tuning, and debugging diagnosis confi
 
 | Environment Variable Name | Description |
 | --- | --- |
-|[（beta）INDUCTOR_ASCEND_CHECK_ACCURACY](inductor/INDUCTOR_ASCEND_CHECK_ACCURACY.md)|INDUCTOR_ASCEND_CHECK_ACCURACY is an accuracy verification tool provided by TorchNPU. In the Triton mode and DVM mode of the torch.compile graph compilation mode (Inductor), it automatically detects the numerical accuracy of fused operators.|
+|[(beta) INDUCTOR_ASCEND_CHECK_ACCURACY](inductor/INDUCTOR_ASCEND_CHECK_ACCURACY.md)|INDUCTOR_ASCEND_CHECK_ACCURACY is an accuracy verification tool provided by TorchNPU. In the Triton mode and DVM mode of the torch.compile graph compilation mode (Inductor), it automatically detects the numerical accuracy of fused operators.|
 |[INDUCTOR_ASCEND_LOG_LEVEL](inductor/INDUCTOR_ASCEND_LOG_LEVEL.md)|Use this environment variable to configure the log level of the Inductor module.|

@@ -14,7 +14,7 @@ This environment variable configures the NPU availability detection method used 
 
 This environment variable is not configured by default.
 
-The naming and value semantics of this variable are designed with reference to PyTorch's [PYTORCH_NVML_BASED_CUDA_CHECK](https://docs.pytorch.org/docs/stable/cuda_environment_variables.html), remaining consistent in functional mode and usage logic to facilitate developer migration and understanding.
+The naming and value semantics of this variable are designed with reference to PyTorch's [PYTORCH_NVML_BASED_CUDA_CHECK](https://docs.pytorch.org/docs/stable/cuda_environment_variables.html), keeping the same functional mode and usage logic to facilitate developer migration and understanding.
 
 ## Configuration Example
 

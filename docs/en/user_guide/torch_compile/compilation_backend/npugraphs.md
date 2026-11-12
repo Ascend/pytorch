@@ -54,7 +54,7 @@ for _ in range(1000):
     output = compiled_model(fixed_input)
 ```
 
-## Constraint Description
+## Constraints
 
 - **The input shape must be fixed**: After capture, batch_size, sequence length, and other attributes cannot be modified.
 - **Only NN operators are supported**: All operators must be aclnn operators to be included in the graph.

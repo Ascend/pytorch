@@ -10,7 +10,11 @@ This document describes the build acceleration methods for building TorchNPU fro
 
 CMake uses the Makefile generator by default. Installing the Ninja build system can significantly speed up compilation.
 
-The `setup.py` of this project automatically detects the Ninja environment. If the `ninja` command is included in the system PATH, or the environment variable `CMAKE_GENERATOR` is set to ninja, Ninja build is automatically enabled.
+The `setup.py` in this project automatically detects the Ninja environment, and its configuration rules are as follows:
+
+- If `CMAKE_GENERATOR` is set, this setting is strictly followed. For example, Ninja builds are enabled when the generator is set to `ninja`; if another generator is set, Ninja will not be automatically enabled even if `ninja` exists in `PATH`.
+
+If `CMAKE_GENERATOR` is not set, the system automatically detects whether `ninja` exists in `PATH`. If it does, Ninja builds are enabled by default; otherwise, the default generator is used.
 
 The installation command is as follows:
 

@@ -6,7 +6,7 @@ This environment variable configures whether to enable multi-stream memory reuse
 
 - 0: Disable memory reuse.
 - 1: Enable memory reuse. Based on the `eraseStream` method, it erases previous `recordStream` marks to ensure memory reuse, holds a weak reference to the tensor, and does not extend the lifecycle of the tensor.
-- 2: Enables memory reuse. Based on the method that does not execute the recordStream marker, memory reuse is guaranteed, and holding strong references to tensors may extend the tensor lifecycle.
+- 2: Enable memory reuse. Based on the method that does not execute the `recordStream` marks, memory reuse is guaranteed, and holding strong references to tensors may extend the tensor lifecycle.
 - 3: Enable memory reuse. Based on the value "1", it performs further reuse optimization and can erase `recordStream` marks in scenarios where tensors are released early.
 
 The default value is 2.
@@ -19,7 +19,10 @@ export MULTI_STREAM_MEMORY_REUSE=0
 
 ## Usage Constraints
 
-None
+When MULTI_STREAM_MEMORY_REUSE=2:
+
+- For asynchronous collective communication that returns a Work object, you must call the wait() method of the object.
+- The memory protection mechanism for point-to-point communication falls back to recordStream.
 
 ## Supported Products
 

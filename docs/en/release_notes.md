@@ -7,9 +7,9 @@
 - Supports Inductor's automatic operator fusion based on the Ascend C IR.
 - Inherits DeviceAllocator and supports enabling accelerator memory and graph-related APIs in Eager mode.
 - Starting from this version, the Torch-MLIR compiler in the Inductor backend is deprecated, affecting the *Torch.compile* and *Environment Variables* documents. For the specific changes, refer to [Related Documents](#related-documents).
-- Starting from this version, the compilation optimization functions provided based on the BiSheng compiler are deprecated and can be replaced with [Clang](../en/installation_guide/references/building_with_clang.md).
+- Starting from this version, the compilation optimization functions provided based on the BiSheng compiler are deprecated and can be replaced with [Clang](installation_guide/references/building_with_clang.md).
 
-## Version Compatibility Notes
+## Version Mapping
 
 ### Product Version Information
 
@@ -25,7 +25,7 @@
 </tr>
 <tr id="row854711422349"><th class="firstcol" valign="top" width="26.25%" id="mcps1.1.3.3.1"><p id="p354754216341">Version Type</p>
 </th>
-<td class="cellrowborder" valign="top" width="73.75%" headers="mcps1.1.3.3.1 "><p id="p2547114214349">Official Version</p>
+<td class="cellrowborder" valign="top" width="73.75%" headers="mcps1.1.3.3.1 "><p id="p2547114214349">Official Release</p>
 </td>
 </tr>
 <tr id="row754461214611"><th class="firstcol" valign="top" width="26.25%" id="mcps1.1.3.4.1"><p id="p155445122062">Release Date</p>
@@ -41,7 +41,7 @@
 </tbody>
 </table>
 
-### Version Compatibility Notes for Related Products
+### Related Product Version Mapping
 
 The version compatibility table of firmware and drivers is related to all Ascend hardware and CANN versions. For specific selection, refer to [CANN Release Notes](https://gitcode.com/cann/release-management/blob/master/9.2.0/release-notes_en.md).
 
@@ -59,7 +59,7 @@ TorchNPU code branch names follow the naming rule **\{PyTorch version\}-\{TorchN
 |v2.13.0-26.2.0|2.13.0|26.2.0|2.13.0|9.2.0|Python3.10.*x*, Python3.11.*x*, Python3.12.*x*, Python3.13.*x*, Python3.14.*x*|v3.6.0 (Triton-Ascend is not supported in the Python3.14.*x* environment)|
 |v2.14.0-26.2.0|2.14.0|26.2.0|2.14.0|9.2.0|Python3.10.*x*, Python3.11.*x*, Python3.12.*x*, Python3.13.*x*, Python3.14.*x*|No matching version|
 
-## Version Compatibility Description
+## Version Compatibility
 
 > [!NOTE]
 >
@@ -234,9 +234,9 @@ TorchNPU code branch names follow the naming rule **\{PyTorch version\}-\{TorchN
 
 This version inherits all features of the 26.1.X version of this product.
 
-### API Change Description
+### API Changes
 
-The API change description in this section covers added, modified, deprecated, and deleted APIs. API changes only reflect modifications at the code level and do not include optimizations or improvements to the document itself in terms of language, format, links, and so on.
+The API change summary in this section covers added, modified, deprecated, and deleted APIs. API changes only reflect modifications at the code level and do not include optimizations or improvements to the document itself in terms of language, format, links, and so on.
 
 - Added: indicates APIs added in this version.
 - Modified: indicates that the API has been modified compared with the previous version.
@@ -1582,7 +1582,7 @@ The API change description in this section covers added, modified, deprecated, a
 
 > [!NOTE]
 >
-> TorchNPU adds support for some APIs and features. For details, refer to [Custom APIs](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/en/custom_APIs/overview.md) or [Native APIs](../en/api/native_api/pytorch_2-14-0/overview.md).
+> TorchNPU adds support for some APIs and features. For details, refer to [Custom APIs](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/en/custom_APIs/overview.md) or [Native APIs](api/native_api/pytorch_2-14-0/overview.md).
 
 ### Resolved Issues
 
@@ -1637,25 +1637,25 @@ None
 
 ## Related Documents
 
-|Document Name|Description|Update Description|
+|Document Name|Description|Update Notes|
 |---|---|---|
 |[Installation Guide](https://www.hiascend.com/en-sg/developer/software/ai-frameworks/pytorch/download)|Describes how to install the PyTorch framework training environment on Ascend devices, as well as operations such as upgrade and uninstallation.|&#8226; Added adaptation for PyTorch 2.13.0 and PyTorch 2.14.0.<br>&#8226; Added documentation about compilation acceleration and Clang compilation.|
-|[TorchNPU Overview](../en/user_guide/product_overview.md)|The TorchNPU plugin is a deep learning adaptation framework based on Ascend. It enables the Ascend NPU to support the PyTorch framework and provides PyTorch framework users with the powerful computing power of Ascend AI processors.|No updates |
-|[Quick Start](../en/user_guide/quick_start.md)|Provides a simple model migration example that uses the simplest automatic migration method to help users quickly experience the process of migrating GPU model scripts to the Ascend NPU.|Optimized the Quick Start document.|
-|[Torch.compile](../en/user_guide/torch_compile/overview.md)|Significantly accelerates model training and inference tasks through the approach of "dynamic graph capture + static graph optimization + efficient code generation".|&#8226; Added the Ascend C compiler to the Inductor backend.<br>&#8226; Added a link to the official PyTorch reference documentation.<br>&#8226; Deleted content about the Torch-MLIR compiler from the Inductor section|
-|[Companion Software Libraries](../en/user_guide/libraries.md)|Provides companion software libraries that extend the capabilities of TorchNPU.|Added the Triton-Ascend component.|
-|[Troubleshooting](../en/user_guide/troubleshooting/troubleshooting_process.md)|Uses various abnormal fault phenomena that developers may encounter during inference and training as the entry point, and provides self-service problem locating and handling methods to help developers quickly locate and resolve faults.|No updates|
-|[Native API](../en/api/native_api/pytorch_2-12-0/overview.md)|Describes the support of the native APIs of PyTorch 2.12.0/2.11.0/2.10.0/2.9.0/2.7.1 on Ascend devices.|&#8226; Added the native API support lists for PyTorch 2.13.0 and PyTorch 2.14.0.<br>&#8226; Aligned the content format with the PyTorch community. |
-|[Custom API](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/en/custom_APIs/overview.md)|Provides function prototypes, function descriptions, parameter descriptions, and usage examples of TorchNPU custom APIs.|&#8226; Added adaptation for PyTorch 2.13.0 and PyTorch 2.14.0.<br>&#8226; For specific API changes, refer to [API Change Description](#api-change-description).|
-|[Environment Variables](../en/api/environment_variable/env_variable_list.md)|Environment variables that can be used during TorchNPU training and online inference.|&#8226; Added a mapping table of PyTorch environment variables.<br>&#8226; Adjusted part of the directory structure.<br>&#8226; Deleted content about the Torch-MLIR compiler from the TORCHINDUCTOR_NPU_BACKEND section.<br>&#8226; Deleted content about the Torch-MLIR compiler from the (beta) INDUCTOR_ASCEND_CHECK_ACCURACY section.<br>&#8226; Removed the TORCHINDUCTOR_USE_AKG section.<br>&#8226; Removed the NPU_INDUCTOR_FALLBACK_LIST section.<br>&#8226; Removed the (beta) TORCHINDUCTOR_ENABLE_MFUSION section.|
-|[Memory Management](../en/developer_notes/memory_management/memory_resource_overview.md)|TorchNPU has built a complete memory management system that deeply integrates PyTorch’s native memory management mechanisms and provides multiple unique optimization capabilities tailored to Ascend NPU hardware features.|The content is independent and optimized.|
-|[Distributed](../en/developer_notes/distributed/distributed_overview.md)|Describes the supported core features, including key capabilities such as parallel strategies, sharding primitives, communication strategies, distributed startup, and fault tolerance, and explains how each feature is used on NPUs and the similarities and differences compared with native PyTorch.|&#8226; The Distributed section is displayed independently.<br>&#8226; Added an overview section.<br>&#8226; Added the parallel strategy feature.<br>&#8226; Added the communication strategy feature.<br>&#8226; Refactored the communicator parameters. |
-|[Operator Dispatch](../en/developer_notes/operator_dispatch/automatic_core_binding.md)|Comprehensively improves TorchNPU dispatch and program running performance through automatic core binding, Stream-level TaskQueue parallel dispatch, and compilation optimization.|&#8226; The Operator Dispatch section is displayed independently.<br>&#8226; Added the taskqueue feature.|
-|[NPUGraph](../en/developer_notes/npugraph.md)|NPUGraph is a static graph capture technology used in Eager Mode (single-operator execution mode). It defines and encapsulates a series of NPU kernels as a unit (that is, an operation graph), and starts multiple NPU operations through a single CPU operation, thereby reducing startup overhead.|The content is independent and optimized.|
-|[Fault Diagnosis](../en/developer_notes/fault_diagnosis/feature_value_detection.md)|Without affecting the training performance and accuracy of large models, uses silent data error feature value detection technology based on communication flows to quickly and stably identify accuracy problems.|The content is independent and optimized.|
-|[Custom Operator Adaptation Development](../en/developer_notes/custom_operator_adaptation/opplugin_operator_adaptation/adaptation_overview_opplugin.md)|Writes and calls custom operators based on the OpPlugin plugin or C++ extensions.|The content is independent and optimized.|
+|[TorchNPU Overview](user_guide/product_overview.md)|The TorchNPU plugin is a deep learning adaptation framework based on Ascend. It enables the Ascend NPU to support the PyTorch framework and provides PyTorch framework users with the powerful computing power of Ascend AI processors.|No updates |
+|[Quick Start](user_guide/quick_start.md)|Provides a simple model migration example that uses the simplest automatic migration method to help users quickly experience the process of migrating GPU model scripts to the Ascend NPU.|Optimized the Quick Start document.|
+|[Torch.compile](user_guide/torch_compile/overview.md)|Significantly accelerates model training and inference tasks through the approach of "dynamic graph capture + static graph optimization + efficient code generation".|&#8226; Added the Ascend C compiler to the Inductor backend.<br>&#8226; Added a link to the official PyTorch reference documentation.<br>&#8226; Deleted content about the Torch-MLIR compiler from the Inductor section|
+|[Companion Software Libraries](user_guide/libraries.md)|Provides companion software libraries that extend the capabilities of TorchNPU.|Added the Triton-Ascend component.|
+|[Troubleshooting](user_guide/troubleshooting/troubleshooting_process.md)|Uses various abnormal fault phenomena that developers may encounter during inference and training as the entry point, and provides self-service problem locating and handling methods to help developers quickly locate and resolve faults.|No updates|
+|[Native APIs](api/native_api/pytorch_2-12-0/overview.md)|Describes the support of the native APIs of PyTorch 2.12.0/2.11.0/2.10.0/2.9.0/2.7.1 on Ascend devices.|&#8226; Added the native API support lists for PyTorch 2.13.0 and PyTorch 2.14.0.<br>&#8226; Aligned the content format with the PyTorch community. |
+|[Custom APIs](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/en/custom_APIs/overview.md)|Provides function prototypes, function descriptions, parameter descriptions, and usage examples of TorchNPU custom APIs.|&#8226; Added adaptation for PyTorch 2.13.0 and PyTorch 2.14.0.<br>&#8226; For specific API changes, refer to [API Changes](#api-changes).|
+|[Environment Variables](api/environment_variable/env_variable_list.md)|Environment variables that can be used during TorchNPU training and online inference.|&#8226; Added a mapping table of PyTorch environment variables.<br>&#8226; Adjusted part of the directory structure.<br>&#8226; Deleted content about the Torch-MLIR compiler from the TORCHINDUCTOR_NPU_BACKEND section.<br>&#8226; Deleted content about the Torch-MLIR compiler from the (beta) INDUCTOR_ASCEND_CHECK_ACCURACY section.<br>&#8226; Removed the TORCHINDUCTOR_USE_AKG section.<br>&#8226; Removed the NPU_INDUCTOR_FALLBACK_LIST section.<br>&#8226; Removed the (beta) TORCHINDUCTOR_ENABLE_MFUSION section.|
+|[Memory Management](developer_notes/memory_management/memory_resource_overview.md)|TorchNPU has built a complete memory management system that deeply integrates PyTorch’s native memory management mechanisms and provides multiple unique optimization capabilities tailored to Ascend NPU hardware features.|The content is independent and optimized.|
+|[Distributed](developer_notes/distributed/distributed_overview.md)|Describes the supported core features, including key capabilities such as parallel strategies, sharding primitives, communication strategies, distributed startup, and fault tolerance, and explains how each feature is used on NPUs and the similarities and differences compared with native PyTorch.|&#8226; The Distributed section is displayed independently.<br>&#8226; Added an overview section.<br>&#8226; Added the parallel strategy feature.<br>&#8226; Added the communication strategy feature.<br>&#8226; Refactored the communicator parameters. |
+|[Operator Dispatch](developer_notes/operator_dispatch/automatic_core_binding.md)|Comprehensively improves TorchNPU dispatch and program running performance through automatic core binding, Stream-level TaskQueue parallel dispatch, and compilation optimization.|&#8226; The Operator Dispatch section is displayed independently.<br>&#8226; Added the taskqueue feature.|
+|[NPUGraph](developer_notes/npugraph.md)|NPUGraph is a static graph capture technology used in Eager Mode (single-operator execution mode). It defines and encapsulates a series of NPU kernels as a unit (that is, an operation graph), and starts multiple NPU operations through a single CPU operation, thereby reducing startup overhead.|The content is independent and optimized.|
+|[Fault Diagnosis](developer_notes/fault_diagnosis/feature_value_detection.md)|Without affecting the training performance and accuracy of large models, uses silent data error feature value detection technology based on communication flows to quickly and stably identify accuracy problems.|The content is independent and optimized.|
+|[Custom Operator Adaptation Development](developer_notes/custom_operator_adaptation/opplugin_operator_adaptation/adaptation_overview_opplugin.md)|Writes and calls custom operators based on the OpPlugin plugin or C++ extensions.|The content is independent and optimized.|
 |[TorchAir](https://gitcode.com/Ascend/torchair/blob/26.2.0/docs/en/overview.md)|As the graph mode capability extension library of Ascend TorchNPU, provides a torch.compile graph mode backend friendly to Ascend devices, implementing graph mode inference acceleration and optimization of PyTorch networks on the Ascend NPU.|&#8226; Added the feature of importing custom operators into graphs with zero deliverables.<br>&#8226; Added the function of skipping recapture verification before each replay.<br>&#8226; Enhanced the SuperKernel fusion optimization function.|
-|[Security Statement](../en/reference/security_statement.md)|Provides the software versions, system hardening requirements, security configurations (data storage, debugging APIs, running environments, and so on), permission configurations, and firewall settings of the TorchNPU, OpPlugin, TorchAir, and Ascend Extension for TensorPipe components.|Routine update.|
+|[Security Statement](reference/security_statement.md)|Provides the software versions, system hardening requirements, security configurations (data storage, debugging APIs, running environments, and so on), permission configurations, and firewall settings of the TorchNPU, OpPlugin, TorchAir, and Ascend Extension for TensorPipe components.|Routine update.|
 
 ## Virus Scan Results
 
@@ -1665,7 +1665,7 @@ None
 |Kaspersky|12.0.0.6672|2026-09-20 10:13:00.0|2026-09-20|No viruses or malicious code|
 |Bitdefender|7.5.1.200224|7.101048|2026-09-20|No viruses or malicious code|
 
-## Vulnerability Patching List
+## Vulnerability Patch List
 
 None
 

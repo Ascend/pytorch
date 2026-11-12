@@ -9,7 +9,7 @@
     - [Overview](./taskqueue/taskqueue_op_developer/taskqueue_op_developer_overview.md)
     - [Standard Access](./taskqueue/taskqueue_op_developer/standard_access.md)
     - [Lower-Layer Access](./taskqueue/taskqueue_op_developer/lower_layer_access.md)
-  - [FAQ](taskqueue/faq.md)    
+  - [FAQs](taskqueue/faq.md)    
 - [Compilation Optimization](compilation_optimization/_menu_compilation_optimization.md)
   - [Introduction to Compilation Optimization Technologies](compilation_optimization/compilation_optimization_introduction.md)
   - [Installing BiSheng Compiler](compilation_optimization/install_bisheng_compiler.md)
@@ -22,4 +22,4 @@
   <!-- npu="A3,910b,910" id3 -->
   - [TorchNPU Compilation Optimization](compilation_optimization/torch_npu_compilation_optimization.md)
   <!-- end id3 -->
-  - [Compilation Optimization FAQs](compilation_optimization/compilation_optimization_faq.md)
+  - [FAQs](compilation_optimization/compilation_optimization_faq.md)

@@ -1,4 +1,4 @@
-# Preparation Before Adaptation
+# Preparation
 
 - Refer to the native PyTorch [ATen IR Definition](https://github.com/pytorch/pytorch/tree/main/aten/src/ATen/native#readme) to clarify the operator name, input parameters/return values, semantics, and other information.
 
@@ -6,7 +6,7 @@
 
 - Before OpPlugin operator adaptation, ensure that the following environment preparations have been completed.
   
-   1. Install PyTorch and TorchNPU. For details, see [Source Compilation](../../../installation_guide/references/building_from_source.md).
+   1. Install PyTorch and TorchNPU. For details, see [Building from Source](../../../installation_guide/references/building_from_source.md).
 
    2. Before adaptation, run the following commands to pull the code of the corresponding branch from the TorchNPU repository and enter the OpPlugin directory.
 

@@ -10,7 +10,7 @@ The currently supported configuration items are as follows:
 
 | Configuration Item | Description |
 | ------ | ---- |
-| `randomness` | Controls the execution path on the NPU of native PyTorch random number APIs that support switching. |
+| `randomness` | Controls the NPU execution path of native PyTorch random number APIs that support switching. |
 
 `randomness` currently applies to the following native PyTorch APIs:
 
@@ -37,7 +37,7 @@ export TORCH_NPU_LEGACY_IMPL_LIST=randomness
 ## Usage Constraints
 
 - This environment variable must be configured before the Python process starts.
-- When configuring multiple configuration items, use English commas to separate them.
+- When configuring multiple configuration items, separate them with commas.
 - Configuration items are case-sensitive. If an unsupported configuration item is configured, an exception is thrown, and the error message indicates the currently supported configuration items.
 - `randomness` requires a CANN version that supports random number implementation switching. When CANN does not support this capability, the related APIs retain the default implementation of the current product.
 

@@ -2,7 +2,7 @@
 
 ## Function Description
 
-This environment variable is used to filter the log output of Ascend Extension for PyTorch. It selects the log information to be displayed through an allowlist and blocklist mechanism, helping developers quickly locate key information among a large volume of logs.
+This environment variable is used to filter the log output of TorchNPU. It selects the log information to be displayed through an allowlist and blocklist mechanism, helping developers quickly locate key information among a large volume of logs.
 
 When used in conjunction with `TORCH_NPU_LOGS`, it can further refine the control of log output content on the basis of enabling log printing, reducing interference from irrelevant logs and improving debugging efficiency.
 

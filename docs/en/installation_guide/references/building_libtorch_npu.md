@@ -5,7 +5,8 @@ libtorch\_npu is the C++ version of the TorchNPU plugin, which includes the head
 ## Build Procedure
 
 1. Refer to [Quick Installation](https://www.hiascend.com/en-sg/developer/software/ai-frameworks/pytorch/download) to complete the installation of the dependencies, PyTorch, and TorchNPU.
-2. Obtain the libtorch\_npu source code.
+2. Install CMake 3.18.0 or later. See [Installing CMake](https://cmake.org/download/).
+3. Obtain the libtorch\_npu source code.
 
     ```bash
     git clone -b master https://gitcode.com/Ascend/pytorch.git
@@ -13,7 +14,7 @@ libtorch\_npu is the C++ version of the TorchNPU plugin, which includes the head
     git submodule update --init --recursive
     ```
 
-3. Run the build to generate the libtorch\_npu installation package.
+4. Run the build to generate the libtorch\_npu installation package.
     > [!NOTE]
     > 
     > Currently, libtorch\_npu uses CXX11\_ABI=0 by default and supports configuring CXX11\_ABI=1. The command is as follows:
@@ -27,8 +28,6 @@ libtorch\_npu is the C++ version of the TorchNPU plugin, which includes the head
     ```bash
     python3 build_libtorch_npu.py
     ```
-
-    The CMake version required for the build must be 3.18.0 or later. See [Installing CMake](https://cmake.org/download/).
 
     The release version is built by default. If you need the debug version, add the DEBUG=1 environment variable. After the build is complete, the libtorch\_npu directory is generated in the current directory, containing the following files.
 
@@ -52,9 +51,9 @@ Take the "pytorch/examples/libtorch\_resnet" model under the master branch of th
 
 2. Add the NPU build configuration to the build file.
 
-        For the build file that has been adapted for NPU, see "pytorch/examples/libtorch\_resnet/**CMakeLists.txt**", which can be used directly for the build.
+    For the build file that has been adapted for NPU, see "pytorch/examples/libtorch\_resnet/**CMakeLists.txt**", which can be used directly for the build.
 
-        If you use a custom CMakeLists.txt build file, you need to add the following content to reference the libtorch\_npu plugin for subsequent NPU-based build work.
+    If you use a custom CMakeLists.txt build file, you need to add the following content to reference the libtorch\_npu plugin for subsequent NPU-based build work.
 
     ```cmake
     set(torch_npu_path path_to_libtorch_npu)         # Set the path of libtorch_npu
@@ -66,7 +65,7 @@ Take the "pytorch/examples/libtorch\_resnet" model under the master branch of th
 
 3. To initialize and run the model on an NPU device, you need to modify the GPU APIs in the C++ code to the APIs adapted for NPU. The current script has already made the corresponding modifications. You can refer to the following content to modify your actual development scripts. For the model code file that has been adapted for NPU, see "pytorch/examples/libtorch\_resnet/**libtorch\_resnet.cpp**".
 
-    The code example is as follows. Include the torch\_npu header file and set the Device for initialization. When NPU usage ends, you need to call torch\_npu::finalize\_npu\(\) to release resources. Otherwise, an error message may be reported.
+    The code example is as follows. Include the torch\_npu header file and set the Device for initialization. When NPU usage ends, you need to call torch\_npu::finalize\_npu() to release resources. Otherwise, an error message may be reported.
 
     ```Cpp
     // To use the libtorch_npu interfaces, you need to include the libtorch_npu header file
@@ -88,7 +87,7 @@ Take the "pytorch/examples/libtorch\_resnet" model under the master branch of th
     |--|--|
     |torch_npu::init_npu()|Initialization is required before using the NPU device. The input value format is npu:*id*, where id is the NPU card number.|
     |at::Device()|Constructs an NPU device by passing an NPU string. The input value format is npu:*id*, where id is the NPU card number.|
-    |torch_npu::finalize_npu()|Deinitialization is required after using the NPU device. The input value format is npu:*id*, where id is the NPU card number.|
+    |torch_npu::finalize_npu()|Deinitialization is required after using the NPU device. This function has no input parameter.|
 
 4. Run the build and perform inference.
 

@@ -23,7 +23,7 @@ This section uses the command output shown in the following figure as an example
     EZ3002: 2024-11-05-22:31:29.035.909 Optype [%s] of Ops kernel [%s] is unsupported. Reason: %s.
     ```
 
-    "EZ3002" is a CANN software error code. You can refer to the "[Error Code Reference](https://gitcode.com/cann/docs/blob/9.2.0/docs/en/troubleshooting/error_code_desc.md)" section in *CANN Fault Handling* to analyze the fault based on the corresponding error code information. If the source of the problem is still unclear, you can further check other command output.
+    "EZ3002" is a CANN software error code. You can refer to the "[Error Code Reference](https://gitcode.com/cann/docs/blob/9.2.0/docs/en/troubleshooting/error_code_desc.md)" section in *CANN Troubleshooting Overview* to analyze the fault based on the corresponding error code information. If the source of the problem is still unclear, you can further check other command output.
 
 2. View the Python call stack and exception information.
 

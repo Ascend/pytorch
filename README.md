@@ -12,7 +12,7 @@
   <a href="#supported-pytorch-versions">Supported Versions</a> ·
   <a href="#installation">Installation</a> ·
   <a href="#quick-start">Quick Start</a> ·
-  <a href="./COMPATIBILITY.en.md">Compatibility</a> ·
+  <a href="https://gitcode.com/Ascend/pytorch/blob/master/COMPATIBILITY.en.md">Compatibility</a> ·
   <a href="./SUPPORT.en.md">Support</a> ·
   <a href="./CONTRIBUTING.en.md">Contributing</a> ·
   <a href="https://www.hiascend.com/developer/software/ai-frameworks/pytorch/document">Docs</a> ·
@@ -65,7 +65,7 @@ TorchNPU fully inherits and reuses extensive mature capabilities from upstream P
 
 This branch adapts to multiple PyTorch versions from a single source tree. The PyTorch versions it currently supports are declared in [version.txt](./version.txt), which is the single source of truth and is updated as new versions are adapted.
 
-For the compatibility matrix of released packages (TorchNPU / PyTorch / CANN / Python), please refer to [Compatibility](./COMPATIBILITY.en.md).
+For the compatibility matrix of released packages (TorchNPU / PyTorch / CANN / Python), please refer to [Compatibility](https://gitcode.com/Ascend/pytorch/blob/master/COMPATIBILITY.en.md).
 
 ## Installation
 
@@ -75,7 +75,7 @@ Take installing TorchNPU 2.12.0 as an example. Run the following commands for in
 
 #### Install CANN
 
-Install CANN 9.1.0 and the NPU driver and firmware matching your hardware. Use a compatible Python version from the [compatibility matrix](./COMPATIBILITY.en.md). For detailed steps, please refer to the [CANN Installation Guide](https://www.hiascend.com/cann/download).
+Install CANN 9.1.0 and the NPU driver and firmware matching your hardware. Use a compatible Python version from the [compatibility matrix](https://gitcode.com/Ascend/pytorch/blob/master/COMPATIBILITY.en.md). For detailed steps, please refer to the [CANN Installation Guide](https://www.hiascend.com/cann/download).
 
 #### Install PyTorch
 
@@ -143,9 +143,9 @@ The Ascend for PyTorch community is coordinated by the Technical Committee (TC),
 
 Each SIG holds regular meetings, mailing lists, and contribution guides. Click the corresponding SIG links to view detailed contact information, goals, and participation guidelines. Everyone is welcome to contribute to the community. If you have any questions or suggestions, please submit [GitHub Issues](https://github.com/Ascend/pytorch/issues). We will reply as soon as possible. Thank you for your support.
 
-## Security Note
+## Security Statement
 
-For system security hardening, recommended user configurations, and file permission controls for TorchNPU, please refer to the [Security Note](SECURITYNOTE.en.md).
+For system security hardening, recommended user configurations, and file permission controls for TorchNPU, please refer to the [Security Statement](SECURITYNOTE.en.md).
 
 ## Disclaimer
 

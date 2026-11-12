@@ -7,7 +7,7 @@ This environment variable controls whether to enable the feature value detection
 - When not set or set to "0", it indicates that feature value detection is disabled. The default value of this environment variable is "0".
 - When set to "1", it indicates that feature value detection is enabled, only abnormal logs are printed, and no alarm is generated.
 - When set to "2", it indicates that feature value detection is enabled and an alarm is raised.
-- When set to "3", it indicates that feature value detection is enabled, an alarm is raised, and process data is recorded in the device-side info-level log.
+- When set to "3", it indicates that feature value detection is enabled, an alarm is raised, and data of the detection process is recorded in the device-side info-level log.
 
 ## Configuration Example
 

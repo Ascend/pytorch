@@ -14,7 +14,7 @@ This environment variable supports the following optional parameters:
 - `checksum_cooldown`: positive integer, minimum value 1, default value 180, unit: minute. Cooldown time window of the checksum linkage. Configure it as needed.
 - `upper_thresh1`: positive integer, minimum value 3, default value 1000000. Level-1 threshold. A feature value exceeding the absolute threshold is considered a gradient anomaly. The default detection threshold does not need to be configured. If you need to modify the threshold, you can do so by configuring the environment variable.
 - `upper_thresh2`: positive integer, minimum value 3, default value 100. Level-2 threshold. A feature value exceeding the level-2 threshold is considered a suspected anomaly and is not updated to the historical mean. The default detection threshold does not need to be configured. If you need to modify the threshold, you can do so through this environment variable.
-- `grad_sample_interval`: positive integer, minimum value 1, default value 3. Interval of gradient detection, indicating how many gradients each detection covers. The smaller the configuration, the higher the detection rate, but the greater the performance degradation, which may exceed 2%.
+- `grad_sample_interval`: positive integer, minimum value 1, default value 3. Interval of gradient detection, indicating that one detection is performed every *N* gradients. The smaller the configuration, the higher the detection rate, but the greater the performance degradation, which may exceed 2%.
 
 ## Configuration Example
 

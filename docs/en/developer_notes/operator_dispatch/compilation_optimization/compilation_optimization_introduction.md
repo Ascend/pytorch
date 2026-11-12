@@ -1,4 +1,4 @@
-# Introduction to Compilation Optimization Technology
+# Introduction to Compilation Optimization Technologies
 
 > [!NOTICE]
 >
