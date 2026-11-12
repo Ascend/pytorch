@@ -21,6 +21,7 @@ TorchNPU将支持的配置项转换为 `HcclCommConfig` 的对应字段，并在
 | hccl_config参数 | HcclCommConfig字段 |
 | --- | --- |
 | `hccl_buffer_size` | `hcclBufferSize` |
+| `hccl_deterministic` | `hcclDeterministic` |
 | `group_name` | `hcclUdi` |
 | `qos_traffic_class` | `hcclRdmaTrafficClass` |
 | `qos_service_level` | `hcclRdmaServiceLevel` |
@@ -88,6 +89,6 @@ dist.destroy_process_group()
 
 - 配置应在创建通信域前传入；修改字典不会重新配置已经创建的HCCL通信域。
 - TorchNPU会校验配置值的类型。字符串超出对应字段的缓冲区长度时，会截断并告警；请按HCCL文档中的长度约束设置。
-- `group_name` 写入的是 `hcclUdi`。`hcclCommName` 和 `hcclDeterministic` 由框架处理，不通过该字典配置。
+- `group_name` 写入的是 `hcclUdi`。`hcclCommName` 由框架根据通信域名自动设置，不通过该字典配置。
 - 使用 `hccl_buffer_name` 时，TorchNPU还会在同一设备上为相同buffer名称复用通信流。
 - `hccl_world_rank_id` 和 `hccl_job_id` 分别对应 `hcclWorldRankID` 和 `hcclJobID`，用于NSLB场景，由框架内部设置，无需用户手动配置。
