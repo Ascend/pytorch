@@ -168,6 +168,31 @@ class ProcessGroupHCCLTest(TestCase):
                 ProcessGroupHCCLTest._init_pg_hccl,
                 self.world_size)
 
+    @classmethod
+    def _test_block_current_stream_process(cls, rank, world_size, init_pg):
+        init_pg(rank, world_size)
+        device = torch.device(f"npu:{rank}")
+        t = torch.ones(10, device=device)
+        work = dist.all_reduce(t, async_op=True)
+        work.block_current_stream()
+        torch.npu.current_stream().synchronize()
+        work.wait()
+        expected = torch.full((10,), float(world_size))
+        assert torch.equal(t.cpu(), expected), f"rank {rank}: result mismatch"
+
+    def test_block_current_stream_hccl(self):
+        ctx = mp.get_context('spawn')
+        ps = []
+        for rank in range(self.world_size):
+            p = ctx.Process(
+                target=ProcessGroupHCCLTest._test_block_current_stream_process,
+                args=(rank, self.world_size, ProcessGroupHCCLTest._init_pg_hccl))
+            p.start()
+            ps.append(p)
+        for p in ps:
+            p.join(180)
+            self.assertEqual(p.exitcode, 0, "subprocess exit with abnormal code.")
+
 
 class ComputeBucketAssignmentTest(TestCase):
     def test_single_limit_single_dtype(self):
