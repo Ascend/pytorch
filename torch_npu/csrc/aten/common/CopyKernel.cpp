@@ -13,7 +13,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 #include <ATen/ATen.h>
+#include <ATen/MemoryOverlap.h>
 #include <ATen/core/CachingHostAllocator.h>
 
 #include "op_plugin/OpInterface.h"
@@ -412,6 +414,19 @@ bool try_to_optimize_copy_with_any_format(at::Tensor& self, const at::Tensor& sr
 }
 
 at::Tensor& NPUNativeFunctions::copy_(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
+  if (self.is_conj() && self.numel() != 0) {
+    try {
+      at::assert_no_internal_overlap(self);
+      at::assert_no_partial_overlap(self, src);
+    } catch (c10::Error& error) {
+      error.add_context(PTA_ERROR(ErrCode::NOT_SUPPORT));
+      throw;
+    }
+    // Write conjugated logical values through a view with the conjugate bit cleared.
+    auto physical_self = self.conj();
+    physical_self.copy_(src.conj().resolve_conj(), non_blocking);
+    return self;
+  }
   if (self.numel() == 0) {
     return self;
   }

@@ -14,9 +14,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <ATen/MemoryOverlap.h>
+
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/NPUPeerToPeerAccess.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
@@ -224,6 +227,19 @@ void copy_d2h_baseformat_opapi(at::Tensor& dst, const at::Tensor& src, bool non_
 }
 
 at::Tensor& NPUNativeOpApiFunctions::copy_(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
+  if (self.is_conj() && self.numel() != 0) {
+    try {
+      at::assert_no_internal_overlap(self);
+      at::assert_no_partial_overlap(self, src);
+    } catch (c10::Error& error) {
+      error.add_context(PTA_ERROR(ErrCode::NOT_SUPPORT));
+      throw;
+    }
+    // Write conjugated logical values through a view with the conjugate bit cleared.
+    auto physical_self = self.conj();
+    physical_self.copy_(src.conj().resolve_conj(), non_blocking);
+    return self;
+  }
   DO_COMPATIBILITY(aclnnInplaceCopy, NPUNativeFunctions::copy_(self, src, non_blocking));
   if (self.numel() == 0) {
     return self;

@@ -22,6 +22,8 @@ API 签名：copy_(src, non_blocking=False) -> Tensor
 注意：本测试除了验证功能正确性（调用不报错、tensor 结构属性符合预期），
      也对 mixed-dtype host-device 路径补充了同步/异步 copy 结果一致性校验。
 """
+import itertools
+
 import torch
 import torch_npu  # noqa: F401
 from torch_npu.testing.common_utils import SupportedDevices
@@ -537,6 +539,289 @@ class TestTensorCopy_(TestCase):
         src = torch.randn(1, 4)
         dst.copy_(src)
         self.assertEqual(dst.shape, torch.Size([2, 4]))
+
+
+class TestCopyConjugate(TestCase):
+    def setUp(self):
+        super().setUp()
+        original_jit = not torch.npu.is_jit_compile_false()
+        self.addCleanup(torch.npu.set_compile_mode, jit_compile=original_jit)
+        torch.npu.set_compile_mode(jit_compile=False)
+
+    @staticmethod
+    def _source(shape, dtype=torch.complex64):
+        values = torch.arange(1, 1 + shape[0] * shape[1]).reshape(shape)
+        return torch.complex(values.float() - 3, 2 * values.float() - 7).to(dtype)
+
+    def test_copy_conjugate_destination(self):
+        cases = itertools.product(
+            (torch.complex64, torch.complex128),
+            ("conj", "mH"),
+            (False, True),
+            (("npu", "npu"), ("cpu", "npu"), ("npu", "cpu")),
+            (False, True),
+            (False, True),
+        )
+        for dtype, view, conjugate_source, devices, non_blocking, broadcast in cases:
+            with self.subTest(
+                dtype=dtype,
+                view=view,
+                source_conj=conjugate_source,
+                devices=devices,
+                non_blocking=non_blocking,
+                broadcast=broadcast,
+            ):
+                src_device, dst_device = devices
+                base = torch.tensor(
+                    [[1 + 2j, 3 + 4j, 5 + 6j], [7 + 8j, 9 + 10j, 11 + 12j]], dtype=dtype
+                )
+                expected_base = base.clone()
+                actual_base = base.to(dst_device).clone()
+                expected = expected_base.conj() if view == "conj" else expected_base.mH
+                actual = actual_base.conj() if view == "conj" else actual_base.mH
+                source = self._source(
+                    (1, expected.shape[1]) if broadcast else expected.shape, dtype
+                )
+                device_source = source.to(src_device)
+                if conjugate_source:
+                    source = source.conj()
+                    device_source = device_source.conj()
+                before = device_source.resolve_conj().cpu().clone()
+                expected.copy_(source, non_blocking=non_blocking)
+                result = actual.copy_(device_source, non_blocking=non_blocking)
+                torch.npu.synchronize()
+                self.assertIs(result, actual)
+                self.assertTrue(actual.is_conj())
+                self.assertEqual(actual_base.cpu(), expected_base)
+                self.assertEqual(device_source.resolve_conj().cpu(), before)
+
+    def test_conjugate_copy_strided_mixed_dtype(self):
+        # Combine offset/stride and dtype coverage instead of multiplying the
+        # main matrix. Check the whole base, including untouched sentinel values.
+        for src_device, dst_device in (("npu", "npu"), ("cpu", "npu"), ("npu", "cpu")):
+            for src_dtype, dst_dtype in (
+                (torch.complex64, torch.complex128),
+                (torch.complex128, torch.complex64),
+            ):
+                with self.subTest(devices=(src_device, dst_device), dtype=src_dtype):
+                    expected_base = torch.full((3, 7), -99 + 17j, dtype=dst_dtype)
+                    actual_base = expected_base.to(dst_device).clone()
+                    expected = expected_base[:, 1::2].conj()
+                    actual = actual_base[:, 1::2].conj()
+                    source_base = self._source((3, 7), src_dtype)
+                    source = source_base[:, 1::2].conj()
+                    device_base = source_base.to(src_device)
+                    device_source = device_base[:, 1::2].conj()
+                    self.assertFalse(actual.is_contiguous())
+                    self.assertFalse(device_source.is_contiguous())
+                    self.assertNotEqual(actual.storage_offset(), 0)
+                    metadata = (actual.shape, actual.stride(), actual.storage_offset())
+
+                    expected.copy_(source)
+                    self.assertIs(actual.copy_(device_source), actual)
+                    self.assertTrue(actual.is_conj())
+                    self.assertEqual(
+                        (actual.shape, actual.stride(), actual.storage_offset()),
+                        metadata,
+                    )
+                    self.assertEqual(actual_base.cpu(), expected_base)
+                    self.assertEqual(device_base.cpu(), source_base)
+
+    def test_conjugate_copy_legal_aliases(self):
+        for alias in ("same_view", "same_storage", "disjoint_slices"):
+            with self.subTest(alias=alias):
+                expected_base = self._source((4, 3))
+                actual_base = expected_base.npu()
+
+                def views(base):
+                    if alias == "same_view":
+                        dst = base.conj()
+                        return dst, dst
+                    if alias == "same_storage":
+                        return base.conj(), base
+                    return base[2:].conj(), base[:2]
+
+                expected, source = views(expected_base)
+                actual, device_source = views(actual_base)
+                expected.copy_(source)
+                self.assertIs(actual.copy_(device_source), actual)
+                self.assertTrue(actual.is_conj())
+                self.assertEqual(actual_base.cpu(), expected_base)
+
+    @SupportedDevices(["Ascend910B", "Ascend910_93"])
+    def test_conjugate_copy_native_entry(self):
+        forced = torch_npu._C._npu_getOption("FORCE_ACLNN_OP_LIST") or b""
+        if b"copy_" in forced.split(b","):
+            self.skipTest("copy_ is forced to OpAPI; cannot exercise the native entry")
+        for src_device, dst_device in (("npu", "npu"), ("cpu", "npu"), ("npu", "cpu")):
+            with self.subTest(devices=(src_device, dst_device)):
+                torch.npu.set_compile_mode(jit_compile=False)
+                source = self._source((2, 3))
+                device_source = source.to(src_device)
+                if src_device == "npu":
+                    # Native JIT complex arithmetic is unsupported. A conjugate
+                    # source lets resolve_conj clear the bit without arithmetic.
+                    source = source.conj()
+                    device_source = device_source.conj()
+                expected_base = torch.empty((2, 3), dtype=source.dtype)
+                actual_base = torch.empty_like(expected_base, device=dst_device)
+                expected_base.conj().copy_(source)
+                actual = actual_base.conj()
+                torch.npu.set_compile_mode(jit_compile=True)
+                self.assertFalse(torch.npu.is_jit_compile_false())
+                try:
+                    result = actual.copy_(device_source)
+                finally:
+                    torch.npu.set_compile_mode(jit_compile=False)
+                self.assertIs(result, actual)
+                self.assertTrue(actual.is_conj())
+                self.assertEqual(actual_base.cpu(), expected_base)
+
+    def test_conjugate_copy_non_blocking_stream_and_lifetime(self):
+        stream = torch.npu.Stream()
+        gate_stream = torch.npu.Stream()
+        gate_a = torch.ones((4096, 4096), device="npu")
+        gate_b = torch.ones_like(gate_a)
+        gate_c = torch.empty_like(gate_a)
+        torch.mm(gate_a, gate_b, out=gate_c)
+        for src_device, dst_device in (("npu", "npu"), ("cpu", "npu"), ("npu", "cpu")):
+            with self.subTest(devices=(src_device, dst_device)):
+                source = self._source((2, 3))
+                device_source = source.to(src_device)
+                if src_device == "cpu":
+                    # Preserve pinned storage through resolve_conj for H2D.
+                    device_source = device_source.pin_memory()
+                    self.assertTrue(device_source.is_pinned())
+                    device_source = device_source.conj()
+                    source = source.conj()
+                actual_base = torch.empty(
+                    source.shape,
+                    dtype=source.dtype,
+                    device=dst_device,
+                    pin_memory=dst_device == "cpu",
+                )
+                actual = actual_base.conj()
+                expected_base = torch.empty_like(source)
+                expected_base.conj().copy_(source)
+                # Warm up kernels/allocations before testing queued work.
+                actual.copy_(device_source)
+                gate_a.fill_(1)
+                torch.npu.synchronize()
+                gate = torch.npu.Event()
+                done = torch.npu.Event()
+                # Use queued matmuls as in test_copy_: aclnnSleep is unavailable
+                # on some supported devices. Preallocate to avoid allocation sync.
+                with torch.npu.stream(gate_stream):
+                    for _ in range(2):
+                        torch.mm(gate_a, gate_b, out=gate_c)
+                        torch.mm(gate_c, gate_b, out=gate_a)
+                    gate.record()
+                with torch.npu.stream(stream):
+                    stream.wait_event(gate)
+                    if src_device == "npu":
+                        device_source.record_stream(stream)
+                    self.assertIs(
+                        actual.copy_(device_source, non_blocking=True), actual
+                    )
+                    done.record()
+                try:
+                    self.assertFalse(done.query(), "copy_ unexpectedly synchronized")
+                    # Drop the source before completion and pressure its allocator
+                    # from another stream, including the materialized NPU source.
+                    del device_source
+                    for _ in range(8):
+                        scratch = torch.empty(
+                            source.shape,
+                            dtype=source.dtype,
+                            device=src_device,
+                            pin_memory=src_device == "cpu",
+                        )
+                        scratch.view(torch.float32).fill_(123)
+                finally:
+                    done.synchronize()
+                    torch.npu.synchronize()
+                self.assertTrue(actual.is_conj())
+                self.assertEqual(actual_base.cpu(), expected_base)
+
+    def test_conjugate_copy_temporary_host_sources(self):
+        # A plain complex CPU source is materialized by resolve_conj. Keep every
+        # result so an early corrupted copy cannot be hidden by a later overwrite.
+        copies = []
+        with torch.npu.stream(torch.npu.Stream()):
+            for i in range(8):
+                source = self._source((2, 3)) + i
+                base = torch.empty_like(source, device="npu")
+                base.conj().copy_(source.pin_memory(), non_blocking=True)
+                copies.append((base, source.conj().resolve_conj()))
+        torch.npu.synchronize()
+        for base, expected in copies:
+            self.assertEqual(base.cpu(), expected)
+
+    def test_conjugate_copy_real_source_and_empty(self):
+        for dtype in (torch.float32, torch.complex64):
+            for shape in ((2, 3), (0, 3)):
+                with self.subTest(dtype=dtype, shape=shape):
+                    base = torch.empty(shape, dtype=torch.complex64, device="npu")
+                    source = torch.ones(shape, dtype=dtype).npu()
+                    base.conj().copy_(source)
+                    self.assertEqual(
+                        base.cpu(), torch.ones(shape, dtype=torch.complex64)
+                    )
+
+    def test_conjugate_copy_partial_overlap(self):
+        base = torch.tensor([1 + 2j, 3 + 4j, 5 + 6j], device="npu")
+        before = base.cpu()
+        with self.assertRaisesRegex(RuntimeError, "single memory location") as error:
+            base[1:].conj().copy_(base[:-1])
+        self.assertIn("ERR00007 PTA feature not supported", str(error.exception))
+        self.assertEqual(base.cpu(), before)
+
+    def test_conjugate_copy_expanded_destination(self):
+        base = torch.ones((1,), dtype=torch.complex64).npu()
+        with self.assertRaisesRegex(RuntimeError, "single memory location") as error:
+            base.expand(3).conj().copy_(torch.ones(3, dtype=torch.complex64).npu())
+        self.assertIn("ERR00007 PTA feature not supported", str(error.exception))
+        self.assertEqual(base.cpu(), torch.ones(1, dtype=torch.complex64))
+
+    def test_conjugate_copy_transposed_overlap(self):
+        before = self._source((3, 3))
+        base = before.npu()
+        with self.assertRaisesRegex(RuntimeError, "single memory location") as error:
+            base.conj().copy_(base.t())
+        self.assertIn("ERR00007 PTA feature not supported", str(error.exception))
+        self.assertEqual(base.cpu(), before)
+
+    @SupportedDevices(["Ascend910B", "Ascend910_93"])
+    def test_conjugate_copy_native_overlap_errors(self):
+        forced = torch_npu._C._npu_getOption("FORCE_ACLNN_OP_LIST") or b""
+        if b"copy_" in forced.split(b","):
+            self.skipTest("copy_ is forced to OpAPI; cannot exercise the native entry")
+        before = self._source((3, 3))
+        base = before.npu()
+        cases = (
+            ("internal", base[:1].expand_as(base).conj(), base),
+            ("partial", base.flatten()[1:].conj(), base.flatten()[:-1]),
+            ("transposed", base.conj(), base.t()),
+        )
+        torch.npu.set_compile_mode(jit_compile=True)
+        self.assertFalse(torch.npu.is_jit_compile_false())
+        try:
+            for name, dst, src in cases:
+                with self.subTest(overlap=name):
+                    with self.assertRaisesRegex(RuntimeError, "single memory location") as error:
+                        dst.copy_(src)
+                    self.assertIn("ERR00007 PTA feature not supported", str(error.exception))
+        finally:
+            torch.npu.set_compile_mode(jit_compile=False)
+        self.assertEqual(base.cpu(), before)
+
+    def test_conjugate_copy_incompatible_shape(self):
+        before = self._source((2, 3))
+        base = before.npu()
+        source = self._source((2, 2)).npu()
+        with self.assertRaises(RuntimeError):
+            base.conj().copy_(source)
+        self.assertEqual(base.cpu(), before)
 
 
 if __name__ == "__main__":
