@@ -3370,6 +3370,15 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::createHCCLComm(
 
     TORCH_NPU_HCCL_LOGI("Create HCCL comm, devicesKey %s, commType %d, p2pRank %d.", devicesKey.c_str(), commType, p2pRank);
 
+    // Warn only when the comm is actually created: getHCCLComm() returns the cached
+    // communicator without reaching here, so each communicator warns at most once.
+    if (options_->hccl_config.find("hccl_qos") != options_->hccl_config.end() &&
+        options_->hccl_config.find("hccl_sdma_qos") != options_->hccl_config.end()) {
+        TORCH_NPU_WARN(
+            "The hccl_config contains both hccl_qos and hccl_sdma_qos, hccl_qos takes effect. "
+            "hccl_sdma_qos is no longer recommended, please migrate to hccl_qos.");
+    }
+
     // comms have not been initiated yet, but run HcclGroupEnd before, so end it first
     for (const auto i : c10::irange(hcclActiveGroupCounter_)) {
         (void)i;
@@ -4428,6 +4437,14 @@ HcclCommConfig ProcessGroupHCCL::createHcclCommConfigWithOptions()
             config.hcclQos = std::get<uint32_t>(options_->hccl_config["hccl_sdma_qos"]);
         } else {
             TORCH_CHECK(false, "Value type of hccl_sdma_qos should be int.", DIST_ERROR(ErrCode::TYPE));
+        }
+    }
+
+    if (options_->hccl_config.find("hccl_qos") != options_->hccl_config.end()) {
+        if (std::holds_alternative<uint32_t>(options_->hccl_config["hccl_qos"])) {
+            config.hcclQos = std::get<uint32_t>(options_->hccl_config["hccl_qos"]);
+        } else {
+            TORCH_CHECK(false, "Value type of hccl_qos should be uint.", DIST_ERROR(ErrCode::TYPE));
         }
     }
 
