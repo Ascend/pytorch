@@ -12,9 +12,9 @@
       "temporary_skiped_testcases.json",
       "running_skiped_testcases.json"
     ],
-    "generated_at": "2026-11-11 09:48:41 +0800",
+    "generated_at": "2026-11-12 10:35:29 +0800",
     "category_count": 5,
-    "issue_count": 76
+    "issue_count": 79
   },
   "categories": {
     "device not supported": {
@@ -759,6 +759,45 @@
         "acl not supported: aclnnSvd (DT_COMPLEX128)",
         "acl not supported: aclnnSvd (DT_COMPLEX64)",
         "acl not supported: aclnnUpsampleNearestExact2d (DT_UINT8)"
+      ],
+      "https://gitcode.com/Ascend/pytorch/issues/6054": [
+        "acl not supported: aclnnLogSpace",
+        "acl not supported: aclnnLogSpace (torch.complex128)",
+        "acl not supported: aclnnLogSpace (torch.complex64)",
+        "acl not supported: aclnnLogSpace (torch.float64)",
+        "acl not supported: aclnnLogSpace (torch.int16)",
+        "acl not supported: aclnnLogSpace (torch.int32)",
+        "acl not supported: aclnnLogSpace (torch.int64)",
+        "acl not supported: aclnnLogSpace (torch.int8)",
+        "acl not supported: aclnnLogSpace (torch.uint8)"
+      ],
+      "https://gitcode.com/Ascend/pytorch/issues/6056": [
+        "acl not supported: aclnnInplaceErfinv (torch.bool)",
+        "acl not supported: aclnnInplaceErfinv (torch.int16)",
+        "acl not supported: aclnnInplaceErfinv (torch.int32)",
+        "acl not supported: aclnnInplaceErfinv (torch.int64)",
+        "acl not supported: aclnnInplaceErfinv (torch.int8)",
+        "acl not supported: aclnnInplaceErfinv (torch.uint8)",
+        "acl not supported: aclnnInplaceMaskedScatter (torch.complex128)",
+        "acl not supported: aclnnMseLoss (torch.float64)",
+        "acl not supported: aclnnQuantMatmulV5",
+        "acl not supported: aclnnQuantMatmulV5 (torch.bfloat16)",
+        "acl not supported: aclnnQuantMatmulV5 (torch.float16)",
+        "acl not supported: aclnnQuantMatmulV5 (torch.float8_e4m3fn)",
+        "acl not supported: aclnnQuantMatmulV5 (torch.float8_e4m3fnuz)",
+        "acl not supported: aclnnQuantMatmulV5 (torch.float8_e5m2)",
+        "acl not supported: aclnnQuantMatmulV5 (torch.float8_e5m2fnuz)"
+      ],
+      "https://gitcode.com/Ascend/pytorch/issues/6058": [
+        "acl not supported: aclnnNanMedian",
+        "acl not supported: aclnnNanMedian (torch.float16)",
+        "acl not supported: aclnnNanMedian (torch.float32)",
+        "acl not supported: aclnnNanMedian (torch.float64)",
+        "acl not supported: aclnnNanMedian (torch.int16)",
+        "acl not supported: aclnnNanMedian (torch.int32)",
+        "acl not supported: aclnnNanMedian (torch.int64)",
+        "acl not supported: aclnnNanMedian (torch.int8)",
+        "acl not supported: aclnnNanMedian (torch.uint8)"
       ]
     },
     "dtype not supported (api)": {
