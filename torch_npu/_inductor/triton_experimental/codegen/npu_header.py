@@ -49,10 +49,7 @@ def _sibling_product(tree, node):
 # Vector CMP on A2/A3 lacks native int64/int32, so an int arange < numel decays to
 # a scalar loop; casting the index to fp32 first keeps it on the vector unit.
 # Default off: fp32's 24-bit mantissa loses precision past 2^24, so only opt in
-# (mask_cmp_fp32) when all per-axis numels stay below ~2^23.
-npu_mask_cmp_fp32 = ncfg.mask_cmp_fp32
-
-
+# (``ncfg.mask_cmp_fp32``) when all per-axis numels stay below ~2^23.
 def _mask_cmp_lhs(index_expr: str, numel=None, index_dtype: str = "tl.int32") -> str:
     """Wrap a mask LHS so the `<` runs on the vector unit when possible.
 
@@ -66,7 +63,7 @@ def _mask_cmp_lhs(index_expr: str, numel=None, index_dtype: str = "tl.int32") ->
     int); those keep the correct (scalarized) int64 compare.
 
     The early return is deliberate PROTECTION, not an oversight: with
-    mask_cmp_fp32 on, falling through to the fp32 compare
+    ``ncfg.mask_cmp_fp32`` on, falling through to the fp32 compare
     hangs the kernel -- triton-ascend lowers the fp32 mask compare into
     vector-core work that never completes (507034 vector-core timeout on a
     minimal non-reduction kernel, and >10 min with no result on pointwise;
@@ -76,7 +73,7 @@ def _mask_cmp_lhs(index_expr: str, numel=None, index_dtype: str = "tl.int32") ->
     """
     if index_dtype == "tl.int64" and isinstance(numel, (int, sympy.Integer)) and int(numel) < 2**31:
         return f"({index_expr}).to(tl.int32)"
-    if not npu_mask_cmp_fp32:
+    if not ncfg.mask_cmp_fp32:
         return index_expr
     return f"({index_expr}).to(tl.float32)"
 

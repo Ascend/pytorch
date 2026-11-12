@@ -896,6 +896,12 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
     kernel generation and compilation functionality.
     """
 
+    @staticmethod
+    def inductor_meta_common():
+        from torch._inductor.codegen.triton import TritonKernel
+
+        return TritonKernel.inductor_meta_common()
+
     def __init__(
         self,
         kernel_name: str,
@@ -1140,7 +1146,6 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
 
 
     def jit_lines(self) -> str:
-        from torch._inductor.codegen.triton import TritonKernel
         from torch._inductor.codegen.triton_utils import (
             config_of,
             equal_1_arg_indices,
@@ -1188,7 +1193,7 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
 
         inductor_meta = {
             "kernel_name": str(Placeholder.DESCRIPTIVE_NAME),
-            **TritonKernel.inductor_meta_common(),
+            **self.inductor_meta_common(),
             **FixedGrid.setup_grid_as_args(),
         }
         if config.profile_bandwidth or config.benchmark_kernel:

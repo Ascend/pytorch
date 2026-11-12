@@ -223,7 +223,7 @@ class TestLinearizeShape(TestCase):
         "test_configs.runtime_triton_dtype_assert": True,
     })
     def test_non_linearize_shape_assert(self, device, dtype):
-        from torch_npu._inductor.triton_experimental.codegen import triton as codegen
+        from torch_npu._inductor.triton_experimental import config as ncfg
 
         x = torch.randn((128,), device=device, dtype=dtype)
 
@@ -231,7 +231,7 @@ class TestLinearizeShape(TestCase):
             return x.sin() + 1
 
         torch._dynamo.reset()
-        with mock.patch.object(codegen, "triton_codegen_linearize", False):
+        with ncfg.patch(codegen_linearize=False):
             actual, codes = run_and_get_code(
                 torch.compile(fn, fullgraph=True, options={"npu_backend": "triton_experimental"}), x
             )

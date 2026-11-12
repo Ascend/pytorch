@@ -21,7 +21,7 @@ import torch  # noqa: F401
 import torch_npu  # noqa: F401
 from torch._inductor import config
 
-from torch_npu._inductor.triton_experimental import npu_triton_heuristics
+from torch_npu._inductor.triton_experimental import config as ncfg, npu_triton_heuristics
 
 
 class TestDowncastMemoWindows(unittest.TestCase):
@@ -40,7 +40,7 @@ class TestDowncastMemoWindows(unittest.TestCase):
             config.patch(
                 {"triton.cudagraphs": False, "triton.cudagraph_trees": True}
             ),
-            mock.patch.object(npu_triton_heuristics, "npu_dedup_downcast", True),
+            ncfg.patch(dedup_downcast=True),
             mock.patch.object(
                 npu_triton_heuristics.torch_npu.npu,
                 "is_current_stream_capturing",
@@ -69,7 +69,7 @@ class TestDowncastMemoWindows(unittest.TestCase):
             config.patch(
                 {"triton.cudagraphs": False, "triton.cudagraph_trees": True}
             ),
-            mock.patch.object(npu_triton_heuristics, "npu_dedup_downcast", True),
+            ncfg.patch(dedup_downcast=True),
             mock.patch.object(
                 npu_triton_heuristics.torch_npu.npu,
                 "is_current_stream_capturing",
@@ -94,7 +94,7 @@ class TestDowncastMemoWindows(unittest.TestCase):
             config.patch(
                 {"triton.cudagraphs": False, "triton.cudagraph_trees": True}
             ),
-            mock.patch.object(npu_triton_heuristics, "npu_dedup_downcast", True),
+            ncfg.patch(dedup_downcast=True),
             mock.patch.object(
                 npu_triton_heuristics.torch_npu.npu,
                 "is_current_stream_capturing",

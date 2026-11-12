@@ -923,10 +923,13 @@ class TestTritonExperimentalStaticLauncherUnit(TestCase):
 
         with (
             mock.patch.object(autotuner, "benchmark_all_configs", side_effect=benchmark),
+            mock.patch("torch._inductor.triton_bundler.TritonBundler._entries", []),
             mock.patch("torch._inductor.runtime.triton_heuristics.TritonBundler.put_winner") as put_winner,
         ):
             autotuner.run(stream=123)
-        put_winner.assert_called_once_with(winner.cache_hash)
+        # Autotuning records its choice, then run registers the executed winner.
+        self.assertEqual(put_winner.call_count, 2)
+        put_winner.assert_has_calls([mock.call(winner.cache_hash)] * 2)
 
         self.assertEqual(autotuner.launchers, [winner])
         self.assertEqual(autotuner.compile_results, [winner_result])
@@ -1206,6 +1209,7 @@ class TestTritonExperimentalStaticLauncherUnit(TestCase):
         scope = {"body": body}
         exec("def launcher(out, stream):\n    body(out)\n", scope)
         launcher = scope["launcher"]
+        launcher.cache_hash = "downcast_writeback"
         launcher._is_static = True
         launcher.store_cubin = False
         launcher._npu_def_args = ["out"]

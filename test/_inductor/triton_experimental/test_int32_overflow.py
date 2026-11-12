@@ -8,6 +8,7 @@ from torch.testing._internal.common_utils import (
 )
 
 import torch_npu  # noqa: F401
+from torch_npu._inductor.triton_experimental import config as ncfg
 
 
 # Regression test for the int32 index-overflow bug in the triton_experimental
@@ -50,17 +51,15 @@ class TestInt32Overflow(TestCase):
             ("int64-dynamic", "x0index", sympy.Symbol("s"), "tl.int64", "x0index"),
             ("int32", "x0index", 256, "tl.int32", "x0index"),
         ]
-        orig = nh.npu_mask_cmp_fp32
-        try:
-            nh.npu_mask_cmp_fp32 = False
+        with ncfg.patch(mask_cmp_fp32=False):
             for label, e, n, d, want in off_cases:
                 self.assertEqual(
                     nh._mask_cmp_lhs(e, n, d), want,
                     f"mask_cmp_fp32 off: {label}",
                 )
+        with ncfg.patch(mask_cmp_fp32=True):
             # fp32 on: the int64 narrow keeps the int32 compare (protection);
             # the in-range int32 case is unchanged (the pre-fix fp32 cast).
-            nh.npu_mask_cmp_fp32 = True
             self.assertEqual(
                 nh._mask_cmp_lhs("x0index", 256, "tl.int64"),
                 "(x0index).to(tl.int32)",
@@ -70,8 +69,6 @@ class TestInt32Overflow(TestCase):
                 nh._mask_cmp_lhs("x0index", 256, "tl.int32"),
                 "(x0index).to(tl.float32)",
             )
-        finally:
-            nh.npu_mask_cmp_fp32 = orig
 
     def test_non_linearize_in_range_reduction_grid_exact(self):
         # In-range non-linearize reduction: the launcher grid must be exactly
@@ -84,11 +81,7 @@ class TestInt32Overflow(TestCase):
         # min(ceil, 48) clamp regression). Codegen flags
         # inductor_meta["npu_linearize"]=False; the heuristics then launches the
         # exact tile count instead of the fixed 48.
-        import torch_npu._inductor.triton_experimental.codegen.triton as tmod
-
-        orig = tmod.triton_codegen_linearize
-        tmod.triton_codegen_linearize = False
-        try:
+        with ncfg.patch(codegen_linearize=False):
             x = torch.randn(64, 128, 256, device="npu")
             ref = x.sum(dim=-1)
 
@@ -105,8 +98,6 @@ class TestInt32Overflow(TestCase):
             # Classic non-linearize structure, in-range so no int64 promotion.
             self.assertIn("xoffset = tl.program_id(0) * XBLOCK", codes[0])
             self.assertNotIn("tl.int64", codes[0])
-        finally:
-            tmod.triton_codegen_linearize = orig
 
 
 

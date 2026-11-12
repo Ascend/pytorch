@@ -15,6 +15,7 @@ from torch.utils._ordered_set import OrderedSet
 import torch_npu  # noqa: F401
 import torch_npu._inductor  # noqa: F401
 from torch_npu._inductor.kernel import flex_attention as npu_flex_attention
+from torch_npu._inductor.triton_experimental import config as ncfg
 from torch_npu._inductor.triton_experimental import launcher_codegen
 from torch_npu._inductor.triton_experimental import lowering as experimental_lowering
 from torch_npu._inductor.triton_experimental import lowering_override_list
@@ -48,7 +49,7 @@ class TestCodegenRegressions(TestCase):
         virtualized = SimpleNamespace(graph=SimpleNamespace(sizevars=sizevars))
         with (
             mock.patch.object(TritonKernel, "indexing", return_value=upstream_result),
-            mock.patch.object(npu_triton_codegen, "triton_codegen_linearize", True),
+            ncfg.patch(codegen_linearize=True),
             mock.patch.object(npu_triton_codegen, "V", virtualized),
             mock.patch.object(kernel, "filter_masks"),
         ):
@@ -67,7 +68,7 @@ class TestCodegenRegressions(TestCase):
         kernel._load_mask = None
         with (
             mock.patch.object(TritonKernel, "indexing", return_value=upstream_result),
-            mock.patch.object(npu_triton_codegen, "triton_codegen_linearize", True),
+            ncfg.patch(codegen_linearize=True),
             mock.patch.object(kernel, "filter_masks"),
         ):
             result = kernel.indexing(sympy.Integer(0))

@@ -10,9 +10,9 @@ own machinery) turns this module into a live config object with attribute access
     if config.rsplit_outer: ...
     with config.patch(rsplit_outer=False): ...
 
-No env-var layer: this object is the single source of truth. All gates are read
-in the main process (codegen + in-process autotune); compile workers only build
-already-generated source, so no gate crosses the subprocess boundary.
+No env-var layer: this object is the single source of truth. Code generation
+captures the configuration needed by kernel compilation and candidate selection
+in ``inductor_meta`` so workers and restored wrappers use the producer's values.
 """
 
 import sys

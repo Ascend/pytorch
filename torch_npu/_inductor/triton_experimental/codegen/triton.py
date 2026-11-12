@@ -89,7 +89,6 @@ from ..reduction_index_alias import (
 )
 
 
-triton_codegen_linearize = ncfg.codegen_linearize
 
 
 _original_check_shape = None
@@ -193,12 +192,6 @@ def _npu_ast_replace_name(node, old: str, new: str):
             return item
 
     return ReplaceName().visit(node)
-
-
-# When set, drop the dead accumulator ``tl.where`` guard in a static single-tile
-# reduction. Coupled 1:1 with npu_triton_heuristics.npu_elide_reduction_where,
-# which pins R0_BLOCK==rnumel so the reduction-axis mask is provably always-true.
-npu_elide_reduction_where = ncfg.elide_reduction_where
 
 
 def _is_flat_rloop_header(stripped: str, prefix: str) -> bool:
@@ -1260,28 +1253,6 @@ def _npu_codegen_broadcast_and_reshape(
 
 BlockPtrOptions.codegen_broadcast_and_reshape = _npu_codegen_broadcast_and_reshape
 
-# Without a user `other=`, inductor emits `other=0.0` for mask semantics, which on
-# NPU forces a Vector pre-fill of the whole tile before MTE2, serializing movement
-# behind compute. `care_padding=False` releases that when the region is unused.
-npu_inject_care_padding = ncfg.inject_care_padding
-
-
-# NPU r-axis cross-core split for OUTER reductions. When the free (x) axes are too
-# few to fill all 40 cores, the default x-split idles most cores and each walks the
-# whole reduction axis strided. Instead split into a "partial" kernel (slices the
-# contiguous reduction axis across 40 cores, writes a [40, x] workspace) and a
-# "combine" kernel (sums the 40 partials); both keep contiguous loads.
-npu_rsplit_outer = ncfg.rsplit_outer
-
-
-# NPU store-index clamp-stride refactor. Dynamic conv-output store strides Max(1,H)^k
-# get expanded into a polynomial in D=H-1 (~6x repeated FloorDiv text); this finds the
-# precomputed ks symbol the load side uses and subs D->sym-1 so (1+D)^k folds to sym^k.
-# Runtime-exact. DEFAULT OFF: base-detection misfires on a layernorm-bwd transpose.
-npu_refactor_clamp_stride = ncfg.refactor_clamp_stride
-
-
-
 def _rewrite_last_load_line(buffer, transform):
     """Apply ``transform`` to the last non-empty line of ``buffer`` (a plain string
     or a DelayReplaceLine wrapper, whose source is at ``.line``). ``transform``
@@ -1327,6 +1298,9 @@ def _apply_to_first_buffer(transform, buffers):
             return
 
 
+# Without a user `other=`, inductor emits `other=0.0` for mask semantics, which on
+# NPU forces a Vector pre-fill of the whole tile before MTE2, serializing movement
+# behind compute. `care_padding=False` releases that when the region is unused.
 def _care_padding_transform(line):
     parsed = _npu_parse_generated_line(line)
     if parsed is None:
@@ -1358,9 +1332,6 @@ def _care_padding_transform(line):
 # On Ascend the packed-i1 ``trunc i8 -> i1`` path overshoots masked tail addresses
 # -> "ub address out of bounds". Rewriting to ``!= 0`` keeps the value bool but
 # lowers via icmp instead of the packed-i1 trunc.
-npu_rewrite_int1_cast_as_ne = ncfg.rewrite_int1_cast_as_ne
-
-
 def _int1_cast_transform(line):
     """Rewrite ``tl.load(...).to(tl.int1)`` to ``(tl.load(...) != 0)``."""
     parsed = _npu_parse_generated_line(line)
@@ -2391,6 +2362,25 @@ class NPUTritonKernel(TritonKernel):
         )
         return imports.getvalue()
 
+    @classmethod
+    def inductor_meta_common(cls):
+        inductor_meta = super().inductor_meta_common()
+        # Workers and restored wrappers need the producer's compilation and tuning settings.
+        inductor_meta["npu_backend_config"] = {
+            "triton_debug": ncfg.triton_debug,
+            "enable_vf_fusion": ncfg.enable_vf_fusion,
+            "vf_fusion_mode": ncfg.vf_fusion_mode,
+            "vf_merge_level": ncfg.vf_merge_level,
+            "autotune_enhance": ncfg.autotune_enhance,
+            "autotune_fallback": ncfg.autotune_fallback,
+            "all_blocks_parallel": ncfg.all_blocks_parallel,
+            "elide_reduction_where": ncfg.elide_reduction_where,
+            "pointwise_tile_max": ncfg.pointwise_tile_max,
+            "tile_align": ncfg.tile_align,
+            "pin_xr": ncfg.pin_xr,
+        }
+        return inductor_meta
+
     def dtype_to_str(self, dtype):
         # The apply_npu_codegen_patches demotion (_triton_type_mapping
         # ["tl.int64"] -> "tl.int32") forces index_dtype to "tl.int32" for every
@@ -2518,7 +2508,7 @@ class NPUTritonKernel(TritonKernel):
         shape_vars = set(self.cse.varname_map) if config.test_configs.runtime_triton_shape_assert else None
         elide = False
         if (
-            npu_elide_reduction_where
+            ncfg.elide_reduction_where
             and self.inside_reduction
             and not getattr(self, "persistent_reduction", False)
             and isinstance(value, NPUTritonCSEVariable)
@@ -2586,7 +2576,7 @@ class NPUTritonKernel(TritonKernel):
     def load(self, name: str, index: sympy.Expr):
         restore_other = False
         saved_other = None
-        if npu_elide_reduction_where and self._maybe_pick_reduction_load_fill():
+        if ncfg.elide_reduction_where and self._maybe_pick_reduction_load_fill():
             fill = self._pick_reduction_load_fill()
             if fill is not None:
                 saved_other = self._load_other
@@ -2611,9 +2601,9 @@ class NPUTritonKernel(TritonKernel):
             if restore_other:
                 self._load_other = saved_other
         _bufs = [self.loads, self.compute, self.body]
-        if npu_inject_care_padding:
+        if ncfg.inject_care_padding:
             _apply_to_first_buffer(_care_padding_transform, _bufs)
-        if npu_rewrite_int1_cast_as_ne:
+        if ncfg.rewrite_int1_cast_as_ne:
             _apply_to_first_buffer(_int1_cast_transform, _bufs)
         return result_var
 
@@ -2886,7 +2876,7 @@ class NPUTritonKernel(TritonKernel):
         # loop and _npu_triton_compute_type. Non-RNG kernels keep the legacy
         # demoted-to-i32 behavior unchanged.
         self._npu_int64_exempt: bool = False
-        self._npu_linearize: bool = bool(triton_codegen_linearize) or force_linearize
+        self._npu_linearize: bool = bool(ncfg.codegen_linearize) or force_linearize
         self._npu_assert_shapes = {}
         super().__init__(*args, **kwargs)
         # Set by TEComboSubKernel after construction; ordinary kernels leave
@@ -3054,7 +3044,7 @@ class NPUTritonKernel(TritonKernel):
             from torch._inductor.utils import sympy_subs
             index = sympy_subs(index, V.graph.sizevars.precomputed_replacements)
             index = self._canonicalize_range_symbols(index)
-        if npu_refactor_clamp_stride:
+        if ncfg.refactor_clamp_stride:
             index = self._refactor_clamp_stride(index)
         index = self._fold_trivial_modular_indexing(index)
         return index
@@ -5022,7 +5012,7 @@ class NPUTritonKernel(TritonKernel):
         # config the rewrite was validated against (a sweep would hit other
         # (XBLOCK, R0_BLOCK) pairs whose real_block_row != 1 silently miscompile
         # the gather). Validation failure -> no marker -> strided load stays.
-        if triton_codegen_linearize and getattr(self, "_npu_pg_candidates", None):
+        if ncfg.codegen_linearize and getattr(self, "_npu_pg_candidates", None):
             _pg_marker = self._npu_pg_rewrite_body()
             if _pg_marker is not None:
                 triton_meta["npu_permute_gather"] = _pg_marker
@@ -5930,9 +5920,9 @@ def _npu_rsplit_outer_applicable(kernel) -> bool:
          i.e. the upstream x-axis core split CAN'T fill all 40 cores.
       5. The reduction numel hint is large enough that paying for the second
          kernel launch is worthwhile.
-      6. NPU_RSPLIT_OUTER env gate is on (default).
+      6. ``ncfg.rsplit_outer`` is enabled (the default).
     """
-    if not npu_rsplit_outer:
+    if not ncfg.rsplit_outer:
         return False
     if not getattr(kernel, "inside_reduction", False):
         return False
@@ -6017,7 +6007,7 @@ class NPUTritonScheduling(TritonScheduling):
             return "disabled"
         if device_props.is_a5():
             return "A5 dispatch is not supported"
-        if not triton_codegen_linearize:
+        if not ncfg.codegen_linearize:
             return "linearize is required"
         if not 2 <= len(nodes) <= ncfg.te_combo_max_members:
             return "member count outside phase-one limit"
@@ -8766,7 +8756,7 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
 #
 # These sit here (rather than in overrides.py) because they patch the Triton
 # codegen / scheduler layer and share this module's imports (IterationRangesRoot,
-# V, sympy, triton_codegen_linearize). overrides.apply_npu_overrides() calls
+# V, sympy and the live NPU config). overrides.apply_npu_overrides() calls
 # apply_npu_codegen_patches() at backend activation.
 # =============================================================================
 def _npu_get_block_hint(tree: IterationRangesRoot):
@@ -8841,10 +8831,10 @@ def _patch_zero_dim_cpu_tensor_for_npu():
 def apply_npu_codegen_patches():
     """Install the NPU codegen/scheduler monkeypatches (called from overrides.py)."""
     _patch_npu_shape_assert()
-    if triton_codegen_linearize:
-        # codegen_range_tree / iteration_ranges_* are real methods on
-        # NPUTritonKernel; only attach get_block_hint here (used by NPUTritonScheduling).
-        IterationRangesRoot.get_block_hint = _npu_get_block_hint
+    # codegen_range_tree / iteration_ranges_* are real methods on
+    # NPUTritonKernel. The helper is only called when the current kernel's live
+    # codegen_linearize setting enabled linearization.
+    IterationRangesRoot.get_block_hint = _npu_get_block_hint
 
     _patch_zero_dim_cpu_tensor_for_npu()
 

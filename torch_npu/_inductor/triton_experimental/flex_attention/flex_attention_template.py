@@ -32,6 +32,12 @@ from torch_npu._inductor.select_algorithm import NPUTemplateCompileOption
 
 
 class ExperimentalTemplateKernel(shared_selector.NPUTritonTemplateKernel):
+    @staticmethod
+    def inductor_meta_common():
+        from ..codegen.triton import NPUTritonKernel
+
+        return NPUTritonKernel.inductor_meta_common()
+
     def jit_lines(self):
         lines = super().jit_lines()
         marker = "@triton_heuristics.template("

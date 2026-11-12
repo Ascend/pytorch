@@ -407,9 +407,10 @@ class TeSourcePinPass(CustomGraphPass):
     device_custom_config=...)`` -> ``custom_backend_codegen_configs``
     (snapshot through ``save_config_portable``/``_get_dict`` live values).
 
-    uuid() = sha256 over the TE source tree; any edit invalidates cached
-    entries (safe recompile).  The pass itself does nothing: its purpose
-    is purely keying (on cache miss it runs like any post-grad pass; on
+    uuid() includes the TE source digest, torch-npu version and
+    Triton-Ascend distribution version; changes invalidate cached entries.
+    The pass itself does nothing: its purpose is purely keying (on cache miss
+    it runs like any post-grad pass; on
     cache HIT the compile is skipped entirely).
     """
 
@@ -417,7 +418,21 @@ class TeSourcePinPass(CustomGraphPass):
         pass
 
     def uuid(self):
-        return _te_source_digest()
+        import hashlib
+        from importlib.metadata import PackageNotFoundError, version
+
+        import torch_npu
+
+        try:
+            triton_ascend_version = version("triton-ascend")
+        except PackageNotFoundError:
+            # Source installs still carry Inductor's native triton_key().
+            triton_ascend_version = None
+        identity = (
+            _te_source_digest(), torch_npu.__version__,
+            triton_ascend_version,
+        )
+        return hashlib.sha256(repr(identity).encode()).digest()
 
 
 def _te_source_digest(base=None):

@@ -87,6 +87,11 @@ except Exception:
     _MsptiKernelMonitor = None
 
 
+def _runtime_config(inductor_meta, name):
+    saved = (inductor_meta or {}).get("npu_backend_config", {})
+    return saved[name] if name in saved else getattr(ncfg, name)
+
+
 def _mspti_autotune_enabled():
     """mspti device-time bench is usable iff the package imports AND
     libmspti.so is preloaded (the monitor is a silent no-op otherwise, which
@@ -502,6 +507,26 @@ class NPUTritonCompileResult(TritonCompileResult):
         return launcher
 
 
+class NPUConfig(Config):
+    """Preserve backend compile options across deepcopy and static snapshots."""
+
+    def __setstate__(self, state):
+        restore = getattr(super(), "__setstate__", None)
+        if restore is None:
+            self.__dict__.update(state)
+        else:
+            restore(state)
+        self.extra_options = state.get("extra_options")
+
+    @classmethod
+    def from_config(cls, cfg):
+        if isinstance(cfg, cls):
+            return cfg
+        result = cls.__new__(cls)
+        result.__dict__.update(copy.deepcopy(vars(cfg)))
+        return result
+
+
 class NPUCachingAutotuner(CachingAutotuner):
     def __init__(
         self,
@@ -521,7 +546,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         super().__init__(
             fn,
             triton_meta,
-            configs,
+            [NPUConfig.from_config(cfg) for cfg in configs],
             save_cache_hook,
             mutated_arg_names,
             optimize_mem,
@@ -532,6 +557,58 @@ class NPUCachingAutotuner(CachingAutotuner):
             filename=filename,
             reset_to_zero_arg_names=reset_to_zero_arg_names,
         )
+
+    def recheck_autotune_cache(self, reload_kernel_from_src):
+        """Select a saved NPU winner before upstream materializes launchers."""
+        from torch._inductor.runtime.cache_dir_utils import cache_dir
+
+        if not self.is_statically_launchable():
+            raise AssertionError("Expected statically launchable kernel")
+        self.save_cache_hook = None
+        self.autotune_cache_info = {"autotune_cache_state": "miss"}
+        original = getattr(self, "_npu_autotune_configs", None)
+        # Old static snapshots cannot recover the original candidate identity
+        # from the successful subset. They may execute/retune that subset, but
+        # must not read or overwrite a cache using an invented identity.
+        if original is None:
+            return
+        if (
+            (len(original) <= 1 and not self.inductor_meta.get("coordinate_descent_tuning"))
+            or not _npu_autotune_cache_enabled(self.inductor_meta, self.heuristic_type)
+        ):
+            self.autotune_cache_info["autotune_cache_state"] = "disabled"
+            return
+        relative = getattr(self, "_npu_cache_relative_filename", None)
+        if relative is None:
+            # Hand-written kernels can live outside Inductor's cache tree.
+            # Use the source loader's current filename rather than guessing it.
+            filename = reload_kernel_from_src().filename
+        else:
+            filename = os.path.join(cache_dir(), relative)
+        self.filename = filename
+        cache = _create_npu_autotune_cache(
+            original, filename, self.inductor_meta, self.heuristic_type
+        )
+        if cache is None:
+            self.autotune_cache_info["autotune_cache_state"] = "disabled"
+            return
+        self.save_cache_hook = cache.save
+        best = _read_npu_autotune_cache(cache, self.inductor_meta, original)
+        if best is None:
+            return
+        key = _npu_config_key(best)
+        for result in self.compile_results:
+            if _npu_config_key(result.config) == key:
+                result.config.found_by_coordesc = getattr(best, "found_by_coordesc", False)
+                self.compile_results = [result]
+                self.autotune_cache_info = {
+                    "autotune_cache_state": "hit",
+                    "best_config": key,
+                }
+                return
+        # A valid cached winner may be absent from this snapshot. Keep the
+        # available candidates for normal tuning; don't claim a binary hit.
+        self.autotune_cache_info["autotune_cache_state"] = "winner_missing"
 
     def _npu_arg_names(self):
         """Positional argument names for the compiled kernel.
@@ -584,6 +661,11 @@ class NPUCachingAutotuner(CachingAutotuner):
         # Replace any benchmark kernel with the final winner on the first real run.
         if launcher.store_cubin and (not benchmark_run or not self.cuda_kernel_saved):
             self.save_gpu_kernel(stream, launcher)
+        # Register reused and single-config kernels in each active bundle.
+        if TritonBundler._entries is not None:
+            TritonBundler.put(launcher.cache_hash, int(self.triton_meta.get("device") or 0))
+            if hasattr(TritonBundler, "put_winner"):
+                TritonBundler.put_winner(launcher.cache_hash)
         result = launcher(*args, **kwargs, stream=stream)
         if not benchmark_run:
             cached = self._build_fast_launcher(launcher)
@@ -596,13 +678,17 @@ class NPUCachingAutotuner(CachingAutotuner):
         launchers = self.launchers
 
         def fast_run(*args, stream, benchmark_run=False, **kwargs):
-            # A rebuilt launcher set replaces the list.
+            # Rebuilt launchers need a new fast entry point.
             if self.launchers is not launchers:
                 del self.run
                 self._cached_launcher = None
                 return self.run(
                     *args, stream=stream, benchmark_run=benchmark_run, **kwargs
                 )
+            if TritonBundler._entries is not None:
+                TritonBundler.put(launcher.cache_hash, int(self.triton_meta.get("device") or 0))
+                if hasattr(TritonBundler, "put_winner"):
+                    TritonBundler.put_winner(launcher.cache_hash)
             if benchmark_run or kwargs:
                 return launcher(*args, **kwargs, stream=stream)
             return cached(*args, stream=stream)
@@ -825,10 +911,11 @@ class NPUCachingAutotuner(CachingAutotuner):
         from torch._inductor.runtime.triton_heuristics import NoTritonConfigsError
 
         if self.compile_results:
+            # Worker results must be registered in the main process's bundle.
             for result in self.compile_results:
                 TritonBundler.put(
                     triton_hash_to_path_key(result.kernel.hash),
-                    int(self.triton_meta.get("device", 0) or 0),
+                    int(self.triton_meta.get("device") or 0),
                 )
             return
 
@@ -964,6 +1051,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         return results, last_exc
 
     def _precompile_config(self, cfg: Config):
+        cfg = NPUConfig.from_config(cfg)
         compile_meta = copy.deepcopy(self.triton_meta)
 
         cfg_kwargs = cfg.kwargs
@@ -994,7 +1082,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         compile_meta["debug"] = (
             self.inductor_meta.get("assert_indirect_indexing", True)
             and not self.inductor_meta.get("is_hip", False)
-            and ncfg.triton_debug
+            and _runtime_config(self.inductor_meta, "triton_debug")
         )
 
         # 2.7.1: device_type/cc come from device_props
@@ -1036,9 +1124,9 @@ class NPUCachingAutotuner(CachingAutotuner):
             "mix_mode": "aiv",
             "enable_bisheng_compile": True,
             # VF Fusion controls (see config.py for documentation)
-            "enable_vf_fusion": ncfg.enable_vf_fusion,
-            "vf_fusion_mode": ncfg.vf_fusion_mode,
-            "vf_merge_level": ncfg.vf_merge_level,
+            "enable_vf_fusion": _runtime_config(self.inductor_meta, "enable_vf_fusion"),
+            "vf_fusion_mode": _runtime_config(self.inductor_meta, "vf_fusion_mode"),
+            "vf_merge_level": _runtime_config(self.inductor_meta, "vf_merge_level"),
         }
         compile_kwargs = {
             "target": target,
@@ -1073,9 +1161,10 @@ class NPUCachingAutotuner(CachingAutotuner):
             **self.inductor_meta,
             "block_hints": self.triton_meta.get("block_hints", {}),
         }
+        # Also cover candidates compiled directly by later tuning passes, which
+        # do not go through _precompile_worker().
         TritonBundler.put(
-            triton_hash_to_path_key(binary.hash),
-            int(compile_meta.get("device", 0) or 0),
+            triton_hash_to_path_key(binary.hash), int(self.triton_meta.get("device") or 0)
         )
         static_kernel = NPUStaticTritonCompileResult.can_statically_launch(
             binary,
@@ -1460,8 +1549,8 @@ def _npu_config_key(cfg: Config) -> tuple:
     num_stages), which would collapse candidates that differ solely in the
     backend extra_options slot (auto_blockify_size {2,4,8} all share the same
     tile kwargs). Extend the key so each backend-option candidate stays a
-    distinct autotune candidate; save and read_best both go through this file,
-    so the hash stays self-consistent end to end."""
+    distinct autotune candidate. Static restore uses this same identity and
+    hashes the saved original set, not only successfully compiled configs."""
     items = sorted(cfg.kwargs.items())
     items.append(("num_warps", cfg.num_warps))
     items.append(("num_stages", cfg.num_stages))
@@ -1475,6 +1564,7 @@ def _npu_unique_configs(configs):
     seen = set()
     out = []
     for cfg in configs:
+        cfg = NPUConfig.from_config(cfg)
         key = _npu_config_key(cfg)
         if key in seen:
             continue
@@ -1490,9 +1580,51 @@ def _npu_hash_configs(configs):
     return hasher.hexdigest()
 
 
-def _add_tile_consistent_config(size_hints, configs, fn, heuristic_type):
+def _npu_autotune_cache_enabled(inductor_meta, heuristic_type):
+    deterministic_reduction = heuristic_type in (
+        HeuristicType.REDUCTION, HeuristicType.PERSISTENT_REDUCTION
+    ) and any(inductor_meta.get(key, False) for key in (
+        "deterministic", "are_deterministic_algorithms_enabled", "force_filter_reduction_configs"
+    ))
+    local_disabled = not config.autotune_local_cache or not inductor_meta.get("autotune_local_cache", True)
+    remote_disabled = config.autotune_remote_cache is False or inductor_meta.get("autotune_remote_cache") is False
+    return not (
+        inductor_meta.get("force_disable_caches", False)
+        or config.force_disable_caches
+        or deterministic_reduction
+        or os.environ.get("TRITON_INTERPRET", "0") == "1"
+        or (local_disabled and remote_disabled)
+    )
+
+
+def _create_npu_autotune_cache(configs, filename, inductor_meta, heuristic_type):
+    if (
+        not filename
+        or (len(configs) <= 1 and not inductor_meta.get("coordinate_descent_tuning"))
+        or not _npu_autotune_cache_enabled(inductor_meta, heuristic_type)
+    ):
+        return None
+    # Honor both the producing request and the consumer's cache opt-outs.
+    meta = dict(inductor_meta)
+    if not config.autotune_local_cache:
+        meta["autotune_local_cache"] = False
+    if config.autotune_remote_cache is False:
+        meta["autotune_remote_cache"] = False
+    return AutotuneCache.create(meta, filename, _npu_hash_configs(configs))
+
+
+def _read_npu_autotune_cache(cache, inductor_meta, configs):
+    # Upstream may attach extra_options to a matching Config. Never let a
+    # read mutate the original candidate identity retained in the snapshot.
+    # Dynamic small-block fallback winners may legitimately be outside configs.
+    candidates = [NPUConfig.from_config(cfg) for cfg in configs]
+    best = cache.read_best(inductor_meta, copy.deepcopy(candidates))
+    return NPUConfig.from_config(best) if best is not None else None
+
+
+def _add_tile_consistent_config(size_hints, configs, fn, heuristic_type, inductor_meta=None):
     # Tiny dynamic sizes fail the (XBLOCK,) assert; swap in one config at tile width.
-    # Reads kernel source, not a config flag: patches do not reach compile workers.
+    # Detect the generated shape assertion, then use its producer's tile alignment.
     if heuristic_type != HeuristicType.POINTWISE:
         return configs
     import inspect
@@ -1513,7 +1645,7 @@ def _add_tile_consistent_config(size_hints, configs, fn, heuristic_type):
         hint = None
     if not isinstance(hint, int) or hint <= 0:
         return configs
-    align = max(int(ncfg.tile_align), 1)
+    align = max(int(_runtime_config(inductor_meta, "tile_align")), 1)
 
     def _aligned(n):
         return ((n + align - 1) // align) * align
@@ -1552,20 +1684,6 @@ def cached_autotune(
     configs = _npu_unique_configs(configs)
     if len(configs) != 1 and not filename:
         raise ValueError("[triton_experimental] cached_autotune requires a filename when multiple configs are given")
-    disabled = inductor_meta.get("force_disable_caches", False) or deterministic_reduction
-
-    autotune_cache = None
-    if (
-        not disabled
-        and filename is not None
-        and (len(configs) > 1 or inductor_meta.get("coordinate_descent_tuning"))
-        and not os.environ.get("TRITON_INTERPRET", "0") == "1"
-    ):
-        configs_hash = _npu_hash_configs(configs)
-        autotune_cache = AutotuneCache.create(inductor_meta, filename, configs_hash)
-        if autotune_cache and (best_config := autotune_cache.read_best(inductor_meta, configs)):
-            configs = [best_config]
-
     mutated_arg_names = inductor_meta.pop("mutated_arg_names", ())
     optimize_mem = inductor_meta.pop("optimize_mem", True)
 
@@ -1587,10 +1705,20 @@ def cached_autotune(
                     tconfig.kwargs.pop("XBLOCK")
 
         final_configs = _add_tile_consistent_config(
-            size_hints, configs, fn, heuristic_type
+            size_hints, configs, fn, heuristic_type, inductor_meta
         )
 
-        return NPUCachingAutotuner(
+        # Snapshot after signature normalization, before cache narrowing, tier
+        # selection or compilation failures remove candidates.
+        original_configs = copy.deepcopy(final_configs)
+        autotune_cache = _create_npu_autotune_cache(
+            original_configs, filename, inductor_meta, heuristic_type
+        )
+        if autotune_cache is not None:
+            best = _read_npu_autotune_cache(autotune_cache, inductor_meta, original_configs)
+            if best is not None:
+                final_configs = [best]
+        tuner = NPUCachingAutotuner(
             fn,
             triton_meta=triton_meta,
             inductor_meta=inductor_meta,
@@ -1604,6 +1732,15 @@ def cached_autotune(
             custom_kernel=custom_kernel,
             filename=filename,
         )
+
+        from torch._inductor.runtime.cache_dir_utils import cache_dir
+
+        tuner._npu_autotune_configs = original_configs
+        relative = os.path.relpath(filename, cache_dir()) if filename else None
+        if relative is not None and (relative == os.pardir or relative.startswith(os.pardir + os.sep)):
+            relative = None
+        tuner._npu_cache_relative_filename = relative
+        return tuner
 
     return decorator
 
@@ -1636,18 +1773,10 @@ def npu_triton_config(
     return config
 
 
-autotune_enhance = ncfg.autotune_enhance
-npu_group_dispatch = ncfg.group_dispatch
-# When set, a static single-tile INNER reduction pins R0_BLOCK=rnumel (one tile
-# covers the whole reduction axis, so r0_mask is provably always-true) and the
-# codegen drops the now-dead accumulator ``tl.where`` guard. Non-persistent:
-# the multi-pass loop structure is kept, only the per-element select is removed.
-npu_elide_reduction_where = ncfg.elide_reduction_where
 # When TRITON_ALL_BLOCKS_PARALLEL=1 the Ascend backend folds a >65535 grid down
 # to the physical core count.  `auto_blockify_size` controls the chunking of
 # the leftmost folded dim.  We expose 1/2/4/8 as autotune candidates (matching
 # the values triton-ascend ships in its docs) and let the cache pick a winner.
-npu_all_blocks_parallel = ncfg.all_blocks_parallel
 _NPU_AUTO_BLOCKIFY_CANDIDATES = (1, 2, 4, 8)
 
 
@@ -1665,12 +1794,9 @@ def _npu_total_cores() -> int:
 # bench them; raise the divisor to admit even larger tiles.
 _NPU_MIN_BLOCKS_DIVISOR = 4
 
-# At launch, if a tensor is runtime int64 but the compiled signature expects ``*i32`` (NPU
-# codegen narrows index dtype), insert a temporary int32 buffer for that arg. For mutated
-# args (in/out aliases) the wrapper writes the result back into the original int64 buffer.
-# Does NOT correct actual integer overflow inside the kernel — only the ABI dtype mismatch.
-npu_int64_boundary_cast = ncfg.int64_boundary_cast
-
+# Runtime boundary conversions used by ``_wrap_launcher_with_downcast``. They bridge
+# fp64/i64 tensors to the fp32/i32 signatures emitted for NPU kernels; mutated outputs are
+# copied back afterward. This only fixes an ABI dtype mismatch, not arithmetic overflow.
 _DTYPE_DOWNCAST_MAP = {
     "*i64": (torch.int64, torch.int32),
     "*fp64": (torch.float64, torch.float32),
@@ -1686,18 +1812,13 @@ _NPU_PTR_ELEM_BYTES = {
     "fp64": 4, "f64": 4, "i64": 8,
 }
 
-# When an fp64/i64 arg (RMSNorm eps scalar) feeds more than one kernel, inductor's recompute-
-# the-tail fusion drags the SAME source into each, so without memoization every launch re-runs
-# the boundary .to() on the AI_CPU scalar engine (~55us per 0-d cast) — N kernels, N casts of
-# one value. Memoize the input downcast keyed by source tensor (weak, version-guarded). OUTPUT
-# downcasts aren't memoized — each needs a fresh write-back buffer.
-npu_dedup_downcast = ncfg.dedup_downcast
-
-# Maps id(src) -> (weakref(src), version, downcast_dtype, downcast_tensor). Keyed by id()
-# not the tensor: a dict keyed by tensor would invoke Tensor.__eq__ on lookup — a device-side
-# torch.eq (AI_CPU "Equal" op), exactly what this memo avoids. A weakref finalizer drops the
-# entry the instant src is freed, so a later tensor reusing the id() can't hit a stale copy;
-# the `wref() is src` guard covers the in-flight window too.
+# Input-only fp64/i64 boundary downcasts may be shared by several fused kernels. Without
+# memoization, every kernel repeats the AI_CPU scalar ``.to()`` (~55 us for a 0-D value).
+# ``_memoized_downcast`` reads the live ``ncfg.dedup_downcast`` setting and stores entries
+# as (weakref(src), version, downcast_dtype, downcast_tensor). The map is keyed by id(src),
+# since tensor lookup would invoke Tensor.__eq__ and launch a device-side comparison. The
+# weakref and identity check prevent a later tensor that reuses id(src) from hitting stale
+# data. Output downcasts are not memoized because each needs a fresh write-back buffer.
 _downcast_memo: dict = {}
 
 
@@ -1744,7 +1865,7 @@ def _to_dtype_preserving_layout(src, dst_dtype):
     overlapping/expanded destination tripping the eager internal-overlap
     guard. Aliased cells hold one value each, so cell-for-cell casting is
     exact. Gapped views cost a span-sized temp (larger than numel) and
-    re-cast on every launch when ``dedup_downcast`` is off (no memo)."""
+    re-cast on every launch when ``ncfg.dedup_downcast`` is off (no memo)."""
     # _debug_has_internal_overlap returns 0 ("No") exactly for the tensors
     # whose strides are the contiguous strides of ``shape`` under some dim
     # permutation (numel >= 2) -- the one class ``Tensor.to(preserve_format)``
@@ -1786,7 +1907,7 @@ def _memoized_downcast(src, dst_dtype):
     # it needs a separate runtime guard. ``cudagraph_trees`` itself is not a
     # guard: it defaults to True even during ordinary execution.
     if (
-        not npu_dedup_downcast
+        not ncfg.dedup_downcast
         or torch_npu.npu.is_current_stream_capturing()
         or _is_npugraph_tree_warmup_active()
     ):
@@ -2153,10 +2274,10 @@ def _pw1d_formula_configs(size_hints, triton_meta, inductor_meta, min_elem_per_t
         npu_triton_config(size_hints, x, min_elem_per_thread=min_elem_per_thread)
         for x in xblocks
     ]
-    # Huge kernel: grid > 65535 coreDim -> all_blocks_parallel folds it; let autotune
+    # Huge kernel: grid > 65535 coreDim -> ``all_blocks_parallel`` folds it; let autotune
     # pick the fold chunking (auto_blockify_size {2,4,8}) on the largest tile. The
     # cap>0 check guards ceildiv against the empty-tensor fallback (xblocks=[0]).
-    if ncfg.all_blocks_parallel and xblocks[-1] > 0 and ceildiv(int(numel), xblocks[-1]) > 65535:
+    if _runtime_config(inductor_meta, "all_blocks_parallel") and xblocks[-1] > 0 and ceildiv(int(numel), xblocks[-1]) > 65535:
         for ab in (2, 4, 8):
             configs.append(
                 npu_triton_config(
@@ -2220,7 +2341,7 @@ def pointwise(
     # 2.7.1: disable_pointwise_autotuning requires inductor_meta parameter
     if len(size_hints) == 1:
         if disable_pointwise_autotuning(inductor_meta) and not (
-            config.max_autotune or config.max_autotune_pointwise
+            inductor_meta.get("max_autotune", False) or inductor_meta.get("max_autotune_pointwise", False)
         ):
             return cached_autotune(
                 size_hints,
@@ -2230,14 +2351,12 @@ def pointwise(
                 heuristic_type=HeuristicType.POINTWISE,
                 filename=filename,
             )
-        # Default path (formerly the autotune_enhance-enabled logic): the new
-        # _pw1d_formula_configs algo by default; the legacy exhaustive sweep (the original
-        # autotune_enhance body) when ncfg.autotune_fallback OR max_autotune /
-        # max_autotune_pointwise is ON -- max_autotune expects a wider search and must not
-        # be narrowed to the ~3-config formula.
-        elif autotune_enhance:
-            if (not ncfg.autotune_fallback
-                    and not (config.max_autotune or config.max_autotune_pointwise)):
+        # ``autotune_enhance`` uses the compact formula unless the saved
+        # ``autotune_fallback`` or an Inductor max-autotune setting requests the
+        # exhaustive search.
+        elif _runtime_config(inductor_meta, "autotune_enhance"):
+            if (not _runtime_config(inductor_meta, "autotune_fallback")
+                    and not (inductor_meta.get("max_autotune", False) or inductor_meta.get("max_autotune_pointwise", False))):
                 configs = _pw1d_formula_configs(
                     size_hints, triton_meta, inductor_meta, min_elem_per_thread
                 )
@@ -2379,7 +2498,7 @@ def pointwise(
                     for b in block_sizes
                 ]
 
-            if npu_all_blocks_parallel:
+            if _runtime_config(inductor_meta, "all_blocks_parallel"):
                 configs_list = build_configs(preferred_blocks)
                 large_candidates = preferred_blocks[-2:] if len(preferred_blocks) >= 2 else preferred_blocks
                 for b in large_candidates:
@@ -2414,7 +2533,7 @@ def pointwise(
         _, _, axis_hints = _extract_axis_hint_payloads(triton_meta)
         if (
             disable_pointwise_autotuning(inductor_meta) or tile_hint == TileHint.SQUARE
-        ) and not (config.max_autotune or config.max_autotune_pointwise):
+        ) and not (inductor_meta.get("max_autotune", False) or inductor_meta.get("max_autotune_pointwise", False)):
             square_configs = [
                 triton_config_with_settings(size_hints, 8, 8),
                 triton_config_with_settings(size_hints, 16, 16),
@@ -2487,9 +2606,9 @@ def pointwise(
         _TILE_MIN = 256
         # The winning config often lands exactly at _TILE_MAX (256x64), so the tile budget
         # — not the XBLOCK sweep — is the real ceiling. A too-low cap forces large XBLOCK
-        # onto tiny YBLOCK (2048x8), starving the parallel axis. Raise the cap (env-tunable)
-        # so large XBLOCK pairs with adequate YBLOCK; autotune skips UB-overflow configs.
-        _TILE_MAX = ncfg.pointwise_tile_max
+        # onto tiny YBLOCK (2048x8), starving the parallel axis. The configured tile cap
+        # lets large XBLOCK pair with adequate YBLOCK; autotune skips UB-overflow configs.
+        _TILE_MAX = _runtime_config(inductor_meta, "pointwise_tile_max")
         _XB_SWEEP = [8, 16, 32, 64, 128, 256, 512, 1024, 2048]
         for yb in _divisors_down(y_hint):
             for xb in _XB_SWEEP:
@@ -2769,7 +2888,7 @@ def reduction(
 
         # TEMP DIAGNOSTIC: pin a single (XBLOCK, R0_BLOCK) to measure the real
         # kernel at a chosen trip count. Remove after validation.
-        _pin = ncfg.pin_xr
+        _pin = _runtime_config(inductor_meta, "pin_xr")
         if _pin:
             _px, _pr = (int(v) for v in _pin.split(","))
             return cached_autotune(
@@ -2781,14 +2900,12 @@ def reduction(
                 filename=filename,
             )
 
-        # Default path (formerly the autotune_enhance-enabled logic): the new
-        # _red_formula_configs algo by default; falls through to the restored original
-        # reduction candidate cascade below when ncfg.autotune_fallback OR max_autotune /
-        # max_autotune_pointwise is ON (max_autotune takes the 2340 wide grid, matching the
-        # upstream "wide search" semantics).
-        if (autotune_enhance
-                and not ncfg.autotune_fallback
-                and not (config.max_autotune or config.max_autotune_pointwise)):
+        # ``autotune_enhance`` uses the compact reduction formula unless the saved
+        # ``autotune_fallback`` or an Inductor max-autotune setting requests the
+        # exhaustive candidate cascade below.
+        if (_runtime_config(inductor_meta, "autotune_enhance")
+                and not _runtime_config(inductor_meta, "autotune_fallback")
+                and not (inductor_meta.get("max_autotune", False) or inductor_meta.get("max_autotune_pointwise", False))):
             configs = _red_formula_configs(size_hints, triton_meta, inductor_meta)
             return cached_autotune(
                 size_hints,
@@ -2814,10 +2931,10 @@ def reduction(
                 v *= 2
             return vals
 
-        if config.max_autotune or config.max_autotune_pointwise:
+        if inductor_meta.get("max_autotune", False) or inductor_meta.get("max_autotune_pointwise", False):
             x_list = [1, 2, 4, 8, 16]
             r_list = _full_r_range(8, 16384)
-        elif autotune_enhance:
+        elif _runtime_config(inductor_meta, "autotune_enhance"):
             x_list = [1, 2, 4, 8, 16]
             r_list = _full_r_range(8, 16384)
         elif reduction_hint == ReductionHint.INNER:
@@ -2848,13 +2965,13 @@ def reduction(
         if isinstance(contiguous_r, int) and contiguous_r > 0 and contiguous_r not in r_list:
             r_list = sorted(set(r_list) | {contiguous_r})
 
-        # npu_elide_reduction_where: for a static single-reduction-axis kernel fitting one
+        # ``elide_reduction_where``: for a static single-reduction-axis kernel fitting one
         # tile, offer two R0_BLOCK candidates: (1) rnumel — r0_mask all-true; (2) align_up
         # (rnumel, 32B) — 32B-aligned lane count (150→152 fp32). Both keep ONE tile so
         # codegen drops the accumulator tl.where: (1) has no pad lanes, (2)'s are neutralised
         # at the LOAD (other=identity). Bounded rnumel<=4096 so the tile fits UB.
         if (
-            npu_elide_reduction_where
+            _runtime_config(inductor_meta, "elide_reduction_where")
             and isinstance(rnumel, int)
             and 0 < rnumel <= 4096
         ):
@@ -2995,7 +3112,7 @@ def reduction(
             for r in r_list
         ]
 
-        if autotune_enhance:
+        if _runtime_config(inductor_meta, "autotune_enhance"):
             # The generic enhanced sweep is conservative, leaving a gap that hurts
             # RMSNorm-style backward reductions (INNER: x dynamic rows, r fixed 2048;
             # OUTER: x the 2048 weight axis, r dynamic rows): candidates jump from X<=16 to
@@ -3030,7 +3147,9 @@ def reduction(
                     base_configs.append(cfg)
                     seen_kwargs.add(key)
 
-        if not (config.max_autotune or config.max_autotune_pointwise or autotune_enhance):
+        if not (inductor_meta.get("max_autotune", False)
+                or inductor_meta.get("max_autotune_pointwise", False)
+                or _runtime_config(inductor_meta, "autotune_enhance")):
             preferred_configs = [contiguous_config, outer_config, tiny_config]
             for cfg in preferred_configs:
                 if all(cfg.kwargs != existing.kwargs for existing in base_configs):
@@ -3115,10 +3234,10 @@ def persistent_reduction(
                 v *= 2
             return vals
 
-        if config.max_autotune or config.max_autotune_pointwise:
+        if inductor_meta.get("max_autotune", False) or inductor_meta.get("max_autotune_pointwise", False):
             x_list = [1, 2, 4, 8, 16]
             r_list = _full_r_range(8, 16384)
-        elif autotune_enhance:
+        elif _runtime_config(inductor_meta, "autotune_enhance"):
             x_list = [1, 2, 4, 8, 16]
             r_list = _full_r_range(8, 16384)
         elif reduction_hint == ReductionHint.INNER:

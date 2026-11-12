@@ -23,6 +23,7 @@ compile needed):
 import os
 import tempfile
 import unittest
+from unittest import mock
 
 import torch_npu  # noqa: F401  (package import order for fx_passes)
 
@@ -91,12 +92,14 @@ class TestTeSourceDigest(unittest.TestCase):
             self.assertEqual(_te_source_digest(root), d1)
 
     def test_uuid_is_stable_bytes_across_instances(self):
-        d1 = _te_source_digest()
+        d1 = TeSourcePinPass().uuid()
         d2 = TeSourcePinPass().uuid()
         d3 = TeSourcePinPass().uuid()
         self.assertIsInstance(d1, bytes)
         self.assertEqual(d1, d2)
         self.assertEqual(d2, d3)
+        with mock.patch(f"{TeSourcePinPass.__module__}._te_source_digest", return_value=b"changed"):
+            self.assertNotEqual(d1, TeSourcePinPass().uuid())
 
 
 class TestInstallComposition(unittest.TestCase):

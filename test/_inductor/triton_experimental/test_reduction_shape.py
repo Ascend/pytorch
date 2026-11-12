@@ -261,14 +261,14 @@ class TestReductionShape(TestCase):
         "test_configs.runtime_triton_dtype_assert": True,
     })
     def test_without_linearize(self, device, dtype):
-        from torch_npu._inductor.triton_experimental.codegen import triton as codegen
+        from torch_npu._inductor.triton_experimental import config as ncfg
 
         x = torch.randn(257, device=device, dtype=dtype)
 
         def fn(x):
             return x.square() + 1
 
-        with mock.patch.object(codegen, "triton_codegen_linearize", False):
+        with ncfg.patch(codegen_linearize=False):
             compiled = torch.compile(fn, fullgraph=True, options={"npu_backend": "triton_experimental"})
             actual, codes = run_and_get_code(compiled, x)
         self.assertEqual(actual, fn(x))

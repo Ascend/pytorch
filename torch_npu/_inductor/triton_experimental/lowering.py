@@ -391,12 +391,9 @@ overwrite_lowering(aten.index_put_, npu_index_put_, type_promotion_kind=None)
 # bishengir degrades a tail-axis-broadcast fused pointwise to SCALAR when the
 # broadcast inner axis is below the vector width (910B3: len 8 -> 4us, len 4 ->
 # 60+us). Realize into its own buffer only when strictly below threshold.
-NPU_TAIL_BCAST_MIN_VEC = ncfg.tail_bcast_min_vec
-
-
 def _is_tail_axis_broadcast(x, sizes):
     """True iff expanding x to sizes broadcasts the inner dim and the target inner
-    length is in the slow scalar-degenerate range (1 < len < NPU_TAIL_BCAST_MIN_VEC).
+    length is below the live ``tail_bcast_min_vec`` threshold.
     ExpandView has no get_stride(), so inspect x's own size vs the target sizes."""
     try:
         in_size = x.get_size()
@@ -411,7 +408,7 @@ def _is_tail_axis_broadcast(x, sizes):
     if not isinstance(tgt_inner, (int, sympy.Integer)):
         return False
     tgt_inner = int(tgt_inner)
-    return 1 < tgt_inner < NPU_TAIL_BCAST_MIN_VEC
+    return 1 < tgt_inner < ncfg.tail_bcast_min_vec
 
 
 from torch._inductor.lowering import expand as _orig_expand
