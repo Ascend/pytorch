@@ -14,6 +14,7 @@ from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.codegen.mlir import (
 )
 from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.codegen.meta_kernel import (
     NpuMetaScheduling,
+    NpuTritonKernel,
     create_fx_from_snodes_by_traced_graph,
 )
 from .wrapper import NpuDvmWrapperCodeGen
@@ -171,7 +172,14 @@ def _kernel_layout_key(mlir_kernel):
     return non_contiguous_key, cont_flag_input
 
 
+class NpuDvmSchedulingKernel(NpuTritonKernel):
+    def remove_kernel_local_buffers(self):
+        self.must_keep_buffers.clear()
+        super().remove_kernel_local_buffers()
+
+
 class NpuDvmScheduling(NpuMetaScheduling):
+    kernel_type = NpuDvmSchedulingKernel
     meta_kernel_type = NpuDvmKernel
 
     def _get_npu_triton_scheduling(self):
