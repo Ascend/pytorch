@@ -77,11 +77,26 @@ on:
       retry_max_cases:
         required: false
         type: string
-        default: '100'
+        default: '0'
         description: >-
           Max failed/error/timeout cases retried serially per shard after
           the main run (0 = unlimited); cases beyond the cap keep their
-          original results.
+          original results. Unlimited by default: the retry is serial and
+          each recovered case costs ~1s, while a cap silently final-fails
+          cap-excluded cases (observed 1-16 per shard in recent runs,
+          all of which would have passed the serial retry).
+      retry_attempts:
+        required: false
+        type: string
+        default: '3'
+        description: >-
+          Max isolated serial retry rounds per case (1 = single retry,
+          the historical behavior). A case that passes any round is
+          recovered; only a case failing all rounds keeps its
+          failed/error/timeout status, so transient flakes need to fail
+          N consecutive isolated runs to reach the final report. Rounds
+          after the first only re-run the still-failing residue (seconds
+          unless a case hangs, bounded by the 1200s per-case timeout).
       wheels_obs_endpoint:
         required: false
         type: string
@@ -353,13 +368,19 @@ jobs:
       # Serial (single-process, no concurrency) second chance for the
       # shard's failed/error/timeout cases — a large share of these are
       # transient NPU/infra flakes (device poison, watchdog kills, worker
-      # crashes) that pass when re-run alone. Runs before the results are
-      # parsed so every downstream consumer (parse step, report generator,
-      # upstream dashboard) sees post-retry numbers. Retry-passed cases get
-      # their junit XML / case log refreshed in place; still-failing cases
+      # crashes) that pass when re-run alone. Each case gets up to
+      # retry_attempts isolated serial rounds: a pass on any round
+      # recovers it, and only N consecutive isolated failures reach the
+      # final report, filtering flakes out of the whitelist pruning
+      # decisions. Runs before the results are parsed so every downstream
+      # consumer (parse step, report generator, upstream dashboard) sees
+      # post-retry numbers. Retry-passed cases get their junit XML / case
+      # log refreshed in place from the passing round; still-failing cases
       # keep the original files, with the retry evidence preserved under
-      # test-reports/retry/. The script always exits 0 — case failures stay
-      # recorded in cases.json and the shard verdict is decided later.
+      # test-reports/retry/ (per-round attempt_N subdirs when
+      # retry_attempts > 1). The script always exits 0 — case failures
+      # stay recorded in cases.json and the shard verdict is decided
+      # later.
       - name: Retry failed cases for ${{ inputs.category }} shard ${{ matrix.shard }}/${{ inputs.num_shards }}
         id: retry_failed
         if: always() && steps.run_tests.outcome != 'skipped'
@@ -379,7 +400,8 @@ jobs:
             --retry-report-dir test-reports/retry \
             --timeout 1200 \
             --device-env "${{ inputs.device_env }}" \
-            --max-retry-cases ${{ inputs.retry_max_cases || '100' }} \
+            --max-retry-cases ${{ inputs.retry_max_cases || '0' }} \
+            --max-attempts ${{ inputs.retry_attempts || '3' }} \
             --verbose \
             2>&1 | tee /tmp/retry_${{ inputs.category }}_${{ matrix.shard }}.log
 

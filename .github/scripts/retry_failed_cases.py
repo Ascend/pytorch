@@ -5,8 +5,8 @@ Retry failed/error/timeout cases from a finished shard run, serially.
 Runs AFTER the shard runner (run_npu_test_shard.py or
 run_npu_test_shard_batch.py) has written
 test-reports/shard_<prefix>-<n>_cases.json and BEFORE the workflow parses
-those results, so flaky/infra-transient failures get one single-process
-(non-concurrent) second chance:
+those results, so flaky/infra-transient failures get single-process
+(non-concurrent) second chances:
 
     - Only cases whose recorded status is failed / error / timeout are
       retried; none -> print a skip note and exit 0.
@@ -14,13 +14,24 @@ those results, so flaky/infra-transient failures get one single-process
       (one worker subprocess at a time, one pytest.main() per case), keeping
       the original case_idx so per-case junit XML / case log filenames in
       the retry report dir match the main-run filenames.
-    - Retry-passed (or newly skipped) cases: the retry attempt's junit XML
-      and case log are copied back over the main-run files (refreshed) and
-      the cases.json entry is updated to the new status.
+    - Each case gets up to --max-attempts isolated serial rounds (default
+      1 = the historical single retry). A case that passes ANY round is
+      recovered and its later rounds are skipped; only a case that fails
+      ALL of its rounds keeps a failed/error/timeout status. Rounds after
+      the first only re-run the still-failing residue, so extra rounds cost
+      seconds unless a case genuinely hangs (bounded by --timeout per
+      round). With --max-attempts > 1 each round writes its evidence to
+      retry/attempt_<n>/ so later rounds cannot overwrite earlier
+      round's junit XML / case logs; with --max-attempts 1 the layout is
+      the historical flat retry/ directory.
+    - Retry-passed (or newly skipped) cases: the final passing round's
+      junit XML and case log are copied back over the main-run files
+      (refreshed) and the cases.json entry is updated to the new status
+      plus retry_attempts (how many rounds the case consumed).
     - Still failed/error/timeout cases: the main-run files stay untouched;
-      the retry evidence remains in the retry report dir (uploaded with the
-      test-reports artifact) and cases.json records the retry outcome plus
-      retried=true / first_attempt_status markers.
+      the retry evidence remains in the retry report dir (uploaded with
+      the test-reports artifact) and cases.json records the retry outcome
+      plus retried=true / first_attempt_status / retry_attempts markers.
     - The shard cases.json / stats.json summary counts are recomputed after
       the merge so every downstream consumer (parse step, report generator,
       upstream dashboard) sees post-retry numbers.
@@ -35,7 +46,8 @@ Usage:
         --retry-report-dir test-reports/retry \
         --timeout 1200 \
         --device-env privateuse1 \
-        --max-retry-cases 100 \
+        --max-retry-cases 0 \
+        --max-attempts 3 \
         --verbose
 """
 
@@ -77,11 +89,18 @@ def parse_args():
                         help="PYTORCH_TESTING_DEVICE_ONLY_FOR value; must match the main run")
     parser.add_argument("--max-retry-cases", type=int, default=100,
                         help="Max cases to retry serially, 0 = unlimited (default: 100)")
+    parser.add_argument("--max-attempts", type=int, default=1,
+                        help="Max isolated serial rounds per case, 1 = single "
+                             "retry (historical behavior). A case that passes "
+                             "any round is recovered; only a case failing all "
+                             "rounds keeps its failed status (default: 1)")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     args = parser.parse_args()
 
     if args.max_retry_cases < 0:
         parser.error("--max-retry-cases must be >= 0 (0 = unlimited)")
+    if args.max_attempts < 1:
+        parser.error("--max-attempts must be >= 1")
     return args
 
 
@@ -178,7 +197,7 @@ def merge_retry_results(
 
 
 def copy_back_case_artifacts(
-    retry_report_dir: Path,
+    src_dir: Path,
     report_dir: Path,
     shard: int,
     shard_type: str,
@@ -187,10 +206,11 @@ def copy_back_case_artifacts(
     """
     Refresh a retry-passed case's main-run result files.
 
-    Copies the retry attempt's junit XML and case log (same filename, built
-    from the preserved case_idx and nodeid) over the main-run copies so the
-    artifact contents match the updated cases.json status. Only called for
-    cases whose retry status is no longer failed/error/timeout.
+    Copies the attempt's junit XML and case log (same filename, built from
+    the preserved case_idx and nodeid) from the round the case finally
+    passed over the main-run copies so the artifact contents match the
+    updated cases.json status. Only called for cases whose retry status is
+    no longer failed/error/timeout.
 
     Returns the number of files copied.
     """
@@ -199,7 +219,7 @@ def copy_back_case_artifacts(
     base = f"{prefix}-{shard}_{case['case_idx']}_{safe_name}"
     copied = 0
     for subdir, ext in (("junit_xmls", ".xml"), ("cases_logs", ".log")):
-        src = retry_report_dir / subdir / f"{base}{ext}"
+        src = src_dir / subdir / f"{base}{ext}"
         if not src.exists():
             continue
         dst_dir = report_dir / subdir
@@ -276,43 +296,112 @@ def main() -> int:
     # Preserve each case's original case_idx so the per-case junit XML / case
     # log filenames the retry workers write match the main-run filenames
     # (refresh = overwrite, still-failing = original files stay untouched).
-    tasks = []
-    for idx, case in failed:
-        tasks.append(runner.CaseExecutionTask(
-            case_idx=case.get("case_idx", idx + 1),
-            nodeid=case["nodeid"],
-            test_file=case.get("file", ""),
-        ))
-
     retry_report_dir.mkdir(parents=True, exist_ok=True)
     env_updates = runner.build_execution_env(
         test_dir, script_dir, None, shard, shard_type, args.device_env,
     )
 
-    print(f"Retrying {len(tasks)} case(s) serially "
-          f"(single worker, one case at a time, per-case timeout {args.timeout}s)")
+    max_attempts = args.max_attempts
+
+    # Per-case final outcome across rounds: a case leaves the pending set as
+    # soon as any round passes it; later rounds only re-run the
+    # still-failing residue, so extra rounds cost seconds unless a case
+    # genuinely hangs (bounded by --timeout per round).
+    final_results: List[Dict] = []
+    final_attempt_dir: Dict[str, Path] = {}
+    attempts_used: Dict[str, int] = {}
+    attempts_meta: List[Dict] = []
+    total_retry_duration = 0.0
 
     console = runner.NonBlockingConsole()
     console.start()
     try:
-        _, retry_duration, retry_results = runner.run_tests_with_tasks_concurrent(
-            tasks,
-            shard,
-            test_dir,
-            retry_report_dir,
-            env_updates,
-            args.timeout,
-            args.verbose,
-            shard_type,
-            1,  # max_workers: strictly serial, no concurrent execution
-            parse_test_results,
-            None,  # quick_test
-            console=console,
-        )
+        pending = list(failed)
+        for attempt_no in range(1, max_attempts + 1):
+            if not pending:
+                break
+            if max_attempts == 1:
+                # Historical flat layout: retry evidence directly under the
+                # retry report dir, no per-round subdirs.
+                attempt_dir = retry_report_dir
+            else:
+                # Per-round subdirs: per-case junit/log filenames are
+                # deterministic, so a flat layout would let later rounds
+                # overwrite earlier rounds' evidence.
+                attempt_dir = retry_report_dir / f"attempt_{attempt_no}"
+            attempt_dir.mkdir(parents=True, exist_ok=True)
+
+            tasks = []
+            for idx, case in pending:
+                tasks.append(runner.CaseExecutionTask(
+                    case_idx=case.get("case_idx", idx + 1),
+                    nodeid=case["nodeid"],
+                    test_file=case.get("file", ""),
+                ))
+
+            attempt_desc = (
+                f"Retrying {len(tasks)} case(s) serially "
+                f"(single worker, one case at a time, per-case timeout {args.timeout}s)"
+            )
+            if max_attempts > 1:
+                attempt_desc += f" [attempt {attempt_no}/{max_attempts}]"
+            print(attempt_desc)
+
+            _, round_duration, round_results = runner.run_tests_with_tasks_concurrent(
+                tasks,
+                shard,
+                test_dir,
+                attempt_dir,
+                env_updates,
+                args.timeout,
+                args.verbose,
+                shard_type,
+                1,  # max_workers: strictly serial, no concurrent execution
+                parse_test_results,
+                None,  # quick_test
+                console=console,
+            )
+            total_retry_duration += round_duration
+
+            still_nodeids = set()
+            recovered_round = 0
+            for res in round_results:
+                nid = res.get("nodeid")
+                if not nid:
+                    continue
+                final_results.append(res)
+                final_attempt_dir[nid] = attempt_dir
+                attempts_used[nid] = attempt_no
+                if res.get("status") in RETRY_STATUSES:
+                    still_nodeids.add(nid)
+                else:
+                    recovered_round += 1
+            pending = [pair for pair in pending if pair[1]["nodeid"] in still_nodeids]
+            attempts_meta.append({
+                "attempt": attempt_no,
+                "attempted": len(tasks),
+                "recovered": recovered_round,
+                "still_not_passed": len(pending),
+            })
+            print(f"[attempt {attempt_no}] {recovered_round} recovered, "
+                  f"{len(pending)} still failed/error/timeout")
+
+        # Deduplicate per nodeid keeping the LAST record (the case's final
+        # round) so a case that failed round 1 and passed round 2 merges the
+        # round-2 outcome.
+        dedup: Dict[str, Dict] = {}
+        for res in final_results:
+            nid = res.get("nodeid")
+            if nid:
+                dedup[nid] = res
         merge_and_save(
             cases_data, cases_file, report_dir, retry_report_dir,
-            shard, shard_type, retry_results, retry_duration,
+            shard, shard_type, list(dedup.values()), total_retry_duration,
             args.max_retry_cases, excluded,
+            attempts_used=attempts_used,
+            final_attempt_dir=final_attempt_dir,
+            attempts_meta=attempts_meta,
+            max_attempts=max_attempts,
         )
     except Exception as exc:
         # Best-effort by design: log the failure, keep whatever results are
@@ -324,7 +413,7 @@ def main() -> int:
         write_github_outputs([
             ("retry_needed", "true"),
             ("retry_error", "true"),
-            ("retry_attempted", len(tasks)),
+            ("retry_attempted", len(final_attempt_dir)),
             ("retry_recovered", 0),
             ("retry_still_failed", 0),
         ])
@@ -351,6 +440,10 @@ def merge_and_save(
     retry_duration: float,
     max_retry_cases: int,
     excluded_by_cap: int,
+    attempts_used: Optional[Dict[str, int]] = None,
+    final_attempt_dir: Optional[Dict[str, Path]] = None,
+    attempts_meta: Optional[List[Dict]] = None,
+    max_attempts: int = 1,
 ) -> Dict:
     """Merge retry outcomes into cases.json/stats.json and refresh files."""
     prefix = parse_test_results.get_shard_type_prefix(shard_type)
@@ -363,16 +456,27 @@ def merge_and_save(
     )
     retry_block = merged["retry"]
 
+    # Rounds each retried case consumed (1 = passed/failed its only round;
+    # N = passed or finally failed on round N). Only meaningful with
+    # --max-attempts > 1.
+    if attempts_used:
+        for case in merged["cases"]:
+            if case.get("retried"):
+                case["retry_attempts"] = attempts_used.get(case.get("nodeid"), 1)
+
     # Refresh the main-run result files only for cases whose outcome is no
     # longer failed/error/timeout (retry-passed, or newly skipped) so the
-    # artifact contents match the updated cases.json status. Still-failing
-    # cases keep their original files; their retry evidence stays under the
-    # retry report dir, which is uploaded with the test-reports artifact.
+    # artifact contents match the updated cases.json status. The source is
+    # the round the case finally passed (flat retry dir when single-round).
+    # Still-failing cases keep their original files; their retry evidence
+    # stays under the retry report dir, which is uploaded with the
+    # test-reports artifact.
     refreshed_files = 0
     for case in merged["cases"]:
         if case.get("retried") and case.get("status") not in RETRY_STATUSES:
+            src_dir = (final_attempt_dir or {}).get(case.get("nodeid"), retry_report_dir)
             refreshed_files += copy_back_case_artifacts(
-                retry_report_dir, report_dir, shard, shard_type, case,
+                src_dir, report_dir, shard, shard_type, case,
             )
 
     # Rewrite the main cases.json / stats.json so every downstream consumer
@@ -398,6 +502,7 @@ def merge_and_save(
     summary = {
         "shard": shard,
         "shard_type": shard_type,
+        "max_attempts": max_attempts,
         "attempted": retry_block["cases"],
         "recovered": retry_block["recovered"],
         "still_not_passed": retry_block["still_not_passed"],
@@ -405,12 +510,15 @@ def merge_and_save(
         "duration": retry_duration,
         "refreshed_files": refreshed_files,
     }
+    if attempts_meta:
+        summary["attempts"] = attempts_meta
     (retry_report_dir / "retry_summary.json").write_text(
         json.dumps(summary, indent=2), encoding="utf-8"
     )
 
     print("=" * 80)
-    print(f"Retry summary: {retry_block['cases']} retried, "
+    rounds_note = f" over up to {max_attempts} round(s)" if max_attempts > 1 else ""
+    print(f"Retry summary:{rounds_note} {retry_block['cases']} retried, "
           f"{retry_block['recovered']} recovered, "
           f"{retry_block['still_not_passed']} still failed/error/timeout"
           + (f", {retry_block['excluded_by_cap']} skipped by cap" if excluded_by_cap else ""))
