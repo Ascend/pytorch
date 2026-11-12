@@ -28,12 +28,12 @@ FXRT 通过 `torch_npu.fxrt` 导入。仅 `import torch_npu` 不会加载 FXRT�
 
 ## 跑通第一个例子
 
-FXRT 以 `torch.compile` 后端形式接入。把模型或函数用 `backend` 编译后，即按 FXRT 运行时执行：
+FXRT 以 `torch.compile` 后端形式接入。把模型或函数用 `backend="fxrt"` 编译后，即按 FXRT 运行时执行：
 
 ```python
 # quickstart.py
 import torch
-from torch_npu.fxrt import backend
+import torch_npu
 
 
 def model(x, y):
@@ -46,15 +46,15 @@ def model(x, y):
 x = torch.randn(2, 8).npu()
 y = torch.randn(2, 8).npu()
 
-compiled = torch.compile(model, backend=backend)
+compiled = torch.compile(model, backend="fxrt")
 out = compiled(x, y)
 print(out.shape)
 ```
 
 要点：
 
-- `from torch_npu.fxrt import backend` 拿到编译后端
-- `torch.compile(fn, backend=backend)` 之后照常调用即可
+- 安装的 wheel 将 `"fxrt"` 注册为编译后端，使用时按需加载 FXRT
+- `torch.compile(fn, backend="fxrt")` 之后照常调用即可
 - view / reshape / permute / slice 等算子默认走 FXRT 的零拷贝 view 实现
 
 ## 常用环境变量

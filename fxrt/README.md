@@ -30,12 +30,12 @@ once `torch_npu.fxrt` is imported, the same package is also reachable as `fxrt`.
 
 ## Run Your First Example
 
-FXRT plugs in as a `torch.compile` backend. Once a model or function is compiled with `backend`, it runs on the FXRT runtime:
+FXRT plugs in as a `torch.compile` backend. Once a model or function is compiled with `backend="fxrt"`, it runs on the FXRT runtime:
 
 ```python
 # quickstart.py
 import torch
-from torch_npu.fxrt import backend
+import torch_npu
 
 
 def model(x, y):
@@ -48,15 +48,15 @@ def model(x, y):
 x = torch.randn(2, 8).npu()
 y = torch.randn(2, 8).npu()
 
-compiled = torch.compile(model, backend=backend)
+compiled = torch.compile(model, backend="fxrt")
 out = compiled(x, y)
 print(out.shape)
 ```
 
 Key points:
 
-- `from torch_npu.fxrt import backend` provides the compile backend.
-- Call the function as usual after `torch.compile(fn, backend=backend)`.
+- The installed wheel registers `"fxrt"` as a compile backend and loads FXRT on demand.
+- Call the function as usual after `torch.compile(fn, backend="fxrt")`.
 - `view` / `reshape` / `permute` / `slice` and similar operators take the zero-copy view path by default.
 
 ## Environment Variables

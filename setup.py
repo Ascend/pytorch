@@ -838,6 +838,8 @@ setup(
             'npu = torch_npu.dynamo:_npu_backend_entrypoint',
             'npugraph_ex = torch_npu.dynamo:_npugraph_ex_backend_entrypoint',
             'npugraphs = torch_npu.dynamo:_npugraphs_backend_entrypoint',
+            *(['fxrt = torch_npu.fxrt:_backend']
+              if DISABLE_FXRT == 'FALSE' and check_fxrt_valid(BASE_DIR) else []),
         ],
     }
 )
