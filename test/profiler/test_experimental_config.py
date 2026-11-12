@@ -351,5 +351,24 @@ class TestExperimentalConfig(TestCase):
         self.assertIsNotNone(detector.get_cur_ts)
 
 
+class TestExperimentalConfigPickle(TestCase):
+    """Reviewer follow-up: pickle states written by older torch_npu releases stay loadable."""
+
+    def test_pickle_round_trip_keeps_ftrace_fields(self):
+        config = Cpp_ExperimentalConfig(ftrace=["sched/sched_switch"], ftrace_period=5, ftrace_bufsize=8192)
+        state = config.__getstate__()
+        self.assertEqual(len(state), 14)
+
+        restored = Cpp_ExperimentalConfig()
+        restored.__setstate__(state)
+        self.assertEqual(restored.__getstate__(), state)
+
+    def test_state_without_ftrace_fields_falls_back_to_defaults(self):
+        state = Cpp_ExperimentalConfig().__getstate__()
+
+        restored = Cpp_ExperimentalConfig()
+        restored.__setstate__(state[:11])
+        self.assertEqual(restored.__getstate__()[11:], ([], 0, 0))
+
 if __name__ == "__main__":
     run_tests()
