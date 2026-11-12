@@ -85,6 +85,35 @@ on:
           deterministic npu_utils build failure against torch master's
           C++20-only ATen headers. Remove once triton-ascend follows
           torch's C++ standard.
+      retry_failed_cases:
+        required: false
+        type: boolean
+        default: false
+        description: >-
+          When true, run retry_failed_cases.py after the main shard run
+          (before the results are parsed): each failed/error/timeout case
+          gets up to retry_attempts isolated serial rounds; a pass on any
+          round recovers it. Ported from the PR-gate _test-category.yml,
+          where the retry always runs — nightly keeps it opt-in per
+          pipeline (default false).
+      retry_max_cases:
+        required: false
+        type: string
+        default: '0'
+        description: >-
+          Max failed/error/timeout cases retried serially per shard after
+          the main run (0 = unlimited); cases beyond the cap keep their
+          original results.
+      retry_attempts:
+        required: false
+        type: string
+        default: '3'
+        description: >-
+          Max isolated serial retry rounds per case (1 = single retry, the
+          historical behavior). A case that passes any round is recovered;
+          only a case failing all rounds keeps its failed/error/timeout
+          status. Rounds after the first only re-run the still-failing
+          residue.
       wheels_obs_endpoint:
         required: false
         type: string
@@ -418,6 +447,46 @@ jobs:
           set -e
           echo "status=${TEST_STATUS}" >> "$GITHUB_OUTPUT"
 
+      # Opt-in (retry_failed_cases) serial (single-process, no
+      # concurrency) second chance for the shard's failed/error/timeout
+      # cases, ported from the PR-gate _test-category.yml: a large share
+      # of these are transient NPU/infra flakes (device poison, watchdog
+      # kills, worker crashes) that pass when re-run alone. Each case gets
+      # up to retry_attempts isolated serial rounds: a pass on any round
+      # recovers it, and only N consecutive isolated failures reach the
+      # final report. Runs before the results are parsed so every
+      # downstream consumer (parse step, report generator) sees
+      # post-retry numbers. Retry-passed cases get their junit XML / case
+      # log refreshed in place from the passing round; still-failing
+      # cases keep the original files, with the retry evidence preserved
+      # under test-reports/retry/ (per-round attempt_N subdirs when
+      # retry_attempts > 1). The script always exits 0 — case failures
+      # stay recorded in cases.json and the shard verdict is decided
+      # later.
+      - name: Retry failed cases for ${{ inputs.category }} shard ${{ matrix.shard }}/${{ inputs.num_shards }}
+        id: retry_failed
+        if: always() && inputs.retry_failed_cases && steps.run_tests.outcome != 'skipped'
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+          # Same libstdc++ precedence fix as the run step above.
+          export LD_LIBRARY_PATH="$(python3 -c 'import sys; print(sys.prefix)')/lib:$LD_LIBRARY_PATH"
+
+          # Ensure the pinned plog dir exists before retry workers start.
+          mkdir -p "${ASCEND_PROCESS_LOG_PATH}"
+
+          python ci-scripts/.github/scripts/retry_failed_cases.py \
+            --cases-file "test-reports/shard_${{ steps.prefix.outputs.prefix }}-${{ matrix.shard }}_cases.json" \
+            --test-dir pytorch/test \
+            --report-dir test-reports \
+            --retry-report-dir test-reports/retry \
+            --timeout 1200 \
+            --device-env "${{ inputs.device_env }}" \
+            --max-retry-cases ${{ inputs.retry_max_cases || '0' }} \
+            --max-attempts ${{ inputs.retry_attempts || '3' }} \
+            --verbose \
+            2>&1 | tee /tmp/retry_${{ inputs.category }}_${{ matrix.shard }}.log
+
       - name: Parse test results
         id: parse_results
         if: always()
@@ -497,6 +566,17 @@ jobs:
             echo "Cases logs compressed: $(ls -lh test-reports/cases_logs.tar.gz)"
           fi
 
+          # Retry evidence (per-round attempt_N/ subdirs + retry_summary.json
+          # when retry_attempts > 1), only present when the retry step ran.
+          if [ -d "test-reports/retry" ]; then
+            echo "=== Compressing retry reports ==="
+            RETRY_COUNT=$(find test-reports/retry -type f | wc -l)
+            echo "Found ${RETRY_COUNT} retry report files"
+            tar -czf test-reports/retry_reports.tar.gz -C test-reports retry
+            rm -rf test-reports/retry
+            echo "Retry reports compressed: $(ls -lh test-reports/retry_reports.tar.gz)"
+          fi
+
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -554,6 +634,7 @@ jobs:
         run: |
           mkdir -p error-logs
           cp /tmp/test_${{ inputs.category }}_${{ matrix.shard }}.log error-logs/ 2>/dev/null || true
+          cp /tmp/retry_${{ inputs.category }}_${{ matrix.shard }}.log error-logs/ 2>/dev/null || true
 
       - name: Upload error logs
         if: failure()

@@ -83,6 +83,12 @@ jobs:
       # whitelist file (and commit) instead of maintaining skip lists —
       # same model as the PR gate (receive-trigger.yml).
       case_whitelist: .github/config/privateuse1_npu_passed_testcases_a5.json
+      # Opt-in serial retry for failed/error/timeout cases (same
+      # mechanism as the PR gate): transient NPU/infra flakes get up to 3
+      # isolated rounds before their failure is finalized, so the report
+      # reflects real regressions instead of flakes. Defaults apply for
+      # the knobs (max cases unlimited, 3 attempts).
+      retry_failed_cases: true
       runner_label: 'linux-amd64-a5-2'
       test_max_parallel: 3
       # Same dedicated Guiyang wheels bucket as the build job above.

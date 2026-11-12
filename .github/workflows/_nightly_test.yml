@@ -128,6 +128,33 @@ on:
           Experimental workaround for the deterministic npu_utils build
           failure against torch master's C++20-only ATen headers; see the
           patch step in _nightly_test-category.yml for details.
+      retry_failed_cases:
+        required: false
+        type: boolean
+        default: false
+        description: >-
+          Forwarded to every test-category shard job: when true, retry
+          the shard's failed/error/timeout cases serially after the main
+          run (before the results are parsed), using the same
+          retry_failed_cases.py mechanism as the PR gate. Default false —
+          nightly pipelines opt in explicitly.
+      retry_max_cases:
+        required: false
+        type: string
+        default: '0'
+        description: >-
+          Max failed/error/timeout cases retried serially per shard
+          (0 = unlimited); cases beyond the cap keep their original
+          results. Only used when retry_failed_cases is true.
+      retry_attempts:
+        required: false
+        type: string
+        default: '3'
+        description: >-
+          Max isolated serial retry rounds per case (1 = single retry).
+          A case that passes any round is recovered; only a case failing
+          all rounds keeps its failed status. Only used when
+          retry_failed_cases is true.
       wheels_obs_endpoint:
         required: false
         type: string
@@ -206,6 +233,9 @@ jobs:
       runner_label: ${{ matrix.runner_label }}
       device_env: ${{ inputs.device_env }}
       patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 }}
+      retry_failed_cases: ${{ inputs.retry_failed_cases }}
+      retry_max_cases: ${{ inputs.retry_max_cases }}
+      retry_attempts: ${{ inputs.retry_attempts }}
       wheels_obs_endpoint: ${{ inputs.wheels_obs_endpoint }}
       wheels_obs_bucket: ${{ inputs.wheels_obs_bucket }}
 
