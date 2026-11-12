@@ -875,7 +875,7 @@ class IterationRangesRootNPUIndex(IterationRangesRoot):
 
             # not a good implement
             if len(self.pid_cache) > 0:
-                node.is_sub_kernel = True
+                self.nodes[expr].is_sub_kernel = True
 
         return self.nodes[expr]
 
@@ -1017,8 +1017,11 @@ class NPUIndexTritonKernel(TritonKernel):
         min_elem_per_thread=0,
         optimize_mask=True,
         fixed_config: FixedTritonConfig | None = None,
+        allow_grouped_autotune: bool = True,
         **kwargs,
     ):
+        # Set before construction selects split axes and builds grouped plans.
+        self.allow_grouped_autotune = allow_grouped_autotune
         super().__init__(
             tiling=tiling,
             min_elem_per_thread=min_elem_per_thread,

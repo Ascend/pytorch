@@ -69,6 +69,9 @@ class _NPUKernelCodegenMixin:
     # generate numel expr for range_tree_node
     def generate_node_numel_expr(self, kernel_name: str, node, numel_expr):
         expr = f"{kernel_name}_{node.name}_numel"
+        # Benchmark argument discovery must not emit runtime size assignments.
+        if not kernel_name:
+            return SymbolicCallArg(expr, numel_expr)
         simplified = V.graph.sizevars.simplify(numel_expr)
         # Ensure all PRECOMPUTED_SIZE symbols in the *simplified* expression
         # are defined before we emit the line that uses them.

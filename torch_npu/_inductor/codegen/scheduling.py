@@ -14,9 +14,8 @@ from torch._inductor import metrics
 from torch._inductor.codecache import code_hash, PyCodeCache
 from torch._inductor.codegen.multi_kernel import MultiKernel
 from torch._inductor.codegen.simd import DisableReduction, EnableReduction, SIMDKernelFeatures, SIMDKernel
-from torch._inductor.codegen.simd import scheduler, WhyNoFuse
+from torch._inductor.codegen.simd import NodeInfo, scheduler, WhyNoFuse
 from torch._inductor.ir import TritonTemplateBuffer
-from torch._inductor.codegen.simd_kernel_features import NodeScheduleMarker
 from torch._inductor.codegen.triton import (
     TritonScheduling, BaseSchedulerNode, config, schedule_log,
     get_fused_kernel_name, get_kernel_category_by_source_code, Placeholder,
@@ -465,14 +464,27 @@ class NPUTritonScheduling(TritonScheduling):
         )
 
         kernel_code_list = self.generate_combo_kernel_code(
-            subkernel_nodes, custom_part_algorithm, enable_autotune, mixed_sizes
+            subkernel_nodes, custom_part_algorithm, enable_autotune, mixed_sizes,
         )
 
+        # Validate every partition before allocating buffers or emitting any
+        # wrapper code. A failed check can then fall back to ordinary kernels.
         for src_code, kernel, _ in kernel_code_list:
+            with V.set_kernel_handler(kernel):
+                self.make_ttir_for_check(src_code)
+
+        for src_code, kernel, node_group in kernel_code_list:
+            subkernels = kernel.sub_kernels if isinstance(kernel, NPUComboKernel) else [kernel]
+            for subkernel_node, subkernel in zip(node_group, subkernels):
+                with V.set_kernel_handler(subkernel):
+                    for snode in subkernel_node.get_nodes():
+                        snode.mark_run()
+                V.graph.removed_buffers |= subkernel.removed_buffers
+                V.graph.inplaced_to_remove |= subkernel.inplaced_to_remove
             kernel_name, _ = self.define_kernel(src_code, [combo_kernel_node], kernel, None)
             self.codegen_comment([combo_kernel_node], kernel_name)
             log.debug("ComboKernels: generated kernel %s.", kernel_name)
-            kernel.call_kernel(V.graph.wrapper_code, kernel_name)
+            kernel.call_kernel(kernel_name)
 
         self.free_buffers_in_scheduler()
 
@@ -484,7 +496,7 @@ class NPUTritonScheduling(TritonScheduling):
         mixed_sizes: bool,
         only_gen_src_code: bool = False,
         per_subkernel_blocks: bool = False,
-    ) -> list[tuple[str, Any, Any]]:
+    ) -> list[tuple[str | None, Any, Any]]:
 
         fused_node_lists = [node.get_nodes() for node in subkernel_nodes]
         subkernel_map, node_schedule_map = {}, {}
@@ -495,11 +507,21 @@ class NPUTritonScheduling(TritonScheduling):
                 rnumel = _canonical_group_size(rnumel)
             node_schedule = self.generate_node_schedule(nodes, numel, rnumel)
             tiling = self.select_tiling(node_schedule, numel, rnumel)
-            node_schedule_map[pn] = node_schedule, tiling, numel, rnumel
-            subkernel_map[pn] = NPUComboKernel.create_triton_kernel(
+            features = NPUKernelFeatures(node_schedule, numel, rnumel)
+            subkernel = NPUComboKernel.create_triton_kernel(
                 tiling,
-                features=NPUKernelFeatures(node_schedule, numel, rnumel),
+                features=features,
                 optimize_mask=not mixed_sizes,
+            )
+            subkernel_map[pn] = subkernel
+            node_schedule_map[pn] = NodeInfo(
+                node_schedule=node_schedule,
+                tiling=tiling,
+                tiling_scores=None,
+                numel=numel,
+                rnumel=rnumel,
+                features=features,
+                is_persistent_reduction=subkernel.persistent_reduction,
             )
 
         partitions = NPUComboKernel.horizontal_partition(
@@ -516,6 +538,22 @@ class NPUTritonScheduling(TritonScheduling):
         )
         kernel_code_list = []
         for node_group in partitions:
+            if len(node_group) == 1:
+                # ABI partitioning constructed a potential combo subkernel.
+                # It is discarded here, so exclude it from emitted-kernel metrics.
+                metrics.generated_kernel_count -= 1
+                if only_gen_src_code:
+                    # The 2.13 benchmark caller reuses the node's cached timing.
+                    kernel_code_list.append((None, None, node_group))
+                else:
+                    node_info = node_schedule_map[node_group[0]]
+                    kernel = self.kernel_type(node_info.tiling, features=node_info.features)
+                    self.codegen_node_schedule_with_kernel(node_info.node_schedule, kernel)
+                    with V.set_kernel_handler(kernel):
+                        src_code = kernel.codegen_kernel()
+                    kernel_code_list.append((src_code, kernel, node_group))
+                continue
+
             fused_node_lists = [node.get_nodes() for node in node_group]
             kernel = NPUComboKernel(
                 triton_kernel_cls=self.kernel_type,
@@ -526,17 +564,12 @@ class NPUTritonScheduling(TritonScheduling):
 
             for pn, nodes in zip(node_group, fused_node_lists):
                 self.codegen_node_schedule_with_kernel(
-                    node_schedule_map[pn][0],
+                    node_schedule_map[pn].node_schedule,
                     kernel.create_sub_kernel(subkernel_map[pn]),
                 )
-                subkernel = subkernel_map[pn]
-                node_schedule = node_schedule_map[pn][0]
-                if not only_gen_src_code:
-                    with V.set_kernel_handler(subkernel):  # type: ignore[call-arg]
-                        for node in NodeScheduleMarker.only_nodes(node_schedule):
-                            node.mark_run()
-                V.graph.removed_buffers |= subkernel.removed_buffers
-                V.graph.inplaced_to_remove |= subkernel.inplaced_to_remove
+
+            # Defer graph updates and mark_run until every partition passes
+            # make_ttir_for_check in codegen_combo_kernel.
 
             src_code = kernel.codegen_kernel()
             kernel_code_list.append((src_code, kernel, node_group))

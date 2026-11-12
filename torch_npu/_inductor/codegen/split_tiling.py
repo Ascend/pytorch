@@ -126,6 +126,7 @@ class SplitTiling:
             current_numels = self.total_split_numels(self.kernel.split_axis)
             if (
                 npu_config.enable_symbolic_shape_group_autotune
+                and getattr(self.kernel, "allow_grouped_autotune", True)
                 and self.kernel.split_axis
                 and is_reduction_kernel()
                 and has_dynamic_split_axis()
@@ -330,7 +331,10 @@ class SplitTiling:
         self.apply_grouped_rewrite_if_needed()
 
     def apply_grouped_rewrite_if_needed(self):
-        if not npu_config.enable_symbolic_shape_group_autotune:
+        if (
+            not npu_config.enable_symbolic_shape_group_autotune
+            or not getattr(self.kernel, "allow_grouped_autotune", True)
+        ):
             self.kernel.grouped_autotune_meta = None
             return
         if not self._is_grouped_template_enabled():

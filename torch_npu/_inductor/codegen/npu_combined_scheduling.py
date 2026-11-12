@@ -238,8 +238,56 @@ class NPUCombinedScheduling(CUDACombinedScheduling, TritonScheduling):
         )
 
     def codegen_combo_kernel(self, node) -> None:
-        for snode, subkernel_node in zip(node.get_nodes(), node.get_subkernel_nodes()):
+        subkernel_nodes = node.get_subkernel_nodes()
+        # The 2.13 scheduler always attempts index codegen first; the legacy
+        # linear-mode configuration and its predicate no longer exist.
+        kernel_count = metrics.generated_kernel_count
+        original_groups = [
+            (snode, snode.group)
+            for subkernel_node in subkernel_nodes
+            for snode in subkernel_node.get_nodes()
+        ]
+        original_groups.extend(
+            (subkernel_node, subkernel_node.group)
+            for subkernel_node in subkernel_nodes
+        )
+        try:
             group_fn = self._nolinear_triton_scheduling.group_fn
-            snode.group = (snode.group[0], group_fn(snode._sizes))
-            subkernel_node.group = snode.group
-        return self._triton_scheduling.codegen_combo_kernel(node)
+            for subkernel_node in subkernel_nodes:
+                # get_nodes() is flattened, whereas get_subkernel_nodes()
+                # contains fused groups. Zipping them assigns later groups
+                # the dimensions of an unrelated node as soon as one
+                # subkernel has multiple nodes.
+                subnodes = subkernel_node.get_nodes()
+                for snode in subnodes:
+                    snode.group = (snode.group[0], group_fn(snode._sizes))
+                subkernel_node.group = max(
+                    subnodes, key=lambda snode: int(snode.is_reduction())
+                ).group
+            return self._triton_scheduling.codegen_combo_kernel(node)
+        except Exception:
+            metrics.generated_kernel_count = kernel_count
+            for snode, group in original_groups:
+                snode.group = group
+            log.debug(
+                "linear combo codegen for node %s raise error, "
+                "fallback to individual kernels",
+                node,
+                exc_info=True,
+            )
+
+        # Recompute lifetimes at the ordinary kernel boundaries, just as the
+        # no-linear fallback does. Restoring the whole combo's pending frees
+        # after that fallback would emit a second del for graph inputs.
+        scheduler = self.scheduler
+        future_used_buffers = OrderedSet(
+            scheduler.mutation_real_name.get(name, name)
+            for name in node.used_or_aliased_buffer_names()
+        ) - node.last_usage
+        for subkernel_node in reversed(subkernel_nodes):
+            subkernel_node.set_last_usage(future_used_buffers, scheduler.mutation_real_name)
+            future_used_buffers.update(subkernel_node.last_usage)
+        scheduler.buffer_names_to_free.difference_update(node.last_usage)
+        for subkernel_node in subkernel_nodes:
+            scheduler.buffer_names_to_free.update(subkernel_node.last_usage)
+            self.codegen_node(subkernel_node)
