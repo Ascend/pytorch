@@ -16,11 +16,11 @@ After completing the development of the adaptation plugin for the PyTorch framew
     - *2.7.1* is the PyTorch version. Specify the version based on the actual situation.
     - *26.1.0* is the TorchNPU software version.
 
-3. Before adapting the framework operator, ensure that CANN already has the corresponding operator implementation. For details, see the CANN Operator Library.
+3. Before adapting the framework operator, ensure that CANN already has the corresponding operator implementation. For details, see the [CANN Operator Library](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/API/aolapi/operatorlist_00001.html).
 
     > [!NOTE]
     >
-    > The CANN operator corresponding to this example is `aclnnAdd`. For details, see the "[NN Operator Interface](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/API/aolapi/context/ops-math/aclnnAdd&aclnnInplaceAdd.md)" section in the [CANN Operator Library](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/API/aolapi/operatorlist_00001.html).
+    > The CANN operator corresponding to this example is `aclnnAdd`. For details, see the "[NN Operator Interface](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/API/aolapi/context/ops-math/aclnnAdd&aclnnInplaceAdd.md)" section in the *CANN Operator Library*.
 
 ## Adaptation Development
 
