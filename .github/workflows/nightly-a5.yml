@@ -1,4 +1,5 @@
 name: Nightly Build and Test A5 (All)
+# 触发方式: 推送到 ci-test 且改动本文件，或在 Actions 页面 workflow_dispatch 手动触发。
 
 on:
   push:
