@@ -1,7 +1,7 @@
-# 自定义用例集测试流水线（A3 + A5，不编译、不做用例收集、不分片）
+# 自定义用例集测试流水线（A3 + A5，不编译、不做用例收集、4 分片）
 #
 # 用途: 固定读取 .github/config/custom_test_cases（每行一个 nodeid，# 开头为
-# 注释）里的用例，在 A3 与 A5 上**各用一台机器跑全量**（不做分片），并按
+# 注释）里的用例，在 A3 与 A5 上**各自拆成 4 个分片并行执行**，并按
 # a3/a5 nightly 的报告格式**分别生成一份报告**。更新用例只需改这个文件。
 #
 # 为什么不编译: resolve job 按 builder 镜像 tag 去 OBS 7day-cache 匹配两套
@@ -21,11 +21,12 @@
 #
 # 分片/结果命名: category 就是 custom_test_cases-a3 / custom_test_cases-a5，
 #   分片 JSON 与 cases artifact 都按这个命名，结果 artifact 为
-#   test-reports-custom_test_cases-a3-1 / -a5-1。为此在共享模板
+#   test-reports-custom_test_cases-a3-1..4 / -a5-1..4。为此在共享模板
 #   _blacklist_test-category.yml 的 category -> 前缀 case 里新增了同名的两个
 #   分支（纯新增，不影响任何既有 category）：该映射写死，未知 category 会统一
 #   落到 reg，而同一 workflow run 内 a3/a5 的 artifact 名不能相同。
-#   模板内部的结果文件前缀仍固定为 reg，所以报告脚本的 shard matrix 用 ["reg-1"]。
+#   模板内部的结果文件前缀仍固定为 reg，所以报告脚本的 shard matrix 用
+#   ["reg-1","reg-2","reg-3","reg-4"]。
 #
 # 触发: push 本文件或 .github/config/custom_test_cases（paths 只含这两个）或
 # workflow_dispatch。
@@ -43,7 +44,7 @@ on:
         description: '单机并发 worker 数'
         required: true
         type: string
-        default: '16'
+        default: '1'
 
 permissions:
   id-token: write
@@ -243,10 +244,11 @@ jobs:
           PY
 
   # ==========================================================================
-  # 2. 读固定清单 → 去重 → 为两个平台各生成一份单分片 JSON 并分别上传。
-  #    不分片: 每个平台一台机器跑全量，分片数固定为 1。
-  #    不做用例收集: 清单里已经是完整 nodeid。同时产出一份 cases_by_file.jsonl
-  #    供报告脚本按文件聚合（格式与 nighty 收集阶段的同名文件一致）。
+  # 2. 读固定清单 → 去重 → 为两个平台各生成 4 份分片 JSON 并分别上传。
+  #    分片: 每个平台 4 台机器并行，按 round-robin 均分（与 _blacklist_shard.yml
+  #    同一套算法）。不做用例收集: 清单里已经是完整 nodeid。同时产出一份
+  #    cases_by_file.jsonl 供报告脚本按文件聚合（格式与 nighty 收集阶段的同名
+  #    文件一致）。
   # ==========================================================================
   prepare:
     name: prepare case file
@@ -271,8 +273,9 @@ jobs:
           import sys
           from pathlib import Path
 
-          # 平台 -> category，决定分片文件名 <category>_cases_shard_1.json
+          # 平台 -> category，决定分片文件名 <category>_cases_shard_<i>.json
           PLATFORM_CATEGORIES = (("a3", "custom_test_cases-a3"), ("a5", "custom_test_cases-a5"))
+          NUM_SHARDS = 4
           # 报告脚本按 test_type 名找 {test_type}_cases_by_file.jsonl；
           # _blacklist_test-category.yml 的结果前缀固定是 reg -> regular。
           TEST_TYPE = "regular"
@@ -293,7 +296,8 @@ jobs:
               if line not in bucket:
                   bucket.append(line)
 
-          # 同文件用例排在一起，便于 pytest 复用同一模块的导入缓存。
+          # 清单本身按文件分组（同文件用例相邻），分片时对整体做 round-robin，
+          # 保证 4 个分片条数均衡，且与 _blacklist_shard.yml 的分片算法一致。
           nodeids = [nodeid for fname in by_file for nodeid in by_file[fname]]
           if not nodeids:
               sys.exit(f"ERROR: no nodeid in {cases_file}")
@@ -301,19 +305,23 @@ jobs:
           for platform, category in PLATFORM_CATEGORIES:
               out_dir = Path(f"cases-shards-{platform}")
               out_dir.mkdir(parents=True, exist_ok=True)
-              data = {
-                  "shard": 1,
-                  "num_shards": 1,
-                  "test_type": TEST_TYPE,
-                  "total_cases": len(nodeids),
-                  "cases": [
+              for i in range(1, NUM_SHARDS + 1):
+                  shard_cases = [
                       {"nodeid": nodeid, "file": nodeid.split("::", 1)[0]}
-                      for nodeid in nodeids
-                  ],
-              }
-              (out_dir / f"{category}_cases_shard_1.json").write_text(
-                  json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
-              )
+                      for nodeid in nodeids[i - 1 :: NUM_SHARDS]
+                  ]
+                  data = {
+                      "shard": i,
+                      "num_shards": NUM_SHARDS,
+                      "test_type": TEST_TYPE,
+                      "total_cases": len(shard_cases),
+                      "cases": shard_cases,
+                  }
+                  (out_dir / f"{category}_cases_shard_{i}.json").write_text(
+                      json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
+                  )
+              print(f"[{platform}] {NUM_SHARDS} shard file(s) -> {out_dir}")
+              print(f"  per-shard cases: {[len(nodeids[i - 1 :: NUM_SHARDS]) for i in range(1, NUM_SHARDS + 1)]}")
 
           # 与 nightly 收集阶段一致的 cases_by_file.jsonl：
           #   第 1 行 {"total_file": n, "total_cases": m}
@@ -328,7 +336,7 @@ jobs:
                   ) + "\n")
 
           print(f"cases file: {cases_file} ({len(nodeids)} unique nodeids, "
-                f"{len(by_file)} file(s))")
+                f"{len(by_file)} file(s), {NUM_SHARDS} shards/platform)")
           for fname in by_file:
               print(f"  {len(by_file[fname]):4d}  {fname}")
 
@@ -338,9 +346,10 @@ jobs:
           summary = os.environ.get("GITHUB_STEP_SUMMARY")
           if summary:
               with open(summary, "a") as handle:
-                  handle.write("### Custom test case file (a3 + a5, single machine)\n\n")
+                  handle.write("### Custom test case file (a3 + a5, 4 shards)\n\n")
                   handle.write(f"- cases file: `{cases_file}`\n")
                   handle.write(f"- unique nodeids: {len(nodeids)}\n")
+                  handle.write(f"- shards per platform: {NUM_SHARDS}\n")
                   handle.write(f"- source files: {len(by_file)}\n")
           PY
 
@@ -369,7 +378,7 @@ jobs:
           if-no-files-found: error
 
   # ==========================================================================
-  # 3. 测试: 两个平台各一个 job（单分片），复用 _blacklist_test-category.yml
+  # 3. 测试: 两个平台各一个 job（4 分片），复用 _blacklist_test-category.yml
   # ==========================================================================
   test-a3:
     name: custom a3
@@ -386,9 +395,9 @@ jobs:
       torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a3_torchnpu_wheels_tarball }}
       upstream_repo: pytorch/pytorch
       category: custom_test_cases-a3
-      num_shards: '1'
-      matrix_json: '[1]'
-      max_workers: ${{ inputs.max_workers || '16' }}
+      num_shards: '4'
+      matrix_json: '[1,2,3,4]'
+      max_workers: ${{ inputs.max_workers || '1' }}
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17
       report_to_upstream: false
       runner_label: linux-aarch64-a3-800i-2-cn12-001
@@ -411,9 +420,9 @@ jobs:
       torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a5_torchnpu_wheels_tarball }}
       upstream_repo: pytorch/pytorch
       category: custom_test_cases-a5
-      num_shards: '1'
-      matrix_json: '[1]'
-      max_workers: ${{ inputs.max_workers || '16' }}
+      num_shards: '4'
+      matrix_json: '[1,2,3,4]'
+      max_workers: ${{ inputs.max_workers || '1' }}
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.11-torch-master-cann9.2.0-20260910200430-202610160226-8a315d17
       report_to_upstream: false
       runner_label: linux-amd64-a5-2
@@ -485,7 +494,7 @@ jobs:
             --output-json npu-full-test-summary.json \
             --pytorch-version "${PY_SHORT}" \
             --torch-npu-short "${NPU_SHORT}" \
-            --shard-matrix-json '["reg-1"]' \
+            --shard-matrix-json '["reg-1","reg-2","reg-3","reg-4"]' \
             --docker-image swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17 \
             --runner linux-aarch64-a3-800i-2-cn12-001 \
             --cases-by-file-dir ../cases-by-file
@@ -509,7 +518,7 @@ jobs:
             --output-json npu-full-test-summary.json \
             --pytorch-version "${PY_SHORT}" \
             --torch-npu-short "${NPU_SHORT}" \
-            --shard-matrix-json '["reg-1"]' \
+            --shard-matrix-json '["reg-1","reg-2","reg-3","reg-4"]' \
             --docker-image swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.11-torch-master-cann9.2.0-20260910200430-202610160226-8a315d17 \
             --runner linux-amd64-a5-2 \
             --cases-by-file-dir ../cases-by-file
