@@ -882,6 +882,8 @@ def _record_memory_history(enabled="all", *args, **kwargs):
             Defaults to "all".
         max_entries (int, optional): Keep a maximum of `max_entries`
             alloc/free events in the recorded history recorded.
+            The independent user annotation buffer uses the same limit.
+            With enabled="state", the effective limit is one entry.
         clear_history (bool, optional): Clear existing history when enabling
             recording. Defaults to False. Disabling recording always clears history.
         compile_context (bool, optional): Record the innermost Torch-Compiled
@@ -895,6 +897,12 @@ def _record_memory_history(enabled="all", *args, **kwargs):
             "segment_free", "segment_map", "segment_unmap", "snapshot", "oom",
             or "workspace_snapshot". Defaults to None (record all actions).
             This does not affect allocation state or allocator trace trackers.
+        global_record_annotations (bool, optional): Record USER_SCOPE annotations
+            with a global callback when True, or a thread-local callback when
+            False (default). Disable recording before changing the callback
+            scope. Annotations are exported in external_annotations with
+            name, stage (START/END), device and Unix time_us. Existing entries
+            are kept unless clear_history=True or recording is disabled.
     """
     return _record_memory_history_impl(enabled, *args, **kwargs)
 
@@ -908,11 +916,12 @@ def _record_memory_history_impl(
     clear_history: bool = False,
     compile_context: bool = False,
     skip_actions: list[str] | None = None,
+    global_record_annotations: bool = False,
 ):
     torch_npu.npu._lazy_init()
     torch_npu._C._npu_record_memory_history(
         enabled, context, stacks, max_entries, clear_history, compile_context,
-        skip_actions if skip_actions is not None else [],
+        skip_actions if skip_actions is not None else [], global_record_annotations,
     )
 
 
@@ -929,6 +938,13 @@ def _snapshot(device=None, augment_with_fx_traces=False):
         class Snapshot(TypedDict):
             segments : List[Segment]
             device_traces: List[List[TraceEntry]]
+            external_annotations: List[AnnotationEntry]
+
+        class AnnotationEntry(TypedDict):
+            name: str
+            stage: str  # START or END of a user record_function scope
+            device: int
+            time_us: int  # Unix time in microseconds, captured at the event
 
         class Segment(TypedDict):
             # Segments are memory returned from a aclrtMalloc call.

@@ -81,6 +81,7 @@ using c10::CachingAllocator::Stat;
 using c10::CachingAllocator::StatArray;
 using c10::CachingAllocator::StatType;
 using c10::CachingAllocator::StatTypes;
+using c10::CachingDeviceAllocator::AnnotationEntry;
 using c10::CachingDeviceAllocator::DeviceStats;
 
 typedef std::shared_ptr<c10::GatheredContext> (*CreateContextFn)(void);
@@ -196,6 +197,7 @@ inline TraceEntry::Action parseTraceEntryAction(const std::string& action) {
 struct SnapshotInfo {
   std::vector<SegmentInfo> segments;
   std::vector<std::vector<TraceEntry>> device_traces;
+  std::vector<AnnotationEntry> external_annotations;
 };
 
 // returns the pointers freed in the pool
@@ -340,6 +342,7 @@ class NPUAllocator : public c10::DeviceAllocator {
       RecordContext when,
       bool clearHistory,
       const std::vector<std::string>& skip_actions) = 0;
+  virtual void recordAnnotation(const std::vector<std::pair<std::string, std::string>>& /*md*/) {}
   virtual void attachOutOfMemoryObserver(OutOfMemoryObserver observer) = 0;
   virtual void attachOomRejectionObserver(OomRejectionObserver observer) = 0;
   virtual bool checkUceInMemPool(int device) = 0;
@@ -543,6 +546,10 @@ inline void recordHistory(
     bool clearHistory,
     const std::vector<std::string>& skip_actions) {
   return get()->recordHistory(enabled, context_recorder, alloc_trace_max_entries, when, clearHistory, skip_actions);
+}
+
+inline void recordAnnotation(const std::vector<std::pair<std::string, std::string>>& md) {
+  get()->recordAnnotation(md);
 }
 
 inline bool isHistoryEnabled() {

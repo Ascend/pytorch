@@ -3641,6 +3641,7 @@ class NpuCachingAllocator : public NPUAllocator {
  private:
   std::mutex mutex;
   bool record_history = false;
+  c10::RingBuffer<AnnotationEntry> annotation_buffer;
 
   // allocated blocks by device pointer
   ska::flat_hash_map<void*, Block*> allocated_blocks;
@@ -3771,9 +3772,26 @@ class NpuCachingAllocator : public NPUAllocator {
       bool clearHistory,
       const std::vector<std::string>& skip_actions) override {
     record_history = enabled;
+    annotation_buffer.setMaxEntries(alloc_trace_max_entries);
+    if (!enabled || clearHistory) {
+      annotation_buffer.clear();
+    }
     for (auto& allocator : device_allocator) {
       allocator->recordHistory(enabled, context_recorder, alloc_trace_max_entries, when, clearHistory, skip_actions);
     }
+  }
+
+  void recordAnnotation(const std::vector<std::pair<std::string, std::string>>& md) override {
+    if (!record_history) {
+      return;
+    }
+    int device = 0;
+    NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
+    auto ae = AnnotationEntry(device, c10::getApproximateTime());
+    for (const auto& md_pair : md) {
+      ae.recordUserMetadata(md_pair.first, md_pair.second);
+    }
+    annotation_buffer.insertEntries(ae);
   }
 
   void pushCompileContext(std::string& md) override {
@@ -4048,6 +4066,11 @@ class NpuCachingAllocator : public NPUAllocator {
     // to microseconds.
     auto tsc_to_ns = clock_converter.makeConverter();
     auto tsc_to_us = [=](c10::approx_time_t t_approx) { return tsc_to_ns(t_approx) / 1000; };
+
+    annotation_buffer.getEntries(result.external_annotations);
+    for (auto& ae : result.external_annotations) {
+      ae.time_.t_ = tsc_to_us(ae.time_.approx_t_);
+    }
 
     for (int i = 0; i < count; i++) {
       result.device_traces.emplace_back(device_allocator[i]->trace(tsc_to_us));

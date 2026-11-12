@@ -24,6 +24,12 @@ class CallbackManager {
   // Destructor
   ~CallbackManager() = default;
   // Methods to get and set the callback handles
+  at::CallbackHandle getAnnotationHandle() const {
+    return annotationHandle_;
+  }
+  void setAnnotationHandle(at::CallbackHandle handle) {
+    annotationHandle_ = handle;
+  }
   at::CallbackHandle getCompileContextHandle() const {
     return compileContextHandle_;
   }
@@ -36,10 +42,24 @@ class CallbackManager {
 
  private:
   mutable std::mutex callbackMutex_;
+  at::CallbackHandle annotationHandle_{0};
   at::CallbackHandle compileContextHandle_{0};
 };
 
 CallbackManager callbackManager;
+
+at::CallbackHandle _initRecordAnnotations(bool useGlobalCallback) {
+  auto addCallback = useGlobalCallback ? at::addGlobalCallback : at::addThreadLocalCallback;
+  return addCallback(at::RecordFunctionCallback(
+                         [](const at::RecordFunction& fn) -> std::unique_ptr<at::ObserverContext> {
+                           c10_npu::NPUCachingAllocator::recordAnnotation({{"name", fn.name()}, {"stage", "START"}});
+                           return nullptr;
+                         },
+                         [](const at::RecordFunction& fn, at::ObserverContext* /*ctx_ptr*/) {
+                           c10_npu::NPUCachingAllocator::recordAnnotation({{"name", fn.name()}, {"stage", "END"}});
+                         })
+                         .scopes({at::RecordScope::USER_SCOPE}));
+}
 
 at::CallbackHandle _initCompileContexts() {
   return at::addGlobalCallback(at::RecordFunctionCallback(
@@ -61,14 +81,21 @@ at::CallbackHandle _initCompileContexts() {
                                    .scopes({at::RecordScope::FUNCTION}));
 }
 
-void setRecordFunctionCallbacks(bool enabled, bool compileContext) {
+void setRecordFunctionCallbacks(bool enabled, bool compileContext, bool globalRecordAnnotations) {
   // Handle Callbacks under mutex
   auto lock = callbackManager.lockCallbackMutex();
   if (enabled) {
+    if (callbackManager.getAnnotationHandle() == 0) {
+      callbackManager.setAnnotationHandle(_initRecordAnnotations(globalRecordAnnotations));
+    }
     if (compileContext && callbackManager.getCompileContextHandle() == 0) {
       callbackManager.setCompileContextHandle(_initCompileContexts());
     }
   } else {
+    if (callbackManager.getAnnotationHandle() != 0) {
+      at::removeCallback(callbackManager.getAnnotationHandle());
+      callbackManager.setAnnotationHandle(0);
+    }
     if (callbackManager.getCompileContextHandle() != 0) {
       at::removeCallback(callbackManager.getCompileContextHandle());
       callbackManager.setCompileContextHandle(0);
@@ -105,7 +132,8 @@ void _record_memory_history(
     size_t max_entries,
     bool clearHistory,
     bool compileContext,
-    const std::vector<std::string>& skip_actions) {
+    const std::vector<std::string>& skip_actions,
+    bool globalRecordAnnotations) {
   if (enabled) {
     checkOptionIn(*enabled, {"state", "all"}, "expected state to be 'state', 'all', or None");
   }
@@ -140,7 +168,7 @@ void _record_memory_history(
     }
   }
   torch_npu::utils::npu_lazy_init();
-  setRecordFunctionCallbacks(enabled.has_value(), compileContext);
+  setRecordFunctionCallbacks(enabled.has_value(), compileContext, globalRecordAnnotations);
   c10_npu::NPUCachingAllocator::recordHistory(
       enabled.has_value(), recorder, max_entries, when, clearHistory, skip_actions);
   c10_npu::NPUWorkspaceAllocator::recordHistory(enabled.has_value(), recorder, when, skip_actions);
@@ -365,6 +393,18 @@ std::string _memory_snapshot_pickled() {
   auto result = new_dict();
   result.insert("segments", segments);
   result.insert("device_traces", traces);
+
+  auto external_annotations = new_list();
+  for (const auto& ae : snapshot.external_annotations) {
+    auto annotation_entry = new_dict();
+    for (const auto& md : ae.metadata_) {
+      annotation_entry.insert((c10::IValue)md.first, md.second);
+    }
+    annotation_entry.insert(device_s, ae.device_);
+    annotation_entry.insert("time_us", ae.time_.t_);
+    external_annotations.push_back(annotation_entry);
+  }
+  result.insert("external_annotations", external_annotations);
 
   auto frames = ivalue_symbolize(frame_tracebacks);
   for (auto i : c10::irange(frames.size())) {

@@ -3,6 +3,7 @@
 
 import os
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 
 import torch
 from torch.testing._internal.common_utils import instantiate_parametrized_tests, parametrize
@@ -191,6 +192,76 @@ class TestMemoryHistoryBuffer(TestCase):
             self.assertEqual({event["action"] for event in snapshot["device_traces"][self.device]
                               if event["addr"] == address}, expected - set(skipped or []))
             self.assertEqual([segment for segment in snapshot["segments"] if segment["address"] == address], segments)
+
+
+@instantiate_parametrized_tests
+@unittest.skipIf(not torch_npu.npu.is_available(), "NPU is required")
+class TestMemoryAnnotations(TestCase):
+    def setUp(self):
+        super().setUp()
+        torch.empty(1, device="npu")
+        torch_npu.npu.synchronize()
+        self.device = torch_npu.npu.current_device()
+        self.memory = torch_npu.npu.memory
+        self.memory._record_memory_history(None)
+
+    def tearDown(self):
+        self.memory._record_memory_history(None)
+        super().tearDown()
+
+    def annotations(self, snapshot=None):
+        if snapshot is None:
+            snapshot = self.memory._snapshot()
+        return [entry for entry in snapshot["external_annotations"]
+                if entry["name"].startswith("snapshot_annotation:")]
+
+    def stages(self, snapshot=None):
+        return [(entry["name"].removeprefix("snapshot_annotation:"), entry["stage"])
+                for entry in self.annotations(snapshot)]
+
+    def scope(self, name):
+        torch_npu.npu.set_device(self.device)
+        with torch.autograd.profiler.record_function("snapshot_annotation:" + name):
+            pass
+
+    @parametrize("mode", [None, False, True])
+    def test_annotation_thread_scope(self, mode):
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            # Start the worker before installing a thread-local callback.
+            executor.submit(lambda: None).result()
+            options = {} if mode is None else {"global_record_annotations": mode}
+            self.memory._record_memory_history(context=None, stacks="python", **options)
+            self.scope("main")
+            executor.submit(self.scope, "worker").result()
+        expected = [("main", "START"), ("main", "END")]
+        if mode:
+            expected += [("worker", "START"), ("worker", "END")]
+        self.assertEqual(self.stages(), expected)
+        self.assertEqual({entry["device"] for entry in self.annotations()}, {self.device})
+
+    def test_annotation_lifecycle(self):
+        memory = self.memory
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            executor.submit(lambda: None).result()
+            memory._record_memory_history(context=None, stacks="python")
+            self.scope("saved")
+            memory._record_memory_history(context=None, stacks="python", global_record_annotations=True)
+            self.scope("main")
+            executor.submit(self.scope, "worker").result()
+            self.assertEqual(self.stages(), [("saved", "START"), ("saved", "END"),
+                                             ("main", "START"), ("main", "END")])
+            memory._record_memory_history(context=None, stacks="python", clear_history=True,
+                                          global_record_annotations=True)
+            executor.submit(self.scope, "worker").result()
+            self.assertEqual(self.annotations(), [])
+            memory._record_memory_history(None)
+            self.scope("disabled")
+            self.assertEqual(self.annotations(), [])
+            memory._record_memory_history(context=None, stacks="python", max_entries=3,
+                                          global_record_annotations=True)
+            executor.submit(self.scope, "worker").result()
+            self.scope("main")
+            self.assertEqual(self.stages(), [("worker", "END"), ("main", "START"), ("main", "END")])
 
 
 if __name__ == "__main__":

@@ -187,7 +187,8 @@ void RegisterNPUDeviceProperties(PyObject* module) {
           size_t,
           bool,
           bool,
-          const std::vector<std::string>&)>(torch_npu::_record_memory_history));
+          const std::vector<std::string>&,
+          bool)>(torch_npu::_record_memory_history));
 
   m.def("_npu_isHistoryEnabled", []() { return c10_npu::NPUCachingAllocator::isHistoryEnabled(); });
 
@@ -1491,6 +1492,18 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* arg) {
   py::dict result;
   result["segments"] = segments;
   result["device_traces"] = traces;
+
+  py::list external_annotations;
+  for (const auto& ae : snapshot.external_annotations) {
+    py::dict annotation_entry;
+    for (const auto& md : ae.metadata_) {
+      annotation_entry[(py::str)md.first] = md.second;
+    }
+    annotation_entry[device_s] = ae.device_;
+    annotation_entry["time_us"] = ae.time_.t_;
+    external_annotations.append(annotation_entry);
+  }
+  result["external_annotations"] = external_annotations;
 
 #if defined(__x86_64__)
   auto frames = torch::py_symbolize(to_gather_frames);
