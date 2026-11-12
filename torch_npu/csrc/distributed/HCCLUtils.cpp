@@ -206,10 +206,13 @@ std::shared_ptr<HCCLComm> HCCLComm::createSubHcclComm(
 }
 
 // Move constructable
-HCCLComm::HCCLComm(HCCLComm&& other)
+HCCLComm::HCCLComm(HCCLComm&& other) : HCCLComm()
 {
+    std::lock_guard<std::mutex> lock(other.mutex_);
     std::swap(hcclComm_, other.hcclComm_);
     std::swap(hcclAsyncErr_, other.hcclAsyncErr_);
+    std::swap(aborted_, other.aborted_);
+    std::swap(registeredSegmentHandles_, other.registeredSegmentHandles_);
     std::swap(hcclCommType, other.hcclCommType);
     std::swap(p2pPeer, other.p2pPeer);
 }
@@ -217,25 +220,45 @@ HCCLComm::HCCLComm(HCCLComm&& other)
 // Move assignable
 HCCLComm& HCCLComm::operator=(HCCLComm&& other)
 {
-    std::swap(hcclComm_, other.hcclComm_);
-    std::swap(hcclAsyncErr_, other.hcclAsyncErr_);
-    std::swap(hcclCommType, other.hcclCommType);
-    std::swap(p2pPeer, other.p2pPeer);
+    if (this == &other) {
+        return *this;
+    }
+    {
+        std::scoped_lock lock(mutex_, other.mutex_);
+        std::swap(hcclComm_, other.hcclComm_);
+        std::swap(hcclAsyncErr_, other.hcclAsyncErr_);
+        std::swap(aborted_, other.aborted_);
+        std::swap(registeredSegmentHandles_, other.registeredSegmentHandles_);
+        std::swap(hcclCommType, other.hcclCommType);
+        std::swap(p2pPeer, other.p2pPeer);
+    }
     return *this;
 }
 
 void HCCLComm::destroyHcclComm()
 {
-    std::unique_lock<std::mutex> lock(mutex_);
-    if (hcclComm_) {
-        hcclCommDestroy(hcclComm_);
+    HcclResult result;
+    {
+        std::unique_lock<std::mutex> lock(mutex_);
+        if (aborted_ || hcclComm_ == nullptr) {
+            return;
+        }
+        result = hcclCommDestroy(hcclComm_);
+        // Retire this object when discarding its handle, even if destruction fails.
         hcclComm_ = nullptr;
+        aborted_ = true;
+    }
+    if (result != HCCL_SUCCESS) {
+        LOG(ERROR) << "HcclCommDestroy failed with error " << result;
     }
 }
 
 void HCCLComm::releaseHcclCommRes()
 {
     std::unique_lock<std::mutex> lock(mutex_);
+    if (aborted_) {
+        return;
+    }
     // Deregister all symmetric windows before destroying the communicator.
     for (const auto& it : registeredSegmentHandles_) {
         HCCL_CHECK_ERROR(
@@ -274,6 +297,7 @@ HcclResult hcclCommSymWinRegister(HcclComm comm, void *addr, uint64_t size, void
 HcclResult HCCLComm::registerSegment(void* ptr, size_t size, bool errorOnRereg, bool symmetric)
 {
     std::unique_lock<std::mutex> lock(mutex_);
+    TORCH_CHECK(!aborted_, "HCCL communicator has been destroyed.", DIST_ERROR(ErrCode::UNAVAIL));
     void* handle = nullptr;
     if (registeredSegmentHandles_.count(ptr) > 0) {
         TORCH_CHECK(!errorOnRereg,
@@ -295,6 +319,10 @@ HcclResult HCCLComm::registerSegment(void* ptr, size_t size, bool errorOnRereg, 
 HcclResult HCCLComm::deregisterSegment(void* ptr)
 {
     std::unique_lock<std::mutex> lock(mutex_);
+    if (aborted_) {
+        // Cleanup is idempotent after destruction; do not deregister again or throw.
+        return HCCL_SUCCESS;
+    }
     auto it = registeredSegmentHandles_.find(ptr);
     TORCH_CHECK(it != registeredSegmentHandles_.end(),
         "Segment with ptr ", ptr, " is not registered on hcclComm_ ", hcclComm_,

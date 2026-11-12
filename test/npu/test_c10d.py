@@ -1,3 +1,4 @@
+from datetime import timedelta
 from enum import IntEnum, unique
 
 import os
@@ -7,7 +8,9 @@ import torch.distributed as c10d
 import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch_npu
+from torch.testing._internal.common_distributed import MultiProcessTestCase
 
+from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 from torch_npu.testing.testcase import TestCase, run_tests
 
 
@@ -192,6 +195,80 @@ class ProcessGroupHCCLTest(TestCase):
         for p in ps:
             p.join(180)
             self.assertEqual(p.exitcode, 0, "subprocess exit with abnormal code.")
+
+
+class TestHcclCommLifecycle(MultiProcessTestCase):
+    @property
+    def world_size(self):
+        return 2
+
+    def setUp(self):
+        super().setUp()
+        self._spawn_processes()
+
+    def _init_hccl_group(self):
+        torch.npu.set_device(self.rank)
+        dist.init_process_group(
+            "hccl", store=dist.FileStore(self.file_name, self.world_size),
+            rank=self.rank, world_size=self.world_size, timeout=timedelta(seconds=60))
+        return dist.group.WORLD
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_shutdown_after_abort(self):
+        # Finish communication before aborting, then close the process group.
+        pg = self._init_hccl_group()
+        try:
+            tensor = torch.ones(1, device=f"npu:{self.rank}")
+            pg.allreduce([tensor]).wait()
+            torch.npu.synchronize()
+            self.assertEqual(tensor.cpu(), torch.full((1,), float(self.world_size)))
+            pg._get_backend(tensor.device).abort_hccl_comm(None)
+            dist.destroy_process_group()
+            self.assertFalse(dist.is_initialized())
+        finally:
+            if dist.is_initialized():
+                dist.destroy_process_group()
+
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_shutdown_after_abort_without_collective(self):
+        # Abort before lazy communicator creation, then close the process group.
+        pg = self._init_hccl_group()
+        try:
+            pg._get_backend(torch.device(f"npu:{self.rank}")).abort_hccl_comm(None)
+            dist.destroy_process_group()
+            self.assertFalse(dist.is_initialized())
+        finally:
+            if dist.is_initialized():
+                dist.destroy_process_group()
+
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_collective_after_reinit(self):
+        # Abort through the public reinit API, then communicate on a rebuilt communicator.
+        pg = self._init_hccl_group()
+        gate = dist.PrefixStore("reinit_gate", dist.FileStore(self.file_name, self.world_size))
+        try:
+            tensor = torch.ones(1, device=f"npu:{self.rank}")
+            pg.allreduce([tensor]).wait()
+            torch.npu.synchronize()
+            self.assertEqual(tensor.cpu(), torch.full((1,), float(self.world_size)))
+
+            torch_npu.distributed.reinit_process_group()
+            # Every rank deletes the root info key during reinit, so wait until all
+            # ranks are done before rank 0 publishes the new one.
+            gate.set(f"done_{self.rank}", "1")
+            gate.wait([f"done_{rank}" for rank in range(self.world_size)], timedelta(seconds=60))
+
+            tensor = torch.ones(1, device=f"npu:{self.rank}")
+            pg.allreduce([tensor]).wait()
+            torch.npu.synchronize()
+            self.assertEqual(tensor.cpu(), torch.full((1,), float(self.world_size)))
+            dist.destroy_process_group()
+            self.assertFalse(dist.is_initialized())
+        finally:
+            if dist.is_initialized():
+                dist.destroy_process_group()
 
 
 class ComputeBucketAssignmentTest(TestCase):
