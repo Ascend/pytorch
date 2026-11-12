@@ -102,6 +102,9 @@ class _ExperimentalConfig:
         mstx_domain_exclude: Optional[list] = None,
         sys_io: bool = False,
         sys_interconnection: bool = False,
+        ftrace: list = None,
+        ftrace_period: int = 0,
+        ftrace_bufsize: int = 0,
     ):
         self._profiler_level = profiler_level
         self._aic_metrics = aic_metrics
@@ -118,8 +121,12 @@ class _ExperimentalConfig:
         self._mstx_domain_exclude = mstx_domain_exclude if mstx_domain_exclude else []
         self._sys_io = sys_io
         self._sys_interconnection = sys_interconnection
+        self._ftrace = ftrace if ftrace else []
+        self._ftrace_period = ftrace_period
+        self._ftrace_bufsize = ftrace_bufsize
         self._check_params()
         self._check_mstx_domain_params()
+        self._check_ftrace_params()
         self._check_host_sys_params()
 
     def __call__(self) -> torch_npu._C._profiler._ExperimentalConfig:
@@ -135,6 +142,9 @@ class _ExperimentalConfig:
             mstx_domain_exclude=self._mstx_domain_exclude,
             sys_io=self._sys_io,
             sys_interconnection=self._sys_interconnection,
+            ftrace=self._ftrace,
+            ftrace_period=self._ftrace_period,
+            ftrace_bufsize=self._ftrace_bufsize,
         )
 
     @property
@@ -361,3 +371,50 @@ class _ExperimentalConfig:
             print_warn_msg("Invalid parameter host_sys, reset it to empty.")
             self._host_sys = list()
         self._host_sys = list({str(item) for item in self._host_sys})
+
+    def _check_ftrace_params(self):
+        """Validate the host ftrace switches: subsystem/event pairs and a bounded period."""
+        if not isinstance(self._ftrace, (list, tuple)):
+            print_warn_msg(
+                "Invalid parameter ftrace, which must be of list type, reset it to empty."
+            )
+            self._ftrace = []
+        normalized = []
+        for item in self._ftrace:
+            if not isinstance(item, str) or item.count("/") != 1:
+                print_warn_msg(
+                    f"Invalid ftrace event: {item}, which must be 'subsystem/event', ignored."
+                )
+                continue
+            system, event = item.split("/")
+            if not system or not event:
+                print_warn_msg(
+                    f"Invalid ftrace event: {item}, which must be 'subsystem/event', ignored."
+                )
+                continue
+            if item not in normalized:
+                normalized.append(item)
+        self._ftrace = normalized
+        invalid_period = (
+            not isinstance(self._ftrace_period, int)
+            or isinstance(self._ftrace_period, bool)
+            or self._ftrace_period < 0
+            or self._ftrace_period > 86400
+        )
+        if invalid_period:
+            print_warn_msg(
+                "Invalid parameter ftrace_period, which must be int in [0, 86400], "
+                "reset it to 0."
+            )
+            self._ftrace_period = 0
+        if (
+            not isinstance(self._ftrace_bufsize, int)
+            or isinstance(self._ftrace_bufsize, bool)
+            or self._ftrace_bufsize < 0
+            or (self._ftrace_bufsize != 0 and not 1024 <= self._ftrace_bufsize <= 4194304)
+        ):
+            warnings.warn(
+                "Invalid parameter ftrace_bufsize, which must be 0 or int in [1024, 4194304], "
+                "reset it to 0 and use the collector default."
+            )
+            self._ftrace_bufsize = 0

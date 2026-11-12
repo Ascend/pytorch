@@ -5,6 +5,33 @@ from ..experimental_config import _ExperimentalConfig, ProfilerLevel, AiCMetrics
 from ._dynamic_profiler_utils import DynamicProfilerUtils
 
 
+
+def _parse_ftrace_int(value, low, high, name):
+    """Parse an optional integer switch coming from JSON or a config dict.
+
+    Numeric strings are accepted because the dyno JSON carries string values; bool, fractional
+    float, inf and out-of-range values are rejected instead of being silently coerced, because
+    int(True) == 1 and int(float("inf")) raises OverflowError outside the caller's try block.
+    """
+    if isinstance(value, bool):
+        parsed = None
+    elif isinstance(value, str):
+        try:
+            parsed = int(value.strip())
+        except ValueError:
+            parsed = None
+    elif isinstance(value, float):
+        parsed = int(value) if value.is_integer() else None
+    elif isinstance(value, int):
+        parsed = value
+    else:
+        parsed = None
+    if parsed is None or parsed < low or parsed > high:
+        DynamicProfilerUtils.out_log("Invalid %s, reset it to 0." % name,
+                                     DynamicProfilerUtils.LoggerLevelEnum.WARNING)
+        return 0
+    return parsed
+
 class ConfigContext:
     DEFAULT_ACTIVE_NUM = 1
     DEFAULT_START_STEP = 0
@@ -245,6 +272,13 @@ class ConfigContext:
         sys_io = self.BOOL_MAP.get(sys_io.lower(), False)
         sys_interconnection = json_data.get('PROFILE_SYS_INTERCONNECTION', 'false')
         sys_interconnection = self.BOOL_MAP.get(sys_interconnection.lower(), False)
+        ftrace = DynamicProfilerUtils.parse_str_params_to_list(json_data.get('PROFILE_FTRACE', None))
+        ftrace_period = _parse_ftrace_int(json_data.get('PROFILE_FTRACE_PERIOD', 0), 0, 86400,
+                                          "ftrace_period")
+        ftrace_bufsize = _parse_ftrace_int(json_data.get('PROFILE_FTRACE_BUFSIZE', 0), 0, 4194304,
+                                           "ftrace_bufsize")
+        if ftrace_bufsize != 0 and ftrace_bufsize < 1024:
+            ftrace_bufsize = 0
 
         self.experimental_config = _ExperimentalConfig(
             profiler_level=profiler_level,
@@ -262,6 +296,9 @@ class ConfigContext:
             mstx_domain_exclude=mstx_domain_exclude,
             sys_io=sys_io,
             sys_interconnection=sys_interconnection,
+            ftrace=ftrace,
+            ftrace_period=ftrace_period,
+            ftrace_bufsize=ftrace_bufsize,
         )
 
     def _parse_cfg_json_exp_cfg(self, json_data: dict):
@@ -286,6 +323,11 @@ class ConfigContext:
         host_sys = exp_config.get('host_sys', [])
         sys_io = exp_config.get('sys_io', False)
         sys_interconnection = exp_config.get('sys_interconnection', False)
+        ftrace = exp_config.get('ftrace', None)
+        ftrace_period = _parse_ftrace_int(exp_config.get('ftrace_period', 0), 0, 86400, "ftrace_period")
+        ftrace_bufsize = _parse_ftrace_int(exp_config.get('ftrace_bufsize', 0), 0, 4194304, "ftrace_bufsize")
+        if ftrace_bufsize != 0 and ftrace_bufsize < 1024:
+            ftrace_bufsize = 0
 
         self.experimental_config = _ExperimentalConfig(
             profiler_level=profiler_level,
@@ -302,7 +344,10 @@ class ConfigContext:
             mstx_domain_exclude=mstx_domain_exclude,
             host_sys=host_sys,
             sys_io=sys_io,
-            sys_interconnection=sys_interconnection
+            sys_interconnection=sys_interconnection,
+            ftrace=ftrace,
+            ftrace_period=ftrace_period,
+            ftrace_bufsize=ftrace_bufsize
         )
 
     def _parse_exp_cfg(self, json_data: dict):

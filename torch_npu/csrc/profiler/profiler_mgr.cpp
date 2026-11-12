@@ -13,6 +13,14 @@ namespace profiler {
 constexpr uint64_t ACL_PROF_AICORE_SHAPE = 0x800000000ULL;
 #endif
 
+// Host ftrace config types are newer than some released CANN packages, and ACL_PROF_FTRACE is
+// an enumerator (invisible to the preprocessor), so the values are kept here and must stay in
+// sync with aclprofConfigType in acl_prof.h. FeatureMgr gates the call, so an old runtime that
+// does not understand them returns an error instead of misbehaving.
+constexpr int32_t ACL_PROF_FTRACE_VALUE = 17;
+constexpr int32_t ACL_PROF_FTRACE_PERIOD_VALUE = 18;
+constexpr int32_t ACL_PROF_FTRACE_BUFSIZE_VALUE = 19;
+
 std::map<std::string, int8_t> trace_level_to_int_ = {
     {"Level0", 0},
     {"Level1", 1},
@@ -38,10 +46,8 @@ std::map<std::string, uint64_t> ProfilerMgr::trace_level_map_ = {
     {"Level_none", Level_none},
 };
 
-constexpr uint32_t capacity_ = 1048576; // 2^20, Experience value for default
-                                        // ringbuffer size for single data
-constexpr uint32_t trace_capacity_ = 128; // 2^7, Experience value for python trace data ringbuffer size for
-                                          // batch data
+constexpr uint32_t capacity_ = 1048576; // 2^20, Experience value for default ringbuffer size for single data
+constexpr uint32_t trace_capacity_ = 128; // 2^7, Experience value for python trace data ringbuffer size for batch data
 
 aclprofAicoreMetrics CheckAicMetricsFeature(aclprofAicoreMetrics aic_metrics, int8_t level) {
   if (aic_metrics == ACL_AICORE_MEMORY_ACCESS &&
@@ -147,6 +153,7 @@ uint64_t ProfilerMgr::PrepareProfilerConfig(const NpuTraceConfig& npu_config) {
     }
   }
   PrepareProfilerHostSysConfig(npu_config.host_sys);
+  PrepareProfilerHostFtraceConfig(npu_config);
   PrepareProfilerDeviceSysConfig(npu_config);
   if (npu_config.op_attr) {
     datatype_config |= ACL_PROF_OP_ATTR;
@@ -158,9 +165,45 @@ uint64_t ProfilerMgr::PrepareProfilerConfig(const NpuTraceConfig& npu_config) {
       ASCEND_LOGW("AI Core shape collection is not supported, keep framework record_shapes only.");
     }
   }
-  // check validation and compatibility
   datatype_config = CheckFeatureConfig(datatype_config);
   return datatype_config;
+}
+
+void ProfilerMgr::PrepareProfilerHostFtraceConfig(const NpuTraceConfig& npu_config) {
+  if (npu_config.ftrace.empty()) {
+    return;
+  }
+  if (!FeatureMgr::GetInstance()->IsSupportFeature(FeatureType::FEATURE_FTRACE)) {
+    ASCEND_LOGW("FTRACE feature is not supported by current CANN, skip host ftrace config.");
+    return;
+  }
+  std::string ftraceStr;
+  for (size_t i = 0; i < npu_config.ftrace.size(); ++i) {
+    if (i > 0) {
+      ftraceStr += ",";
+    }
+    ftraceStr += npu_config.ftrace[i];
+  }
+  aclError ftraceRet = at_npu::native::AclprofSetConfig(
+      static_cast<aclprofConfigType>(ACL_PROF_FTRACE_VALUE), ftraceStr.c_str(), ftraceStr.size());
+  if (ftraceRet != ACL_SUCCESS) {
+    ASCEND_LOGW("Failed call aclprofSetConfig to ACL_PROF_FTRACE. error_code: %d", static_cast<int>(ftraceRet));
+  }
+  const std::string period = std::to_string(npu_config.ftrace_period);
+  aclError periodRet = at_npu::native::AclprofSetConfig(
+      static_cast<aclprofConfigType>(ACL_PROF_FTRACE_PERIOD_VALUE), period.c_str(), period.size());
+  if (periodRet != ACL_SUCCESS) {
+    ASCEND_LOGW("Failed call aclprofSetConfig to ACL_PROF_FTRACE_PERIOD. error_code: %d", static_cast<int>(periodRet));
+  }
+  if (npu_config.ftrace_bufsize > 0) {
+    const std::string bufsize = std::to_string(npu_config.ftrace_bufsize);
+    aclError bufsizeRet = at_npu::native::AclprofSetConfig(
+        static_cast<aclprofConfigType>(ACL_PROF_FTRACE_BUFSIZE_VALUE), bufsize.c_str(), bufsize.size());
+    if (bufsizeRet != ACL_SUCCESS) {
+      ASCEND_LOGW(
+          "Failed call aclprofSetConfig to ACL_PROF_FTRACE_BUFSIZE. error_code: %d", static_cast<int>(bufsizeRet));
+    }
+  }
 }
 
 void ProfilerMgr::PrepareProfilerHostSysConfig(const std::vector<std::string>& host_sys) {
@@ -172,6 +215,7 @@ void ProfilerMgr::PrepareProfilerHostSysConfig(const std::vector<std::string>& h
       }
       hostSysStr += host_sys[i];
     }
+
     aclError hostSysRet = at_npu::native::AclprofSetConfig(ACL_PROF_HOST_SYS, hostSysStr.c_str(), hostSysStr.size());
     if (hostSysRet != ACL_SUCCESS) {
       ASCEND_LOGE("Failed call aclprofSetConfig to ACL_PROF_HOST_SYS. error_code: %d", static_cast<int>(hostSysRet));

@@ -19,6 +19,7 @@ enum class FeatureType {
   FEATURE_ATTR,
   FEATURE_MEMORY_ACCESS,
   FEATURE_AICORE_SHAPE,
+  FEATURE_FTRACE,
   FEATURE_MAX,
 };
 using torch_npu::toolkit::profiler::Utils;

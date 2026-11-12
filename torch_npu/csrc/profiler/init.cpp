@@ -49,7 +49,10 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject* unused) {
               std::vector<std::string>,
               std::vector<std::string>,
               bool,
-              bool>(),
+              bool,
+              std::vector<std::string>,
+              int,
+              int>(),
           py::arg("trace_level") = "Level0",
           py::arg("metrics") = "ACL_AICORE_NONE",
           py::arg("l2_cache") = false,
@@ -60,7 +63,10 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject* unused) {
           py::arg("mstx_domain_include") = std::vector<std::string>{},
           py::arg("mstx_domain_exclude") = std::vector<std::string>{},
           py::arg("sys_io") = false,
-          py::arg("sys_interconnection") = false)
+          py::arg("sys_interconnection") = false,
+          py::arg("ftrace") = std::vector<std::string>{},
+          py::arg("ftrace_period") = 0,
+          py::arg("ftrace_bufsize") = 0)
       .def(py::pickle(
           [](const ExperimentalConfig& p) {
             return py::make_tuple(
@@ -74,14 +80,21 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject* unused) {
                 p.mstx_domain_include,
                 p.mstx_domain_exclude,
                 p.sys_io,
-                p.sys_interconnection);
+                p.sys_interconnection,
+                p.ftrace,
+                p.ftrace_period,
+                p.ftrace_bufsize);
           },
           [](py::tuple t) {
-            if (t.size() < static_cast<size_t>(ExperConfigType::CONFIG_TYPE_MAX_COUNT)) {
+            const size_t minStateSize = static_cast<size_t>(ExperConfigType::SYS_INTERCONNECTION) + 1;
+            if (t.size() < minStateSize) {
               throw std::runtime_error(
-                  "Expected at least " + std::to_string(static_cast<size_t>(ExperConfigType::CONFIG_TYPE_MAX_COUNT)) +
-                  " values in state" + PROF_ERROR(ErrCode::PARAM));
+                  "Expected at least " + std::to_string(minStateSize) + " values in state" +
+                  PROF_ERROR(ErrCode::PARAM));
             }
+            auto stateValue = [&t](size_t idx, auto defaultValue) {
+              return t.size() > idx ? t[idx].cast<decltype(defaultValue)>() : defaultValue;
+            };
             return ExperimentalConfig(
                 t[static_cast<size_t>(ExperConfigType::TRACE_LEVEL)].cast<std::string>(),
                 t[static_cast<size_t>(ExperConfigType::METRICS)].cast<std::string>(),
@@ -93,7 +106,10 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject* unused) {
                 t[static_cast<size_t>(ExperConfigType::MSTX_DOMAIN_INCLUDE)].cast<std::vector<std::string>>(),
                 t[static_cast<size_t>(ExperConfigType::MSTX_DOMAIN_EXCLUDE)].cast<std::vector<std::string>>(),
                 t[static_cast<size_t>(ExperConfigType::SYS_IO)].cast<bool>(),
-                t[static_cast<size_t>(ExperConfigType::SYS_INTERCONNECTION)].cast<bool>());
+                t[static_cast<size_t>(ExperConfigType::SYS_INTERCONNECTION)].cast<bool>(),
+                stateValue(static_cast<size_t>(ExperConfigType::FTRACE), std::vector<std::string>{}),
+                stateValue(static_cast<size_t>(ExperConfigType::FTRACE_PERIOD), 0),
+                stateValue(static_cast<size_t>(ExperConfigType::FTRACE_BUFSIZE), 0));
           }));
 
   py::class_<NpuProfilerConfig>(m, "NpuProfilerConfig")

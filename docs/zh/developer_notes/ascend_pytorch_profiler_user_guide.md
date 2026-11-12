@@ -2241,7 +2241,10 @@ profiler\_config.json文件内容如下，以默认配置为例：
         "mstx_domain_exclude": [],
         "host_sys": [],
         "sys_io": false,
-        "sys_interconnection": false
+        "sys_interconnection": false,
+        "ftrace": [],
+        "ftrace_period": 0,
+        "ftrace_bufsize": 0
     }
 }
 ```
@@ -2289,6 +2292,9 @@ experimental\_config参数均为可选参数，支持扩展的采集项如下：
 |host_sys|Host侧系统数据采集开关，List类型。默认未配置，表示未开启Host侧系统数据采集。取值为：<br/>&#8226; cpu：进程级别的CPU利用率。<br/>&#8226; mem：进程级别的内存利用率。<br/>&#8226; disk：进程级别的磁盘I/O利用率。<br/>&#8226; network：系统级别的网络I/O利用率。<br/>&#8226; osrt：进程级别的syscall和pthreadcall。<br/>&#8226; numa：总读带宽、本节点读带宽、跨节点（远程）读带宽和内部（自身）读带宽；跨节点读流量占总读流量的比例；本节点读流量占总读流量的比例。<br/>配置示例：host_sys: ["cpu", "disk"]。<br/>&#8226; 采集Host侧disk性能数据需要安装第三方开源工具iotop，采集osrt性能数据需要安装第三方开源工具perf和ltrace，其安装方法参见[安装perf、iotop、ltrace工具](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/user_guide/profiling/appendices/install_perf_iotop_ltrace.md)。完成安装后须参见[配置用户权限](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/user_guide/profiling/appendices/config_user_permission.md)完成用户权限配置，且每次重新安装CANN软件包需要重新配置。<br/>&#8226; 使用开源工具ltrace采集osrt性能数据会导致CPU占用率过高，其与应用工程的pthread加解锁相关，会影响进程运行速度。<br/>&#8226; x86_64架构的KylinV10SP1操作系统支持osrt参数，aarch64架构的KylinV10SP1操作系统下不支持osrt参数。<br/>&#8226; 虚拟化环境Euler2.9系统下不支持network参数。|
 |sys_io|NIC、ROCE、MAC采集开关。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。|
 |sys_interconnection|集合通信带宽数据（HCCS）、PCIe数据采集开关、片间传输带宽信息采集开关。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。|
+|ftrace|Host侧ftrace事件的采集开关，List类型。取值为`子系统/事件`形式的字符串，多项时以List传入，例如`["sched/sched_switch", "irq/irq_handler_entry"]`。<br/>需要Linux内核已挂载tracefs，并具备root权限或免密sudo权限（`sudo -n`）。<br/>默认未配置，表示不采集Host侧ftrace数据。|
+|ftrace_period|Host侧ftrace的采集窗口，单位为秒，int类型，取值范围为[0, 86400]，默认值0。<br/>取值为0时表示跟随profiling生命周期，即从采集开始持续到采集结束。|
+|ftrace_bufsize|Host侧ftrace每个CPU的ring buffer大小，单位为KB，int类型，取值范围为0或[1024, 4194304]，默认值0。<br/>取值为0时使用采集器默认值4096；buffer越大越不容易丢事件，但会占用更多Host侧内核内存。|
 
 ### experimental\_config参数说明<a id="experimental参数说明"></a>
 
@@ -2312,6 +2318,9 @@ experimental\_config参数均为可选参数，支持扩展的采集项如下：
 |host_sys|Host侧系统数据采集开关，List类型。默认未配置，表示未开启Host侧系统数据采集。取值为：<br/>&#8226; torch_npu.profiler.HostSystem.CPU：进程级别的CPU利用率。<br/>&#8226; torch_npu.profiler.HostSystem.MEM：进程级别的内存利用率。<br/>&#8226; torch_npu.profiler.HostSystem.DISK：进程级别的磁盘I/O利用率。<br/>&#8226; torch_npu.profiler.HostSystem.NETWORK：系统级别的网络I/O利用率。<br/>&#8226; torch_npu.profiler.HostSystem.OSRT：进程级别的syscall和pthreadcall。<br/>&#8226; torch_npu.profiler.HostSystem.NUMA：总读带宽、本节点读带宽、跨节点（远程）读带宽和内部（自身）读带宽；跨节点读流量占总读流量的比例；本节点读流量占总读流量的比例。<br/>配置示例：host_sys=[torch_npu.profiler.HostSystem.CPU, torch_npu.profiler.HostSystem.MEM]<br/>&#8226; 采集Host侧disk性能数据需要安装第三方开源工具iotop，采集osrt性能数据需要安装第三方开源工具perf和ltrace，其安装方法参见[安装perf、iotop、ltrace工具](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/user_guide/profiling/appendices/install_perf_iotop_ltrace.md)。完成安装后须参见[配置用户权限](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/user_guide/profiling/appendices/config_user_permission.md)完成用户权限配置，且每次重新安装CANN软件包需要重新配置。<br/>&#8226; 使用开源工具ltrace采集osrt性能数据会导致CPU占用率过高，其与应用工程的pthread加解锁相关，会影响进程运行速度。<br/>&#8226; x86_64架构的KylinV10SP1操作系统支持torch_npu.profiler.HostSystem.OSRT参数，aarch64架构的KylinV10SP1操作系统下不支持torch_npu.profiler.HostSystem.OSRT参数。<br/>&#8226; 虚拟化环境Euler2.9系统下不支持torch_npu.profiler.HostSystem.NETWORK参数。|
 |sys_io|NIC、ROCE、MAC采集开关，bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。|
 |sys_interconnection|集合通信带宽数据（HCCS）、PCIe数据采集开关、片间传输带宽信息采集开关，bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。|
+|ftrace|Host侧ftrace事件的采集开关，List类型。取值为`子系统/事件`形式的字符串，多项时以List传入，例如`["sched/sched_switch", "irq/irq_handler_entry"]`。<br/>需要Linux内核已挂载tracefs，并具备root权限或免密sudo权限（`sudo -n`）。<br/>默认未配置，表示不采集Host侧ftrace数据。|
+|ftrace_period|Host侧ftrace的采集窗口，单位为秒，int类型，取值范围为[0, 86400]，默认值0。<br/>取值为0时表示跟随profiling生命周期，即从采集开始持续到采集结束。|
+|ftrace_bufsize|Host侧ftrace每个CPU的ring buffer大小，单位为KB，int类型，取值范围为0或[1024, 4194304]，默认值0。<br/>取值为0时使用采集器默认值4096；buffer越大越不容易丢事件，但会占用更多Host侧内核内存。|
 
 ### torch\_npu.profiler.schedule类参数说明<a id="torch_npu.profiler.schedule类参数说明"></a>
 

@@ -54,7 +54,10 @@ struct ExperimentalConfig {
       std::vector<std::string> mstx_domain_include = {},
       std::vector<std::string> mstx_domain_exclude = {},
       bool sys_io = false,
-      bool sys_interconnection = false)
+      bool sys_interconnection = false,
+      std::vector<std::string> ftrace = {},
+      int ftrace_period = 0,
+      int ftrace_bufsize = 0)
       : trace_level(level),
         metrics(metrics),
         l2_cache(l2_cache),
@@ -65,7 +68,10 @@ struct ExperimentalConfig {
         mstx_domain_include(mstx_domain_include),
         mstx_domain_exclude(mstx_domain_exclude),
         sys_io(sys_io),
-        sys_interconnection(sys_interconnection) {}
+        sys_interconnection(sys_interconnection),
+        ftrace(ftrace),
+        ftrace_period(ftrace_period),
+        ftrace_bufsize(ftrace_bufsize) {}
   ~ExperimentalConfig() = default;
 
   std::string trace_level;
@@ -79,6 +85,9 @@ struct ExperimentalConfig {
   std::vector<std::string> mstx_domain_exclude;
   bool sys_io;
   bool sys_interconnection;
+  std::vector<std::string> ftrace;
+  int ftrace_period;
+  int ftrace_bufsize;
 };
 
 struct NpuProfilerConfig {
