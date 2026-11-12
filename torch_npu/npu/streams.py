@@ -194,12 +194,31 @@ class Event(torch_npu._C._NPUEventBase):
         blocking (bool, optional): if ``True``, :meth:`wait` will be blocking (default: ``False``)
         interprocess (bool): if ``True``, the event can be shared between processes
             (default: ``False``)
+        external (bool): if ``True``, the event is a native external event
+            (default: ``False``). When recorded/waited during stream capture, the
+            operation becomes an external event node of the graph, which can be
+            used for timing inside a graph or cross-graph dependencies.
 
+    .. note:: NPU-specific constraints for ``external=True``:
+
+        The runtime record/wait flag is bound on first use and cannot be
+        switched afterwards (ACL runtime constraint): a record/wait bound in
+        capture mode must stay in capture mode, otherwise a RuntimeError is
+        raised and a new event should be created. :meth:`reset` is not
+        supported for external events (they can be waited by multiple streams
+        without reset, or create a new event instead). :meth:`query` reports
+        the real runtime record status for both record flavors;
+        :meth:`synchronize` waits for out-of-graph records, and for events
+        recorded inside graph capture it returns immediately until the record
+        node is executed by a replay (align with cudaEventSynchronize on
+        graph-recorded events). Requires CANN 9.3.0+.
     """
 
-    def __new__(cls, enable_timing=False, blocking=False, interprocess=False):
+    def __new__(cls, enable_timing=False, blocking=False, interprocess=False, external=False):
+        use_native_external = bool(external)
         return super(Event, cls).__new__(cls, enable_timing=enable_timing, blocking=blocking,
-                                         interprocess=interprocess, graph_external=False)
+                                         interprocess=interprocess, external=external,
+                                         use_native_external=use_native_external)
 
     @classmethod
     def from_ipc_handle(cls, device, handle):
@@ -276,7 +295,7 @@ class Event(torch_npu._C._NPUEventBase):
 
 
 class ExternalEvent(torch_npu._C._NPUEventBase):
-    r"""Wrapper around a NPU event with graph_external=True.
+    r"""Wrapper around a NPU event with external=True (legacy path).
 
     The difference from torch.npu.Event is that you can call wait() before
     record(). Before reusing ExternalEvent, you need to call reset() to clear
@@ -288,11 +307,18 @@ class ExternalEvent(torch_npu._C._NPUEventBase):
     The underlying NPU events are lazily initialized when the event is first
     recorded or waited.
 
+    .. note:: This is the legacy external event implementation (32-byte value
+        write mechanism, single wait per record, reset required for reuse).
+        Prefer :class:`Event` with ``external=True`` (native external event,
+        multiple waits supported, no reset needed) for new code.
     """
 
     def __new__(cls):
+        # Preserve the legacy external event path: AsyncTaskQueue value
+        # write/wait (use_native_external=False).
         return super(ExternalEvent, cls).__new__(cls, enable_timing=False, blocking=False,
-                                                 interprocess=False, graph_external=True)
+                                                 interprocess=False, external=True,
+                                                 use_native_external=False)
 
     def record(self, stream=None):
         r"""Records the event in a given stream.

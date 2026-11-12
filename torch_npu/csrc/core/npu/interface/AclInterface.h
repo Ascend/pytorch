@@ -20,6 +20,25 @@ typedef void* aclmdlRICondHandle;
 struct tagAclmdlRICondTaskParams;
 typedef struct tagAclmdlRICondTaskParams aclmdlRICondTaskParams;
 
+// Fallback definitions for CANN versions whose headers do not provide the
+// external-event runtime flags and constants yet (values verified against
+// CANN 9.2.0 acl_rt.h). Remove-safe: no-op when the header already defines them.
+#ifndef ACL_EVENT_DEVICE_USE_ONLY
+#define ACL_EVENT_DEVICE_USE_ONLY 0x00000010U
+#endif
+#ifndef ACL_EVENT_RECORD_DEFAULT
+#define ACL_EVENT_RECORD_DEFAULT 0x0U
+#endif
+#ifndef ACL_EVENT_RECORD_EXTERNAL
+#define ACL_EVENT_RECORD_EXTERNAL 0x01U
+#endif
+#ifndef ACL_EVENT_WAIT_DEFAULT
+#define ACL_EVENT_WAIT_DEFAULT 0x0U
+#endif
+#ifndef ACL_EVENT_WAIT_EXTERNAL
+#define ACL_EVENT_WAIT_EXTERNAL 0x01U
+#endif
+
 namespace c10_npu {
 namespace acl {
 enum aclrtEventWaitStatus {
@@ -134,6 +153,28 @@ bool IsExistValueWaitAndWrite();
  * @retval OtherValues Failure
  */
 aclError AclrtCreateEventWithFlag(aclrtEvent* event, uint32_t flag);
+
+/**
+ * This API is used to create an event via aclrtCreateEventExWithFlag.
+ * Note: ACL_EVENT_EXTERNAL and ACL_EVENT_DEVICE_USE_ONLY are not supported
+ * by aclrtCreateEventExWithFlag, use AclrtCreateEventWithFlag for these flags.
+ * Falls back to aclrtCreateEventWithFlag when the Ex API is unavailable (old CANN).
+ */
+aclError AclrtCreateEventExWithFlag(aclrtEvent* event, uint32_t flag);
+
+/**
+ * This API is used to record an event with flag.
+ * flag: ACL_EVENT_RECORD_DEFAULT for normal record,
+ *       ACL_EVENT_RECORD_EXTERNAL for graph external record.
+ */
+aclError AclrtRecordEventWithFlag(aclrtEvent event, aclrtStream stream, uint32_t flag);
+
+/**
+ * This API is used to make the stream wait for an event with flag.
+ * flag: ACL_EVENT_WAIT_DEFAULT for normal wait,
+ *       ACL_EVENT_WAIT_EXTERNAL for graph external wait (timeout only supports 0).
+ */
+aclError AclrtStreamWaitEventWithFlag(aclrtStream stream, aclrtEvent event, uint32_t timeout, uint32_t flag);
 
 /**
   This API is used to query wait status of event task

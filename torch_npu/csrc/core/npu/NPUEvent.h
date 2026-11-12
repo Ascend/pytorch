@@ -24,6 +24,13 @@ struct C10_NPU_API NPUEvent {
   // Default value for `flags` is specified below
   NPUEvent();
   NPUEvent(unsigned int flags);
+  // Native external event path (Event(external=True)):
+  //   - the event is created via aclrtCreateEventExWithFlag with SYNC|TIME_LINE
+  //     flags (ACL_EVENT_EXTERNAL is stripped at creation time);
+  //   - record/wait call aclrtRecordEventWithFlag/aclrtStreamWaitEventWithFlag
+  //     with a runtime flag chosen by the current stream capture status;
+  //   - the runtime flag is bound on first use and cannot be switched afterwards.
+  NPUEvent(unsigned int flags, bool use_native_external);
   NPUEvent(c10::DeviceIndex device_index, const aclrtIpcEventHandle* handle);
 
   ~NPUEvent();
@@ -76,9 +83,17 @@ struct C10_NPU_API NPUEvent {
   c10::DeviceIndex device_index_ = -1;
   aclrtEvent event_ = nullptr;
   bool is_waited_ = false;
+  // Native external path state (Event(external=True)), see the constructor
+  // comment above. UINT32_MAX is the sentinel for "not bound yet".
+  bool use_native_external_ = false;
+  uint32_t native_record_flag_ = UINT32_MAX;
+  uint32_t native_wait_flag_ = UINT32_MAX;
 
   void createEvent(c10::DeviceIndex device_index);
   void moveHelper(NPUEvent&& other);
+  // True when this event is a legacy value-write "external" event whose
+  // event_ is a 32-byte memory block instead of a real aclrtEvent.
+  bool isLegacyValueWriteExternal() const;
 };
 
 // EventPool - Thread-safe pool of NPU events to avoid expensive

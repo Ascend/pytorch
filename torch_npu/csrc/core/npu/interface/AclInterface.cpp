@@ -29,6 +29,8 @@ TORCH_NPU_LOAD_FUNC(aclrtCreateEventWithFlag)
 TORCH_NPU_LOAD_FUNC(aclrtCreateEventExWithFlag)
 TORCH_NPU_LOAD_FUNC(aclrtQueryEventWaitStatus)
 TORCH_NPU_LOAD_FUNC(aclrtQueryEventStatus)
+TORCH_NPU_LOAD_FUNC(aclrtRecordEventWithFlag)
+TORCH_NPU_LOAD_FUNC(aclrtStreamWaitEventWithFlag)
 TORCH_NPU_LOAD_FUNC(aclrtIpcGetEventHandle)
 TORCH_NPU_LOAD_FUNC(aclrtIpcOpenEventHandle)
 TORCH_NPU_LOAD_FUNC(aclprofCreateStepInfo)
@@ -342,10 +344,58 @@ aclError AclrtCreateEventWithFlag(aclrtEvent* event, uint32_t flag) {
     NPU_CHECK_ERROR(AclrtMemSet(*event, eventMemSize, 0, eventMemSize));
     return AclmdlRICaptureThreadExchangeMode(&capture_mode);
   }
-  if ((flag == ACL_EVENT_EXTERNAL) || (func_ex == nullptr)) {
+  // aclrtCreateEventExWithFlag does not support ACL_EVENT_DEVICE_USE_ONLY,
+  // route these flags to aclrtCreateEventWithFlag.
+  if ((flag == ACL_EVENT_EXTERNAL) || (flag & ACL_EVENT_DEVICE_USE_ONLY) || (func_ex == nullptr)) {
     return func(event, flag);
   }
   return func_ex(event, flag);
+}
+
+aclError AclrtCreateEventExWithFlag(aclrtEvent* event, uint32_t flag) {
+  ACL_CALL_LOG("aclrtCreateEventExWithFlag", "event=" << event << ", flag=" << flag);
+  TORCH_CHECK(
+      !(flag & ACL_EVENT_EXTERNAL) && !(flag & ACL_EVENT_DEVICE_USE_ONLY),
+      "aclrtCreateEventExWithFlag does not support ACL_EVENT_EXTERNAL or ACL_EVENT_DEVICE_USE_ONLY, "
+      "flag: ",
+      flag,
+      PTA_ERROR(ErrCode::PARAM));
+  typedef aclError (*AclrtCreateEventExWithFlagFunc)(aclrtEvent*, uint32_t);
+  static AclrtCreateEventExWithFlagFunc func_ex = nullptr;
+  if (func_ex == nullptr) {
+    func_ex = (AclrtCreateEventExWithFlagFunc)TORCH_NPU_GET_FUNC(aclrtCreateEventExWithFlag);
+  }
+  if (func_ex == nullptr) {
+    // Old CANN does not provide the Ex API, fall back to aclrtCreateEventWithFlag.
+    ASCEND_LOGW(
+        "AclrtCreateEventExWithFlag: aclrtCreateEventExWithFlag is unavailable, fallback to aclrtCreateEventWithFlag.");
+    return AclrtCreateEventWithFlag(event, flag);
+  }
+  return func_ex(event, flag);
+}
+
+aclError AclrtRecordEventWithFlag(aclrtEvent event, aclrtStream stream, uint32_t flag) {
+  ACL_CALL_LOG("aclrtRecordEventWithFlag", "event=" << event << ", stream=" << stream << ", flag=" << flag);
+  typedef aclError (*AclrtRecordEventWithFlagFunc)(aclrtEvent, aclrtStream, uint32_t);
+  static AclrtRecordEventWithFlagFunc func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtRecordEventWithFlagFunc)TORCH_NPU_GET_FUNC(aclrtRecordEventWithFlag);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtRecordEventWithFlag", PROF_ERROR(ErrCode::NOT_FOUND));
+  return func(event, stream, flag);
+}
+
+aclError AclrtStreamWaitEventWithFlag(aclrtStream stream, aclrtEvent event, uint32_t timeout, uint32_t flag) {
+  ACL_CALL_LOG(
+      "aclrtStreamWaitEventWithFlag",
+      "stream=" << stream << ", event=" << event << ", timeout=" << timeout << ", flag=" << flag);
+  typedef aclError (*AclrtStreamWaitEventWithFlagFunc)(aclrtStream, aclrtEvent, uint32_t, uint32_t);
+  static AclrtStreamWaitEventWithFlagFunc func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtStreamWaitEventWithFlagFunc)TORCH_NPU_GET_FUNC(aclrtStreamWaitEventWithFlag);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtStreamWaitEventWithFlag", PROF_ERROR(ErrCode::NOT_FOUND));
+  return func(stream, event, timeout, flag);
 }
 
 aclError AclQueryEventWaitStatus(aclrtEvent event, aclrtEventWaitStatus* waitStatus) {

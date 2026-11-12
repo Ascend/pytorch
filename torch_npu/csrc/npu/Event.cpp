@@ -19,10 +19,23 @@ static PyObject* THNPEvent_pynew(PyTypeObject* type, PyObject* args, PyObject* k
   unsigned char blocking = 0;
   unsigned char interprocess = 0;
   unsigned char external = 0;
+  unsigned char use_native_external = 0;
 
-  constexpr const char* kwlist[] = {"enable_timing", "blocking", "interprocess", "graph_external", nullptr};
+  // use_native_external controls whether an external event takes the native
+  // path (aclrtRecordEventWithFlag / aclrtStreamWaitEventWithFlag) or the
+  // legacy AsyncTaskQueue value write/wait path.
+  constexpr const char* kwlist[] = {
+      "enable_timing", "blocking", "interprocess", "external", "use_native_external", nullptr};
   if (!PyArg_ParseTupleAndKeywords(
-          args, kwargs, "|bbbb", const_cast<char**>(kwlist), &enable_timing, &blocking, &interprocess, &external)) {
+          args,
+          kwargs,
+          "|bbbbb",
+          const_cast<char**>(kwlist),
+          &enable_timing,
+          &blocking,
+          &interprocess,
+          &external,
+          &use_native_external)) {
     return nullptr;
   }
 
@@ -55,10 +68,11 @@ static PyObject* THNPEvent_pynew(PyTypeObject* type, PyObject* args, PyObject* k
   if (interprocess) {
     flags = ACL_EVENT_IPC;
   }
-  if (external) {
+  if (external && !use_native_external) {
+    // Legacy value write path (torch_npu.npu.ExternalEvent).
     flags = ACL_EVENT_EXTERNAL;
   }
-  new (&self->npu_event) c10_npu::NPUEvent(flags);
+  new (&self->npu_event) c10_npu::NPUEvent(flags, use_native_external && external);
 
   return (PyObject*)ptr.release();
   END_HANDLE_TH_ERRORS
@@ -144,6 +158,7 @@ static PyObject* THNPEvent_record(PyObject* _self, PyObject* _stream) {
         stream->stream_id,
         static_cast<c10::DeviceIndex>(stream->device_index),
         static_cast<c10::DeviceType>(stream->device_type)));
+    pybind11::gil_scoped_release no_gil{};
     self->npu_event.record(npu_stream);
     ASCEND_LOGI("Event: record api is successfully executed, event=%p", self->npu_event.event());
   }
@@ -234,6 +249,7 @@ static PyObject* THNPEvent_ipc_handle(PyObject* _self, PyObject* noargs) {
 static struct PyGetSetDef THNPEvent_properties[] = {
     {"device", (getter)THNPEvent_get_device, nullptr, nullptr, nullptr},
     {"npu_event", (getter)THNPEvent_get_npu_event, nullptr, nullptr, nullptr},
+    {"event_id", (getter)THNPEvent_get_npu_event, nullptr, nullptr, nullptr},
     {nullptr}};
 
 static PyMethodDef THNPEvent_methods[] = {
