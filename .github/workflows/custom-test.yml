@@ -1,0 +1,532 @@
+# 自定义用例集测试流水线（A3 + A5，不编译、不做用例收集、不分片）
+#
+# 用途: 固定读取 .github/config/custom_test_cases（每行一个 nodeid，# 开头为
+# 注释）里的用例，在 A3 与 A5 上**各用一台机器跑全量**（不做分片），并按
+# a3/a5 nightly 的报告格式**分别生成一份报告**。更新用例只需改这个文件。
+#
+# 为什么不编译: resolve job 按 builder 镜像 tag 去 OBS 7day-cache 匹配两套
+# 完整的 source + wheels triple（nightly-a3 / nightly-a5 每次构建都会写入）。
+# 任一平台匹配不到就直接失败，不会退化成编译，也不做任何用例收集。
+#
+# 报告格式: 与 a3/a5 nightly 一致，直接复用 generate_npu_full_test_report.py
+# （_test-report.yml 用的同一个脚本），每个平台产出
+# npu-full-test-summary.{md,json} + regular_cases_results_by_file.jsonl，
+# 分别上传为 artifact npu-full-test-summary-a3 / npu-full-test-summary-a5。
+#
+# 复用（只读，零修改）:
+#   - _blacklist_test-category.yml : 黑名单风格的测试 job 模板，直接吃 nodeid 分片，
+#     并且它的分片 artifact 名可参数化（cases_artifact_name），适合按平台分开
+#   - run_npu_test_shard.py       : 用例执行器
+#   - generate_npu_full_test_report.py : a3/a5 nightly 的报告生成脚本
+#
+# category 为什么用 blacklist-a3 / blacklist-a5:
+#   该模板里 category -> 结果 artifact 前缀 的映射是硬编码的（blacklist-a3 ->
+#   bla3, blacklist-a5 -> bla5, 其余全部落到 reg），而同一 workflow run 内两个
+#   平台的 artifact 名不能相同，否则 upload-artifact 直接冲突。存量流水线不可
+#   修改，因此复用这两个语义正好是"在 X 平台跑这批 nodeid"的 category。它们只
+#   影响 job 名与 artifact 前缀，不改变任何执行/判定逻辑。注意它内部的结果文件
+#   前缀固定为 reg，所以报告脚本的 shard matrix 用 ["reg-1"]。
+#
+# 触发: push 本文件或 .github/config/custom_test_cases（paths 只含这两个）或
+# workflow_dispatch。
+name: Custom Test (A3 + A5, No Build)
+
+on:
+  push:
+    branches: [ci-test]
+    paths:
+      - '.github/workflows/custom-test.yml'
+      - '.github/config/custom_test_cases'
+  workflow_dispatch:
+    inputs:
+      max_workers:
+        description: '单机并发 worker 数'
+        required: true
+        type: string
+        default: '32'
+
+permissions:
+  id-token: write
+  contents: read
+
+# 同一分支只保留一个 run，避免重复占用机器与 OBS 带宽。
+concurrency:
+  group: custom-test-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ==========================================================================
+  # 1. 从 OBS 里为 a3/a5 各挑一套可复用的构建产物（源码 + torch wheel +
+  #    torch_npu wheel）。任一平台找不到就直接报错退出——不做编译兜底。
+  # ==========================================================================
+  resolve:
+    name: resolve OBS wheels triples (a3 + a5)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      a3_resolved_short: ${{ steps.pick.outputs.a3_resolved_short }}
+      a3_torch_npu_short: ${{ steps.pick.outputs.a3_torch_npu_short }}
+      a3_pytorch_wheels_tarball: ${{ steps.pick.outputs.a3_pytorch_wheels_tarball }}
+      a3_torchnpu_wheels_tarball: ${{ steps.pick.outputs.a3_torchnpu_wheels_tarball }}
+      a5_resolved_short: ${{ steps.pick.outputs.a5_resolved_short }}
+      a5_torch_npu_short: ${{ steps.pick.outputs.a5_torch_npu_short }}
+      a5_pytorch_wheels_tarball: ${{ steps.pick.outputs.a5_pytorch_wheels_tarball }}
+      a5_torchnpu_wheels_tarball: ${{ steps.pick.outputs.a5_torchnpu_wheels_tarball }}
+    steps:
+      - name: Compute obsutil cache key
+        id: obsutil_key
+        run: echo "key=obsutil-${{ runner.arch }}-$(date -u +%Y)Q$(( ($(date -u +%-m) + 2) / 3 ))" >> "$GITHUB_OUTPUT"
+
+      - name: Cache obsutil
+        uses: actions/cache@v6
+        with:
+          path: ~/.local/obsutil
+          key: ${{ steps.obsutil_key.outputs.key }}
+
+      - name: Install obsutil
+        run: |
+          set -e
+          ARCH=$(uname -m)
+          case "${ARCH}" in
+            x86_64)  OBS_ARCH="amd64" ;;
+            aarch64) OBS_ARCH="arm64" ;;
+            *)       echo "Unsupported architecture: ${ARCH}"; exit 1 ;;
+          esac
+          OBSUTIL_HOME="$HOME/.local/obsutil"
+          if [ -x "${OBSUTIL_HOME}/obsutil" ] && "${OBSUTIL_HOME}/obsutil" version >/dev/null 2>&1; then
+            echo "obsutil restored from Actions cache, skipping download"
+            "${OBSUTIL_HOME}/obsutil" version
+            exit 0
+          fi
+          echo "obsutil not in Actions cache, downloading (first run of the quarter)"
+          OBS_URL="https://obs-community.obs.cn-north-1.myhuaweicloud.com/obsutil/current/obsutil_linux_${OBS_ARCH}.tar.gz"
+          wget --tries=3 --timeout=30 --waitretry=10 --progress=dot:mega "${OBS_URL}"
+          rm -rf "${OBSUTIL_HOME}"
+          mkdir -p "${OBSUTIL_HOME}"
+          tar -zxf "obsutil_linux_${OBS_ARCH}.tar.gz" -C "${OBSUTIL_HOME}/"
+          rm -f "obsutil_linux_${OBS_ARCH}.tar.gz"
+          ln -sf "${OBSUTIL_HOME}"/obsutil_linux_${OBS_ARCH}_*/obsutil "${OBSUTIL_HOME}/obsutil"
+          "${OBSUTIL_HOME}/obsutil" version
+
+      - name: Pick reusable a3/a5 OBS triples
+        id: pick
+        env:
+          WHEELS_AK: ${{ secrets.ACCESSKEY_GUIYANG }}
+          WHEELS_SK: ${{ secrets.SECRETACCESSKEY_GUIYANG }}
+          SOURCE_AK: ${{ secrets.ACCESSKEY }}
+          SOURCE_SK: ${{ secrets.SECRETACCESSKEY }}
+        run: |
+          export PATH="${HOME}/.local/obsutil:${PATH}"
+          python3 - <<'PY'
+          import os
+          import re
+          import subprocess
+          import sys
+
+          WHEELS_BASE = "obs://pytorch-torchnpu/7day-cache"
+          SOURCE_BASE = "obs://pytorch-ci-cache/7day-cache"
+          WHEELS_ENDPOINT = "obs.cn-southwest-2.myhuaweicloud.com"
+          SOURCE_ENDPOINT = "obs.ap-southeast-1.myhuaweicloud.com"
+
+          # Builder image tags. 必须与下面 test-a3 / test-a5 用的测试镜像同源：
+          # wheels 对象名里嵌了完整的 builder 镜像 tag，tag 不同就是另一个缓存
+          # 条目（会找不到）。
+          PLATFORMS = {
+              "a3": "torch-npu-builder-aarch64-torch-master-202610160225-8a315d17",
+              "a5": "torch-npu-builder-x86_64-torch-master-202610160227-8a315d17",
+          }
+          MAX_STAT = 80
+          LAST_MODIFIED_RE = re.compile(
+              r"LastModified[A-Za-z]*\s*[:：]?\s*(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})"
+          )
+
+          def obsutil(*args):
+              return subprocess.run(["obsutil", *args], capture_output=True, text=True)
+
+          def use_wheels_config():
+              obsutil("config", f"-i={os.environ['WHEELS_AK']}",
+                      f"-k={os.environ['WHEELS_SK']}", f"-e={WHEELS_ENDPOINT}")
+
+          def use_source_config():
+              obsutil("config", f"-i={os.environ['SOURCE_AK']}",
+                      f"-k={os.environ['SOURCE_SK']}", f"-e={SOURCE_ENDPOINT}")
+
+          def ls_objects(prefix):
+              use_wheels_config()
+              result = obsutil("ls", f"{WHEELS_BASE}/{prefix}", "-limit=1000")
+              if result.returncode != 0:
+                  sys.exit(f"ERROR: obsutil ls {prefix} failed: {result.stderr.strip()}")
+              return [
+                  line.strip().rsplit("/", 1)[-1]
+                  for line in result.stdout.splitlines()
+                  if line.strip().startswith("obs://")
+              ]
+
+          def source_last_modified(upstream_short):
+              use_source_config()
+              result = obsutil("stat", f"{SOURCE_BASE}/pytorch-source-{upstream_short}.tar.gz")
+              if result.returncode != 0:
+                  return None
+              match = LAST_MODIFIED_RE.search(result.stdout)
+              # 解析不出时间戳时返回 ""，仍算"存在"，且排在真实时间戳之前。
+              return match.group(1) if match else ""
+
+          missing = []
+          lines = []
+          with open(os.environ["GITHUB_OUTPUT"], "a") as handle:
+              for platform, image_tag in PLATFORMS.items():
+                  escaped_tag = re.escape(image_tag)
+                  pytorch_re = re.compile(
+                      rf"^wheels-pytorch-([0-9a-f]{{10}})-(py\d+)-{escaped_tag}-([A-Za-z0-9_]+)-(v\d+)\.tar\.gz$"
+                  )
+                  torchnpu_re = re.compile(
+                      rf"^wheels-torchnpu-([0-9a-f]{{10}})-([0-9a-f]{{10}})-(py\d+)-{escaped_tag}-([A-Za-z0-9_]+)-(v\d+)\.tar\.gz$"
+                  )
+
+                  pytorch_by_upstream = {}
+                  for name in ls_objects("wheels-pytorch-"):
+                      match = pytorch_re.match(name)
+                      if match:
+                          pytorch_by_upstream[match.group(1)] = name
+
+                  candidates = []
+                  seen_upstreams = set()
+                  for name in ls_objects("wheels-torchnpu-"):
+                      match = torchnpu_re.match(name)
+                      if not match:
+                          continue
+                      upstream_short = match.group(2)
+                      # 一套 triple 需要同一个 upstream commit 的两个 wheel 对象。
+                      if upstream_short in seen_upstreams or upstream_short not in pytorch_by_upstream:
+                          continue
+                      seen_upstreams.add(upstream_short)
+                      candidates.append(
+                          (upstream_short, match.group(1),
+                           pytorch_by_upstream[upstream_short], name)
+                      )
+
+                  best = None
+                  for candidate in candidates[:MAX_STAT]:
+                      modified = source_last_modified(candidate[0])
+                      if modified is None:
+                          continue
+                      if best is None or modified > best[0]:
+                          best = (modified, *candidate)
+
+                  if best is None:
+                      missing.append(platform)
+                      lines.append(
+                          f"[{platform}] no complete source+wheels triple in OBS for image {image_tag}"
+                      )
+                      continue
+
+                  _, upstream_short, torch_npu_short, pytorch_name, torchnpu_name = best
+                  lines.append(f"[{platform}] reusing OBS triple for upstream {upstream_short}:")
+                  lines.append(f"[{platform}]   pytorch-source-{upstream_short}.tar.gz")
+                  lines.append(f"[{platform}]   {pytorch_name}")
+                  lines.append(f"[{platform}]   {torchnpu_name}")
+                  handle.write(f"{platform}_resolved_short={upstream_short}\n")
+                  handle.write(f"{platform}_torch_npu_short={torch_npu_short}\n")
+                  handle.write(f"{platform}_pytorch_wheels_tarball={pytorch_name}\n")
+                  handle.write(f"{platform}_torchnpu_wheels_tarball={torchnpu_name}\n")
+
+          for line in lines:
+              print(line)
+
+          if missing:
+              sys.exit(
+                  "ERROR: no reusable source+wheels triple in OBS for "
+                  f"{', '.join(missing)}. This pipeline never builds; run the "
+                  "matching nightly first, or align the builder image tag in this "
+                  "file with one that has a triple."
+              )
+          PY
+
+  # ==========================================================================
+  # 2. 读固定清单 → 去重 → 为两个平台各生成一份单分片 JSON 并分别上传。
+  #    不分片: 每个平台一台机器跑全量，分片数固定为 1。
+  #    不做用例收集: 清单里已经是完整 nodeid。同时产出一份 cases_by_file.jsonl
+  #    供报告脚本按文件聚合（格式与 nighty 收集阶段的同名文件一致）。
+  # ==========================================================================
+  prepare:
+    name: prepare case file
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      total_cases: ${{ steps.build.outputs.total_cases }}
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v6
+        with:
+          ref: ci-test
+
+      - name: Build single-shard case files
+        id: build
+        env:
+          CASES_FILE: .github/config/custom_test_cases
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          # 平台 -> category，决定分片文件名 <category>_cases_shard_1.json
+          PLATFORM_CATEGORIES = (("a3", "blacklist-a3"), ("a5", "blacklist-a5"))
+          # 报告脚本按 test_type 名找 {test_type}_cases_by_file.jsonl；
+          # _blacklist_test-category.yml 的结果前缀固定是 reg -> regular。
+          TEST_TYPE = "regular"
+
+          cases_file = Path(os.environ["CASES_FILE"])
+          if not cases_file.is_file():
+              sys.exit(f"ERROR: cases file not found: {cases_file}")
+
+          by_file = {}
+          for raw in cases_file.read_text(encoding="utf-8").splitlines():
+              line = raw.strip()
+              if not line or line.startswith("#"):
+                  continue
+              if "::" not in line:
+                  sys.exit(f"ERROR: not a nodeid: {line!r}")
+              fname = line.split("::", 1)[0]
+              bucket = by_file.setdefault(fname, [])
+              if line not in bucket:
+                  bucket.append(line)
+
+          # 同文件用例排在一起，便于 pytest 复用同一模块的导入缓存。
+          nodeids = [nodeid for fname in by_file for nodeid in by_file[fname]]
+          if not nodeids:
+              sys.exit(f"ERROR: no nodeid in {cases_file}")
+
+          for platform, category in PLATFORM_CATEGORIES:
+              out_dir = Path(f"cases-shards-{platform}")
+              out_dir.mkdir(parents=True, exist_ok=True)
+              data = {
+                  "shard": 1,
+                  "num_shards": 1,
+                  "test_type": TEST_TYPE,
+                  "total_cases": len(nodeids),
+                  "cases": [
+                      {"nodeid": nodeid, "file": nodeid.split("::", 1)[0]}
+                      for nodeid in nodeids
+                  ],
+              }
+              (out_dir / f"{category}_cases_shard_1.json").write_text(
+                  json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
+              )
+
+          # 与 nightly 收集阶段一致的 cases_by_file.jsonl：
+          #   第 1 行 {"total_file": n, "total_cases": m}
+          #   之后每行 {"file_path": ..., "case_count": n, "cases": [nodeid, ...]}
+          by_file_dir = Path("cases-by-file")
+          by_file_dir.mkdir(parents=True, exist_ok=True)
+          with (by_file_dir / f"{TEST_TYPE}_cases_by_file.jsonl").open("w", encoding="utf-8") as handle:
+              handle.write(json.dumps({"total_file": len(by_file), "total_cases": len(nodeids)}) + "\n")
+              for fname, cases in by_file.items():
+                  handle.write(json.dumps(
+                      {"file_path": fname, "case_count": len(cases), "cases": cases}
+                  ) + "\n")
+
+          print(f"cases file: {cases_file} ({len(nodeids)} unique nodeids, "
+                f"{len(by_file)} file(s))")
+          for fname in by_file:
+              print(f"  {len(by_file[fname]):4d}  {fname}")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as handle:
+              handle.write(f"total_cases={len(nodeids)}\n")
+
+          summary = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary:
+              with open(summary, "a") as handle:
+                  handle.write("### Custom test case file (a3 + a5, single machine)\n\n")
+                  handle.write(f"- cases file: `{cases_file}`\n")
+                  handle.write(f"- unique nodeids: {len(nodeids)}\n")
+                  handle.write(f"- source files: {len(by_file)}\n")
+          PY
+
+      - name: Upload a3 case file
+        uses: actions/upload-artifact@v4
+        with:
+          name: cases-shards-custom-a3
+          path: cases-shards-a3/
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload a5 case file
+        uses: actions/upload-artifact@v4
+        with:
+          name: cases-shards-custom-a5
+          path: cases-shards-a5/
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload cases-by-file
+        uses: actions/upload-artifact@v4
+        with:
+          name: cases-by-file-custom
+          path: cases-by-file/
+          retention-days: 7
+          if-no-files-found: error
+
+  # ==========================================================================
+  # 3. 测试: 两个平台各一个 job（单分片），复用 _blacklist_test-category.yml
+  # ==========================================================================
+  test-a3:
+    name: custom a3
+    needs:
+      - resolve
+      - prepare
+    if: ${{ !cancelled() && needs.prepare.result == 'success' && needs.resolve.result == 'success' }}
+    uses: ./.github/workflows/_blacklist_test-category.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ needs.resolve.outputs.a3_resolved_short }}
+      resolved_sha: ${{ needs.resolve.outputs.a3_resolved_short }}
+      pytorch_wheels_tarball: ${{ needs.resolve.outputs.a3_pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a3_torchnpu_wheels_tarball }}
+      upstream_repo: pytorch/pytorch
+      category: blacklist-a3
+      num_shards: '1'
+      matrix_json: '[1]'
+      max_workers: ${{ inputs.max_workers || '32' }}
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17
+      report_to_upstream: false
+      runner_label: linux-aarch64-a3-800i-2-cn12-001
+      device_env: 'privateuse1,cpu'
+      patch_triton_cxx20: true
+      cases_artifact_name: cases-shards-custom-a3
+
+  test-a5:
+    name: custom a5
+    needs:
+      - resolve
+      - prepare
+    if: ${{ !cancelled() && needs.prepare.result == 'success' && needs.resolve.result == 'success' }}
+    uses: ./.github/workflows/_blacklist_test-category.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ needs.resolve.outputs.a5_resolved_short }}
+      resolved_sha: ${{ needs.resolve.outputs.a5_resolved_short }}
+      pytorch_wheels_tarball: ${{ needs.resolve.outputs.a5_pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a5_torchnpu_wheels_tarball }}
+      upstream_repo: pytorch/pytorch
+      category: blacklist-a5
+      num_shards: '1'
+      matrix_json: '[1]'
+      max_workers: ${{ inputs.max_workers || '32' }}
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.11-torch-master-cann9.2.0-20260910200430-202610160226-8a315d17
+      report_to_upstream: false
+      runner_label: linux-amd64-a5-2
+      device_env: 'privateuse1,cpu'
+      patch_triton_cxx20: true
+      cases_artifact_name: cases-shards-custom-a5
+
+  # ==========================================================================
+  # 4. 报告: 每个平台各生成一份，格式与 a3/a5 nightly 一致
+  #    （npu-full-test-summary.md / .json + regular_cases_results_by_file.jsonl）。
+  # ==========================================================================
+  report:
+    name: generate reports
+    needs:
+      - resolve
+      - prepare
+      - test-a3
+      - test-a5
+    if: always() && needs.prepare.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout this repo for report scripts
+        uses: actions/checkout@v6
+        with:
+          ref: ci-test
+
+      - name: Download a3 shard reports
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-bla3-*
+          path: reports-a3
+          merge-multiple: true
+
+      - name: Download a5 shard reports
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-bla5-*
+          path: reports-a5
+          merge-multiple: true
+
+      - name: Download cases-by-file
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: cases-by-file-custom
+          path: cases-by-file
+
+      - name: Prepare report dirs
+        if: always()
+        run: mkdir -p report-a3 report-a5
+
+      - name: Generate a3 report
+        if: always()
+        continue-on-error: true
+        working-directory: report-a3
+        env:
+          PY_SHORT: ${{ needs.resolve.outputs.a3_resolved_short }}
+          NPU_SHORT: ${{ needs.resolve.outputs.a3_torch_npu_short }}
+        run: |
+          python3 ../.github/scripts/generate_npu_full_test_report.py \
+            --reports-root ../reports-a3 \
+            --output-markdown npu-full-test-summary.md \
+            --output-json npu-full-test-summary.json \
+            --pytorch-version "${PY_SHORT}" \
+            --torch-npu-short "${NPU_SHORT}" \
+            --shard-matrix-json '["reg-1"]' \
+            --docker-image swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17 \
+            --runner linux-aarch64-a3-800i-2-cn12-001 \
+            --cases-by-file-dir ../cases-by-file
+          cat npu-full-test-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Generate a5 report
+        if: always()
+        continue-on-error: true
+        working-directory: report-a5
+        env:
+          PY_SHORT: ${{ needs.resolve.outputs.a5_resolved_short }}
+          NPU_SHORT: ${{ needs.resolve.outputs.a5_torch_npu_short }}
+        run: |
+          python3 ../.github/scripts/generate_npu_full_test_report.py \
+            --reports-root ../reports-a5 \
+            --output-markdown npu-full-test-summary.md \
+            --output-json npu-full-test-summary.json \
+            --pytorch-version "${PY_SHORT}" \
+            --torch-npu-short "${NPU_SHORT}" \
+            --shard-matrix-json '["reg-1"]' \
+            --docker-image swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.11-torch-master-cann9.2.0-20260910200430-202610160226-8a315d17 \
+            --runner linux-amd64-a5-2 \
+            --cases-by-file-dir ../cases-by-file
+          cat npu-full-test-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload a3 report
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: npu-full-test-summary-a3
+          path: report-a3/
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload a5 report
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: npu-full-test-summary-a5
+          path: report-a5/
+          retention-days: 30
+          if-no-files-found: warn
