@@ -523,7 +523,11 @@ class NPUPythonWrapperCodeGen(_NPUKernelCodegenMixin, PythonWrapperCodegen):
         device: str,
         debug_handle: Optional[int] = None,
         profiling_args: Optional[Sequence[Optional[str]]] = None,
+        tunable_dyn_dims_mask: Optional[tuple] = None,
     ) -> None:
+        # compat: newer torch passes tunable_dyn_dims_mask= from ExternKernelOut
+        # codegen; the python wrapper never consumes it (upstream reads it only
+        # in its C++ GPU wrapper), so accept and ignore it.
         # add debug printer code for triton kernel calls at (jit) inductor level
         if is_multi_stream():
             multi_stream_intent = ""

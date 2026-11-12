@@ -1729,18 +1729,44 @@ def patch_algorithm_selector() -> None:
             # We take the union of allowed prologue inputs from all choices,
             # and, within benchmark fusion, don't allow prologue fusion for
             # choices which dont support the whole union.
-            allowed_prologue_inps: OrderedSet[str] = OrderedSet()
+            load_fusion_inputs: OrderedSet[str] = OrderedSet()
+            store_fusion_inputs: OrderedSet[str] = OrderedSet()
+            legacy_prologue: OrderedSet[str] = OrderedSet()
             for c in choices:
                 if isinstance(c, TritonTemplateCaller):
-                    allowed_prologue_inps |= c.allowed_prologue_inps
+                    if hasattr(c, "load_input_fusion_allowed_inputs"):
+                        # compat: newer torch splits prologue gating into
+                        # load/store fusion sets on the choice
+                        load_fusion_inputs |= c.load_input_fusion_allowed_inputs
+                        store_fusion_inputs |= c.store_output_fusion_allowed_inputs
+                    else:
+                        # compat: torch trees without prologue-fusion choice attr
+                        legacy_prologue |= getattr(
+                            c, "allowed_prologue_inps", OrderedSet()
+                        )
 
-            multi_template = torch._inductor.ir.MultiTemplateBuffer(
-                layout,
-                input_nodes,
-                get_timings,
-                choices,
-                allowed_prologue_inps,
-            )
+            if (
+                "store_output_fusion_allowed_inputs"
+                in inspect.signature(
+                    torch._inductor.ir.MultiTemplateBuffer.__init__
+                ).parameters
+            ):
+                multi_template = torch._inductor.ir.MultiTemplateBuffer(
+                    layout,
+                    input_nodes,
+                    get_timings,
+                    choices,
+                    load_fusion_inputs,
+                    store_fusion_inputs,
+                )
+            else:
+                multi_template = torch._inductor.ir.MultiTemplateBuffer(
+                    layout,
+                    input_nodes,
+                    get_timings,
+                    choices,
+                    legacy_prologue,
+                )
             if defer_epilogue_to_scheduler:
                 multi_template._npu_deferred_epilogue_compile_only = True
             return torch._inductor.ir.TensorBox.create(multi_template), None

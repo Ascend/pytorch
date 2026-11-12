@@ -59,7 +59,11 @@ class NPUDeviceBenchmarkMixin:
         fn,
         *input_tensors: torch.Tensor,
         output_tensor: Optional[torch.Tensor] = None,
+        out: Optional[torch.Tensor] = None,
     ) -> float:
+        # compat: upstream renamed output_tensor= to out=; accept both.
+        if out is not None:
+            output_tensor = out
         device_idx_set = {
             tensor.device.index
             for tensor in [*input_tensors, output_tensor]
@@ -75,10 +79,10 @@ class NPUDeviceBenchmarkMixin:
             device_idx = torch.npu.current_device()
 
         with torch.npu.device(device_idx):
-            out = self._bench(fn)
+            elapsed_ms = self._bench(fn)
             torch.npu.synchronize()  # shake out any NPU errors
 
-        return out
+        return elapsed_ms
 
     def _bench(
         self,
