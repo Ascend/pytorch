@@ -366,7 +366,9 @@ void warmupNpuProfiler(const NpuProfilerConfig& config, const std::set<NpuActivi
       experimental_config.mstx_domain_include,
       experimental_config.mstx_domain_exclude,
       experimental_config.sys_io,
-      experimental_config.sys_interconnection};
+      experimental_config.sys_interconnection,
+      experimental_config.ftrace,
+      experimental_config.ftrace_period, experimental_config.ftrace_bufsize};
   ProfilerMgr::GetInstance()->Warmup(npu_config, cpu_trace);
 }
 
@@ -410,7 +412,9 @@ void startNpuProfiler(
         experimental_config.mstx_domain_include,
         experimental_config.mstx_domain_exclude,
         experimental_config.sys_io,
-        experimental_config.sys_interconnection};
+        experimental_config.sys_interconnection,
+      experimental_config.ftrace,
+      experimental_config.ftrace_period, experimental_config.ftrace_bufsize};
     ProfilerMgr::GetInstance()->Start(npu_config, cpu_trace);
     if (state->tracePython()) {
         python_tracer::call(python_tracer::Command::kStartAll);

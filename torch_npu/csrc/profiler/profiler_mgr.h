@@ -30,6 +30,9 @@ struct NpuTraceConfig {
   std::vector<std::string> mstx_domain_exclude;
   bool sys_io;
   bool sys_interconnection;
+  std::vector<std::string> ftrace;
+  int ftrace_period;
+  int ftrace_bufsize;
 };
 
 C10_NPU_API int8_t GetTraceLevel();
@@ -85,6 +88,7 @@ private:
     uint64_t PrepareProfilerConfig(const NpuTraceConfig &npu_config);
     void PrepareProfilerDeviceSysConfig(const NpuTraceConfig &npu_config);
     void PrepareProfilerHostSysConfig(const std::vector<std::string> &host_sys);
+    void PrepareProfilerHostFtraceConfig(const NpuTraceConfig &npu_config);
     aclprofAicoreMetrics PrepareProfilerAicMetrics(const NpuTraceConfig &npu_config);
     uint64_t CheckFeatureConfig(uint64_t datatype_config);
     void StartDataReceiver(const std::string &fwk_path);
