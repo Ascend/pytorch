@@ -6,8 +6,6 @@ on:
       - ci-test
     paths:
       - '.github/workflows/nightly-collect-only.yml'
-      - '.github/scripts/collect_all_cases.py'
-      - '.github/scripts/nodeid_dump.py'
   workflow_dispatch:
 
 permissions:

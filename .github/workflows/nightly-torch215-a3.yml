@@ -29,11 +29,6 @@ on:
       - ci-test
     paths:
       - '.github/workflows/nightly-torch215-a3.yml'
-      - '.github/workflows/_nightly_build_upstream_wheels.yml'
-      - '.github/config/disabled_testcases_a3_all.json'
-      - '.github/config/running_skiped_testcases.json'
-      - '.github/config/unsupport_dtype_testcases.json'
-      - '.github/config/unsupported_aclnn_testcases.json'
   workflow_dispatch:
 
 permissions:

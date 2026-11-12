@@ -6,7 +6,6 @@ on:
       - ci-test
     paths:
       - '.github/workflows/nightly-a5.yml'
-      - '.github/config/nightly_test_categories_a5.yml'
   workflow_dispatch:
 
 permissions:

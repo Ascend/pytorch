@@ -30,9 +30,6 @@ on:
       - ci-test
     paths:
       - '.github/workflows/nightly-torch215-a5.yml'
-      - '.github/workflows/_nightly_build_upstream_wheels.yml'
-      - '.github/config/nightly_test_categories_a5.yml'
-      - '.github/config/disabled_testcases_a5_all.json'
   workflow_dispatch:
 
 permissions:

@@ -22,15 +22,6 @@ on:
       - ci-test
     paths:
       - '.github/workflows/blacklist-test.yml'
-      - '.github/workflows/_blacklist_diff_shard.yml'
-      - '.github/workflows/_blacklist_test-category.yml'
-      - '.github/scripts/blacklist-test/scripts/build_diff_shards.py'
-      - '.github/scripts/blacklist-test/scripts/compare_diff_results.py'
-      - '.github/scripts/blacklist-test/scripts/collect_passed_skipped.py'
-      - '.github/config/disabled_testcases_a3_all.json'
-      - '.github/config/disabled_testcases_a5_all.json'
-      - '.github/config/unsupported_aclnn_testcases.json'
-      - '.github/config/unsupport_dtype_testcases.json'
   workflow_dispatch:
     inputs:
       upstream_ref:
