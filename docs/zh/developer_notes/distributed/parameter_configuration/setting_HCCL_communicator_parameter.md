@@ -25,6 +25,7 @@ TorchNPU将支持的配置项转换为 `HcclCommConfig` 的对应字段，并在
 | `group_name` | `hcclUdi` |
 | `qos_traffic_class` | `hcclRdmaTrafficClass` |
 | `qos_service_level` | `hcclRdmaServiceLevel` |
+| `hccl_qos` | `hcclQos` |
 | `hccl_sdma_qos` | `hcclQos` |
 | `hccl_op_expansion_mode` | `hcclOpExpansionMode` |
 | `hccl_exec_timeout` | `hcclExecTimeOut` |
@@ -33,6 +34,10 @@ TorchNPU将支持的配置项转换为 `HcclCommConfig` 的对应字段，并在
 | `hccl_retry_params` | `hcclRetryParams` |
 | `hccl_buffer_name` | `hcclBufferName` |
 | `hccl_sym_win_max_mem_size_per_rank` | `hcclSymWinMaxMemSizePerRank` |
+
+> [!NOTICE]
+>
+> `hccl_sdma_qos` 参数仅在有存量业务情况下正常使用，`hccl_sdma_qos` 和 `hccl_qos` 同时配置时会生效 `hccl_qos` 配置项，同时输出warning日志，提示 `hccl_sdma_qos` 已不推荐使用（建议迁移至 `hccl_qos`）。
 
 ### 配置优先级
 
