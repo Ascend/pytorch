@@ -46,7 +46,9 @@ class DynamicProfilerShareMemory:
             "mstx_domain_include": [],
             "mstx_domain_exclude": [],
             "sys_io": False,
-            "sys_interconnection": False
+            "sys_interconnection": False,
+            "ftrace": [],
+            "ftrace_period": 0
         }
     }
     DISTRIBUTED_LAUNCHERS = ("torchrun", "torch_npu_run", "vllm")

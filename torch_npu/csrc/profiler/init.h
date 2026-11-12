@@ -17,6 +17,9 @@ enum class ExperConfigType {
     MSTX_DOMAIN_EXCLUDE,
     SYS_IO,
     SYS_INTERCONNECTION,
+    FTRACE,
+    FTRACE_PERIOD,
+    FTRACE_BUFSIZE,
     CONFIG_TYPE_MAX_COUNT  // 表示枚举的总数，固定放在枚举的最后一个
 };
 TORCH_NPU_API PyMethodDef* profiler_functions();
