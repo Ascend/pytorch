@@ -65,6 +65,46 @@
 
 #### BlockMask Utilities
 
+##### torch.nn.attention.flex_attention.create_mask
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.attention.flex_attention.create_mask](https://docs.pytorch.org/docs/2.9/nn.attention.flex_attention.html#torch.nn.attention.flex_attention.create_mask)
+
+**产品支持情况**：
+
+<!-- npu="910b" id25 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id25 -->
+<!-- npu="A3" id26 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id26 -->
+<!-- npu="950" id27 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id27 -->
+
+</div>
+
+##### torch.nn.attention.flex_attention.create_nested_block_mask
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.attention.flex_attention.create_nested_block_mask](https://docs.pytorch.org/docs/2.9/nn.attention.flex_attention.html#torch.nn.attention.flex_attention.create_nested_block_mask)
+
+**产品支持情况**：
+
+<!-- npu="910b" id28 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id28 -->
+<!-- npu="A3" id29 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id29 -->
+<!-- npu="950" id30 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id30 -->
+
+</div>
+
 ##### torch.nn.attention.flex_attention.noop_mask
 
 <div style="margin-left: 2em">
@@ -234,6 +274,26 @@
 <!-- npu="950" id21 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id21 -->
+
+</div>
+
+> <font size="3">to_string</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.attention.flex_attention.BlockMask.to_string](https://docs.pytorch.org/docs/2.9/nn.attention.flex_attention.html#torch.nn.attention.flex_attention.BlockMask.to_string)
+
+**产品支持情况**：
+
+<!-- npu="910b" id22 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id22 -->
+<!-- npu="A3" id23 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id23 -->
+<!-- npu="950" id24 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id24 -->
 
 </div>
 
