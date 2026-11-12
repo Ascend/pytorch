@@ -1,4 +1,5 @@
 #pragma once
+#include <atomic>
 #include <map>
 #include <memory>
 #include <string>
@@ -182,10 +183,16 @@ class C10_NPU_API HCCLComm {
   std::unordered_map<void*, std::pair<void*, bool>> registeredSegmentHandles_;
 };
 
+// Historical shared-registry alias; HCCL now owns its writer as in the original
+// PTA implementation, with registration and file behavior aligned to community.
+// using DebugInfoWriter = c10d::DebugInfoWriter;
+
+std::string getHcclFlightRecorderDumpPrefix();
+
 class TORCH_API DebugInfoWriter {
  public:
   virtual ~DebugInfoWriter() = default;
-  virtual void write(const std::string& hcclTrace);
+  virtual void write(const std::string& trace);
   static DebugInfoWriter& getWriter(int rank);
   static void registerWriter(std::unique_ptr<DebugInfoWriter> writer);
   virtual std::string getWriterTarget() {
@@ -193,13 +200,14 @@ class TORCH_API DebugInfoWriter {
   }
 
  protected:
-  DebugInfoWriter(std::string namePrefix, int rank) {
-    filename_ = c10::str(namePrefix, rank);
-  }
+  DebugInfoWriter(const std::string& namePrefix, int rank, bool enableDynamicFilename = false)
+      : filename_(c10::str(namePrefix, rank)), enable_dynamic_filename_(enableDynamicFilename) {}
   std::string filename_;
+  bool enable_dynamic_filename_;
 
  private:
   static std::unique_ptr<DebugInfoWriter> writer_;
   static std::atomic<bool> hasWriterRegistered_;
 };
+
 } // namespace c10d_npu

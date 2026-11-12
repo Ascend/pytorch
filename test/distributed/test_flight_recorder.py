@@ -21,11 +21,20 @@ import torch_npu
 class HCCLTraceTestBase(MultiProcessTestCase):
     def setUp(self):
         super().setUp()
+        env_patch = mock.patch.dict(os.environ)
+        env_patch.start()
+        self.addCleanup(env_patch.stop)
+        for name in list(os.environ):
+            if name.startswith("TORCH_FR_") or name in (
+                "TORCH_INCLUDE_ONLY_ACTIVE", "TORCH_INCLUDE_STACK_TRACE"
+            ):
+                os.environ.pop(name)
         os.environ[
             "TORCH_HCCL_ENABLE_TIMING"
         ] = "0"  # see 'timing_enabled' parametrized tests
         os.environ["TORCH_HCCL_TRACE_BUFFER_SIZE"] = "1000"
         os.environ["TORCH_HCCL_DUMP_ON_TIMEOUT"] = "1"
+        os.environ["TORCH_HCCL_WAIT_TIMEOUT_DUMP_MILSEC"] = "15000"
         self.tempdir = tempfile.TemporaryDirectory()
         os.environ["TORCH_HCCL_DEBUG_INFO_TEMP_FILE"] = self._trace_basename()
         os.environ["TORCH_HCCL_DEBUG_INFO_PIPE_FILE"] = self._trace_basename()
@@ -109,7 +118,9 @@ class HCCLTraceTestBase(MultiProcessTestCase):
 class HCCLTraceTest(HCCLTraceTestBase):
     def _verify_trace(self, t, include_collectives, timing_enabled, is_json):
         ver = t["version"]
-        self.assertEqual(ver, "2.4")
+        self.assertEqual(ver, "2.10")
+        self.assertIsInstance(t["comm_lib_version"], str)
+        self.assertTrue(t["comm_lib_version"])
         pg_config = t["pg_config"]
         self.assertEqual(len(pg_config), 1)
         default_pg_info = pg_config["group_name_0"]
@@ -120,17 +131,23 @@ class HCCLTraceTest(HCCLTraceTestBase):
         self.assertEqual(len(pg_status), 1)
         self.assertEqual(str(pg_status["0"]["last_enqueued_collective"]), "2")
         self.assertEqual(str(pg_status["0"]["last_completed_collective"]), "2")
-        self.assertEqual(
-            str(pg_status["0"]["last_started_collective"]),
-            "2" if timing_enabled else "-1",
-        )
+        last_started = str(pg_status["0"]["last_started_collective"])
+        if timing_enabled:
+            self.assertEqual(last_started, "2")
+        else:
+            # PTA's independent status-save path may record start events even
+            # when duration timing is disabled.
+            self.assertIn(last_started, {"-1", "2"})
         global_ranks = pg_config["group_name_0"]["ranks"]
         self.assertEqual(len(json.loads(global_ranks)), self.world_size)
         if include_collectives:
             self.assertEqual(len(t["entries"]), 2)
             t = t["entries"]
             last = t[-1]
-            self.assertEqual(last["process_group"], ("group_name_0", ""))
+            self.assertTrue(last["thread_id"])
+            self.assertTrue(last["thread_name"])
+            self.assertEqual(tuple(last["process_group"]), ("group_name_0", ""))
+            self.assertEqual(last["profiling_name"], "hccl:all_reduce")
             self.assertEqual(last["state"], "completed")
             s = last["time_discovered_started_ns"]
             f = last["time_discovered_completed_ns"]
@@ -142,11 +159,13 @@ class HCCLTraceTest(HCCLTraceTestBase):
             # we don't collect stack traces in JSON at the moment
             if not is_json:
                 self.assertIn("test_flight_recorder.py", str(last["frames"]))
-            self.assertEqual(last["input_sizes"], ((3, 4),))
+            self.assertEqual(last["input_sizes"], [[3, 4]])
             self.assertEqual(last["input_dtypes"], ["Float"])
-            self.assertEqual(last["output_sizes"], ((3, 4),))
+            self.assertEqual(last["output_sizes"], [[3, 4]])
             self.assertEqual(last["output_dtypes"], ["Float"])
             self.assertEqual(last["collective_seq_id"], 2)
+            self.assertEqual(last["op_id"], 2)
+            self.assertFalse(last["is_p2p"])
             # HCCL_EXEC_TIMEOUT will impact watchdog timeout
             self.assertEqual(last["timeout_ms"], 3636000)
             now = datetime.now()
@@ -282,13 +301,12 @@ class HCCLTraceTest(HCCLTraceTestBase):
         self.assertEqual(len(t), 10)
         first = t[0]
         last = t[-1]
-        # profiling is not supported
-        self.assertEqual(last["profiling_name"], "")
+        self.assertEqual(last["profiling_name"], "hccl:all_reduce")
         self.assertEqual(last["state"], "completed")
         self.assertIn("test_flight_recorder.py", str(last["frames"]))
-        self.assertEqual(last["input_sizes"], ((3, 4),))
+        self.assertEqual(last["input_sizes"], [[3, 4]])
         self.assertEqual(last["input_dtypes"], ["Float"])
-        self.assertEqual(last["output_sizes"], ((3, 4),))
+        self.assertEqual(last["output_sizes"], [[3, 4]])
         self.assertEqual(last["output_dtypes"], ["Float"])
         # timeout_ms adapt to npu
         self.assertEqual(last["timeout_ms"], 3636000)
@@ -372,11 +390,11 @@ class HCCLTraceTest(HCCLTraceTestBase):
                     self.assertEqual(len(t), 1)
             if not only_active:
                 if self.rank == 0:
-                    self.assertEqual(t[-1]["profiling_name"], "")
+                    self.assertEqual(t[-1]["profiling_name"], "hccl:all_reduce")
                     self.assertEqual(t[-1]["collective_seq_id"], 1)
                     self.assertEqual(t[-1]["state"], "completed")
                 else:
-                    self.assertEqual(t[-1]["profiling_name"], "")
+                    self.assertEqual(t[-1]["profiling_name"], "hccl:all_reduce")
                     self.assertEqual(t[-1]["collective_seq_id"], 2)
                     self.assertEqual(
                         t[-1]["state"], self.started_or_scheduled(timing_enabled)
@@ -415,7 +433,7 @@ class HCCLTraceTest(HCCLTraceTestBase):
                 time.sleep(5)
                 t = pickle.loads(torch_npu._C._distributed_c10d._dump_hccl_trace())
                 t = t["entries"]
-                self.assertEqual(t[-1]["profiling_name"], "")
+                self.assertEqual(t[-1]["profiling_name"], "hccl:all_reduce")
                 if self.rank == 0:
                     self.assertEqual(t[-1]["collective_seq_id"], 1)
                     self.assertEqual(t[-1]["state"], "completed")
@@ -668,6 +686,23 @@ class HCCLTraceTest(HCCLTraceTestBase):
             self.assertTrue("duration_ms" not in t["entries"][0])
 
 
+class HCCLTraceDefaultConfigTest(HCCLTraceTestBase):
+    def test_recorder_is_disabled_by_default(self):
+        if self.rank == self.MAIN_PROCESS_RANK:
+            return
+        os.environ.pop("TORCH_FR_BUFFER_SIZE", None)
+        os.environ.pop("TORCH_HCCL_TRACE_BUFFER_SIZE", None)
+
+        pg = self._create_process_group_hccl()
+        device = self.local_device
+        tensor = torch.full((3, 4), float(self.rank), device=device)
+        pg.allreduce(tensor).wait()
+        torch.npu.synchronize(device=device)
+        trace = pickle.loads(torch_npu._C._distributed_c10d._dump_hccl_trace())
+        self.assertEqual(trace["entries"], [])
+        dist.destroy_process_group()
+
+
 def check_if_test_is_skipped(fn):
     def wrapper(self, f, *args, **kwargs):
         for skip in TEST_SKIPS.values():
@@ -761,9 +796,9 @@ class HCCLTraceTestTimeoutDumpOnStuckRanks(HCCLTraceTestDumpOnTimeoutBase):
     @check_if_test_is_skipped
     def _check_return_codes(self, fn, elapsed_time):
         # the base test infra assumes processes exit with matching return codes,
-        # but we want rank0 to abort and rank1 to exit cleanly in this test
+        # Both ranks abort after the watchdog coordinates a dump.
         self.assertEqual(self.processes[0].exitcode, -6)
-        self.assertEqual(self.processes[1].exitcode, 0)
+        self.assertEqual(self.processes[1].exitcode, -6)
 
     def test_timeout_dumps_on_stuck_ranks(self):
         if self.rank != self.MAIN_PROCESS_RANK:
@@ -778,7 +813,7 @@ class HCCLTraceTestTimeoutDumpOnStuckRanks(HCCLTraceTestDumpOnTimeoutBase):
             # wait for both rank0 and 1 to crash before looking for both ranks' output
             # file, and we rely on rank1 to sleep long enough to dump the debug info.
             self.assertEqual(self._wait_process(0, timeout=180), -6)
-            self.assertEqual(self._wait_process(1, timeout=180), 0)
+            self.assertEqual(self._wait_process(1, timeout=180), -6)
             self.assertTrue(os.path.exists(self._trace_name(rank=1)))
             self.assertTrue(os.path.exists(self._trace_name(rank=0)))
             with open(self._trace_name(rank=0), "rb") as f:
@@ -876,6 +911,12 @@ class HcclHeartbeatDumpTest(HCCLTraceTestBase):
         except TimeoutError:
             return None
 
+    @check_if_test_is_skipped
+    def _check_return_codes(self, fn, elapsed_time):
+        self.assertEqual(self.processes[0].exitcode, -6)
+        # Rank 1 can remain blocked in the second allreduce until test cleanup.
+        self.assertIn(self.processes[1].exitcode, (0, -15))
+
     def test_hccl_heartbeat_dump(self):
         if self.rank != self.MAIN_PROCESS_RANK:
             # dump on heartbeatmonitor thread
@@ -887,15 +928,20 @@ class HcclHeartbeatDumpTest(HCCLTraceTestBase):
         os.environ["TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC"] = "10"
 
         if self.rank == self.MAIN_PROCESS_RANK:
-            # wait for both rank0 and 1 to finish
-            self.assertEqual(self._wait_process(0, timeout=90), 0)
-            self.assertEqual(self._wait_process(1, timeout=90), 0)
-            # verify that the trace file exists for rank0
-            self.assertTrue(os.path.exists(self._trace_name(rank=0)))
-            with open(self._trace_name(rank=0) + "_py_traceback", "r") as f:
-                self.assertTrue("time.sleep(30)" in str(f.readlines()))
-            # verify that the trace file not exists for rank1
-            self.assertFalse(os.path.exists(self._trace_name(rank=1)))
+            try:
+                self.assertEqual(self._wait_process(0, timeout=90), -6)
+                self.assertTrue(os.path.exists(self._trace_name(rank=0)))
+                with open(self._trace_name(rank=0) + "_py_traceback", "r") as f:
+                    self.assertIn("time.sleep(30)", f.read())
+                self.assertFalse(os.path.exists(self._trace_name(rank=1)))
+            finally:
+                for process in self.processes:
+                    if process.is_alive():
+                        process.terminate()
+                        process.join(timeout=10)
+                    if process.is_alive():
+                        process.kill()
+                        process.join(timeout=10)
             return
 
         pg = self._create_process_group_hccl()

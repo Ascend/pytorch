@@ -591,6 +591,7 @@ Example::
               Stringified pickle work traces.
               Default settings return everything - i.e. contains HCCL comm dumps and collective traces.
         )");
+  module.def("_reset_fr_recording_hccl", []() { ::c10d_npu::reset_hccl_trace(); });
 
   Py_RETURN_TRUE;
 }

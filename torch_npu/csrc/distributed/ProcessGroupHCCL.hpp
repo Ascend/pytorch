@@ -13,12 +13,21 @@
 #include <c10d/Store.hpp>
 #include <c10d/Utils.hpp>
 #include <c10d/Work.hpp>
+#include <torch/csrc/distributed/c10d/FlightRecorder.hpp>
+#include <torch/csrc/distributed/c10d/logger.hpp>
 
 #include "third_party/hccl/inc/hccl/hccl.h"
 #include "torch_npu/csrc/logging/LogContext.h"
 #include "torch_npu/csrc/core/npu/interface/HcclInterface.h"
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
+
+namespace c10d {
+// Declare before any NPU recorder use to avoid instantiating the community
+// constructor, which reads NCCL legacy variables.
+template <>
+TORCH_API FlightRecorder<c10_npu::NPUEvent>::FlightRecorder();
+} // namespace c10d
 
 inline std::shared_ptr<npu_logging::Logger>& GetLoggerHccl() {
   static std::shared_ptr<npu_logging::Logger> loggerHccl = npu_logging::logging().getLogger("torch.distributed");
@@ -74,8 +83,12 @@ constexpr const int DEFAULT_TIMEOUT = 30 * 60 * 1000;
 
 // Control whether dumping debug info on watchdog
 // timeout is enabled. This variable must be set together with
-// TORCH_HCCL_ENABLE_MONITORING=1 and TORCH_HCCL_TRACE_BUFFER_SIZE > 0.
+// TORCH_HCCL_ENABLE_MONITORING=1 and a non-zero shared recorder buffer.
 static std::vector<std::string> TORCH_HCCL_DUMP_ON_TIMEOUT = {"TORCH_HCCL_DUMP_ON_TIMEOUT"};
+
+// Best-effort snapshot before the watchdog exits on an exception. This is
+// independent of the heartbeat monitor and is disabled by default.
+static std::vector<std::string> TORCH_HCCL_EXTRA_DUMP_ON_EXEC = {"TORCH_HCCL_EXTRA_DUMP_ON_EXEC"};
 
 // Enable monitoring thread which aborts the process when the ProcessGroupHCCL
 // Watchdog thread gets stuck and no heartbeat is detected after
@@ -87,6 +100,10 @@ static std::vector<std::string> TORCH_HCCL_ENABLE_MONITORING = {"TORCH_HCCL_ENAB
 // The maximum number of events we store in the flight recorder's ring buffer.
 // (One event could be the start or end of a collective, for example).
 static std::vector<std::string> TORCH_HCCL_TRACE_BUFFER_SIZE = {"TORCH_HCCL_TRACE_BUFFER_SIZE"};
+
+// Enable timing events for Flight Recorder. Desync debugging also enables
+// timing so its event state and Flight Recorder duration stay consistent.
+static std::vector<std::string> TORCH_HCCL_ENABLE_TIMING = {"TORCH_HCCL_ENABLE_TIMING"};
 
 // Control how much extra time we will wait for dumping the debugging info
 // before we exit and throws timeout exception.
@@ -103,36 +120,10 @@ static std::vector<std::string> TORCH_HCCL_COORD_CHECK_MILSEC = {"TORCH_HCCL_COO
 // Control whether to always use high priority streams
 static std::vector<std::string> TORCH_HCCL_HIGH_PRIORITY = {"TORCH_HCCL_HIGH_PRIORITY"};
 
-// A struct to hold the latest status of the process group.
-struct ProcessGroupStatus {
-  // the sequential number of the last collective enqueued into workMetaList_
-  // This is useful for identifying a rank that has not join a collective
-  // initialized to be -1 to indicate no collective has been enqueued
-  int64_t lastEnqueuedSeq{-1};
-  // the sequential number of the last collective started as the kernel
-  int64_t lastStartedSeq{-1};
-  // the sequential number of the last collective completed marked by
-  // the watchdog thread
-  // initialized to be -1 to indicate no collective has been completed
-  int64_t lastCompletedSeq{-1};
+using ProcessGroupStatus = c10d::ProcessGroupStatus;
 
-  // the name of the last collective enqueued into workMetaList_
-  std::string lastEnqueuedWorkName;
-  // the name of the last collective started as the kernel
-  std::string lastStartedWorkName;
-  // the name of the last collective completed
-  std::string lastCompletedWorkName;
-
-  // the sizes of the last work enqueued
-  size_t lastEnqueuedNumelIn;
-  size_t lastEnqueuedNumelOut;
-  // the sizes of the last work completed
-  size_t lastCompletedNumelIn;
-  size_t lastCompletedNumelOut;
-  // the sizes of the last work started
-  size_t lastStartedNumelIn;
-  size_t lastStartedNumelOut;
-};
+using FlightRecorderNPU = c10d::FlightRecorder<c10_npu::NPUEvent>;
+using TraceIdentifier = FlightRecorderNPU::TraceIdentifier;
 
 #ifndef BUILD_LIBTORCH
 struct DumpPipe {
@@ -300,6 +291,12 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
     // Helper function to handle exception (throw if needed).
     void handleException(ErrorHandlingMode asyncErrorHandling);
 
+    // Returns and logs the Python traceback captured for this work by the
+    // flight recorder. Symbolization is performed asynchronously by the
+    // community recorder to avoid blocking the watchdog on the GIL.
+    std::string getTraceback() const;
+    void printTraceback() const;
+
     // Helper function that checks if the HCCL have finished
     // execution on the NPUs
     bool finishedNPUExecution();
@@ -320,6 +317,15 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
     void checkDispatch();
 
     bool checkExec();
+
+    // Return the timing start event for Flight Recorder, or nullptr when
+    // timing is disabled. The start event may still exist for status-save and
+    // monitor progress tracking.
+    c10_npu::NPUEvent* getStartEventForTracing() const;
+
+    // The end event is always present because it also tracks work completion
+    // and is used to order the current stream after the HCCL stream.
+    c10_npu::NPUEvent* getEndEventForTracing() const;
 
    protected:
     // The cached list of NPU devices to operate on.
@@ -433,6 +439,11 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
     // unique id used to tell the trace buffer that this
     // work has completed
     c10::optional<uint64_t> trace_id_;
+    c10::optional<uint64_t> trace_reset_epoch_;
+
+    // Whether timing events are enabled for this work. This is independent
+    // from the status-save event used by PTA's desync diagnostics.
+    bool timingEnabled_{false};
 
     mutable std::once_flag print_flag;
 
@@ -853,6 +864,7 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
       std::vector<at::Device> devices,
       int rank,
       c10d::OpType opType,
+      bool isP2P = false,
       const char* profilingTitle = nullptr,
       const std::vector<at::Tensor>& inputs = {},
       const std::vector<at::Tensor>& outputs = {},
@@ -878,8 +890,8 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
   // recorder to storage. Down the road, if we have more complicated or blocking
   // operations, we might need to use a side thread to do it.
 #ifndef BUILD_LIBTORCH
-  bool dumpDebuggingInfo();
-  void dumpTraceAndResetStatus();
+  void dumpExtraDebuggingInfo();
+  bool dumpDebuggingInfo(bool includeStackTrace = true, bool onlyActive = false);
   bool dumpPythonTraceback();
   std::future<bool> launchAsyncPythonTracebackDump();
 
@@ -897,7 +909,7 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
   virtual void terminateProcess(std::string errMsg);
 
   // A helper function to wait for a future to complete or timeout.
-  void waitForFutureOrTimeout(
+  bool waitForFutureOrTimeout(
       std::future<bool>& fut,
       const std::chrono::milliseconds& timeOutMilSec,
       const std::string& futDescription,
@@ -1047,7 +1059,7 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
   // Condition Variable for monitor thread to wake up early
   std::condition_variable monitorWakeUpCV_;
 
-  std::chrono::time_point<std::chrono::steady_clock> lastWorkListUpdateTime_;
+  std::chrono::time_point<std::chrono::steady_clock> lastWorkListUpdateTime_{std::chrono::steady_clock::now()};
 
   // Condition variable to control how long the  watchdog thread waits.
   std::condition_variable watchdogCV_;
@@ -1127,8 +1139,6 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
   // timeout and hccl errors.
   bool dumpOnException_;
 
-  bool hasGlobalDumped = false;
-
   // the perfdump path
   static std::string perfdumppath;
 
@@ -1150,17 +1160,17 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
   // is called.
   static thread_local uint64_t hcclActiveGroupCounter_;
 
-  // Counting for the sequential number of NCCL collective call.
+  // Counting for the sequential number of HCCL collective call.
   // (specifically, how many actual kernels we launched, which differs from
   // op_id_ when coalescing is enabled)
   uint64_t seqCollective_{0};
 
-  // Counting for the sequential number of NCCL P2P calls.
+  // Counting for the sequential number of HCCL P2P calls.
   uint64_t seqP2P_{0};
 
-  // Counting for the sequential number of HCCL collective call.
-  // (specifically, how many actual kernels we launched, which differs from)
-  // op_id_ when coalescing is enabled)
+  // Compatibility-only layout slot. Community semantics use seqCollective_ /
+  // seqP2P_ for Work and FR entries, and no runtime path reads or increments
+  // this field. Keep it until a separately reviewed ABI cleanup.
   uint64_t seq_{0};
 
   // Incrementing counter for logical operations (collective or p2p) issued on
@@ -1244,7 +1254,8 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
       PreProcess pre,
       PostProcess post,
       c10d::OpType opType,
-      bool asyncOp = false);
+      bool asyncOp = false,
+      const char* profilingTitle = "");
 
   std::vector<std::shared_ptr<HCCLComm>>& createHCCLComm(
       const std::string& devicesKey,
@@ -1388,6 +1399,9 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
 // Dumps the HCCL comm traces and additional information about the Process
 // Group.
 TORCH_API std::string dump_hccl_trace(bool includeCollectives, bool includeStackTraces, bool onlyActive);
+
+// Resets all HCCL Flight Recorder entries and starts a new reset epoch.
+TORCH_API void reset_hccl_trace();
 
 // Dumps the HCCL comm traces and additional information about the Process
 // Group in JSON formatted string.

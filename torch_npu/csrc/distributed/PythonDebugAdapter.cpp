@@ -3,9 +3,9 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/eval.h>
 #include <pybind11/embed.h>
-#include <torch/csrc/distributed/c10d/Utils.hpp>
 #include <c10/util/Logging.h>
 
+#include "torch_npu/csrc/distributed/HCCLUtils.hpp"
 #include "torch_npu/csrc/distributed/PythonDebugBridge.h"
 #include "torch_npu/csrc/distributed/PythonDebugAdapter.h"
 
@@ -15,7 +15,7 @@ using namespace py::literals;
 namespace c10d_npu {
 namespace {
 bool dumpPythonTraceback(int rank, const std::string& prefix) {
-  std::string filePath = c10d::getCvarString({"TORCH_HCCL_DEBUG_INFO_TEMP_FILE"}, "/tmp/hccl_trace_rank_");
+  const std::string filePath = getHcclFlightRecorderDumpPrefix();
   PyGILState_STATE gil = PyGILState_Ensure();
   try {
     py::dict locals = py::dict("path"_a = filePath.c_str(), "rank"_a = rank);

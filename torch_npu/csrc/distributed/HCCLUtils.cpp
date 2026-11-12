@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -323,34 +324,62 @@ HcclResult HCCLComm::deregisterSegment(void* ptr) {
   return HCCL_SUCCESS;
 }
 
-void DebugInfoWriter::write(const std::string& hcclTrace) {
-  // Open a file for writing. The ios::binary flag is used to write data as
-  // binary.
-  std::ofstream file(filename_, std::ios::binary);
+std::string getHcclFlightRecorderDumpPrefix() {
+#ifdef _WIN32
+  const char* cacheHome = nullptr;
+#else
+  const char* cacheHome = std::getenv("XDG_CACHE_HOME");
+#endif
+  const std::string cacheRoot = cacheHome ? cacheHome : c10d::getCvarString({"HOME"}, "/tmp") + "/.cache";
+  const auto cacheDirPath = std::filesystem::path(cacheRoot + "/torch");
+  std::filesystem::create_directories(cacheDirPath);
+  const auto defaultLocation = cacheDirPath / "comm_lib_trace_rank_";
+  return c10d::getCvarString(
+      {"TORCH_FR_DUMP_TEMP_FILE", "TORCH_HCCL_DEBUG_INFO_TEMP_FILE"}, defaultLocation.string().c_str());
+}
 
-  // Check if the file was opened successfully.
+void DebugInfoWriter::write(const std::string& trace) {
+  std::string filename = filename_;
+  if (enable_dynamic_filename_) {
+    LOG(INFO) << "Writing Flight Recorder debug info to a dynamic file name";
+    filename = c10d::getCvarString({"TORCH_FR_DUMP_TEMP_FILE"}, "");
+  } else {
+    LOG(INFO) << "Writing Flight Recorder debug info to a static file name";
+  }
+  std::ofstream file(filename, std::ios::binary);
   if (!file.is_open()) {
-    LOG(ERROR) << "Error opening file for writing HCCLPG debug info: " << filename_;
+    LOG(ERROR) << "Error opening file for writing Flight Recorder debug info: " << filename;
     return;
   }
-
-  file.write(hcclTrace.data(), hcclTrace.size());
-  LOG(INFO) << "Finished writing HCCLPG debug info to " << filename_;
+  if (!file.write(trace.data(), static_cast<std::streamsize>(trace.size()))) {
+    LOG(ERROR) << "Error writing Flight Recorder debug info to file: " << filename << " bad bit: " << file.bad();
+    return;
+  }
+  file.flush();
+  if (file.bad()) {
+    LOG(ERROR) << "Error flushing Flight Recorder debug info: " << filename;
+    return;
+  }
+  LOG(INFO) << "Finished writing Flight Recorder debug info to " << filename;
 }
 
 DebugInfoWriter& DebugInfoWriter::getWriter(int rank) {
   if (writer_ == nullptr) {
-    std::string fileNamePrefix = c10d::getCvarString({"TORCH_HCCL_DEBUG_INFO_TEMP_FILE"}, "/tmp/hccl_trace_rank_");
-    // Using std::unique_ptr here to auto-delete the writer object
-    // when the pointer itself is destroyed.
-    std::unique_ptr<DebugInfoWriter> writerPtr(new DebugInfoWriter(fileNamePrefix, rank));
-    DebugInfoWriter::registerWriter(std::move(writerPtr));
+    const auto prefix = getHcclFlightRecorderDumpPrefix();
+    const bool dynamic = c10d::getCvarBool({"TORCH_FR_DUMP_DYNAMIC_FILE_NAME"}, false);
+    std::unique_ptr<DebugInfoWriter> writer(new DebugInfoWriter(prefix, rank, dynamic));
+    registerWriter(std::move(writer));
   }
   return *writer_;
 }
 
 void DebugInfoWriter::registerWriter(std::unique_ptr<DebugInfoWriter> writer) {
-  TORCH_CHECK_WITH(DistBackendError, !hasWriterRegistered_.load(), "debugInfoWriter already registered");
+  if (hasWriterRegistered_.load()) {
+    TORCH_WARN_ONCE(
+        "DebugInfoWriter has already been registered, and since we need the writer to stay "
+        "outside ProcessGroup, user needs to ensure that this extra registration is indeed needed. "
+        "And we will only use the last registered writer.");
+  }
   hasWriterRegistered_.store(true);
   writer_ = std::move(writer);
 }

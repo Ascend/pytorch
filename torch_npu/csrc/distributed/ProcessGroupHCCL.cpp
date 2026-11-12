@@ -1,5 +1,6 @@
 #include <ATen/record_function.h>
 #include <algorithm>
+#include <exception>
 #include <map>
 #include <mutex>
 #include <tuple>
@@ -16,6 +17,7 @@
 
 #include <c10/util/Optional.h>
 #include <c10/util/StringUtil.h>
+// #include <c10/util/env.h> // Legacy env mapping is now a compatibility no-op.
 #include <c10/util/hash.h>
 #include <c10/util/irange.h>
 #include <c10d/ParamCommsUtils.hpp>
@@ -24,7 +26,10 @@
 #include <c10d/TCPStore.hpp>
 #include <c10d/PrefixStore.hpp>
 #include <torch/csrc/distributed/c10d/PrefixStore.hpp>
-#include <torch/csrc/distributed/c10d/control_plane/Handlers.hpp>
+#include <nlohmann/json.hpp>
+#if __has_include(<version/hccl_version.h>)
+#include <version/hccl_version.h>
+#endif
 
 #include <arpa/inet.h>
 
@@ -51,7 +56,11 @@
 #include "torch_npu/csrc/core/npu/interface/OpInterface.h"
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
 #include "torch_npu/csrc/distributed/HcclCompile.h"
-#include "torch_npu/csrc/distributed/TraceUtils.h"
+// The active desync path uses c10d/TraceUtils.h above (`c10d::traceUpdate`
+// and `retrieveDesyncReport`).  Keep the former HCCL-local TraceUtils.h in the
+// source tree for compatibility review, but do not include it here: its v2.4
+// recorder is quarantined and its local desync helpers have no runtime caller.
+// #include "torch_npu/csrc/distributed/TraceUtils.h"
 #include "torch_npu/csrc/framework/OpHook.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
@@ -124,6 +133,49 @@ std::vector<uint8_t> getPtaBuildVersion() {
 #endif
   version.insert(version.end(), buildDate, buildDate + strlen(buildDate));
   return version;
+}
+
+// Dump path resolution is shared with the HCCL writer in HCCLUtils.cpp.
+
+// HCCL's OpType spelling is an internal uppercase name (for example,
+// ALLREDUCE), while Flight Recorder tooling consumes the public profiling
+// names (for example, hccl:all_reduce). Keep this normalization in one place
+// so every HCCL recording path produces analyzable v2.10 entries.
+std::string getHcclProfilingTitle(c10d::OpType opType) {
+  switch (opType) {
+    case c10d::OpType::BROADCAST:
+      return "hccl:broadcast";
+    case c10d::OpType::ALLREDUCE:
+      return "hccl:all_reduce";
+    case c10d::OpType::ALLREDUCE_COALESCED:
+      return "hccl:allreduce_coalesced";
+    case c10d::OpType::REDUCE:
+      return "hccl:reduce";
+    case c10d::OpType::ALLGATHER:
+      return "hccl:all_gather";
+    case c10d::OpType::_ALLGATHER_BASE:
+      return "hccl:_all_gather_base";
+    case c10d::OpType::ALLGATHER_COALESCED:
+      return "hccl:allgather_coalesced";
+    case c10d::OpType::GATHER:
+      return "hccl:gather";
+    case c10d::OpType::SCATTER:
+      return "hccl:scatter";
+    case c10d::OpType::REDUCE_SCATTER:
+      return "hccl:reduce_scatter";
+    case c10d::OpType::ALLTOALL_BASE:
+      return "hccl:all_to_all_single";
+    case c10d::OpType::ALLTOALL:
+      return "hccl:all_to_all";
+    case c10d::OpType::BARRIER:
+      return "hccl:barrier";
+    case c10d::OpType::COALESCED:
+      return "hccl:coalesced";
+    case c10d::OpType::_REDUCE_SCATTER_BASE:
+      return "hccl:_reduce_scatter_base";
+    default:
+      return c10::str("hccl:", opTypeToString(opType));
+  }
 }
 
 // HCCL ReduceOp mapping
@@ -582,91 +634,16 @@ std::string ProcessGroupHCCL::exceptionMessage_ = "";
 std::atomic<bool> ProcessGroupHCCL::shouldDump_(false);
 std::atomic<bool> ProcessGroupHCCL::monitorThreadEnabled_(false);
 
+void reset_hccl_trace() {
+  FlightRecorderNPU::get()->reset_all();
+}
 std::string dump_hccl_trace(bool includeCollectives, bool includeStackTraces, bool onlyActive) {
-  return HCCLTraceBuffer::get()->dump(c10::nullopt, includeCollectives, includeStackTraces, onlyActive);
+  return FlightRecorderNPU::get()->dump(std::nullopt, includeCollectives, includeStackTraces, onlyActive);
 }
 
 std::string dump_hccl_trace_json(bool includeCollectives, bool onlyActive) {
-  return HCCLTraceBuffer::get()->dump_json(c10::nullopt, includeCollectives, onlyActive);
+  return FlightRecorderNPU::get()->dump_json(std::nullopt, includeCollectives, onlyActive);
 }
-
-static c10d::control_plane::RegisterHandler dumpHcclHandler{
-    "dump_hccl_trace_pickle",
-    [](const c10d::control_plane::Request& req, c10d::control_plane::Response& res) {
-      const auto& params = req.params();
-      size_t validParamCount = 0;
-
-      const std::string includeCollectivesStr = "includecollectives";
-      const std::string includeStackTracesStr = "includestacktraces";
-      const std::string onlyActiveStr = "onlyactive";
-
-      std::unordered_map<std::string, bool> processedParams = {
-          {includeCollectivesStr, true}, {includeStackTracesStr, true}, {onlyActiveStr, false}};
-
-      for (const auto& [paramName, paramValue] : params) {
-        auto it = processedParams.find(paramName);
-        if (it != processedParams.end()) {
-          validParamCount++;
-          if (paramValue == "true") {
-            it->second = true;
-          } else if (paramValue == "false") {
-            it->second = false;
-          } else {
-            res.setStatus(400);
-            res.setContent("Invalid value for " + paramName + " valid values are true or false", "text/plain");
-            return;
-          }
-        }
-      }
-      if (validParamCount < params.size()) {
-        res.setStatus(400);
-        res.setContent("Invalid parameters - unexpected param passed in", "text/plain");
-        return;
-      }
-      res.setContent(
-          dump_hccl_trace(
-              processedParams[includeCollectivesStr],
-              processedParams[includeStackTracesStr],
-              processedParams[onlyActiveStr]),
-          "application/octet-stream");
-    }};
-
-static c10d::control_plane::RegisterHandler jsonDumpHcclHandler{
-    "dump_hccl_trace_json",
-    [](const c10d::control_plane::Request& req, c10d::control_plane::Response& res) {
-      const auto& params = req.params();
-      size_t validParamCount = 0;
-
-      const std::string includeCollectivesStr = "includecollectives";
-      const std::string onlyActiveStr = "onlyactive";
-
-      std::unordered_map<std::string, bool> processedParams = {{includeCollectivesStr, true}, {onlyActiveStr, false}};
-
-      for (const auto& [paramName, paramValue] : params) {
-        auto it = processedParams.find(paramName);
-        if (it != processedParams.end()) {
-          validParamCount++;
-          if (paramValue == "true") {
-            it->second = true;
-          } else if (paramValue == "false") {
-            it->second = false;
-          } else {
-            res.setStatus(400);
-            res.setContent("Invalid value for " + paramName + " valid values are true or false", "text/plain");
-            return;
-          }
-        }
-      }
-      if (validParamCount < params.size()) {
-        res.setStatus(400);
-        res.setContent("Invalid parameters - unexpected param passed in", "text/plain");
-        return;
-      }
-      res.setStatus(200);
-      res.setContent(
-          dump_hccl_trace_json(processedParams[includeCollectivesStr], processedParams[onlyActiveStr]),
-          "application/json");
-    }};
 
 c10::optional<std::function<void(std::function<void(const std::string&)>)>>& get_cpp_trace_dumper() {
   static c10::optional<std::function<void(std::function<void(const std::string&)>)>> dumper(c10::nullopt);
@@ -774,19 +751,35 @@ ProcessGroupHCCL::WorkHCCL::WorkHCCL(
     uint64_t seq,
     bool desyncDebug)
     : Work(rank, opType), devices_(devices), workStartTime_(std::chrono::steady_clock::now()), seq_(seq) {
+  timingEnabled_ = c10d::getCvarBool(TORCH_HCCL_ENABLE_TIMING, false) || desyncDebug;
   // Creates the npu event wrappers
-  // Note: The actual events are lazily created when first recorded to with
-  // DEFAULT_FLAGS = npuEventDisableTiming.
-  if (desyncDebug || c10_npu::option::OptionsManager::CheckStatusSaveEnable() ||
+  // The actual events are lazily created on first record. Timing uses the CANN
+  // timeline event flag; status-only events use stream progress.
+  if (timingEnabled_ || c10_npu::option::OptionsManager::CheckStatusSaveEnable() ||
       ProcessGroupHCCL::monitorThreadEnabled_.load()) {
     hcclStartEvents_ = std::make_shared<std::vector<c10_npu::NPUEvent>>();
     hcclStartEvents_->reserve(devices.size());
     for (size_t i = 0; i < devices.size(); i++) {
-      hcclStartEvents_->emplace_back(ACL_EVENT_CAPTURE_STREAM_PROGRESS);
+      hcclStartEvents_->emplace_back(
+          timingEnabled_ ? (ACL_EVENT_TIME_LINE | ACL_EVENT_CAPTURE_STREAM_PROGRESS)
+                         : ACL_EVENT_CAPTURE_STREAM_PROGRESS);
     }
   }
 
-  hcclEndEvents_ = std::make_shared<std::vector<c10_npu::NPUEvent>>(devices.size());
+  if (!timingEnabled_) {
+    // Keep the original completion event behavior. NPUEvent() maps to
+    // ACL_EVENT_SYNC on EventEx CANN and ACL_EVENT_DEFAULT on older CANN.
+    hcclEndEvents_ = std::make_shared<std::vector<c10_npu::NPUEvent>>(devices.size());
+  } else {
+    hcclEndEvents_ = std::make_shared<std::vector<c10_npu::NPUEvent>>();
+    hcclEndEvents_->reserve(devices.size());
+    for (size_t i = 0; i < devices.size(); ++i) {
+      // The end event must support both elapsed time and Work.wait() stream
+      // ordering. Older CANN does not expose the EventEx flag combination.
+      hcclEndEvents_->emplace_back(
+          c10_npu::acl::IsExistCreateEventExWithFlag() ? (ACL_EVENT_TIME_LINE | ACL_EVENT_SYNC) : ACL_EVENT_TIME_LINE);
+    }
+  }
   hcclComms_.resize(devices.size());
   stashed_for_allocator_safety_ = std::make_shared<TensorShelf>();
 }
@@ -815,11 +808,27 @@ ProcessGroupHCCL::WorkHCCL::WorkHCCL(const WorkHCCL& w)
       is_dispatched(w.is_dispatched),
       is_reported(w.is_reported),
       is_dumped(w.is_dumped),
-      trace_id_(w.trace_id_) {
+      trace_id_(w.trace_id_),
+      trace_reset_epoch_(w.trace_reset_epoch_),
+      timingEnabled_(w.timingEnabled_) {
   exception_ = w.exception_;
 }
 
 ProcessGroupHCCL::WorkHCCL::~WorkHCCL() {}
+
+c10_npu::NPUEvent* ProcessGroupHCCL::WorkHCCL::getStartEventForTracing() const {
+  if (!timingEnabled_ || !hcclStartEvents_ || hcclStartEvents_->empty()) {
+    return nullptr;
+  }
+  return &(*hcclStartEvents_)[0];
+}
+
+c10_npu::NPUEvent* ProcessGroupHCCL::WorkHCCL::getEndEventForTracing() const {
+  if (!hcclEndEvents_ || hcclEndEvents_->empty()) {
+    return nullptr;
+  }
+  return &(*hcclEndEvents_)[0];
+}
 
 bool ProcessGroupHCCL::WorkHCCL::isCompleted() {
   checkAndSetException();
@@ -867,6 +876,9 @@ bool ProcessGroupHCCL::WorkHCCL::finishedNPUExecution() {
 }
 
 bool ProcessGroupHCCL::WorkHCCL::startedNPUExecutionInternal(ErrorHandlingMode errorHandling) const {
+  if (!hcclStartEvents_) {
+    return false;
+  }
   try {
     for (const auto i : c10::irange(devices_.size())) {
       // Checking the work's corresponding ASCEND events' status
@@ -1054,6 +1066,29 @@ void ProcessGroupHCCL::WorkHCCL::handleException(ErrorHandlingMode errorHandling
       LOG(ERROR) << tearDownMsg;
       std::rethrow_exception(exception_);
     }
+  }
+}
+
+std::string ProcessGroupHCCL::WorkHCCL::getTraceback() const {
+  auto entry = FlightRecorderNPU::get()->getEntry(trace_id_, trace_reset_epoch_);
+  if (!entry.has_value()) {
+    return "";
+  }
+
+  auto entryValue = entry.value();
+  auto future = std::async(std::launch::async, [&entryValue]() { return entryValue.getTraceback(); });
+  if (future.wait_for(std::chrono::seconds(8)) == std::future_status::ready) {
+    return future.get();
+  }
+  return "";
+}
+
+void ProcessGroupHCCL::WorkHCCL::printTraceback() const {
+  auto traceback = getTraceback();
+  if (!traceback.empty()) {
+    LOG(ERROR) << "Stack trace of the failed collective:\n" << traceback;
+  } else {
+    LOG(ERROR) << "Stack trace not found, Flight Recorder may be disabled.";
   }
 }
 
@@ -1270,7 +1305,9 @@ ProcessGroupHCCL::ProcessGroupHCCL(
   heartbeatTimeoutInSec_ = c10d::getCvarInt(TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC, 60 * 10); // 10 Mins
   waitTimeoutDumpInMilSec_ = c10d::getCvarInt(TORCH_HCCL_WAIT_TIMEOUT_DUMP_MILSEC, 60 * 1000); // 60 Sec
   coordCheckIntervalMilSec_ = c10d::getCvarInt(TORCH_HCCL_COORD_CHECK_MILSEC, 1000);
-  hcclTraceBufferSize_ = c10d::getCvarInt(TORCH_HCCL_TRACE_BUFFER_SIZE, 0);
+  // Use the recorder's frozen first-access configuration, including when a
+  // dump/reset constructed it before the first ProcessGroup.
+  hcclTraceBufferSize_ = FlightRecorderNPU::get()->max_entries_;
   debugInfoPipeFile_ = c10d::getCvarString({"TORCH_HCCL_DEBUG_INFO_PIPE_FILE"}, "");
 
   // store_ usually is wrapped with PrefixStore and the prefix is different
@@ -1395,7 +1432,7 @@ ProcessGroupHCCL::ProcessGroupHCCL(
 void ProcessGroupHCCL::setSequenceNumberForGroup() {}
 
 uint64_t ProcessGroupHCCL::getSequenceNumberForGroup() {
-  return seq_;
+  return seqCollective_;
 }
 
 void abortCommsFromMap(
@@ -1443,12 +1480,13 @@ bool ProcessGroupHCCL::abort(c10::optional<std::string> abortReason) {
   return true;
 }
 
-void ProcessGroupHCCL::waitForFutureOrTimeout(
+bool ProcessGroupHCCL::waitForFutureOrTimeout(
     std::future<bool>& fut,
     const std::chrono::milliseconds& timeOutMilSec,
     const std::string& futDescription,
     bool throwException) {
   std::string errorMsg;
+  bool complete = false;
   TORCH_CHECK(fut.valid(), "Expected a valid future");
   std::future_status status = fut.wait_for(timeOutMilSec);
   if (status == std::future_status::ready) {
@@ -1457,6 +1495,7 @@ void ProcessGroupHCCL::waitForFutureOrTimeout(
     try {
       bool result = fut.get();
       if (result) {
+        complete = true;
         LOG(INFO) << logPrefix() << "future is successfully executed for: " << futDescription;
       }
     } catch (const std::exception& e) {
@@ -1473,6 +1512,7 @@ void ProcessGroupHCCL::waitForFutureOrTimeout(
   if (throwException && !errorMsg.empty()) {
     C10_THROW_ERROR(DistBackendError, errorMsg);
   }
+  return complete;
 }
 
 void ProcessGroupHCCL::shutdown() {
@@ -1633,6 +1673,35 @@ ProcessGroupHCCL::~ProcessGroupHCCL() {
 }
 
 #ifndef BUILD_LIBTORCH
+void ProcessGroupHCCL::dumpExtraDebuggingInfo() {
+  bool dumpExtraOnExec_ = c10d::getCvarBool(TORCH_HCCL_EXTRA_DUMP_ON_EXEC, false);
+  if (dumpExtraOnExec_) {
+    bool should_dump_local = false;
+    bool succeeded = shouldDump_.compare_exchange_strong(
+        should_dump_local, true, std::memory_order_release, std::memory_order_acquire);
+    if (succeeded) {
+      LOG(INFO) << logPrefix() << "Sending extra dumping signal";
+      // HCCL has no broadcastDumpSignal() helper. Inline the existing Store
+      // key/rank encoding to avoid refactoring the other HCCL error paths.
+      // As in NCCL, broadcast even when this rank's FR buffer is disabled.
+      try {
+        auto rank = globalRank();
+        auto vec =
+            std::vector<uint8_t>(reinterpret_cast<uint8_t*>(&rank), reinterpret_cast<uint8_t*>(&rank) + sizeof(rank));
+        globalStore_->set(std::string(EXCEPTION_DUMP), vec);
+      } catch (const std::exception& e) {
+        LOG(ERROR) << logPrefix() << "Failed to broadcast extra dump signal: " << e.what();
+      }
+      // The default PG's monitor may not run before this process exits, so
+      // take a local snapshot in the current thread, as the NCCL helper does.
+      bool onlyActive = c10d::getCvarBool(c10d::TORCH_INCLUDE_ONLY_ACTIVE, false);
+      // Exclude FR entry stacks as in NCCL. HCCL's existing dump routine also
+      // attempts Python traceback collection, even with this argument false.
+      dumpDebuggingInfo(false, onlyActive);
+    }
+  }
+}
+
 std::future<bool> ProcessGroupHCCL::launchAsyncPythonTracebackDump() {
   std::promise<bool> resultPromise;
   std::future<bool> resultFuture = resultPromise.get_future();
@@ -1654,7 +1723,7 @@ bool ProcessGroupHCCL::dumpPythonTraceback() {
   return runPythonTracebackDump(rank_, logPrefix());
 }
 
-bool ProcessGroupHCCL::dumpDebuggingInfo() {
+bool ProcessGroupHCCL::dumpDebuggingInfo(bool includeStackTrace, bool onlyActive) {
   auto fut = launchAsyncPythonTracebackDump();
   auto kGilCheckTimeout = std::chrono::milliseconds(3000);
   auto futStatus = fut.wait_for(kGilCheckTimeout);
@@ -1666,18 +1735,15 @@ bool ProcessGroupHCCL::dumpDebuggingInfo() {
   }
   LOG(INFO) << "Could dump python traceback";
 
-  // Serialize all calls to this function to avoid corrupting data, but allow
-  // multiple calls in one runtime. User is responsible for preserving the
-  // output file from an earlier call before a later call overwrites it.
   static std::mutex writeDebugInfoMutex;
-  std::lock_guard<std::mutex> lock(writeDebugInfoMutex);
-  LOG(ERROR) << logPrefix() << "ProcessGroupHCCL preparing to dump debug info.";
   if (hcclTraceBufferSize_ > 0) {
-    // We dump hccl trace into local disk by default and users can register
-    // their customized writer by inheriting `DebugInfoWriter` via
-    // `registerDebugInfoWriter`.
-    auto hcclTrace = dump_hccl_trace(true, true, false);
-    DebugInfoWriter& writer = DebugInfoWriter::getWriter(globalRank());
+    // Generate the trace before taking the write lock so a stalled stack
+    // symbolization leaves the lock available for the no-stack retry.
+    auto hcclTrace = dump_hccl_trace(true, includeStackTrace, onlyActive);
+    std::lock_guard<std::mutex> lock(writeDebugInfoMutex);
+    LOG(ERROR) << logPrefix() << "ProcessGroupHCCL preparing to dump debug info.";
+    // HCCL owns its writer independently of the community writer registry.
+    auto& writer = DebugInfoWriter::getWriter(globalRank());
     LOG(ERROR) << logPrefix() << "ProcessGroupHCCL dumping hccl trace to " << writer.getWriterTarget();
     writer.write(hcclTrace);
     return true;
@@ -1685,19 +1751,6 @@ bool ProcessGroupHCCL::dumpDebuggingInfo() {
   return false;
 }
 
-void ProcessGroupHCCL::dumpTraceAndResetStatus() {
-  // Store debug info to storage if no other thread does it. (By default to
-  // local disk)
-  std::future<bool> asyncDebugDump = std::async(std::launch::async, [this]() { return this->dumpDebuggingInfo(); });
-
-  // wait for the dump until timeout
-  waitForFutureOrTimeout(
-      asyncDebugDump, std::chrono::milliseconds(waitTimeoutDumpInMilSec_), "Flight recorder dump in heartbeatMonitor");
-
-  // Increase heartbeat to avoid dump debug info frequently.
-  heartbeat_++;
-  shouldDump_.store(false);
-}
 #endif
 
 void ProcessGroupHCCL::terminateProcess(std::string errMsg) {
@@ -1722,6 +1775,9 @@ void ProcessGroupHCCL::heartbeatMonitor() {
   auto lastTimePollStore = std::chrono::steady_clock::now();
   auto lastTimeHeartBeatCheck = std::chrono::steady_clock::now();
   c10::optional<DumpPipe> dumpPipe = c10::nullopt;
+  // Keep asynchronous pipe-triggered dumps alive without making the local
+  // future destructor wait on every dump at the end of the iteration.
+  std::vector<std::future<bool>> futures;
   if (options_->global_ranks_in_group.empty()) {
     // DumpPipe is one per-trainer process, and its convenient to name them
     // after 'global' ranks in the system, So we assume processgroup options_->global_ranks_in_group.empty() is
@@ -1775,23 +1831,33 @@ void ProcessGroupHCCL::heartbeatMonitor() {
             "this can be caused by GIL deadlock or other reasons such as network errors or ",
             "bugs in the communications library (e.g. HCCL), etc. We tried our best to ",
             "dump the debug info into the storage to help you debug the issue.");
-        dumpTraceAndResetStatus();
+        break;
       }
       // We poll store to see if some ranks have flagged a timeout when
       // we haven't polled for `heartbeat_timeout` seconds and there haven't
       // any work added or removed for `watchdog_timeout` seconds.
       if (computeDeltaMS(lastWorkListUpdateTime_, currentTime) >= kWatchdogThreadSleepMillis &&
-          computeDeltaMS(lastTimePollStore, currentTime) >= coordCheckIntervalMilSec_ && !hasGlobalDumped) {
+          computeDeltaMS(lastTimePollStore, currentTime) >= coordCheckIntervalMilSec_) {
         lastTimePollStore = currentTime;
+        auto handleError = [&](const std::string& errorMessage) {
+          LOG(WARNING) << logPrefix() << "TCPStore check for dump key \"" << EXCEPTION_DUMP
+                       << "\" failed (store unavailable, not absent key). Cannot detect "
+                       << "remote dump signals. A rank exiting outside HCCL without "
+                       << "broadcasting is a separate case. Error: " << errorMessage;
+          // We give up for now assuming TCPStore has been torn down.
+          return;
+        };
         // Wrap globalStore_->check() in a try-catch block to avoid crashing if
         // the store is not available.
         bool checkExceptionDump = false;
         try {
           checkExceptionDump = globalStore_->check({std::string(EXCEPTION_DUMP)});
+        } catch (const c10::DistNetworkError& e) {
+          handleError(e.msg());
         } catch (const std::exception& e) {
-          LOG(ERROR) << logPrefix() << "Failed to get exception dump flag from the global store." << e.what();
-          dumpTraceAndResetStatus();
+          handleError(e.what());
         }
+
         if (checkExceptionDump) {
           int timeOutRank = -1;
           if (!shouldDump_.load()) {
@@ -1825,8 +1891,7 @@ void ProcessGroupHCCL::heartbeatMonitor() {
               "this can be caused by GIL deadlock or other reasons such as network errors or ",
               "bugs in the communications library (e.g. HCCL), etc. We tried our best to ",
               "dump the debug info into the storage to help you debug the issue.");
-          dumpTraceAndResetStatus();
-          hasGlobalDumped = true;
+          break;
         }
       }
     }
@@ -1863,9 +1928,7 @@ void ProcessGroupHCCL::heartbeatMonitor() {
             "workMetaList_.size() = ",
             workMetaList_.size(),
             "");
-        if (checkDumpSignal) {
-          dumpTraceAndResetStatus();
-        }
+        break;
       }
     }
     // process a request to dump the trace. only PG uid 0 will respond to dump
@@ -1873,10 +1936,49 @@ void ProcessGroupHCCL::heartbeatMonitor() {
     // recorder and dump. After dump, the training should continue.
     if (dumpPipe.has_value() && dumpPipe->shouldDump()) {
       // best effort dump, not waiting for the dump here
-      std::future<bool> fut = std::async(std::launch::async, [this]() { return this->dumpDebuggingInfo(); });
+      const bool includeStackTrace = c10d::getCvarBool(c10d::TORCH_INCLUDE_STACK_TRACE, true);
+      const bool onlyActive = c10d::getCvarBool(c10d::TORCH_INCLUDE_ONLY_ACTIVE, false);
+      futures.emplace_back(std::async(std::launch::async, [this, includeStackTrace, onlyActive]() {
+        return this->dumpDebuggingInfo(includeStackTrace, onlyActive);
+      }));
     }
   }
   LOG(ERROR) << errorMsg;
+
+  // Retry the Flight Recorder dump without stack traces when the first dump
+  // cannot finish before the configured timeout.
+  // Track whether this monitor has already spent its local dump budget.
+  // The process-wide fault request remains set even if the dump timed out.
+  const bool ranLocalDumpPhase = checkDumpSignal && shouldDump_.load();
+  if (ranLocalDumpPhase) {
+    bool includeStackTrace = c10d::getCvarBool(c10d::TORCH_INCLUDE_STACK_TRACE, true);
+    const bool onlyActive = c10d::getCvarBool(c10d::TORCH_INCLUDE_ONLY_ACTIVE, false);
+    for (int i = 0; i < 2; ++i) {
+      std::future<bool> asyncDebugDump = std::async(std::launch::async, [this, includeStackTrace, onlyActive]() {
+        return this->dumpDebuggingInfo(includeStackTrace, onlyActive);
+      });
+      const bool complete = waitForFutureOrTimeout(
+          asyncDebugDump,
+          std::chrono::milliseconds(waitTimeoutDumpInMilSec_),
+          "Flight recorder dump in heartbeatMonitor");
+      if (complete) {
+        break;
+      }
+      includeStackTrace = false;
+      futures.emplace_back(std::move(asyncDebugDump));
+    }
+  }
+
+  if (get_gil_checker() != nullptr) {
+    auto fut = launchAsyncGilCheck();
+    auto futStatus = fut.wait_for(std::chrono::milliseconds(300));
+    TORCH_CHECK(futStatus != std::future_status::deferred, "Expected the future to have been launched eagerly.");
+    if (futStatus != std::future_status::ready) {
+      LOG(ERROR) << logPrefix() << "Could not acquire GIL within 300 ms on exit, possible GIL induced hang";
+    }
+  } else {
+    VLOG(2) << logPrefix() << "GIL checker was not registered, perhaps this is a no-python build?";
+  }
 
   auto& cpp_dumper = get_cpp_trace_dumper();
   if (cpp_dumper.has_value()) {
@@ -1892,11 +1994,15 @@ void ProcessGroupHCCL::heartbeatMonitor() {
   // Case two: desync might be slow or get stuck. Or we get stuck in
   // destructors, we will sleep for some time before calling std::abort() to
   // kill the whole process.
-  if ((terminateProcessGroup_.load() || collectiveDebugInfoMode_.load() || shouldDump_.load()) &&
+  // A monitor that ran the local dump phase has already waited for both
+  // attempts. Other monitors must leave that phase time to finish. Do not
+  // consume the shared request just to control this per-monitor exit grace.
+  const bool needsCoordinatedDumpGrace = shouldDump_.load() && !ranLocalDumpPhase;
+  if ((terminateProcessGroup_.load() || collectiveDebugInfoMode_.load() || needsCoordinatedDumpGrace) &&
       !terminateHeartbeatMonitorThread_.load()) {
-    // Leave another two mins for desync report generation or process group
-    // destroy.
-    std::this_thread::sleep_for(std::chrono::seconds(heartbeatTimeoutInSec_));
+    std::unique_lock<std::mutex> lock(monitorMutex_);
+    monitorWakeUpCV_.wait_for(
+        lock, std::chrono::seconds(heartbeatTimeoutInSec_), [&] { return terminateHeartbeatMonitorThread_.load(); });
   }
 
   // At this point, we either already sleep for another `heartbeatTimeoutInSec_`
@@ -1962,6 +2068,18 @@ void ProcessGroupHCCL::Watchdog::run() {
     // Append error message reported from workCleanupLoop
     const auto exitMsg = c10::str("[Rank ", rank_, "] HCCL watchdog thread terminated with exception: ", e.what());
     LOG(ERROR) << exitMsg;
+#ifndef BUILD_LIBTORCH
+    // Unlike the NCCL catch, HCCL saves status below. Keep optional dump
+    // exceptions from skipping that existing path or replacing the original
+    // communication error. runLoop's Work/communicator locks have unwound.
+    try {
+      pg_->dumpExtraDebuggingInfo();
+    } catch (const std::exception& dumpError) {
+      LOG(ERROR) << pg_->logPrefix() << "Extra Flight Recorder dump failed: " << dumpError.what();
+    } catch (...) {
+      LOG(ERROR) << pg_->logPrefix() << "Extra Flight Recorder dump failed: unknown exception";
+    }
+#endif
     if (c10_npu::option::OptionsManager::CheckStatusSaveEnable()) {
       if (ProcessGroupHCCL::exceptionMessage_.empty()) {
         ProcessGroupHCCL::exceptionMessage_ = e.what();
@@ -2210,6 +2328,7 @@ void ProcessGroupHCCL::Watchdog::runLoop() {
 
         // If work hits an exception (either an error or timeout)
         if (work.exception()) {
+          work.printTraceback();
           // try to dump flight records if exception happens.
           // Flight recorder behavior should be independent of desync Debug
           if (pg_->dumpOnException_) {
@@ -2222,7 +2341,9 @@ void ProcessGroupHCCL::Watchdog::runLoop() {
                 LOG(ERROR) << pg_->logPrefix() << "First watchdog to set the dump signal.";
               }
               ProcessGroupHCCL::shouldDump_.store(true);
-              std::this_thread::sleep_for(std::chrono::seconds(pg_->heartbeatTimeoutInSec_));
+              // This is the FR dump grace window (two 15-second attempts plus
+              // scheduling/write slack), not a communication timeout.
+              std::this_thread::sleep_for(std::chrono::milliseconds(pg_->waitTimeoutDumpInMilSec_ * 4));
             } catch (const std::exception& e) {
               LOG(ERROR) << pg_->logPrefix() << "Failed to set dump signal in tcpstore. "
                          << "Error: " << e.what();
@@ -2300,8 +2421,9 @@ void ProcessGroupHCCL::Watchdog::runLoop() {
           pg_->pgStatus_->lastCompletedWorkName = opTypeToString(work.opType_);
           pg_->pgStatus_->lastCompletedNumelIn = work.numelIn_;
           pg_->pgStatus_->lastCompletedNumelOut = work.numelOut_;
-          HCCLTraceBuffer::get()->retire_id(work.trace_id_, true);
+          FlightRecorderNPU::get()->retire_id(work.trace_id_, work.trace_reset_epoch_, true);
           it = pg_->workMetaList_.erase(it);
+          pg_->lastWorkListUpdateTime_ = std::chrono::steady_clock::now();
         } else {
           if (c10_npu::option::OptionsManager::CheckStatusSaveEnable() && work.isStarted(pg_->asyncErrorHandling_)) {
             pg_->is_refreshed = pg_->refreshStatusInfo(work, "start"); // Update Statusinfo，but not write into the map
@@ -2565,12 +2687,13 @@ void ProcessGroupHCCL::recordDataVol(
 }
 
 bool ProcessGroupHCCL::refreshStatusInfo(ProcessGroupHCCL::WorkHCCL work, std::string status) {
-  if (StatusInfo.seq == work.seq_ && StatusInfo.status == status) {
+  const auto opType = opTypeToString(work.opType_);
+  if (StatusInfo.seq == work.seq_ && StatusInfo.status == status && StatusInfo.opType == opType) {
     return false;
   }
   StatusInfo.seq = work.seq_;
   StatusInfo.pgId = options_->group_id;
-  StatusInfo.opType = opTypeToString(work.opType_);
+  StatusInfo.opType = opType;
   if (StatusInfo.commIds == "") {
     for (auto i : options_->global_ranks_in_group) {
       StatusInfo.commIds += (std::to_string(i) + " ");
@@ -2768,7 +2891,15 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
       return devHCCLCommMap_[devicesKey];
     }
   }
-  HCCLTraceBuffer::get()->record_pg_ranks(std::make_tuple(pg_name_, pg_desc_), groupRanks());
+  FlightRecorderNPU::get()->record_pg_ranks(
+      std::make_tuple(pg_name_, pg_desc_), std::vector<uint64_t>(groupRanks().begin(), groupRanks().end()));
+#ifdef HCCL_VERSION_STR
+  // Prefer the HCCL library version over the broader CANN package version.
+  FlightRecorderNPU::get()->record_accelerator_version(HCCL_VERSION_STR);
+#else
+  // Older CANN installations do not expose version/hccl_version.h.
+  FlightRecorderNPU::get()->record_accelerator_version(GetCANNVersion("HCCL"));
+#endif
   return createHCCLComm(devicesKey, devices, commType, commConfig, p2pRank);
 }
 
@@ -3773,6 +3904,7 @@ c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> ProcessGroupHCCL::initWork(
     std::vector<at::Device> devices,
     int rank,
     c10d::OpType opType,
+    bool isP2P,
     const char* profilingTitle,
     const std::vector<at::Tensor>& inputs,
     const std::vector<at::Tensor>& outputs,
@@ -3781,9 +3913,17 @@ c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> ProcessGroupHCCL::initWork(
     throw std::runtime_error("ProcessGroupHCCL support one device per process only" + DIST_ERROR(ErrCode::NOT_SUPPORT));
   }
 
-  auto r = c10::make_intrusive<ProcessGroupHCCL::WorkHCCL>(devices, rank, opType, seq_, desyncDebug_);
+  // Keep the Work sequence number aligned with the community NCCL backend:
+  // collective works snapshot seqCollective_, while P2P works snapshot
+  // seqP2P_. The caller passes this explicitly, as in the community
+  // ProcessGroupNCCL::initWork API; inferring it from coalescing_state_ would
+  // misclassify a collective in a mixed coalescing group.
+  auto r = c10::make_intrusive<ProcessGroupHCCL::WorkHCCL>(
+      devices, rank, opType, isP2P ? seqP2P_ : seqCollective_, desyncDebug_);
   if (record) {
-    bool isP2P = c10d::isP2POp(opType);
+    const std::string defaultProfilingTitle = getHcclProfilingTitle(opType);
+    const std::string frProfilingTitle =
+        profilingTitle != nullptr && profilingTitle[0] != '\0' ? std::string(profilingTitle) : defaultProfilingTitle;
     // Ideally record every work that we enqueue, rather than every work we
     // create.
     // - at the time of this PR we do not currently enqueue every created work
@@ -3797,20 +3937,22 @@ c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> ProcessGroupHCCL::initWork(
     //   these objects to the Work because it has implications for keeping those
     //   tensors alive longer and adds overhead when copying Work objects
     //   between threads
-    r->trace_id_ = HCCLTraceBuffer::get()->record(
+    auto traceId = FlightRecorderNPU::get()->recordWithResetEnabled(
         uid_,
         std::make_tuple(pg_name_, pg_desc_),
         seqCollective_,
         seqP2P_,
-        seq_,
-        profilingTitle ? profilingTitle : "",
+        op_id_,
+        frProfilingTitle,
         inputs,
         outputs,
-        desyncDebug_ ? &((*(r->hcclStartEvents_))[0]) : nullptr,
-        &((*(r->hcclEndEvents_))[0]),
+        r->getStartEventForTracing(),
+        r->getEndEventForTracing(),
         options_->timeout,
         pgStatus_,
         isP2P);
+    r->trace_id_ = traceId.id;
+    r->trace_reset_epoch_ = traceId.reset_epoch;
   }
   return r;
 }
@@ -3855,6 +3997,9 @@ void ProcessGroupHCCL::workEnqueue(c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL
     pgStatus_->lastEnqueuedWorkName = opTypeToString(work->opType_);
     pgStatus_->lastEnqueuedNumelIn = work->numelIn_;
     pgStatus_->lastEnqueuedNumelOut = work->numelOut_;
+    // This timestamp only indicates that the watchdog work list is making
+    // progress; the intentionally racy update matches the community monitor.
+    lastWorkListUpdateTime_ = std::chrono::steady_clock::now();
   }
 }
 
@@ -4463,9 +4608,15 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     bool asyncOp) {
   c10_npu::CaptureStatus capture_status = c10_npu::currentStreamCaptureStatusMayInitCtx();
 
-  // Bump collective counter
-  seqCollective_++;
-  seq_++;
+  // A coalesced group represents one kernel launch. Individual operations
+  // still receive distinct op_id_ values below.
+  if (!coalescing_state_) {
+    seqCollective_++;
+  }
+  // Compatibility note: do not re-enable legacy seq_ here. It remains in the
+  // object layout temporarily, while Work and FR semantics are exclusively
+  // driven by seqCollective_/seqP2P_.
+  // seq_++;
   op_id_++;
 
   const auto devices = getDeviceList(inputs);
@@ -4476,11 +4627,37 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
   HcclCommConfig config = createHcclCommConfigWithOptions();
   std::vector<std::shared_ptr<HCCLComm>> hcclComms = getHCCLComm(key, devices, HcclCommType::DEFAULT, &config);
 
+  if (coalescing_state_ & CoalActive) {
+    if ((coalescing_state_ & CoalColl) == 0) {
+      // The first collective in a coalesced group owns the group's sequence.
+      seqCollective_++;
+    }
+    coalescing_state_ |= CoalColl;
+    if (coalescedDevice_.index() < 0) {
+      coalescedDevice_ = devices[0];
+    } else {
+      for (const auto& device : devices) {
+        TORCH_CHECK(
+            coalescedDevice_.index() == device.index(),
+            "Expecting same device across coalesced collective operations. Got device ",
+            device.index(),
+            " but expected ",
+            coalescedDevice_.index());
+      }
+    }
+    if (coalescedComm_ == nullptr) {
+      coalescedComm_ = hcclComms[0];
+    } else {
+      TORCH_CHECK(
+          coalescedComm_ == hcclComms[0], "Expecting same communicator across coalesced collective operations.");
+    }
+  }
+
   auto& hcclStreams = hcclStreams_[key];
   syncStreams(devices, hcclEvents_[key], hcclStreams);
 
   // Work itself will create the events on all NPUs of tensors
-  auto work = initWork(devices, rank_, opType, "", inputs, outputs, true);
+  auto work = initWork(devices, rank_, opType, false, "", inputs, outputs, true);
   // Store references to outputs to be used by WorkHCCL::result and operator<<.
   work->outputs_ = std::make_shared<std::vector<at::Tensor>>(outputs);
   c10_npu::OptionalNPUGuard npuGuard;
@@ -4500,7 +4677,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     }
   }
 
-  if (desyncDebug_ || c10_npu::option::OptionsManager::CheckStatusSaveEnable()) {
+  if ((work->timingEnabled_ || c10_npu::option::OptionsManager::CheckStatusSaveEnable()) && work->hcclStartEvents_) {
     for (const auto i : c10::irange(devices.size())) {
       c10_npu::NPUStream& hcclStream = hcclStreams[i];
       (*(work->hcclStartEvents_))[i].record(hcclStream);
@@ -4678,10 +4855,16 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collectiveCoalesced(
     PreProcess pre,
     PostProcess post,
     c10d::OpType opType,
-    bool asyncOp) {
+    bool asyncOp,
+    const char* profilingTitle) {
   c10_npu::CaptureStatus capture_status = c10_npu::currentStreamCaptureStatusMayInitCtx();
-  // Bump collective counter
-  seq_++;
+  // This API launches one collective kernel and is distinct from the
+  // startCoalescing/endCoalescing path below.
+  seqCollective_++;
+  // Compatibility note: do not re-enable legacy seq_ here. It remains in the
+  // object layout temporarily, while Work and FR semantics are exclusively
+  // driven by seqCollective_/seqP2P_.
+  // seq_++;
   op_id_++;
 
   const auto devices = getDevice(inputs);
@@ -4732,13 +4915,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collectiveCoalesced(
   auto& hcclStreams = hcclStreams_[key];
   syncStreams(devices, hcclEvents_[key], hcclStreams);
 
-  // Work itself will create the events on all NPUs of tensors
-  auto work = initWork(devices, rank_, opType);
+  // Work itself will create the events on all NPUs of tensors.
+  auto work = initWork(devices, rank_, opType, false, profilingTitle, inputs, outputs, true);
   // Store references to outputs to be used by WorkHCCL::result and operator<<.
   work->outputs_ = std::make_shared<std::vector<at::Tensor>>(outputs);
   c10_npu::OptionalNPUGuard npuGuard;
 
-  if (desyncDebug_) {
+  if ((work->timingEnabled_ || c10_npu::option::OptionsManager::CheckStatusSaveEnable()) && work->hcclStartEvents_) {
     c10_npu::NPUStream& hcclStream = hcclStreams[0];
     (*(work->hcclStartEvents_))[0].record(hcclStream);
   }
@@ -4928,6 +5111,12 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
   // Bump the logical operation counter regardless of whether this op is
   // coalesced or individual
   op_id_++;
+  std::string profilingTitle;
+  if (opType == c10d::OpType::SEND) {
+    profilingTitle = c10::str("hccl:send ", rank_, "->", peer);
+  } else if (opType == c10d::OpType::RECV) {
+    profilingTitle = c10::str("hccl:recv ", rank_, "<-", peer);
+  }
 
   // Handle coalescing state for P2P operations
   if (coalescing_state_ & CoalActive) {
@@ -4973,12 +5162,26 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
   // Work itself will create the CUDA events on all NPUs of tensors
   c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> work;
   if (coalescing_state_) {
-    // When coalescing, we don't create a Work object for individual ops.
-    // Instead, we stash the tensors for allocator safety and the Work
-    // will be created in endCoalescing.
+    // There is no Work object for an individual coalesced P2P operation, but
+    // keep its metadata in the flight recorder. The group Work created by
+    // endCoalescing owns the actual completion state.
+    FlightRecorderNPU::get()->record(
+        uid_,
+        std::make_tuple(pg_name_, pg_desc_),
+        seqCollective_,
+        seqP2P_,
+        op_id_,
+        profilingTitle,
+        tensors,
+        tensors,
+        nullptr,
+        nullptr,
+        options_->timeout,
+        pgStatus_,
+        true);
     coalescedTensors_.stash(tensors);
   } else {
-    work = initWork(devices, rank_, opType, "", tensors, tensors, true);
+    work = initWork(devices, rank_, opType, true, profilingTitle.c_str(), tensors, tensors, true);
     // This bypasses something in Work() that crashes if {tensor} is given as
     // output, not sure what
     work->outputs_ = std::make_shared<std::vector<at::Tensor>>(tensors);
@@ -4987,7 +5190,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
   // is npuGuard needed for the if block below, or can i swap them
   c10_npu::OptionalNPUGuard npuGuard;
 
-  if (!coalescing_state_ && desyncDebug_) {
+  if (!coalescing_state_ && (work->timingEnabled_ || c10_npu::option::OptionsManager::CheckStatusSaveEnable()) &&
+      work->hcclStartEvents_) {
     for (const auto i : c10::irange(devices.size())) {
       c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
       (*(work->hcclStartEvents_))[i].record(hcclStream);
@@ -5734,7 +5938,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce_coalesced(
         }
       },
       c10d::OpType::ALLREDUCE,
-      opts.asyncOp);
+      opts.asyncOp,
+      "hccl:allreduce_coalesced");
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce(
@@ -6475,7 +6680,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_into_tensor_coalesced
       [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
       [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
       c10d::OpType::ALLGATHER,
-      opts.asyncOp);
+      opts.asyncOp,
+      "hccl:all_gather_into_tensor_coalesced");
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_togather(
@@ -7012,7 +7218,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter_tensor_coalesced
         }
       },
       c10d::OpType::REDUCE_SCATTER,
-      opts.asyncOp);
+      opts.asyncOp,
+      "hccl:reduce_scatter_tensor_coalesced");
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::barrier(const c10d::BarrierOptions& opts) {
@@ -7088,13 +7295,21 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::endCoalescing(c10d::OpType opty
   // Create Work object
   c10_npu::CaptureStatus capture_status = c10_npu::currentStreamCaptureStatusMayInitCtx();
   bool enqueue = (coalescing_state_) && capture_status == c10_npu::CaptureStatus::None;
-  auto work = initWork(std::vector<c10::Device>{device}, rank_, optype, opProfilerTitle.c_str(), {}, {}, enqueue);
+  auto work = initWork(
+      std::vector<c10::Device>{device},
+      rank_,
+      optype,
+      (coalescing_state_ & CoalP2P) != 0,
+      opProfilerTitle.c_str(),
+      {},
+      {},
+      enqueue);
   work->hcclComms_[0] = comm;
   work->blockingWait_ = blockingWait_;
   work->opTimeout_ = options_->timeout;
 
   // Record start before hcclGroupEnd
-  if (desyncDebug_) {
+  if ((work->timingEnabled_ || c10_npu::option::OptionsManager::CheckStatusSaveEnable()) && work->hcclStartEvents_) {
     (*(work->hcclStartEvents_))[0].record(hcclStream);
   }
   // Set device before hcclGroupEnd
