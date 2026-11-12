@@ -301,6 +301,38 @@ class CheckAndMakePathTest(TestCase):
                                 "there should be at least one distinct pg_id")
         self.assertIn("global_pg_end_time", data)
 
+    # ==================================================================
+    # Case 10: IndependentSequenceDomainsAreNotDeduplicated
+    # Scenario: A collective and the following P2P operation both have seq=1.
+    # StatusInfo must compare op_type as well as seq/status so that the P2P
+    # state is not discarded as a duplicate of the collective state.
+    # ==================================================================
+    @skipIfUnsupportMultiNPU(2)
+    def test_sequence_domain_status_dedup(self):
+        err = self._launch(path("status_save/status_save_sequence_domains.py"))
+        self.assertIsNone(err)
+        self._assert_all_alive()
+
+        expected_op_types = {0: "RECV", 1: "SEND"}
+        for rank, expected_op_type in expected_op_types.items():
+            files = self._status_files(rank)
+            self.assertTrue(files, "rank {} should have a status file".format(rank))
+            with open(sorted(files)[-1]) as fp:
+                data = json.load(fp)
+            self.assertIn("last_comm_op", data)
+            matching_ops = [
+                op
+                for op in data["last_comm_op"]
+                if op["seq"] == 1 and op["op_type"] == expected_op_type
+            ]
+            self.assertTrue(
+                matching_ops,
+                "rank {} status should retain {} seq=1 after ALLREDUCE seq=1".format(
+                    rank, expected_op_type
+                ),
+            )
+            self.assertEqual(matching_ops[-1]["status"], "end")
+
 
 if __name__ == "__main__":
     run_tests()

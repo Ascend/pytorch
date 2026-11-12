@@ -424,13 +424,23 @@ if (BUILD_GTEST)
       APPEND PROPERTY COMPILE_OPTIONS -fvisibility=default)
   endif()
   SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/gtest)
-  add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/googletest)
+  if (NOT TARGET gtest AND NOT TARGET gtest_main)
+    add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/googletest)
+  elseif (NOT TARGET gtest OR NOT TARGET gtest_main)
+    message(FATAL_ERROR
+      "BUILD_GTEST requires both gtest and gtest_main when either target already exists")
+  endif()
   include_directories(${PROJECT_SOURCE_DIR}/third_party/googletest/googletest/include)
 
   set(TORCH_API_TEST_SOURCES)
   set(TORCH_HCCL_TEST_SOURCES)
   add_subdirectory(${PROJECT_SOURCE_DIR}/test/cpp/api)
   add_executable(test_api ${TORCH_API_TEST_SOURCES})
+  add_library(fr_fault_injection SHARED EXCLUDE_FROM_ALL
+    ${PROJECT_SOURCE_DIR}/test/distributed/flight_recorder/fr_fault_injection.cpp)
+  target_link_libraries(fr_fault_injection PRIVATE ${CMAKE_DL_LIBS})
+  set_target_properties(fr_fault_injection PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/build/gtest)
   add_executable(test_hccl_utils ${TORCH_HCCL_TEST_SOURCES})
   set_target_properties(test_hccl_utils PROPERTIES
     BUILD_WITH_INSTALL_RPATH FALSE)
