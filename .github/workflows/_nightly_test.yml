@@ -79,6 +79,17 @@ on:
           Path(s) (relative to repo root) to skip list files. Newline-separated
           for multiple files. When set, matching nodeids are removed after
           collection and before sharding.
+      case_whitelist:
+        required: false
+        type: string
+        default: ''
+        description: >-
+          Path (relative to repo root) to a case-level whitelist: a JSON/YAML
+          list of nodeids (flat array root, or under a case_whitelist/cases/
+          nodeids/whitelist key). When set, collected cases are intersected
+          with this list after collection (before sharding); combined with an
+          empty skip_list this makes the pipeline execute exactly the
+          whitelisted cases. Empty = keep every collected case.
       runner_label:
         required: false
         type: string
@@ -160,6 +171,7 @@ jobs:
       hw_classification: ${{ inputs.hw_classification }}
       full_scan: ${{ inputs.full_scan }}
       skip_list: ${{ inputs.skip_list }}
+      case_whitelist: ${{ inputs.case_whitelist }}
       runner_label: ${{ inputs.runner_label }}
       device_env: ${{ inputs.device_env }}
       wheels_obs_endpoint: ${{ inputs.wheels_obs_endpoint }}

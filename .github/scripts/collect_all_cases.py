@@ -485,7 +485,15 @@ def load_case_whitelist(whitelist_path: Optional[str]) -> Optional[set]:
     if not p.exists():
         raise FileNotFoundError(f"Case whitelist not found: {p}")
 
-    data = yaml.safe_load(p.read_text(encoding="utf-8"))
+    text = p.read_text(encoding="utf-8")
+    try:
+        # JSON fast path: the whitelist files in .github/config are plain
+        # JSON arrays, and PyYAML's flow-sequence parser is ~100x slower
+        # on them (10s vs 0.1s at ~40MB). JSON is a YAML subset so the
+        # parse result is identical; non-JSON YAML falls back below.
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        data = yaml.safe_load(text)
     if isinstance(data, dict):
         for key in ("case_whitelist", "cases", "nodeids", "whitelist"):
             if isinstance(data.get(key), list):
