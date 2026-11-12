@@ -12,6 +12,10 @@ name: Blacklist Test Category
 #     d3a3/d3a5/d5a3/d5a5 so their result artifacts never collide;
 #     the retest runs use retest-<platform> -> rta<platform>, i.e. cases that
 #     passed/were skipped on the other platform and are re-run here;
+#     the explicit case-list runs use custom_test_cases-<platform> -> the same
+#     name, so their artifacts read test-reports-custom_test_cases-a3-1 /
+#     -a5-1 instead of the generic "reg" (a3 and a5 run in the same workflow
+#     run and must not collide);
 #   * the shard JSONs carry test_type "regular", so the runner writes
 #     results as shard_reg-<n>_cases.json; the parse/fail steps look for
 #     that fixed prefix while uploads use the platform-specific one.
@@ -158,6 +162,11 @@ jobs:
             # whether they belong on this platform's blacklist.
             retest-a3) PREFIX="rta3" ;;
             retest-a5) PREFIX="rta5" ;;
+            # Explicit case-list runs (custom-test.yml). The prefix mirrors the
+            # category, so the result artifacts read
+            # test-reports-custom_test_cases-a3-1 / -a5-1.
+            custom_test_cases-a3) PREFIX="custom_test_cases-a3" ;;
+            custom_test_cases-a5) PREFIX="custom_test_cases-a5" ;;
             *)           PREFIX="reg" ;;
           esac
           # Shard JSONs from _blacklist_shard.yml carry test_type

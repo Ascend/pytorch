@@ -19,13 +19,13 @@
 #   - run_npu_test_shard.py       : 用例执行器
 #   - generate_npu_full_test_report.py : a3/a5 nightly 的报告生成脚本
 #
-# category 为什么用 blacklist-a3 / blacklist-a5:
-#   该模板里 category -> 结果 artifact 前缀 的映射是硬编码的（blacklist-a3 ->
-#   bla3, blacklist-a5 -> bla5, 其余全部落到 reg），而同一 workflow run 内两个
-#   平台的 artifact 名不能相同，否则 upload-artifact 直接冲突。存量流水线不可
-#   修改，因此复用这两个语义正好是"在 X 平台跑这批 nodeid"的 category。它们只
-#   影响 job 名与 artifact 前缀，不改变任何执行/判定逻辑。注意它内部的结果文件
-#   前缀固定为 reg，所以报告脚本的 shard matrix 用 ["reg-1"]。
+# 分片/结果命名: category 就是 custom_test_cases-a3 / custom_test_cases-a5，
+#   分片 JSON 与 cases artifact 都按这个命名，结果 artifact 为
+#   test-reports-custom_test_cases-a3-1 / -a5-1。为此在共享模板
+#   _blacklist_test-category.yml 的 category -> 前缀 case 里新增了同名的两个
+#   分支（纯新增，不影响任何既有 category）：该映射写死，未知 category 会统一
+#   落到 reg，而同一 workflow run 内 a3/a5 的 artifact 名不能相同。
+#   模板内部的结果文件前缀仍固定为 reg，所以报告脚本的 shard matrix 用 ["reg-1"]。
 #
 # 触发: push 本文件或 .github/config/custom_test_cases（paths 只含这两个）或
 # workflow_dispatch。
@@ -272,7 +272,7 @@ jobs:
           from pathlib import Path
 
           # 平台 -> category，决定分片文件名 <category>_cases_shard_1.json
-          PLATFORM_CATEGORIES = (("a3", "blacklist-a3"), ("a5", "blacklist-a5"))
+          PLATFORM_CATEGORIES = (("a3", "custom_test_cases-a3"), ("a5", "custom_test_cases-a5"))
           # 报告脚本按 test_type 名找 {test_type}_cases_by_file.jsonl；
           # _blacklist_test-category.yml 的结果前缀固定是 reg -> regular。
           TEST_TYPE = "regular"
@@ -347,7 +347,7 @@ jobs:
       - name: Upload a3 case file
         uses: actions/upload-artifact@v4
         with:
-          name: cases-shards-custom-a3
+          name: custom_test_cases-a3
           path: cases-shards-a3/
           retention-days: 7
           if-no-files-found: error
@@ -355,7 +355,7 @@ jobs:
       - name: Upload a5 case file
         uses: actions/upload-artifact@v4
         with:
-          name: cases-shards-custom-a5
+          name: custom_test_cases-a5
           path: cases-shards-a5/
           retention-days: 7
           if-no-files-found: error
@@ -385,7 +385,7 @@ jobs:
       pytorch_wheels_tarball: ${{ needs.resolve.outputs.a3_pytorch_wheels_tarball }}
       torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a3_torchnpu_wheels_tarball }}
       upstream_repo: pytorch/pytorch
-      category: blacklist-a3
+      category: custom_test_cases-a3
       num_shards: '1'
       matrix_json: '[1]'
       max_workers: ${{ inputs.max_workers || '32' }}
@@ -394,7 +394,7 @@ jobs:
       runner_label: linux-aarch64-a3-800i-2-cn12-001
       device_env: 'privateuse1,cpu'
       patch_triton_cxx20: true
-      cases_artifact_name: cases-shards-custom-a3
+      cases_artifact_name: custom_test_cases-a3
 
   test-a5:
     name: custom a5
@@ -410,7 +410,7 @@ jobs:
       pytorch_wheels_tarball: ${{ needs.resolve.outputs.a5_pytorch_wheels_tarball }}
       torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a5_torchnpu_wheels_tarball }}
       upstream_repo: pytorch/pytorch
-      category: blacklist-a5
+      category: custom_test_cases-a5
       num_shards: '1'
       matrix_json: '[1]'
       max_workers: ${{ inputs.max_workers || '32' }}
@@ -419,7 +419,7 @@ jobs:
       runner_label: linux-amd64-a5-2
       device_env: 'privateuse1,cpu'
       patch_triton_cxx20: true
-      cases_artifact_name: cases-shards-custom-a5
+      cases_artifact_name: custom_test_cases-a5
 
   # ==========================================================================
   # 4. 报告: 每个平台各生成一份，格式与 a3/a5 nightly 一致
@@ -446,7 +446,7 @@ jobs:
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
-          pattern: test-reports-bla3-*
+          pattern: test-reports-custom_test_cases-a3-*
           path: reports-a3
           merge-multiple: true
 
@@ -455,7 +455,7 @@ jobs:
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
-          pattern: test-reports-bla5-*
+          pattern: test-reports-custom_test_cases-a5-*
           path: reports-a5
           merge-multiple: true
 
