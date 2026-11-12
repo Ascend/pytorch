@@ -1,3 +1,6 @@
+#if defined(TORCH_NPU_EXPERIMENTAL_LOCKFREE_QUEUE)
+#include "torch_npu/csrc/core/npu/NPUQueueSequence.h"
+#else
 #pragma once
 
 #include <string>
@@ -204,3 +207,4 @@ class NPUCallBackRegisterBuilder {
   static ::c10_npu::register_queue_cb::NPUCallBackRegisterBuilder register_queue_func_builder(       \
       execF, copyF, releaseF, newF, deleteF, copyReleaseParamF, releaseParamF);
 } // namespace c10_npu
+#endif // TORCH_NPU_EXPERIMENTAL_LOCKFREE_QUEUE

@@ -43,6 +43,10 @@ SET(CMAKE_CXX_FLAGS_RELEASE "-O2")
 SET(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 
 option(USE_NPU "Use NPU" ON)
+option(TORCH_NPU_EXPERIMENTAL_LOCKFREE_QUEUE "Enable the experimental sequence MPSC task queue (full rebuild required)" OFF)
+if(TORCH_NPU_EXPERIMENTAL_LOCKFREE_QUEUE)
+  add_compile_definitions(TORCH_NPU_EXPERIMENTAL_LOCKFREE_QUEUE)
+endif()
 
 # LTO&PGO optimization in compile option
 SET(IF_APPEND FALSE)
