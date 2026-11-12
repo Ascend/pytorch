@@ -160,6 +160,11 @@ class C10_NPU_API HCCLComm {
     return hcclComm_;
   }
 
+  bool isAborted() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return aborted_;
+  }
+
   void destroyHcclComm();
 
   void releaseHcclCommRes();
@@ -173,6 +178,7 @@ class C10_NPU_API HCCLComm {
   HcclComm hcclComm_;
   mutable std::mutex mutex_;
   HcclResult hcclAsyncErr_;
+  bool aborted_{false};
   std::unordered_map<void*, std::pair<void*, bool>> registeredSegmentHandles_;
 };
 
