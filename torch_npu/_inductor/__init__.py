@@ -192,7 +192,6 @@ def _load_triton_backend():
 
     from torch._dynamo.device_interface import get_interface_for_device
     from torch._inductor import lowering as inductor_lowering
-    from torch._inductor.codegen.common import register_backend_for_device
     from torch.nn.attention import flex_attention
 
     from . import config as npu_config
@@ -261,8 +260,10 @@ def _load_triton_backend():
         from .codegen.npu_combined_scheduling import NPUCombinedScheduling
         from .codegen.wrapper import NPUPythonWrapperCodeGen
 
-        register_backend_for_device(
-            "npu", NPUCombinedScheduling, NPUPythonWrapperCodeGen, CppWrapperNpu
+        from .compile_options import register_npu_backend
+
+        register_npu_backend(
+            NPUCombinedScheduling, NPUPythonWrapperCodeGen, CppWrapperNpu
         )
 
     _inductor_register_backend_for_device()

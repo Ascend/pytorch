@@ -17,7 +17,7 @@ from typing import (
     List
 )
 from torch._inductor.async_compile import shutdown_compile_workers
-from torch._inductor.codegen.common import register_backend_for_device
+from torch_npu._inductor.compile_options import register_npu_backend
 from torch._inductor.virtualized import V
 from torch._inductor.custom_graph_pass import (
     CustomGraphPass,
@@ -70,12 +70,12 @@ def register_mlir_codegen_backend() -> None:
         try:
             import akg  # noqa: F401
             import torch_mlir  # noqa: F401
-            register_backend_for_device("npu", AkgScheduling, NpuMlirWrapperCodeGen)
+            register_npu_backend(AkgScheduling, NpuMlirWrapperCodeGen)
         except ImportError:
             logger.warning("AKG not found; falling back to torch-mlir for compilation.")
-            register_backend_for_device("npu", NpuMlirScheduling, NpuMlirWrapperCodeGen)
+            register_npu_backend(NpuMlirScheduling, NpuMlirWrapperCodeGen)
     else:
-        register_backend_for_device("npu", NpuMlirScheduling, NpuMlirWrapperCodeGen)
+        register_npu_backend(NpuMlirScheduling, NpuMlirWrapperCodeGen)
 
 try:
     from torch_npu.npu import device_count

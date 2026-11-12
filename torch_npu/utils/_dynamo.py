@@ -15,6 +15,14 @@ import torch_npu
 import torch_npu._C
 from torch.utils._pytree import TreeSpec, tree_flatten, tree_unflatten
 
+from torch_npu._compat.inductor import (
+    compat_compile_option,
+    compat_global_npu_backend,
+    compat_inject_legacy_compile_options,
+    compat_translate_compile_options,
+    namespaced_compile_options,
+)
+
 
 use_jit_script = False
 
@@ -93,8 +101,7 @@ def _resolve_npu_backend(selected_backend=None) -> str:
     if selected_backend not in (None, "", "default"):
         return selected_backend
 
-    inductor_config = sys.modules.get("torch._inductor.config")
-    global_backend = getattr(inductor_config, "npu_backend", None)
+    global_backend = compat_global_npu_backend()
     if global_backend not in (None, "", "default"):
         return global_backend
 
@@ -102,7 +109,9 @@ def _resolve_npu_backend(selected_backend=None) -> str:
 
 
 def _resolve_npu_backend_from_wrapper(wrapper) -> str:
-    return _resolve_npu_backend(wrapper.config.get("npu_backend"))
+    return _resolve_npu_backend(
+        wrapper.config.get(compat_compile_option("npu_backend"))
+    )
 
 
 class _NpuBackendEnvScope:
@@ -114,7 +123,10 @@ class _NpuBackendEnvScope:
 
     def __enter__(self):
         self._old_env = os.environ.get("TORCHINDUCTOR_NPU_BACKEND")
-        os.environ["TORCHINDUCTOR_NPU_BACKEND"] = self.backend
+        # non-str values are invalid options; skip the env publish and let
+        # apply_options raise the proper RuntimeError
+        if isinstance(self.backend, str):
+            os.environ["TORCHINDUCTOR_NPU_BACKEND"] = self.backend
         return self
 
     def __exit__(self, exc_type, exc, tb):
@@ -129,78 +141,26 @@ class _NpuBackendEnvScope:
 
 
 def patch_inductor_wrapper():
-    from typing import Any, Optional
-
     from torch import _TorchCompileInductorWrapper
-    from torch.utils._config_module import Config, ConfigModule, _ConfigEntry
 
-    src_apply_options = _TorchCompileInductorWrapper.apply_options
     src_init = _TorchCompileInductorWrapper.__init__
-    src_get_config_copy = ConfigModule.get_config_copy
     src_call = _TorchCompileInductorWrapper.__call__
-
-    def new_apply_options(self, options: Optional[dict[str, Any]]):
-        if options:
-            # torch >= 2.15 validates the config table directly instead of
-            # calling get_config_copy(), which historically injected our keys.
-            # Register only the config entries; backend loading stays lazy.
-            _inject_inductor_npu_backend_config()
-        shape_handling_requested = (
-            options is not None and options.get("enable_shape_handling", False)
-        )
-        src_apply_options(self, options)
-        if shape_handling_requested:
-            if getattr(self, "_npu_defer_shape_handling", False):
-                self._npu_shape_handling_requested = True
-            else:
-                _patch_shape_handling()
-
-    def new_get_config_copy(self) -> dict[str, Any]:
-        ori_dict = src_get_config_copy(self)
-        inductor_config = sys.modules.get("torch._inductor.config")
-        if inductor_config is None or self is not inductor_config:
-            return ori_dict
-        if "npu_backend" not in ori_dict:
-            ori_dict["npu_backend"] = "default"
-            self._config["npu_backend"] = _ConfigEntry(
-                Config(default="default", value_type=str),
-                name="npu_backend",
-            )
-
-        if "enable_shape_handling" not in ori_dict:
-            ori_dict["enable_shape_handling"] = False
-            self._config["enable_shape_handling"] = _ConfigEntry(
-                Config(default=False, value_type=bool),
-                name="enable_shape_handling",
-            )
-
-        if "shape_handling_configs" not in ori_dict:
-            ori_dict["shape_handling_configs"] = []
-            self._config["shape_handling_configs"] = _ConfigEntry(
-                Config(default=[], value_type=list),
-                name="shape_handling_configs",
-            )
-
-        if "shape_handling_dict" not in ori_dict:
-            ori_dict["shape_handling_dict"] = None
-            self._config["shape_handling_dict"] = _ConfigEntry(
-                Config(default=None, value_type=dict),
-                name="shape_handling_dict",
-            )
-        return ori_dict
 
     def new_init(self, mode, options, dynamic, name=None):
         # Backend initialization lives in the loaders and the upstream
         # _inductor_backend_init hook; MLIR keeps its construction-time
         # initialization until its stream-recovery semantics is confirmed.
-        self._npu_defer_shape_handling = True
-        self._npu_shape_handling_requested = False
-        try:
+        options = compat_translate_compile_options(options)
+        if options:
+            # torch 2.15+ without pytorch#194998 validates the config table
+            # directly, so entries must exist before src_init.
+            _inject_inductor_npu_backend_config()
+        with _NpuBackendEnvScope(
+            _resolve_npu_backend(
+                (options or {}).get(compat_compile_option("npu_backend"))
+            )
+        ):
             src_init(self, mode, options, dynamic, name)
-            shape_handling_requested = self._npu_shape_handling_requested
-        finally:
-            del self._npu_defer_shape_handling
-            del self._npu_shape_handling_requested
         # Keep this hook outside torch_npu._inductor, whose import initializes the backend.
         from torch_npu.utils._triton import patch_triton_target_no_device_init
 
@@ -208,7 +168,7 @@ def patch_inductor_wrapper():
         # returns, and hashing them imports Ascend Triton backend packages.
         patch_triton_target_no_device_init()
         _lazy_dynamo_setup()
-        if shape_handling_requested:
+        if self.config.get(compat_compile_option("enable_shape_handling"), False):
             _patch_shape_handling()
         backend = _resolve_npu_backend_from_wrapper(self)
         if backend == "triton_experimental":
@@ -246,9 +206,7 @@ def patch_inductor_wrapper():
             return src_call(self, model_, inputs_)
 
     _TorchCompileInductorWrapper.__call__ = new_call
-    _TorchCompileInductorWrapper.apply_options = new_apply_options
     _TorchCompileInductorWrapper.__init__ = new_init
-    ConfigModule.get_config_copy = new_get_config_copy
 
 
 def patch_builtin_variable():
@@ -616,7 +574,16 @@ def register_npu_graphsafe_rng():
 
 @run_once
 def _inject_inductor_npu_backend_config():
-    """Inject NPU entries into torch._inductor.config on first use."""
+    """torch without pytorch#194998: install the get_config_copy injection
+    and materialize the NPU entries into torch._inductor.config.
+
+    Deferred to the first compile (new_init / backend load / lazy setup):
+    the feature probe imports torch._inductor.codegen.common, which must
+    not happen during ``import torch_npu``.
+    """
+    compat_inject_legacy_compile_options()
+    if namespaced_compile_options():
+        return
     from torch._inductor import config
 
     config.get_config_copy()
@@ -1111,7 +1078,10 @@ def _patch_dynamo_context():
         """
         The shape handling feature is only available when enable_shape_handling is True and the backend is inductor
         """
-        if compiler_config is None or not compiler_config.get("enable_shape_handling", False):
+        if compiler_config is None or not compiler_config.get(
+            compat_compile_option("enable_shape_handling"),
+            compiler_config.get("enable_shape_handling", False),
+        ):
             return False
 
         if callback is None or not isinstance(callback, CatchErrorsWrapper):
@@ -1138,7 +1108,10 @@ def _patch_dynamo_context():
             trans_post_fn = None
             re_pre_fn = None
             re_post_fn = None
-            function_dict = compiler_config.get("shape_handling_dict")
+            function_dict = compiler_config.get(
+                compat_compile_option("shape_handling_dict"),
+                compiler_config.get("shape_handling_dict"),
+            )
             if function_dict is not None:
                 trans_pre_fn = function_dict.get("trans_pre_fn", None)
                 trans_post_fn = function_dict.get("trans_post_fn", None)
@@ -1146,7 +1119,10 @@ def _patch_dynamo_context():
                 re_post_fn = function_dict.get("re_post_fn", None)
 
             self.shape_handling = NPUShapeHandling(
-                configs=compiler_config.get("shape_handling_configs"),
+                configs=compiler_config.get(
+                    compat_compile_option("shape_handling_configs"),
+                    compiler_config.get("shape_handling_configs"),
+                ),
                 transform_pre_fn=trans_pre_fn,
                 transform_post_fn=trans_post_fn,
                 recover_pre_fn=re_pre_fn,

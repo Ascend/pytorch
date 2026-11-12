@@ -45,7 +45,9 @@ class TestTritonCppWrapper(unittest.TestCase):
         )
 
         with (
-            mock.patch.object(device, "register_backend_for_device") as register,
+            mock.patch(
+                "torch._inductor.codegen.common.register_backend_for_device"
+            ) as register,
             mock.patch(
                 "torch_npu._inductor.triton_experimental.codegen.triton.NPUTritonScheduling"
             ),

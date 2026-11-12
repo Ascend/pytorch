@@ -8,29 +8,28 @@ the Dynamo device interface. Kept out of ``__init__`` so package import stays a
 thin activation entry point; ``_activate`` calls the ``register_*`` helpers.
 """
 import torch
-from torch._inductor.codegen.common import (
-    register_backend_for_device,
-    register_device_op_overrides,
-)
+from torch._inductor.codegen.common import register_device_op_overrides
 from torch._dynamo.device_interface import register_interface_for_device
 from torch_npu.utils._dynamo_device import NpuInterface
-
-from . import config as ncfg
 
 
 def register_backend_for_npu():
     # Imported here: ``torch_npu._inductor.codegen`` pulls in Inductor internals
     # that would otherwise be resolved while this package is still importing.
+    from torch_npu._inductor.compile_options import register_npu_backend
+
+    from . import config as ncfg
     from .codegen import cpp_wrapper as cpp_codegen
     from .codegen import triton as triton_codegen
     from .codegen import wrapper as py_wrapper_codegen
-
-    register_backend_for_device(
-        "npu",
+    # torch without pytorch#194998: ncfg keeps the device config slot; with
+    # the feature, compile_options owns the slot for "npu.*" option routing
+    # and ncfg stays registered under its own module name.
+    register_npu_backend(
         triton_codegen.NPUTritonScheduling,
         py_wrapper_codegen.NPUWrapperCodeGen,
         cpp_codegen.TritonCppWrapperNpu,
-        device_custom_config=ncfg,
+        backend_config=ncfg,
     )
 
 

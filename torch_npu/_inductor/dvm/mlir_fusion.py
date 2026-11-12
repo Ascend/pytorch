@@ -3,7 +3,7 @@ import torch
 from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
 from torch._inductor import config, ir
 from torch._inductor.fx_passes.control_dependencies import control_deps
-from torch._inductor.codegen.common import IndentedBuffer, Kernel, register_backend_for_device
+from torch._inductor.codegen.common import IndentedBuffer, Kernel
 from torch._inductor.codegen.simd import code_hash, SIMDKernel
 from torch._inductor.scheduler import SchedulerNode, WhyNoFuse
 from torch._inductor.utils import aggregate_origins, get_fused_kernel_name
@@ -553,9 +553,9 @@ class DvmMlirFusionPatch:
         _disable_addmm_fusion_for_dvm()
         if dvm_config.enable_matmul_fusion:
             patch_dvm_matmul_template_fusion()
-        register_backend_for_device(
-            "npu", NpuDvmScheduling, NpuDvmWrapperCodeGen
-        )
+        from torch_npu._inductor.compile_options import register_npu_backend
+
+        register_npu_backend(NpuDvmScheduling, NpuDvmWrapperCodeGen)
         DvmMlirFusionPatch._enabled = True
 
 

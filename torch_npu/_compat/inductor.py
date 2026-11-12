@@ -1,6 +1,7 @@
 # Copyright (c) 2026, Huawei Technologies Co., Ltd
 
 import functools
+import sys
 
 from torch_npu._compat._impl import compat_impl, compat_impl_container
 
@@ -19,6 +20,11 @@ __all__ = [
     "compat_attach_inductor_backend_init",
     "compat_prepare_inductor_backend_for_call",
     "compat_prepare_dvm_backend_on_wrapper_init",
+    "namespaced_compile_options",
+    "compat_compile_option",
+    "compat_global_npu_backend",
+    "compat_translate_compile_options",
+    "compat_inject_legacy_compile_options",
 ]
 
 
@@ -559,3 +565,104 @@ def compat_prepare_dvm_backend_on_wrapper_init_local(backend):
 compat_prepare_dvm_backend_on_wrapper_init = compat_impl_container[
     "compat_prepare_dvm_backend_on_wrapper_init"
 ].resolve()
+
+
+# torch PR #194998 routes options named "<device>.<key>" to the device's
+# registered device_custom_config. It is on torch main and in release/2.15,
+# but 2.15 nightlies from before the merge are still in circulation (CI's
+# 2.15 lane runs one), so CURRENT_VERSION cannot tell the spellings apart
+# and the gate feature-probes instead. The probe imports
+# torch._inductor.codegen.common, too heavy at import time for @compat_impl's
+# import-time judgement, so the compat_* helpers below stay plain
+# dual-path functions.
+@functools.cache
+def namespaced_compile_options() -> bool:
+    import torch._inductor.codegen.common as codegen_common
+
+    return hasattr(codegen_common, "get_compile_option_owner")
+
+
+# COMPAT(pytorch#194998): "npu.<key>" once upstream routes namespaced
+#   options; bare key on older torch with the injected entries below.
+# CAN REMOVE when the upstream PR is required.
+def compat_compile_option(key: str) -> str:
+    return f"npu.{key}" if namespaced_compile_options() else key
+
+
+# COMPAT(pytorch#194998): global npu_backend default: the npu options module
+#   once namespaced, the injected core-config entry on older torch.
+# CAN REMOVE the legacy branch when the upstream PR is required.
+def compat_global_npu_backend():
+    if namespaced_compile_options():
+        compile_options = sys.modules.get("torch_npu._inductor.compile_options")
+        return getattr(compile_options, "npu_backend", None)
+    inductor_config = sys.modules.get("torch._inductor.config")
+    return getattr(inductor_config, "npu_backend", None)
+
+
+# COMPAT(pytorch#194998): legacy bare spellings map onto namespaced keys;
+#   identity on older torch.
+# CAN REMOVE when legacy spellings are dropped.
+_LEGACY_COMPILE_OPTIONS = {
+    "npu_backend": "npu.npu_backend",
+    "enable_shape_handling": "npu.enable_shape_handling",
+    "shape_handling_configs": "npu.shape_handling_configs",
+    "shape_handling_dict": "npu.shape_handling_dict",
+}
+
+
+def compat_translate_compile_options(options):
+    if not options or not namespaced_compile_options():
+        return options
+    return {
+        _LEGACY_COMPILE_OPTIONS.get(key, key): value
+        for key, value in options.items()
+    }
+
+
+# COMPAT(pytorch#194998): get_config_copy patch that injects the option names
+#   into torch._inductor.config so upstream apply_options accepts them.
+# CAN REMOVE this function when the upstream PR is required.
+def compat_inject_legacy_compile_options():
+    if namespaced_compile_options():
+        return
+
+    from torch.utils._config_module import Config, ConfigModule, _ConfigEntry
+
+    src_get_config_copy = ConfigModule.get_config_copy
+
+    def new_get_config_copy(self) -> dict:
+        ori_dict = src_get_config_copy(self)
+        inductor_config = sys.modules.get("torch._inductor.config")
+        if inductor_config is None or self is not inductor_config:
+            return ori_dict
+        if "npu_backend" not in ori_dict:
+            ori_dict["npu_backend"] = "default"
+            self._config["npu_backend"] = _ConfigEntry(
+                Config(default="default", value_type=str),
+                name="npu_backend",
+            )
+
+        if "enable_shape_handling" not in ori_dict:
+            ori_dict["enable_shape_handling"] = False
+            self._config["enable_shape_handling"] = _ConfigEntry(
+                Config(default=False, value_type=bool),
+                name="enable_shape_handling",
+            )
+
+        if "shape_handling_configs" not in ori_dict:
+            ori_dict["shape_handling_configs"] = []
+            self._config["shape_handling_configs"] = _ConfigEntry(
+                Config(default=[], value_type=list),
+                name="shape_handling_configs",
+            )
+
+        if "shape_handling_dict" not in ori_dict:
+            ori_dict["shape_handling_dict"] = None
+            self._config["shape_handling_dict"] = _ConfigEntry(
+                Config(default=None, value_type=dict),
+                name="shape_handling_dict",
+            )
+        return ori_dict
+
+    ConfigModule.get_config_copy = new_get_config_copy
