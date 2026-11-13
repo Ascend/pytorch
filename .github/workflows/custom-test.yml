@@ -4,11 +4,11 @@
 # 注释）里的用例，在 A3 与 A5 上**各自拆成 4 个分片并行执行**，并按
 # a3/a5 nightly 的报告格式**分别生成一份报告**。更新用例只需改这个文件。
 #
-# 平台选择: workflow_dispatch 入参 platform = both(默认) / a3 / a5。选单个平台时
+# 平台选择: workflow_dispatch 入参 platform = both / a3 / a5(默认)。选单个平台时
 #   只解析/生成/执行该平台：OBS triple 解析、分片、测试、报告都只跑它一个，
 #   另一个平台的 job 与 step 会被跳过。
-#   注意: push 触发不带 inputs，走兼容值——当前临时设为 a3（只跑 A3）。要恢复
-#   双平台，把两处 `inputs.platform || 'a3'` 改回 'both' 即可。
+#   注意: push 触发不带 inputs，走兼容值——当前临时设为 a5（只跑 A5）。要恢复
+#   双平台，把两处 `inputs.platform || 'a5'` 改回 'both' 即可。
 #
 # 为什么不编译: resolve job 按 builder 镜像 tag 去 OBS 7day-cache 匹配选中平台
 # 完整的 source + wheels triple（nightly-a3 / nightly-a5 每次构建都会写入）。
@@ -127,7 +127,7 @@ jobs:
       - name: Pick reusable a3/a5 OBS triples
         id: pick
         env:
-          PLATFORM: ${{ inputs.platform || 'a3' }}
+          PLATFORM: ${{ inputs.platform || 'a5' }}
           WHEELS_AK: ${{ secrets.ACCESSKEY_GUIYANG }}
           WHEELS_SK: ${{ secrets.SECRETACCESSKEY_GUIYANG }}
           SOURCE_AK: ${{ secrets.ACCESSKEY }}
@@ -293,7 +293,7 @@ jobs:
         id: build
         env:
           CASES_FILE: .github/config/custom_test_cases
-          PLATFORM: ${{ inputs.platform || 'a3' }}
+          PLATFORM: ${{ inputs.platform || 'a5' }}
         run: |
           python3 - <<'PY'
           import json
