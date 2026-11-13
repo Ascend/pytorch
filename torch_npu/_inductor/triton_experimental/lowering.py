@@ -964,3 +964,40 @@ def _register_npu_inductor_fallbacks():  # noqa: F811
                        type_promotion_kind=None)
     overwrite_lowering(torch.ops.aten.index.Tensor, npu_index,
                        type_promotion_kind=None)
+    _register_dtype_aware_triton_routing()
+
+
+# erf/log1p stay out: they are pre-existing GENERATE_LIST members, so the
+# upstream triton lowering already serves every dtype there; routing them
+# would divert fp32/f64 to extern and regress test_log1p_pointwise.
+_DTYPE_AWARE_TRITON_OPS = (
+    "acos", "acosh", "asin", "asinh", "atan", "atan2", "atanh", "ceil",
+    "copysign", "cosh", "erfinv", "floor", "fmod", "isinf",
+    "isnan", "lgamma", "log10", "nextafter", "sinh", "trunc",
+)
+
+
+def _register_dtype_aware_triton_routing():
+    """f16/bf16 take upstream triton lowering (with fp32 upcast); the rest go
+    extern fallback. f64 stays extern (triton compute-type remap breaks the
+    precision tolerance)."""
+    for name in _DTYPE_AWARE_TRITON_OPS:
+        packet = getattr(torch.ops.aten, name)
+        # Walk every overload (e.g. fmod's .default/.out); a graph node can carry any of them.
+        for ovl_name in packet.overloads():
+            overload = getattr(packet, ovl_name)
+            upstream = lowerings.get(overload)
+            if upstream is None:
+                continue
+            eager = fallback_handler(overload)
+
+            def _lower(x, *args, _eager=eager, _upstream=upstream, **kwargs):
+                try:
+                    dtype = x.get_dtype()
+                except Exception:
+                    dtype = None
+                if dtype in (torch.float16, torch.bfloat16):
+                    return _upstream(x, *args, **kwargs)
+                return _eager(x, *args, **kwargs)
+
+            overwrite_lowering(overload, _lower, type_promotion_kind=None)

@@ -129,6 +129,33 @@ GENERATE_LIST = [
     aten._foreach_mul,
     inductor_prims.randint,
     aten.hypot,
+    # Dtype-aware math ops: upstream triton lowering (fp32 upcast), exempt from fallback sweep.
+    aten.acos,
+    aten.acosh,
+    aten.asin,
+    aten.asinh,
+    aten.atan,
+    aten.atan2,
+    aten.atanh,
+    aten.ceil,
+    aten.copysign,
+    aten.cosh,
+    aten.erfinv,
+    aten.expm1,
+    aten.floor,
+    aten.fmod,
+    aten.isinf,
+    aten.isnan,
+    aten.lgamma,
+    aten.log10,
+    aten.nextafter,
+    aten.sinh,
+    aten.trunc,
+    # Reductions: exempt from fallback sweep, upstream reduction lowering (fp32
+    # accumulation via upcast_acc_dtype).
+    # argmax/argmin excluded: the NPU index combine still has bugs.
+    aten.prod,
+    aten.min,
 ]
 # A5 (910_95) ONLY: the CANN indirect-mem extension ops behind these exist only
 # on A5 (fail to lower on A2/A3/910B). Mirrors torch_npu's INDIRECT_MEM_OVERRIDE_LIST.

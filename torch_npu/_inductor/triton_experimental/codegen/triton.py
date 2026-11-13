@@ -57,6 +57,7 @@ from torch._inductor.codegen.triton import (
     is_sympy_integer_like,
     is_welford_reduction,
     log,
+    maybe_upcast_float32,
     texpr,
 )
 from torch._inductor.codegen.wrapper import SymbolicCallArg
@@ -2117,6 +2118,7 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
 
 
     @staticmethod
+    @maybe_upcast_float32()
     def rsqrt(x):
         return f"tl.rsqrt({x})"
 
@@ -5224,6 +5226,7 @@ class NPUTritonKernel(TritonKernel):
                 self._npu_rtree_rewrite_done = True
             self._maybe_rewrite_select_lane_load()
             self.body._lines = _npu_rewrite_bool_vector_comparisons(self.body._lines)
+            self._npu_repair_rsplit_blockptr()
 
             return
 
@@ -5342,6 +5345,7 @@ class NPUTritonKernel(TritonKernel):
                     f"{[p.scope_id for p in reduction_passes[pass_index:]]}"
                 )
             self.body._lines = _npu_rewrite_bool_vector_comparisons(self.body._lines)
+            self._npu_repair_rsplit_blockptr()
             return
 
         tree = r_info['tree']
@@ -5424,6 +5428,66 @@ class NPUTritonKernel(TritonKernel):
         self.post_loop_store.clear()
         self._apply_redundant_range_tree_address_substitutions()
         self.body._lines = _npu_rewrite_bool_vector_comparisons(self.body._lines)
+        self._npu_repair_rsplit_blockptr()
+
+    def _npu_repair_rsplit_blockptr(self):
+        """Repair the rsplit-partial block pointer: offset it to this core's
+        slice start and mask the out-of-slice lanes.
+
+        A block-pointer load carries no mask, so a cross-core split must zero
+        the out-of-bounds lanes itself. Called after codegen_body materializes
+        the flat r0 loop (during _apply_linearize that loop does not exist
+        yet). Idempotent. The zero literal tracks the reduction dtype: a
+        float literal promotes integer partial sums to fp32 in tl.where and
+        silently drops bits past 2^24.
+        """
+        if not getattr(self, "_npu_rsplit_blockptr_repair", False):
+            return
+        self._npu_rsplit_blockptr_repair = False
+        lines = self.body._lines
+        texts = [
+            ln if isinstance(ln, str) else getattr(ln, "line", "") for ln in lines
+        ]
+        bp_idx = [
+            i for i, t in enumerate(texts)
+            if "tl.make_block_ptr(" in t and t.rstrip().endswith("offsets=[0])")
+        ]
+        if len(bp_idx) != 1:
+            log.warning(
+                "rsplit block-ptr repair skipped: %d block-pointer "
+                "definitions (form not covered)",
+                len(bp_idx),
+            )
+            return
+        isint = getattr(self, "_npu_rsplit_blockptr_repair_isint", False)
+        zero = "0" if isint else "0.0"
+        masked = 0
+        ln = lines[bp_idx[0]]
+        new_text = texts[bp_idx[0]].replace("offsets=[0])", "offsets=[r0__lo])")
+        if isinstance(ln, str):
+            lines[bp_idx[0]] = new_text
+        else:
+            ln.line = new_text
+        for i in range(len(texts) - 1, -1, -1):
+            text = texts[i]
+            if (
+                isinstance(text, str)
+                and "tl.load(block_ptr" in text
+                and text.rstrip().endswith("[:, None]")
+            ):
+                var = text.split("=", 1)[0].strip()
+                indent = text[: len(text) - len(text.lstrip())]
+                mask_expr = "(r0_offset + tl.arange(0, R0_BLOCK) < r0__hi)[:, None]"
+                masked += 1
+                lines.insert(
+                    i + 1,
+                    f"{indent}{var} = tl.where({mask_expr}, {var}, {zero})",
+                )
+        if masked == 0:
+            log.warning(
+                "rsplit block-ptr repair: no [:, None] block-pointer load "
+                "matched; tail lanes stay unmasked"
+            )
 
     def _apply_redundant_range_tree_address_substitutions(self):
         """Rewrite redundant range-tree addresses to their contiguous basis.
@@ -8586,7 +8650,7 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
         # dense_size replacement still runs (shared with the x-path).
         _promoted_any = bool(getattr(kernel, "_npu_rtree_promoted", {}))
 
-        for buf in [kernel.body, kernel.compute, kernel.stores,
+        for buf in [kernel.loads, kernel.body, kernel.compute, kernel.stores,
                     kernel.post_loop_combine, kernel.post_loop_store]:
             for i, candidate in enumerate(buf._lines):
                 if isinstance(candidate, str):
@@ -8606,6 +8670,17 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                 if needs_fixup:
                     if old_dense_size in _get():
                         _set(_get().replace(old_dense_size, real_dense_size))
+                    # block-pointer loads are emitted before linearize re-anchors
+                    # the r-tree: their [None, :] slicing mismatches the
+                    # re-anchored [R0, 1], so re-slice to [:, None].
+                    if (
+                        not _promoted_any
+                        and orig_ndim == 2
+                        and r_tree_slot == 0
+                        and "tl.load(" in _get()
+                        and _get().rstrip().endswith("[None, :]")
+                    ):
+                        _set(_get().replace("[None, :]", "[:, None]"))
                     # Constants are emitted while the kernel still has one slot
                     # per range tree.  Splitting a tree into several register
                     # axes changes the final rank without changing a constant's
@@ -8650,6 +8725,22 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                     ))
                 if 'tl.program_id(0)' in _get():
                     _set(_get().replace('tl.program_id(0)', '(group_base + i)'))
+
+        # rsplit-partial + block-pointer repair: the flat r0 loop does not exist
+        # yet; stash the condition until codegen_body materializes it.
+        if (
+            getattr(kernel, "npu_rsplit_partial", False)
+            and needs_fixup
+            and not _promoted_any
+            and orig_ndim == 2
+            and r_tree_slot == 0
+        ):
+            kernel._npu_rsplit_blockptr_repair = True
+            try:
+                dtype = kernel.features.reduction_nodes()[0].node.data.dtype
+                kernel._npu_rsplit_blockptr_repair_isint = not dtype.is_floating_point
+            except Exception:
+                kernel._npu_rsplit_blockptr_repair_isint = False
 
         # NOTE: broadcast_to stripping was previously done here for reduction
         # kernels, but it incorrectly removed broadcasts needed for correctness

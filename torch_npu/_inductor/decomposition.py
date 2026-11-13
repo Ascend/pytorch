@@ -927,13 +927,21 @@ def _override_gelu_decomp():
         return p / q
 
     def _erf(a: torch.Tensor) -> torch.Tensor:
-        orig_dtype = a.dtype
-        if orig_dtype != torch.float32:
-            a = a.to(torch.float32)
-        out = _erf_pade_fp32(a)
-        if orig_dtype != torch.float32:
-            out = out.to(orig_dtype)
-        return out
+        """Floating dtypes stay on the lowering path; integral/bool take PADE in fp32."""
+        if a.dtype.is_floating_point:
+            return NotImplemented
+        return _erf_pade_fp32(a.to(torch.float32))
+    _ind_decomps[aten.erf.default] = _erf
+
+    def _expm1(x: torch.Tensor) -> torch.Tensor:
+        """f16/bf16/bool stay on the lowering path; other dtypes take the exp-1
+        decomposition (ATen promotes the output to float32, matching eager).
+        bool must not take exp-1: ones_like keeps the bool dtype and ATen
+        sub_check rejects bool operands during fake-tensor propagation."""
+        if x.dtype in (torch.float16, torch.bfloat16, torch.bool):
+            return NotImplemented
+        return torch.exp(x) - torch.ones_like(x)
+    _ind_decomps[aten.expm1.default] = _expm1
 
     def _gelu(x: torch.Tensor, approximate: str = "none"):
         orig_dtype = x.dtype
@@ -970,7 +978,6 @@ def _override_gelu_decomp():
             out = out.to(orig_dtype)
         return out
 
-    _ind_decomps[aten.erf.default] = _erf
     _ind_decomps[aten.gelu.default] = _gelu
     _ind_decomps[aten.gelu_backward.default] = _gelu_backward
 
@@ -1390,8 +1397,4 @@ def _register_triton_experimental_decompositions():
             _matmul_backward_inductor
         )
 
-    @register_decomposition([aten.expm1])
-    def expm1(x):
-        tensor = torch.exp(x) - torch.ones_like(x)
-        return tensor
     fast_random_decomps.cache_clear()
