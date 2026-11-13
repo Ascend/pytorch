@@ -30,8 +30,8 @@ jobs:
       max_jobs: '23'
       # Wheels cache moved to the dedicated Guiyang bucket
       # (pytorch-torchnpu, cn-southwest-2): probe, upload and cache-hit
-      # download during build all use it. The PyTorch source tarball
-      # stays on the legacy ap-southeast-1 bucket. The Guiyang bucket is
+      # download during build all use it. The PyTorch source itself is
+      # cloned from the in-cluster git-cdn. The Guiyang bucket is
       # owned by a different key pair (ACCESSKEY_GUIYANG/
       # SECRETACCESSKEY_GUIYANG), selected by the wheel steps via the
       # cn-southwest-2 endpoint match.

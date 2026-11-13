@@ -10,7 +10,7 @@ name: Nightly Build and Test A5 (torch 2.15 upstream release)
 # Wheel source facts (verified 2026-11-04):
 #   - torch 2.15.0 linux x86_64 cpu release wheel: download.pytorch.org
 #     test channel, built from the same commit as the aarch64 wheel
-#     (145f350fd4...), cxx11 ABI — so the source tarball in OBS is shared
+#     (145f350fd4...), cxx11 ABI — so the cloned source is shared
 #     with the a3 pipeline and the _GLIBCXX_USE_CXX11_ABI=1 build env in
 #     _nightly_build_upstream_wheels.yml matches the wheel.
 #   - torchvision 0.29.2+cpu (py3-none) x86_64 from the stable cpu
@@ -52,8 +52,8 @@ jobs:
       runner_label: 'linux-amd64-a5-2'
       max_jobs: '23'
       # Wheels cache moved to the dedicated Guiyang bucket
-      # (pytorch-torchnpu, cn-southwest-2); the PyTorch source tarball
-      # stays on the legacy ap-southeast-1 bucket. Guiyang bucket
+      # (pytorch-torchnpu, cn-southwest-2); the PyTorch source comes from
+      # the in-cluster git-cdn. Guiyang bucket
       # credentials (ACCESSKEY_GUIYANG/SECRETACCESSKEY_GUIYANG) are
       # selected by the wheel steps via the cn-southwest-2 endpoint match.
       wheels_obs_endpoint: 'obs.cn-southwest-2.myhuaweicloud.com'
