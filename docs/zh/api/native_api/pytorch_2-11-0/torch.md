@@ -10087,7 +10087,6 @@
 
 </div>
 
-<!-- npu="910b,A3" id1169 -->
 ### torch.set_float32_matmul_precision
 
 <div style="margin-left: 2em">
@@ -10095,7 +10094,6 @@
 **原生文档**：[torch.set_float32_matmul_precision](https://pytorch.org/docs/2.11/generated/torch.set_float32_matmul_precision.html)
 
 **产品支持情况**：
-<!-- end id1169 -->
 
 <!-- npu="910b" id1050 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -10103,12 +10101,15 @@
 <!-- npu="A3" id1051 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id1051 -->
+<!-- npu="950" id1052 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1052 -->
 
-<!-- npu="910b,A3" id1170 -->
-**限制与说明**： 此API在NPU上可调用，但实际功能无效。
+<!-- npu="910b,A3,950" id1514 -->
+**限制与说明**： 此接口可调用，但不控制 NPU 矩阵乘精度；NPU 使用 torch_npu.npu.matmul.allow_hf32 配置。
 
 </div>
-<!-- end id1170 -->
+<!-- end id1514 -->
 
 <!-- npu="910b,A3" id1171 -->
 ### torch.get_float32_matmul_precision
