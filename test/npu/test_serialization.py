@@ -2,11 +2,14 @@ import io
 import os
 import tempfile
 import argparse
+import subprocess
+import sys
 from unittest.mock import patch
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch._subclasses.fake_tensor import FakeTensor, FakeTensorMode
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
@@ -83,6 +86,78 @@ class TestSerialization(TestCase):
             self.assertRtolEqual(x.cpu(), n_loaded)
             x_loaded = torch.load(path, map_location="npu:0", weights_only=True)
             self.assertRtolEqual(x.cpu(), x_loaded.cpu())
+
+    def test_load_npu_checkpoint_in_fake_mode(self):
+        source = torch.ones((2, 3), device="npu:0")
+        with io.BytesIO() as buffer:
+            torch.save({"weight": source}, buffer)
+            map_locations = (
+                (None, "npu:0"), ("npu", "npu:1"), ("npu:0", "npu:0"), ("npu:1", "npu:1"),
+                (torch.device("npu"), "npu:1"), (torch.device("npu:0"), "npu:0"),
+                (torch.device("npu:1"), "npu:1"), ("cpu", "cpu"), (torch.device("cpu"), "cpu"),
+            )
+            with patch("torch.npu.current_device", return_value=1):
+                for map_location, expected in map_locations:
+                    with self.subTest(map_location=map_location):
+                        buffer.seek(0)
+                        expected_device = torch.device(expected)
+                        with FakeTensorMode():
+                            weight = torch.load(
+                                buffer, map_location=map_location, weights_only=True
+                            )["weight"]
+                            value = torch.ones(source.shape, dtype=source.dtype, device=expected_device)
+                            result = weight + value
+                            self.assertIsInstance(weight, FakeTensor)
+                            self.assertEqual(weight.device, expected_device)
+                            self.assertEqual(result.device, expected_device)
+                            self.assertEqual(result.shape, source.shape)
+                            self.assertEqual(result.dtype, source.dtype)
+                            self.assertEqual(weight.untyped_storage().device.type, "meta")
+
+    def test_rebuild_npu_fake_tensor_device(self):
+        cases = (
+            (None, "npu:3", "npu:3"), ("npu:2", "npu:3", "npu:2"),
+            ("npu", "npu:3", "npu:1"), (torch.device("npu"), "npu:3", "npu:1"),
+            (None, "cpu", "npu:0"), (None, "npu", "npu:0"), (None, None, "npu:0"),
+        )
+        for map_location, location, expected in cases:
+            with self.subTest(map_location=map_location, location=location), FakeTensorMode():
+                storage = torch.empty(6, device="meta")._typed_storage()
+                if location is not None:
+                    storage._untyped_storage._fake_device = location
+                with patch("torch.npu.current_device", return_value=1), \
+                        patch("torch.npu.is_initialized", return_value=True), \
+                        patch("torch_npu.utils.serialization.RE_MAP_CPU", False), \
+                        patch("torch.serialization._serialization_tls.map_location", map_location):
+                    tensor = torch_npu.utils.storage._rebuild_npu_tensor(
+                        storage, 0, (2, 3), (3, 1), False, {}, 2
+                    )
+                self.assertEqual(tensor.device, torch.device(expected))
+                self.assertEqual((tensor + torch.ones((2, 3), device=expected)).device, tensor.device)
+
+    def test_load_npu_checkpoint_in_fake_mode_without_initializing_npu(self):
+        script = """
+import sys
+import torch
+import torch_npu
+from torch._subclasses.fake_tensor import FakeTensorMode
+
+assert not torch.npu.is_initialized()
+for map_location, expected in (
+    (None, "npu:0"), ("npu", "npu:0"), (torch.device("npu"), "npu:0"),
+    ("npu:1", "npu:1"), ("cpu", "cpu"),
+):
+    with FakeTensorMode():
+        weight = torch.load(sys.argv[1], map_location=map_location, weights_only=True)
+        assert weight.device == torch.device(expected)
+        result = weight + torch.ones((2, 3), device=expected)
+        assert result.device == torch.device(expected)
+    assert not torch.npu.is_initialized()
+"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "weight.pt")
+            torch.save(torch.ones((2, 3), device="npu:0"), path)
+            subprocess.run([sys.executable, "-c", script, path], check=True)
 
     def test_load_legacy_file(self):
         x = torch.randn(5)

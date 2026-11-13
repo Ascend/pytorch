@@ -39,6 +39,19 @@ def _rebuild_npu_tensor(storage, storage_offset, size, stride, requires_grad, ba
     )
 
     if is_fake_mode:
+        if target_device.type == "npu":
+            map_location = torch.serialization._serialization_tls.map_location
+            if isinstance(map_location, (str, torch.device)) and torch.device(map_location).type == "npu":
+                target_device = torch.device(map_location)
+                if target_device.index is None and torch.npu.is_initialized():
+                    target_device = torch.device("npu", torch.npu.current_device())
+            else:
+                saved_device = torch.device(getattr(storage._untyped_storage, "_fake_device", None) or "npu:0")
+                if saved_device.type == "npu":
+                    target_device = saved_device
+            # Legacy NPU reducers can store CPU locations without an NPU index.
+            device_index = target_device.index if target_device.index is not None else 0
+            target_device = torch.device("npu", device_index)
         tensor.fake_device = target_device
     elif not se.RE_MAP_CPU:
         if isinstance(npu_storage_info, bool):
