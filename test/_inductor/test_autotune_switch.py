@@ -107,6 +107,46 @@ class TestAutotuneSwitch(TestCase):
         self.assertEqual(tuner.launchers, [first_launcher])
         tuner.autotune_to_one_config.assert_not_called()
 
+    def test_deterministic_reduction_picks_largest_compiled_tile(self):
+        for heuristic in (HeuristicType.REDUCTION, HeuristicType.PERSISTENT_REDUCTION):
+            with self.subTest(heuristic=heuristic):
+                tuner, _ = self._autotuner(heuristic, {"deterministic": True})
+                configs = [
+                    {"X0BLOCK": 4096, "X0BLOCK_SUB": 8, "R0_BLOCK": 1024, "R0_BLOCK_SUB": 32},
+                    {"X0BLOCK": 16, "R0_BLOCK": 32},
+                ]
+                for entry, kwargs in zip(tuner.compiled_candidate_entries, configs):
+                    entry["candidate"]["full_config"] = (
+                        triton_heuristics.config_to_dict(Config(kwargs))
+                    )
+                    entry["candidate"]["runtime_blocks"] = (("X0BLOCK", kwargs["X0BLOCK"]),)
+                expected = tuner.compiled_candidate_entries[1]
+                # An even larger config that failed compilation must be ignored.
+                tuner.candidate_plan["candidate_entries"].append({
+                    "candidate_id": 2, "variant_id": "failed",
+                    "full_config": {"X0BLOCK": 65536},
+                })
+                tuner.autotune(stream=0)
+                self.assertIs(tuner.best_launcher, expected["launcher"])
+                self.assertEqual(tuner.best_runtime_blocks, (16,))
+                self.assertEqual(tuner.best_candidate_config.kwargs, configs[1])
+                tuner.autotune_to_one_config.assert_not_called()
+                tuner.save_cache_hook.assert_called_once_with(
+                    tuner.best_candidate_config, 0, found_by_coordesc=False,
+                    triton_cache_hash=None,
+                )
+
+    def test_deterministic_equal_tiles_keep_candidate_order(self):
+        for _ in range(3):
+            tuner, first = self._autotuner(HeuristicType.REDUCTION, {"deterministic": True})
+            for entry, kwargs in zip(tuner.compiled_candidate_entries, (
+                {"X0BLOCK": 8, "R0_BLOCK": 64},
+                {"X0BLOCK": 16, "R0_BLOCK": 32},
+            )):
+                entry["candidate"]["full_config"] = kwargs
+            tuner.autotune(stream=0)
+            self.assertIs(tuner.best_launcher, first)
+
     def _grouped_autotuner(self, heuristic_type, inductor_meta):
         tuner = object.__new__(NPUSymbolicGroupedAutotuner)
         first = {"candidate_id": "g0_c0", "variant_id": "v0", "full_config": {}}
@@ -138,6 +178,34 @@ class TestAutotuneSwitch(TestCase):
 
         return tuner, first, first_launcher
 
+    def test_deterministic_multibuffer_is_only_a_tile_tiebreaker(self):
+        for tiles, buffers, expected_index in (
+            ((64, 64), (False, True), 1),
+            ((64, 32), (False, True), 0),
+            ((64, 64), (True, True), 0),
+        ):
+            for heuristic in (HeuristicType.REDUCTION, HeuristicType.PERSISTENT_REDUCTION):
+                with self.subTest(tiles=tiles, buffers=buffers, heuristic=heuristic):
+                    tuner, _ = self._autotuner(heuristic, {"deterministic": True})
+                    for entry, tile, enabled in zip(tuner.compiled_candidate_entries, tiles, buffers):
+                        entry["candidate"]["full_config"] = {
+                            "kwargs": {"R0BLOCK_SUB": tile, "multibuffer": enabled}
+                        }
+                    tuner.autotune(stream=0)
+                    expected = tuner.compiled_candidate_entries[expected_index]
+                    self.assertIs(tuner.best_launcher, expected["launcher"])
+                    tuner.autotune_to_one_config.assert_not_called()
+
+    def test_grouped_deterministic_prefers_runnable_multibuffer_on_equal_tiles(self):
+        tuner, _, _ = self._grouped_autotuner(HeuristicType.REDUCTION, {"deterministic": True})
+        for entry, enabled in zip(tuner.compiled_candidate_entries, (False, True, False, True)):
+            entry["candidate"]["full_config"] = {"R0BLOCK_SUB": 64, "multibuffer": enabled}
+        tuner.compiled_candidate_entries[3]["launcher"].runnable = False
+        tuner.ensure_grouped_autotune_ready()
+        self.assertIs(tuner.best_launcher_map[0], tuner.compiled_candidate_entries[1]["launcher"])
+        self.assertIs(tuner.best_launcher_map[2], tuner.compiled_candidate_entries[2]["launcher"])
+        tuner._autotune_all_groups.assert_not_called()
+
     def test_grouped_max_off_still_benchmarks_existing_candidates(self):
         for heuristic_type in (
             HeuristicType.POINTWISE,
@@ -152,7 +220,7 @@ class TestAutotuneSwitch(TestCase):
                 tuner._autotune_all_groups.assert_called_once_with()
                 self.assertEqual(tuner.best_candidate_map, {})
 
-    def test_grouped_deterministic_reduction_picks_first_per_group(self):
+    def test_grouped_deterministic_reduction_keeps_order_on_equal_tiles(self):
         for heuristic_type in (HeuristicType.REDUCTION, HeuristicType.PERSISTENT_REDUCTION):
             with self.subTest(heuristic_type=heuristic_type):
                 tuner, first, first_launcher = self._grouped_autotuner(heuristic_type, {
@@ -167,6 +235,24 @@ class TestAutotuneSwitch(TestCase):
                     tuner.candidate_plan["group_to_candidates"][2][0],
                 )
                 self.assertNotIn(1, tuner.best_candidate_map)
+
+    def test_grouped_deterministic_reduction_picks_largest_tile_per_group(self):
+        for heuristic in (HeuristicType.REDUCTION, HeuristicType.PERSISTENT_REDUCTION):
+            with self.subTest(heuristic=heuristic):
+                tuner, _, _ = self._grouped_autotuner(heuristic, {"deterministic": True})
+                for entry, tile in zip(tuner.compiled_candidate_entries, (32, 64, 128, 64)):
+                    entry["candidate"]["full_config"] = {"R0_BLOCK_SUB": tile}
+                # A failed larger variant is present in the plan but has no launcher.
+                tuner.candidate_plan["group_to_candidates"][0].append({
+                    "candidate_id": "failed", "variant_id": "failed",
+                    "full_config": {"R0_BLOCK_SUB": 1024},
+                })
+                tuner.ensure_grouped_autotune_ready()
+                for group_id, index in ((0, 1), (2, 2)):
+                    entry = tuner.compiled_candidate_entries[index]
+                    self.assertIs(tuner.best_candidate_map[group_id], entry["candidate"])
+                    self.assertIs(tuner.best_launcher_map[group_id], entry["launcher"])
+                tuner._autotune_all_groups.assert_not_called()
 
     def test_grouped_deterministic_reduction_skips_unrunnable_candidates(self):
         tuner, _, launcher = self._grouped_autotuner(

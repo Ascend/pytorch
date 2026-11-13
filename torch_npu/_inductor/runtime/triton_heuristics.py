@@ -1646,7 +1646,7 @@ class NPUCachingAutotuner(CachingAutotuner):
     def _should_skip_autotune_for_determinism(self):
         """
         When deterministic algorithms are enabled, skip benchmarking for
-        reduction kernels and use the first successfully compiled config.
+        reduction kernels and use the largest successfully compiled tile.
         All configs are still compiled so that compilation failures on NPU
         do not crash the program.
         Pointwise kernels are unaffected because their tiling does not change
@@ -1663,15 +1663,50 @@ class NPUCachingAutotuner(CachingAutotuner):
             )
         )
 
-    def _pick_first_compiled_candidate(self, reason):
-        """Select and cache the first compilable candidate without benchmarking."""
-        entry = self._first_compiled_candidate_entry()
+    @staticmethod
+    def _candidate_tile_size(entry):
+        candidate = entry["candidate"]
+        full_config = candidate.get("full_config")
+        if full_config is None:
+            kwargs = getattr(entry["launcher"].config, "kwargs", {})
+        else:
+            kwargs = full_config.get("kwargs", full_config)
+        # BLOCK can describe a runtime loop range. BLOCK_SUB is the actual
+        # compiled tile on that axis; never count both for the same axis.
+        blocks = {
+            name: value for name, value in kwargs.items()
+            if name.endswith("BLOCK")
+        }
+        blocks.update({
+            name.removesuffix("_SUB"): value
+            for name, value in kwargs.items() if name.endswith("BLOCK_SUB")
+        })
+        return math.prod(blocks.values())
+
+    @staticmethod
+    def _deterministic_candidate_key(entry):
+        full_config = entry["candidate"].get("full_config")
+        if full_config is None:
+            kwargs = getattr(entry["launcher"].config, "kwargs", {})
+        else:
+            kwargs = full_config.get("kwargs", full_config)
+        return (
+            NPUCachingAutotuner._candidate_tile_size(entry),
+            bool(kwargs.get("multibuffer", False)),
+        )
+
+    def _pick_largest_compiled_candidate(self, reason):
+        """Prefer the largest tile, then multibuffer, then stable plan order."""
+        self._first_compiled_candidate_entry()  # Preserve the no-candidate error.
+        entry = builtins.max(
+            self.compiled_candidate_entries, key=self._deterministic_candidate_key
+        )
         candidate = entry["candidate"]
         launcher = entry["launcher"]
         self._set_best_candidate(candidate, launcher)
         self.launchers = [launcher]
         log.info(
-            "[%s] picked=first_config(%s) config=%s",
+            "[%s] picked=largest_tile(%s) config=%s",
             self.get_fn_name(),
             reason,
             candidate.get("full_config", launcher.config),
@@ -1929,7 +1964,7 @@ class NPUCachingAutotuner(CachingAutotuner):
             return
 
         if self._should_skip_autotune_for_determinism():
-            self._pick_first_compiled_candidate("deterministic")
+            self._pick_largest_compiled_candidate("deterministic")
         else:
             self.autotune_to_one_config(*args, **kwargs)
             log.info("[%s] picked=benchmark", self.get_fn_name())
@@ -2442,31 +2477,34 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
         self.best_candidate_map[group_id] = candidate
         self.best_launcher_map[group_id] = launcher
 
-    def _pick_first_compiled_candidate_per_group(self, reason):
-        """Select each group's first compilable candidate without benchmarking."""
+    def _pick_largest_compiled_candidate_per_group(self, reason):
+        """Prefer each group's largest runnable tile, then multibuffer."""
         launchers_by_candidate_id = {
             entry["candidate"]["candidate_id"]: entry["launcher"]
             for entry in self.compiled_candidate_entries
         }
         for group_id in self.reachable_selection_keys:
+            entries = []
             for candidate in self.candidate_plan["group_to_candidates"][group_id]:
                 launcher = launchers_by_candidate_id.get(candidate["candidate_id"])
                 if launcher is None or not launcher.runnable:
                     continue
-                self._set_group_best_candidate(group_id, candidate, launcher)
-                log.info(
-                    "[%s] group=%s picked=first_config(%s) config=%s",
-                    self.get_fn_name(),
-                    group_id,
-                    reason,
-                    candidate.get("full_config", launcher.config),
-                )
-                break
-            else:
+                entries.append({"candidate": candidate, "launcher": launcher})
+            if not entries:
                 raise RuntimeError(
                     f"No compiled runtime block candidates are available for "
                     f"[{self.get_fn_name()}], group {group_id}."
                 )
+            entry = builtins.max(entries, key=self._deterministic_candidate_key)
+            candidate, launcher = entry["candidate"], entry["launcher"]
+            self._set_group_best_candidate(group_id, candidate, launcher)
+            log.info(
+                "[%s] group=%s picked=largest_tile(%s) config=%s",
+                self.get_fn_name(),
+                group_id,
+                reason,
+                candidate.get("full_config", launcher.config),
+            )
 
     def _precompile_variants(self):
         if self._grouped_variant_launchers_initialized:
@@ -2993,7 +3031,7 @@ class NPUSymbolicGroupedAutotuner(NPUCachingAutotuner):
                 return
             self._precompile_variants()
             if self._should_skip_autotune_for_determinism():
-                self._pick_first_compiled_candidate_per_group("deterministic")
+                self._pick_largest_compiled_candidate_per_group("deterministic")
                 return
             self._autotune_all_groups(*args, **kwargs)
 
