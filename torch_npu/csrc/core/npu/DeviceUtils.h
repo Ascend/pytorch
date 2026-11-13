@@ -3,10 +3,7 @@
 #include <ATen/Tensor.h>
 #include <ATen/ATen.h>
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
-#ifndef BUILD_LIBTORCH
-#include "torch_npu/csrc/utils/LazyInit.h"
-#endif
-
+#include "torch_npu/csrc/core/npu/PythonLazyInitBridge.h"
 
 namespace torch_npu {
 namespace utils {
@@ -61,10 +58,8 @@ inline void maybe_initialize_npu(const at::TensorOptions& options)
             TORCH_CHECK(false, "npu device ", options.device().index(), " init failed.",
                         PTA_ERROR(ErrCode::INTERNAL));
         }
-#ifndef BUILD_LIBTORCH
-        torch_npu::utils::npu_lazy_init();
-#endif
-    }
+    c10_npu::impl::runPythonLazyInit();
+  }
 }
 
 inline void maybe_initialize_npu(const at::Device& device)
@@ -76,10 +71,8 @@ inline void maybe_initialize_npu(const at::Device& device)
             TORCH_CHECK(false, "npu device ", device.index(), " init failed.",
                         PTA_ERROR(ErrCode::INTERNAL));
         }
-#ifndef BUILD_LIBTORCH
-        torch_npu::utils::npu_lazy_init();
-#endif
-    }
+    c10_npu::impl::runPythonLazyInit();
+  }
 }
 
 inline void maybe_initialize_npu(const c10::optional<at::Device>& device)

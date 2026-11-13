@@ -18,6 +18,17 @@ _REQUIRED_C_EXTENSION_CHILDREN = [
 ]
 
 
+def _configure_acl_runtime():
+    """Configure ACL defaults before loading extension children and runtimes."""
+    import torch_npu._C as _C
+
+    package_dir = os.path.dirname(torch_npu.__file__)
+    _C._set_default_acl_config_path(
+        os.path.join(package_dir, "acl.json"),
+        os.path.join(package_dir, "acl_default.json"),
+    )
+
+
 def _register_c_extension_submodules(module, memo=None):
     """
     Mirror torch/__init__.py behavior:
@@ -168,6 +179,7 @@ def _load_core_modules():
     Dependency:
     - Runtime support must run after _C child modules are ready.
     """
+    _configure_acl_runtime()
     _initialize_c_extension_children(required_children=_REQUIRED_C_EXTENSION_CHILDREN)
 
     # Do not hide these in another wrapper. Keep dependencies explicit.
