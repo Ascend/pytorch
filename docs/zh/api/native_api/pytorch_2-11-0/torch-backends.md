@@ -503,6 +503,26 @@
 
 </div>
 
+### torch.backends.mps.is_macos_or_newer
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.backends.mps.is_macos_or_newer](https://pytorch.org/docs/2.11/backends.html)
+
+**产品支持情况**：
+
+<!-- npu="910b" id101 -->
+- <term>Atlas A2训练系列产品</term>：不支持
+<!-- end id101 -->
+<!-- npu="A3" id102 -->
+- <term>Atlas A3训练系列产品</term>：不支持
+<!-- end id102 -->
+<!-- npu="950" id103 -->
+- <term>Ascend 950DT系列产品</term>：不支持
+<!-- end id103 -->
+
+</div>
+
 ## torch.backends.mkl
 
 <!-- npu="910b,A3" id106 -->
