@@ -143,5 +143,59 @@ class TestUntypedStorage(TestCase):
                 self.assertEqual(npu_storage[0], 1)
 
 
+class TestTypedStorageByteNPU(TestCase):
+    def test_byte_returns_typed_storage(self):
+        storage = torch.tensor([1, 2, 3], dtype=torch.int32, device=device_type).storage()
+        result = storage.byte()
+        self.assertIsInstance(result, torch.storage.TypedStorage)
+        self.assertEqual(result.dtype, torch.uint8)
+
+    def test_byte_device_npu(self):
+        storage = torch.tensor([1, 2, 3], dtype=torch.int32, device=device_type).storage()
+        result = storage.byte()
+        self.assertEqual(result.device.type, device_type)
+
+    def test_byte_data_correctness(self):
+        storage = torch.tensor([1, 2, 3], dtype=torch.int32, device=device_type).storage()
+        result = storage.byte()
+        self.assertEqual(result.tolist(), [1, 2, 3])
+
+    def test_byte_multiple_dtypes(self):
+        for dtype in [torch.int8, torch.int32, torch.float32, torch.float16]:
+            storage = torch.tensor([1, 2, 3], dtype=dtype, device=device_type).storage()
+            result = storage.byte()
+            self.assertEqual(result.dtype, torch.uint8)
+            self.assertEqual(result.size(), 3)
+
+    def test_byte_does_not_modify_original(self):
+        storage = torch.tensor([5, 6, 7], dtype=torch.int32, device=device_type).storage()
+        result = storage.byte()
+        self.assertEqual(storage.tolist(), [5, 6, 7])
+        self.assertEqual(result.tolist(), [5, 6, 7])
+
+
+class TestTypedStorageCpuNPU(TestCase):
+    def test_cpu_returns_typed_storage(self):
+        storage = torch.tensor([1, 2, 3], dtype=torch.int32, device=device_type).storage()
+        result = storage.cpu()
+        self.assertIsInstance(result, torch.storage.TypedStorage)
+        self.assertEqual(result.device.type, "cpu")
+
+    def test_cpu_dtype_preserved(self):
+        storage = torch.tensor([1, 2, 3], dtype=torch.float32, device=device_type).storage()
+        result = storage.cpu()
+        self.assertEqual(result.dtype, torch.float32)
+
+    def test_cpu_data_correctness(self):
+        storage = torch.tensor([1, 2, 3], dtype=torch.int32, device=device_type).storage()
+        result = storage.cpu()
+        self.assertEqual(result.tolist(), [1, 2, 3])
+
+    def test_cpu_size_preserved(self):
+        storage = torch.tensor([1, 2, 3, 4, 5], dtype=torch.int32, device=device_type).storage()
+        result = storage.cpu()
+        self.assertEqual(result.size(), 5)
+
+
 if __name__ == "__main__":
     run_tests()
