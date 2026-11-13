@@ -37,24 +37,24 @@ Tag 遵循以下格式：
 
 | 字段            | 值                          | 说明                      |
 |-----------------|----------------------------|---------------------------|
-| PyTorch 版本号 | 2.13.0                     | 镜像内预装的PyTorch版本 |
-| CANN 版本       | 9.1.0                      | 镜像内预装的CANN版本 |
+| PyTorch 版本号 | 2.14.0                     | 镜像内预装的PyTorch版本 |
+| CANN 版本       | 9.2.0                      | 镜像内预装的CANN版本 |
 | 硬件信息（芯片） | 310p / 910 / 910b / a3 / 950 | 镜像适用的昇腾芯片型号        |
 | 操作系统        | manylinux_2_28              | 基础镜像所使用的操作系统发行版 |
 
 > Python 版本（默认 `3.10`）通过 `PY_VERSION` 构建参数指定，不体现在 tag 中。
 
-### 最新版本（预装 PyTorch 2.13.0）
+### 最新版本（预装 PyTorch 2.14.0）
 
-如下所示是最新发布的预装 PyTorch 2.13.0 版本的所有镜像，历史版本所有的 Tag 请参考 [Supported Tags](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/supported_tags.md)。
+如下所示是最新发布的预装 PyTorch 2.14.0 版本的所有镜像，历史版本所有的 Tag 请参考 [Supported Tags](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/supported_tags.md)。
 
 | Tag | Dockerfile | 镜像内容 |
 |---|---|---|
-| `2.13.0-cann9.1.0-310p-manylinux_2_28` | [Dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/Dockerfile) | torch-cpu/CANN |
-| `2.13.0-cann9.1.0-910-manylinux_2_28` | [Dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/Dockerfile) | torch-cpu/CANN |
-| `2.13.0-cann9.1.0-910b-manylinux_2_28` | [Dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/Dockerfile) | torch-cpu/CANN |
-| `2.13.0-cann9.1.0-a3-manylinux_2_28` | [Dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/Dockerfile) | torch-cpu/CANN |
-| `2.13.0-cann9.1.0-950-manylinux_2_28` | [Dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/Dockerfile) | torch-cpu/CANN |
+| `2.14.0-cann9.2.0-310p-manylinux_2_28` | [Dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/Dockerfile) | torch-cpu/CANN |
+| `2.14.0-cann9.2.0-910-manylinux_2_28` | [Dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/Dockerfile) | torch-cpu/CANN |
+| `2.14.0-cann9.2.0-910b-manylinux_2_28` | [Dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/Dockerfile) | torch-cpu/CANN |
+| `2.14.0-cann9.2.0-a3-manylinux_2_28` | [Dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/Dockerfile) | torch-cpu/CANN |
+| `2.14.0-cann9.2.0-950-manylinux_2_28` | [Dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/docker/devel/Dockerfile) | torch-cpu/CANN |
 
 ### Dockerfile 构建参数
 
@@ -63,12 +63,12 @@ dockerfile 详见：[dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/
 | 参数               | 说明                                                                | 必填 | 参考来源            | 参数取值                       |
 |--------------------|------------------------------------------------------------------|----|-------------------|----------------------------|
 | PY_VERSION         | Python 版本，仅安装对应版本依赖                                          | 是  | manylinux 镜像      | 3.10                        |
-| TORCH_VERSION      | PyTorch 版本，格式 `x.x.x`（如 `2.13.0`）或 dev 版本（如 `2.13.0.dev20260610`） | 是  | TorchNPU 仓库发行版  | 2.13.0                      |
+| TORCH_VERSION      | PyTorch 版本，格式 `x.x.x`（如 `2.14.0`）或 dev 版本（如 `2.15.0.dev20260928`） | 是  | TorchNPU 仓库发行版  | 2.14.0                      |
 | DEVTOOLSET_VERSION | GCC toolset 版本                                              | 否  | Dockerfile 默认值   | 13                          |
-| CANN_VERSION       | 昇腾 CANN 工具包版本                                               | 是  | CANN 基础镜像仓库   | 9.1.0                       |
+| CANN_VERSION       | 昇腾 CANN 工具包版本                                               | 是  | CANN 基础镜像仓库   | 9.2.0                       |
 | CANN_PRODUCT       | CANN 算子包产品类型                                               | 是  | CANN 产品映射       | 910b                        |
 | INSTALL_NNAL       | 是否安装 NNAL 神经网络加速库                                         | 否  | Dockerfile 默认值   | 0                           |
-| CANN_RELEASE_TRAIN | CANN 发布版本号，当 `CANN_VERSION` 与默认值不同时需手动指定                  | 否  | CANN 下载目录       | CANN%209.1.0                |
+| CANN_RELEASE_TRAIN | CANN 发布版本号，当 `CANN_VERSION` 与默认值不同时需手动指定                  | 否  | CANN 下载目录       | CANN%209.2.0                |
 
 ### CANN 产品映射
 
@@ -82,22 +82,22 @@ dockerfile 详见：[dockerfile](https://gitcode.com/Ascend/pytorch/blob/master/
 
 ### 参数来源
 
-1. OBS 上的 CANN `.run` 包按 release train 分目录存放（如 `CANN%209.1.T1`、`CANN%209.1.0`），目录名无法由版本号自动推导。因此当 `CANN_VERSION` 与默认值 `9.1.0` 不同时，必须同时通过 `CANN_RELEASE_TRAIN` 指定对应的发布版本号，否则构建会报错退出。请到 [昇腾官网下载页](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/softwareinst/instg/instg_0008.html) 查找目标版本对应的目录名。
+1. OBS 上的 CANN `.run` 包按 release train 分目录存放（如 `CANN%209.2.T1`、`CANN%209.2.0`），目录名无法由版本号自动推导。因此当 `CANN_VERSION` 与默认值 `9.2.0` 不同时，必须同时通过 `CANN_RELEASE_TRAIN` 指定对应的发布版本号，否则构建会报错退出。请到 [昇腾官网下载页](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/softwareinst/instg/instg_0008.html) 查找目标版本对应的目录名。
 
 ## 快速开始
 
 ### 构建 TorchNPU devel 镜像
 
-以构建2.13.0-cann9.1.0-910b-manylinux_2_28为例：
+以构建2.14.0-cann9.2.0-910b-manylinux_2_28为例：
 
 ```bash
 docker build \
   --target dev \
   --build-arg PY_VERSION=3.10 \
-  --build-arg TORCH_VERSION=2.13.0 \
-  --build-arg CANN_VERSION=9.1.0 \
+  --build-arg TORCH_VERSION=2.14.0 \
+  --build-arg CANN_VERSION=9.2.0 \
   --build-arg CANN_PRODUCT=910b \
-  --build-arg CANN_RELEASE_TRAIN="CANN%209.1.0" \
+  --build-arg CANN_RELEASE_TRAIN="CANN%209.2.0" \
   -t image_name:tag \
   -f Dockerfile .
 ```
@@ -106,11 +106,11 @@ docker build \
 
 | 镜像 Tag                                         | 构建命令                                                                                                                                                                                                                                                                                                                                                                            |
 |---------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `2.13.0-cann9.1.0-310p-manylinux_2_28`            | `docker build --target dev --build-arg PY_VERSION=3.10 --build-arg TORCH_VERSION=2.13.0 --build-arg CANN_VERSION=9.1.0 --build-arg CANN_PRODUCT=310p --build-arg CANN_RELEASE_TRAIN="CANN%209.1.0" -t *your-registry*/torch-npu-devel:2.13.0-cann9.1.0-310p-manylinux_2_28 --push .`                                                                |
-| `2.13.0-cann9.1.0-910-manylinux_2_28`             | `docker build --target dev --build-arg PY_VERSION=3.10 --build-arg TORCH_VERSION=2.13.0 --build-arg CANN_VERSION=9.1.0 --build-arg CANN_PRODUCT=910 --build-arg CANN_RELEASE_TRAIN="CANN%209.1.0" -t *your-registry*/torch-npu-devel:2.13.0-cann9.1.0-910-manylinux_2_28 --push .`                                                                |
-| `2.13.0-cann9.1.0-910b-manylinux_2_28`            | `docker build --target dev --build-arg PY_VERSION=3.10 --build-arg TORCH_VERSION=2.13.0 --build-arg CANN_VERSION=9.1.0 --build-arg CANN_PRODUCT=910b --build-arg CANN_RELEASE_TRAIN="CANN%209.1.0" -t *your-registry*/torch-npu-devel:2.13.0-cann9.1.0-910b-manylinux_2_28 --push .`                                                                |
-| `2.13.0-cann9.1.0-a3-manylinux_2_28`              | `docker build --target dev --build-arg PY_VERSION=3.10 --build-arg TORCH_VERSION=2.13.0 --build-arg CANN_VERSION=9.1.0 --build-arg CANN_PRODUCT=A3 --build-arg CANN_RELEASE_TRAIN="CANN%209.1.0" -t *your-registry*/torch-npu-devel:2.13.0-cann9.1.0-a3-manylinux_2_28 --push .`                                                                  |
-| `2.13.0-cann9.1.0-950-manylinux_2_28`             | `docker build --target dev --build-arg PY_VERSION=3.10 --build-arg TORCH_VERSION=2.13.0 --build-arg CANN_VERSION=9.1.0 --build-arg CANN_PRODUCT=950 --build-arg CANN_RELEASE_TRAIN="CANN%209.1.0" -t *your-registry*/torch-npu-devel:2.13.0-cann9.1.0-950-manylinux_2_28 --push .`                                                                |
+| `2.14.0-cann9.2.0-310p-manylinux_2_28`            | `docker build --target dev --build-arg PY_VERSION=3.10 --build-arg TORCH_VERSION=2.14.0 --build-arg CANN_VERSION=9.2.0 --build-arg CANN_PRODUCT=310p --build-arg CANN_RELEASE_TRAIN="CANN%209.2.0" -t *your-registry*/torch-npu-devel:2.14.0-cann9.2.0-310p-manylinux_2_28 --push .`                                                                |
+| `2.14.0-cann9.2.0-910-manylinux_2_28`             | `docker build --target dev --build-arg PY_VERSION=3.10 --build-arg TORCH_VERSION=2.14.0 --build-arg CANN_VERSION=9.2.0 --build-arg CANN_PRODUCT=910 --build-arg CANN_RELEASE_TRAIN="CANN%209.2.0" -t *your-registry*/torch-npu-devel:2.14.0-cann9.2.0-910-manylinux_2_28 --push .`                                                                |
+| `2.14.0-cann9.2.0-910b-manylinux_2_28`            | `docker build --target dev --build-arg PY_VERSION=3.10 --build-arg TORCH_VERSION=2.14.0 --build-arg CANN_VERSION=9.2.0 --build-arg CANN_PRODUCT=910b --build-arg CANN_RELEASE_TRAIN="CANN%209.2.0" -t *your-registry*/torch-npu-devel:2.14.0-cann9.2.0-910b-manylinux_2_28 --push .`                                                                |
+| `2.14.0-cann9.2.0-a3-manylinux_2_28`              | `docker build --target dev --build-arg PY_VERSION=3.10 --build-arg TORCH_VERSION=2.14.0 --build-arg CANN_VERSION=9.2.0 --build-arg CANN_PRODUCT=A3 --build-arg CANN_RELEASE_TRAIN="CANN%209.2.0" -t *your-registry*/torch-npu-devel:2.14.0-cann9.2.0-a3-manylinux_2_28 --push .`                                                                  |
+| `2.14.0-cann9.2.0-950-manylinux_2_28`             | `docker build --target dev --build-arg PY_VERSION=3.10 --build-arg TORCH_VERSION=2.14.0 --build-arg CANN_VERSION=9.2.0 --build-arg CANN_PRODUCT=950 --build-arg CANN_RELEASE_TRAIN="CANN%209.2.0" -t *your-registry*/torch-npu-devel:2.14.0-cann9.2.0-950-manylinux_2_28 --push .`                                                                |
 
 **注意**：若构建环境需要配置代理，需通过 `--build-arg` 传入代理变量，例如：
 
@@ -139,7 +139,7 @@ docker run -d --rm \
     -v /usr/local/sbin/npu-smi:/usr/local/bin/npu-smi \
     -v /var/log/npu:/usr/slog \
     -e LD_LIBRARY_PATH=/usr/local/Ascend/driver/lib64:/usr/local/Ascend/driver/lib64/base:/usr/local/Ascend/driver/lib64/common:/usr/local/Ascend/driver/lib64/driver \
-    -it torch-npu-devel:2.13.0-cann9.1.0-910b-manylinux_2_28 \
+    -it torch-npu-devel:2.14.0-cann9.2.0-910b-manylinux_2_28 \
     tail -f /dev/null
 ```
 
@@ -166,7 +166,7 @@ docker exec torch-npu-devel npu-smi info
 
 ```bash
 # 以 TorchNPU devel 镜像为基础镜像，叠加用户软件
-FROM *your-registry*/torch-npu-devel:2.13.0-cann9.1.0-910b-manylinux_2_28
+FROM *your-registry*/torch-npu-devel:2.14.0-cann9.2.0-910b-manylinux_2_28
 
 RUN yum install -y gcc ...
 
@@ -181,9 +181,9 @@ RUN yum install -y gcc ...
 >
 > **torch CPU whl 选择**：从 PyTorch 官方索引安装 CPU 版 torch，`pip` 会根据当前解释器自动选择对应 ABI 标签的 whl（`cp310`/`cp311`/`cp312`/`cp313`/`cp314`），无需手动指定：
 >
-> - 稳定版本（如 `2.13.0`）：`pip${PY_VERSION} install torch==${TORCH_VERSION} --index-url https://download.pytorch.org/whl/cpu`
-> - dev/nightly 版本（匹配 `*.dev*`，如 `2.13.0.dev20260610`）：`pip${PY_VERSION} install torch==${TORCH_VERSION} --index-url https://download.pytorch.org/whl/nightly/cpu`
-> - 其他详细的编译与开发依赖可见对应仓库目录下的 [requirements(以2.13.0版本为例)](https://gitcode.com/Ascend/pytorch/blob/master/requirements_2.13.txt)。
+> - 稳定版本（如 `2.14.0`）：`pip${PY_VERSION} install torch==${TORCH_VERSION} --index-url https://download.pytorch.org/whl/cpu`
+> - dev/nightly 版本（匹配 `*.dev*`，如 `2.15.0.dev20260928`）：`pip${PY_VERSION} install torch==${TORCH_VERSION} --index-url https://download.pytorch.org/whl/nightly/cpu`
+> - 其他详细的编译与开发依赖可见对应仓库目录下的 [requirements(以2.14.0版本为例)](https://gitcode.com/Ascend/pytorch/blob/master/requirements_2.14.txt)。
 
 ---
 
