@@ -8,10 +8,13 @@ from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils._error_code import ErrCode, pta_error
 
+from torch_npu._compat import associative_scan as _associative_scan_compat
+
 
 all_monkey_patches = [
     ["nn.functional", npu_functional],
     ["nn", npu_modules],
+    ["_higher_order_ops.associative_scan", _associative_scan_compat],
 ]
 
 
