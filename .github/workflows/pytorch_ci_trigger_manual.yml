@@ -86,8 +86,8 @@ jobs:
       report_to_upstream: false
       # Wheels cache moved to the dedicated Guiyang bucket
       # (pytorch-torchnpu, cn-southwest-2): uploads during build and
-      # downloads during test all use it. The PyTorch source tarball
-      # stays on the legacy ap-southeast-1 bucket. The Guiyang bucket is
+      # downloads during test all use it. The PyTorch source itself is
+      # cloned from the in-cluster git-cdn. The Guiyang bucket is
       # owned by a different key pair (ACCESSKEY_GUIYANG/
       # SECRETACCESSKEY_GUIYANG), selected by the wheel steps via the
       # cn-southwest-2 endpoint match. The bucket starts empty on
@@ -104,6 +104,8 @@ jobs:
     secrets: inherit
     with:
       resolved_short: ${{ needs.build.outputs.resolved_short }}
+      resolved_sha: ${{ needs.build.outputs.resolved_sha }}
+      upstream_repo: pytorch/pytorch
       torch_npu_short: ${{ needs.build.outputs.torch_npu_short }}
       pytorch_wheels_tarball: ${{ needs.build.outputs.pytorch_wheels_tarball }}
       torchnpu_wheels_tarball: ${{ needs.build.outputs.torchnpu_wheels_tarball }}

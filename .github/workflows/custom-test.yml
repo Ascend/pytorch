@@ -11,7 +11,8 @@
 #   双平台，把两处 `inputs.platform || 'a5'` 改回 'both' 即可。
 #
 # 为什么不编译: resolve job 按 builder 镜像 tag 去 OBS 7day-cache 匹配选中平台
-# 完整的 source + wheels triple（nightly-a3 / nightly-a5 每次构建都会写入）。
+# 完整的 wheels triple（nightly-a3 / nightly-a5 每次构建都会写入），再用
+# GitHub API 把 10 位 short sha 展开成完整 SHA，供分片侧从集群 git-cdn 取源码。
 # 任一选中平台匹配不到就直接失败，不会退化成编译，也不做任何用例收集。
 #
 # 报告格式: 与 a3/a5 nightly 一致，直接复用 generate_npu_full_test_report.py
@@ -80,10 +81,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:
+      a3_resolved_sha: ${{ steps.pick.outputs.a3_resolved_sha }}
       a3_resolved_short: ${{ steps.pick.outputs.a3_resolved_short }}
       a3_torch_npu_short: ${{ steps.pick.outputs.a3_torch_npu_short }}
       a3_pytorch_wheels_tarball: ${{ steps.pick.outputs.a3_pytorch_wheels_tarball }}
       a3_torchnpu_wheels_tarball: ${{ steps.pick.outputs.a3_torchnpu_wheels_tarball }}
+      a5_resolved_sha: ${{ steps.pick.outputs.a5_resolved_sha }}
       a5_resolved_short: ${{ steps.pick.outputs.a5_resolved_short }}
       a5_torch_npu_short: ${{ steps.pick.outputs.a5_torch_npu_short }}
       a5_pytorch_wheels_tarball: ${{ steps.pick.outputs.a5_pytorch_wheels_tarball }}
@@ -130,20 +133,20 @@ jobs:
           PLATFORM: ${{ inputs.platform || 'a5' }}
           WHEELS_AK: ${{ secrets.ACCESSKEY_GUIYANG }}
           WHEELS_SK: ${{ secrets.SECRETACCESSKEY_GUIYANG }}
-          SOURCE_AK: ${{ secrets.ACCESSKEY }}
-          SOURCE_SK: ${{ secrets.SECRETACCESSKEY }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           export PATH="${HOME}/.local/obsutil:${PATH}"
           python3 - <<'PY'
+          import json
           import os
           import re
           import subprocess
           import sys
+          import urllib.request
 
           WHEELS_BASE = "obs://pytorch-torchnpu/7day-cache"
-          SOURCE_BASE = "obs://pytorch-ci-cache/7day-cache"
           WHEELS_ENDPOINT = "obs.cn-southwest-2.myhuaweicloud.com"
-          SOURCE_ENDPOINT = "obs.ap-southeast-1.myhuaweicloud.com"
+          UPSTREAM_REPO = "pytorch/pytorch"
 
           # Builder image tags. 必须与下面 test-a3 / test-a5 用的测试镜像同源：
           # wheels 对象名里嵌了完整的 builder 镜像 tag，tag 不同就是另一个缓存
@@ -173,10 +176,6 @@ jobs:
               obsutil("config", f"-i={os.environ['WHEELS_AK']}",
                       f"-k={os.environ['WHEELS_SK']}", f"-e={WHEELS_ENDPOINT}")
 
-          def use_source_config():
-              obsutil("config", f"-i={os.environ['SOURCE_AK']}",
-                      f"-k={os.environ['SOURCE_SK']}", f"-e={SOURCE_ENDPOINT}")
-
           def ls_objects(prefix):
               use_wheels_config()
               result = obsutil("ls", f"{WHEELS_BASE}/{prefix}", "-limit=1000")
@@ -188,14 +187,30 @@ jobs:
                   if line.strip().startswith("obs://")
               ]
 
-          def source_last_modified(upstream_short):
-              use_source_config()
-              result = obsutil("stat", f"{SOURCE_BASE}/pytorch-source-{upstream_short}.tar.gz")
+          def object_last_modified(tarball):
+              """同一套 triple 的新旧排序键：pytorch wheels 对象的 LastModified。"""
+              use_wheels_config()
+              result = obsutil("stat", f"{WHEELS_BASE}/{tarball}")
               if result.returncode != 0:
                   return None
               match = LAST_MODIFIED_RE.search(result.stdout)
               # 解析不出时间戳时返回 ""，仍算"存在"，且排在真实时间戳之前。
               return match.group(1) if match else ""
+
+          def resolve_full_sha(upstream_short):
+              """把 10 位 short sha 展开成 40 位完整 SHA。
+
+              分片侧要按完整 SHA 从集群 git-cdn 取源码，short sha 没法直接
+              fetch，所以这里通过 GitHub API 补全。
+              """
+              url = f"https://api.github.com/repos/{UPSTREAM_REPO}/commits/{upstream_short}"
+              request = urllib.request.Request(url, headers={
+                  "Accept": "application/vnd.github+json",
+                  "Authorization": f"Bearer {os.environ['GH_TOKEN']}",
+                  "User-Agent": "pytorch-ci-resolve",
+              })
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  return json.load(response)["sha"]
 
           missing = []
           lines = []
@@ -233,7 +248,7 @@ jobs:
 
                   best = None
                   for candidate in candidates[:MAX_STAT]:
-                      modified = source_last_modified(candidate[0])
+                      modified = object_last_modified(candidate[2])
                       if modified is None:
                           continue
                       if best is None or modified > best[0]:
@@ -242,15 +257,17 @@ jobs:
                   if best is None:
                       missing.append(platform)
                       lines.append(
-                          f"[{platform}] no complete source+wheels triple in OBS for image {image_tag}"
+                          f"[{platform}] no complete wheels triple in OBS for image {image_tag}"
                       )
                       continue
 
                   _, upstream_short, torch_npu_short, pytorch_name, torchnpu_name = best
+                  resolved_sha = resolve_full_sha(upstream_short)
                   lines.append(f"[{platform}] reusing OBS triple for upstream {upstream_short}:")
-                  lines.append(f"[{platform}]   pytorch-source-{upstream_short}.tar.gz")
+                  lines.append(f"[{platform}]   source commit {resolved_sha}")
                   lines.append(f"[{platform}]   {pytorch_name}")
                   lines.append(f"[{platform}]   {torchnpu_name}")
+                  handle.write(f"{platform}_resolved_sha={resolved_sha}\n")
                   handle.write(f"{platform}_resolved_short={upstream_short}\n")
                   handle.write(f"{platform}_torch_npu_short={torch_npu_short}\n")
                   handle.write(f"{platform}_pytorch_wheels_tarball={pytorch_name}\n")
@@ -261,7 +278,7 @@ jobs:
 
           if missing:
               sys.exit(
-                  "ERROR: no reusable source+wheels triple in OBS for "
+                  "ERROR: no reusable wheels triple in OBS for "
                   f"{', '.join(missing)}. This pipeline never builds; run the "
                   "matching nightly first, or align the builder image tag in this "
                   "file with one that has a triple."
@@ -433,7 +450,7 @@ jobs:
     secrets: inherit
     with:
       resolved_short: ${{ needs.resolve.outputs.a3_resolved_short }}
-      resolved_sha: ${{ needs.resolve.outputs.a3_resolved_short }}
+      resolved_sha: ${{ needs.resolve.outputs.a3_resolved_sha }}
       pytorch_wheels_tarball: ${{ needs.resolve.outputs.a3_pytorch_wheels_tarball }}
       torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a3_torchnpu_wheels_tarball }}
       upstream_repo: pytorch/pytorch
@@ -464,7 +481,7 @@ jobs:
     secrets: inherit
     with:
       resolved_short: ${{ needs.resolve.outputs.a5_resolved_short }}
-      resolved_sha: ${{ needs.resolve.outputs.a5_resolved_short }}
+      resolved_sha: ${{ needs.resolve.outputs.a5_resolved_sha }}
       pytorch_wheels_tarball: ${{ needs.resolve.outputs.a5_pytorch_wheels_tarball }}
       torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a5_torchnpu_wheels_tarball }}
       upstream_repo: pytorch/pytorch

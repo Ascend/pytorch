@@ -161,9 +161,8 @@ on:
         default: 'obs.ap-southeast-1.myhuaweicloud.com'
         description: >-
           OBS endpoint for the wheels cache objects (wheel downloads in
-          the collect and shard jobs). The PyTorch source tarball always
-          stays on the legacy ap-southeast-1 endpoint regardless of this
-          input. Must match the endpoint the build phase used.
+          the collect and shard jobs). The PyTorch source itself comes from
+          the in-cluster git-cdn, not from OBS.
       wheels_obs_bucket:
         required: false
         type: string
