@@ -122,11 +122,7 @@
         "acl not supported:aclnnVarMean"
       ],
       "https://gitcode.com/Ascend/pytorch/issues/6009": [
-        "NPU contiguous operator only supported contiguous memory format",
-        "Only c10::MemoryFormat::Contiguous is supported for creating a npu tensor",
-        "Only contiguous_format or preserve_format is supported",
-        "RuntimeError: NPU contiguous operator only supported contiguous memory format.",
-        "RuntimeError: Only contiguous_format or preserve_format is supported."
+        "NPU only supported contiguous memory format"
       ],
       "https://gitcode.com/Ascend/pytorch/issues/6011": [
         "cannot be larger than 8 dimensions"
