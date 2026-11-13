@@ -62,10 +62,10 @@ on:
     outputs:
       resolved_sha:
         description: Full resolved SHA of upstream PyTorch
-        value: ${{ jobs.fetch.outputs.resolved_sha }}
+        value: ${{ jobs.pytorch_and_torch-npu_build.outputs.resolved_sha }}
       resolved_short:
         description: Short SHA (first 10 chars) of upstream PyTorch
-        value: ${{ jobs.fetch.outputs.resolved_short }}
+        value: ${{ jobs.pytorch_and_torch-npu_build.outputs.resolved_short }}
       torch_npu_sha:
         description: Full SHA of torch_npu
         value: ${{ jobs.pytorch_and_torch-npu_build.outputs.torch_npu_sha }}
@@ -89,88 +89,9 @@ on:
 
 jobs:
   # ======================================================================
-  # Job 1: Fetch PyTorch source on GitHub free runner (no proxy needed)
-  # ======================================================================
-  fetch:
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write  # Required by cross-repo-ci-relay-callback to obtain an OIDC token
-      contents: read
-    outputs:
-      resolved_sha: ${{ steps.resolve.outputs.sha }}
-      resolved_short: ${{ steps.resolve.outputs.short }}
-    steps:
-      # Step 0: Report fetch in_progress to upstream. Same mandatory
-      # semantics as the build job's in_progress report: no
-      # continue-on-error, so an OIDC failure aborts the pipeline early
-      # (before any source download/packaging work is done).
-      - name: Report fetch in_progress
-        if: ${{ inputs.report_to_upstream }}
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
-        with:
-          status: in_progress
-          job-name: ubuntu-latest / fetch (pytorch)
-          max-time: 60
-
-      - name: Checkout upstream PyTorch
-        uses: actions/checkout@v6
-        with:
-          repository: ${{ inputs.upstream_repo }}
-          ref: ${{ inputs.upstream_ref }}
-          fetch-depth: 1
-          submodules: false
-          path: pytorch
-
-      - name: Resolve actual HEAD SHA
-        id: resolve
-        working-directory: pytorch
-        run: |
-          SHA=$(git rev-parse HEAD)
-          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
-          echo "short=${SHA:0:10}" >> "$GITHUB_OUTPUT"
-          echo "Resolved ${{ inputs.upstream_ref }} -> ${SHA}"
-
-      # Report fetch completed: the only meaningful step of this job is
-      # resolving the commit (the source itself is cloned from git-cdn by
-      # the build and test jobs). continue-on-error keeps a dashboard relay
-      # failure from masking the job's real outcome.
-      - name: Report fetch completed
-        id: report_fetch_completed
-        if: always() && inputs.report_to_upstream
-        continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
-        with:
-          status: completed
-          conclusion: ${{ steps.resolve.outcome == 'success' && 'success' || 'failure' }}
-          job-name: ubuntu-latest / fetch (pytorch)
-          max-time: 60
-
-      # The completion report above is best-effort (continue-on-error) and
-      # occasionally fails on a transient OIDC token mint timeout, which
-      # would silently drop the report to the upstream dashboard. Retry
-      # once after 30s when the first attempt failed. NOTE: this job does
-      # not check out this repository, so the sleep must be a plain run
-      # step and the retry re-invokes the remote action directly — a
-      # local composite action cannot be resolved here.
-      - name: Wait 30s before report retry
-        if: always() && inputs.report_to_upstream && steps.report_fetch_completed.outcome == 'failure'
-        run: sleep 30
-
-      - name: Retry report fetch completed
-        if: always() && inputs.report_to_upstream && steps.report_fetch_completed.outcome == 'failure'
-        continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
-        with:
-          status: completed
-          conclusion: ${{ steps.resolve.outcome == 'success' && 'success' || 'failure' }}
-          job-name: ubuntu-latest / fetch (pytorch)
-          max-time: 60
-
-  # ======================================================================
   # Job 2: Build PyTorch + torch_npu on self-hosted ARM64 runner
   # ======================================================================
   pytorch_and_torch-npu_build:
-    needs: fetch
     runs-on: ${{ inputs.runner_label }}
     permissions:
       id-token: write
@@ -179,6 +100,8 @@ jobs:
       run:
         shell: bash
     outputs:
+      resolved_sha: ${{ steps.clone.outputs.upstream_sha }}
+      resolved_short: ${{ steps.clone.outputs.upstream_short }}
       torch_npu_sha: ${{ steps.resolve_torch_npu_sha.outputs.sha }}
       torch_npu_short: ${{ steps.resolve_torch_npu_sha.outputs.short }}
       pytorch_wheels_tarball: ${{ steps.pytorch_wheels_name.outputs.pytorch_wheels_tarball }}
@@ -209,33 +132,48 @@ jobs:
           echo "Image python: $(python3 --version)"
 
       # Step 0: Report build in_progress to upstream (same job as completed).
-      # Best-effort: the fetch job already registered the pipeline with the
-      # upstream dashboard (its in_progress report is mandatory and fails
-      # the pipeline on error), so a transient OIDC timeout here does not
-      # lose the pipeline registration — retry the build via re-run.
+      # This is now the pipeline's only in_progress report (the former fetch
+      # job is gone), so it is mandatory: an OIDC failure aborts early instead
+      # of leaving the run unregistered on the dashboard.
       - name: Report build in_progress
         if: ${{ inputs.report_to_upstream }}
-        continue-on-error: true
         uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
         with:
           status: in_progress
           job-name: ${{ inputs.runner_label }} / build (pytorch, torch-npu, ${{ steps.pyver.outputs.label }})
           max-time: 60
 
-      # Step 1: Download and extract pre-fetched PyTorch source
-      # obsutil is preinstalled in the build image; auth is done inline
-      # via `obsutil config` (AK/SK are masked by the runner in logs).
-      # Objects above the 50MB threshold use segment download
-      # automatically; a failed attempt leaves a checkpoint record in
-      # ~/.obsutil_checkpoint/down, so the retry resumes the transfer
-      # instead of restarting from byte 0. -vlength verifies the local
-      # file size against the object. Do NOT delete the .obs.temp partial
-      # file between attempts — it is the resume state.
-      - name: Compute SHAs
-        id: sha
+      # Step 1: Clone the PyTorch source from the in-cluster git-cdn and
+      # take the commit id from that very clone — this is the only place
+      # the upstream ref is resolved, so every downstream job gets an
+      # immutable SHA without a second Git operation elsewhere.
+      # The runner's git config rewrites https://github.com/ to the cluster
+      # git-cdn, so the traffic stays inside the cluster and is served from
+      # cache.
+      # Submodules are deliberately NOT shallow-cloned (no --depth 1): a shallow
+      # submodule has none of the pinned SHAs reachable from its local refs, so
+      # git re-fetches every pin serially after the parallel `--jobs` clone phase
+      # (measured on the pytorch tree: 239s shallow vs 126s full history).
+
+      - name: Clone PyTorch source from git-cdn
+        id: clone
+        env:
+          UPSTREAM_REPO: ${{ inputs.upstream_repo }}
+          UPSTREAM_REF: ${{ inputs.upstream_ref }}
         run: |
-          UPSTREAM_SHORT="${{ needs.fetch.outputs.resolved_short }}"
-          echo "upstream_short=${UPSTREAM_SHORT}" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          git init -q pytorch
+          cd pytorch
+          git remote add origin "https://github.com/${UPSTREAM_REPO}.git"
+          git fetch --depth 1 origin "${UPSTREAM_REF}"
+          git checkout -q -b build FETCH_HEAD
+          # The commit id comes from the clone itself, so downstream jobs never
+          # resolve the ref again and cannot drift from the built tree.
+          SHA=$(git rev-parse HEAD)
+          echo "upstream_sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "upstream_short=${SHA:0:10}" >> "$GITHUB_OUTPUT"
+          git submodule update --init --recursive --jobs=$(nproc)
+          echo "PyTorch source ready: ${SHA:0:10}, $(du -sh . | cut -f1)"
 
       # Content-addressed name of the pytorch-side wheels cache object
       # (torch + torchvision). Deliberately does NOT embed the torch_npu
@@ -248,7 +186,7 @@ jobs:
         id: pytorch_wheels_name
         env:
           DOCKER_IMAGE: ${{ inputs.docker_image }}
-          UPSTREAM_SHORT: ${{ needs.fetch.outputs.resolved_short }}
+          UPSTREAM_SHORT: ${{ steps.clone.outputs.upstream_short }}
         run: |
           ARCH=$(uname -m)
           PYVER=$(python3 -c "import sys; print(f'py{sys.version_info.major}{sys.version_info.minor}')")
@@ -265,37 +203,6 @@ jobs:
           echo "pytorch_wheels_tarball=${TARBALL}" >> "$GITHUB_OUTPUT"
           echo "Pytorch wheels tarball: ${TARBALL}"
 
-      # Step 1c: Clone the PyTorch source from the in-cluster git-cdn instead of
-      # downloading the ~800MB source tarball from OBS. The runner's git config
-      # rewrites https://github.com/ to the cluster git-cdn, so the traffic stays
-      # inside the cluster and is served from cache.
-      # Submodules are deliberately NOT shallow-cloned (no --depth 1): a shallow
-      # submodule has none of the pinned SHAs reachable from its local refs, so
-      # git re-fetches every pin serially after the parallel `--jobs` clone phase
-      # (measured on the pytorch tree: 239s shallow vs 126s full history).
-      - name: Clone PyTorch source from git-cdn
-        env:
-          UPSTREAM_REPO: ${{ inputs.upstream_repo }}
-          UPSTREAM_REF: ${{ inputs.upstream_ref }}
-          UPSTREAM_SHA: ${{ needs.fetch.outputs.resolved_sha }}
-        run: |
-          set -euo pipefail
-          git init -q pytorch
-          cd pytorch
-          git remote add origin "https://github.com/${UPSTREAM_REPO}.git"
-          # Prefer fetching the resolved commit directly (git-cdn allows SHA
-          # wants); fall back to the ref for servers that do not.
-          git fetch --depth 1 origin "${UPSTREAM_SHA}" || git fetch --depth 1 origin "${UPSTREAM_REF}"
-          git checkout -q -b build FETCH_HEAD
-          # The wheel was built from this exact commit; refuse to build a
-          # different tree if the ref moved between the fetch job and here.
-          test "$(git rev-parse HEAD)" = "${UPSTREAM_SHA}" || {
-            echo "ERROR: checked out $(git rev-parse HEAD), expected ${UPSTREAM_SHA}"
-            exit 1
-          }
-          git submodule update --init --recursive --jobs=$(nproc)
-          echo "PyTorch source ready: $(git rev-parse --short HEAD), $(du -sh . | cut -f1)"
-
       # Step 2: Build and install PyTorch
       - name: Build and install PyTorch
         id: build_pytorch
@@ -303,7 +210,7 @@ jobs:
         run: |
           echo "============================================"
           echo "Building PyTorch from ${{ inputs.upstream_repo }} @ ${{ inputs.upstream_ref }}"
-          echo "Resolved commit: ${{ needs.fetch.outputs.resolved_sha }}"
+          echo "Resolved commit: ${{ steps.clone.outputs.upstream_sha }}"
           echo "MAX_JOBS: ${MAX_JOBS}"
           echo "============================================"
 
@@ -508,7 +415,7 @@ jobs:
         id: torchnpu_wheels_name
         env:
           DOCKER_IMAGE: ${{ inputs.docker_image }}
-          UPSTREAM_SHORT: ${{ needs.fetch.outputs.resolved_short }}
+          UPSTREAM_SHORT: ${{ steps.clone.outputs.upstream_short }}
           TORCH_NPU_SHORT: ${{ steps.resolve_torch_npu_sha.outputs.short }}
         run: |
           ARCH=$(uname -m)
@@ -626,7 +533,7 @@ jobs:
           echo "============================================"
           echo "PyTorch upstream: ${{ inputs.upstream_repo }}"
           echo "PyTorch ref     : ${{ inputs.upstream_ref }}"
-          echo "PyTorch commit  : ${{ needs.fetch.outputs.resolved_sha }}"
+          echo "PyTorch commit  : ${{ steps.clone.outputs.upstream_sha }}"
           echo "torch_npu repo  : ${{ inputs.torch_npu_repo }}"
           echo "torch_npu commit: ${TORCH_NPU_SHA}"
           echo "Max jobs        : ${MAX_JOBS}"
@@ -640,7 +547,7 @@ jobs:
             echo "| Item | Value |"
             echo "|------|-------|"
             echo "| PyTorch upstream | ${{ inputs.upstream_repo }} |"
-            echo "| PyTorch commit | \`${{ needs.fetch.outputs.resolved_sha }}\` |"
+            echo "| PyTorch commit | \`${{ steps.clone.outputs.upstream_sha }}\` |"
             echo "| torch_npu repo | ${{ inputs.torch_npu_repo }} |"
             echo "| torch_npu commit | \`${TORCH_NPU_SHA}\` |"
             echo "| Max jobs | ${MAX_JOBS} |"
