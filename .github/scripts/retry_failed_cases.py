@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
 """
-Retry failed/error/timeout cases from a finished shard run, serially.
+Retry failed/error/timeout cases from a finished shard run, in isolated
+rounds whose concurrency is configurable per round.
 
 Runs AFTER the shard runner (run_npu_test_shard.py or
 run_npu_test_shard_batch.py) has written
 test-reports/shard_<prefix>-<n>_cases.json and BEFORE the workflow parses
-those results, so flaky/infra-transient failures get single-process
-(non-concurrent) second chances:
+those results, so flaky/infra-transient failures get second chances:
 
     - Only cases whose recorded status is failed / error / timeout are
       retried; none -> print a skip note and exit 0.
-    - Execution reuses run_tests_with_tasks_concurrent with max_workers=1
-      (one worker subprocess at a time, one pytest.main() per case), keeping
-      the original case_idx so per-case junit XML / case log filenames in
-      the retry report dir match the main-run filenames.
-    - Each case gets up to --max-attempts isolated serial rounds (default
+    - Execution reuses run_tests_with_tasks_concurrent, keeping the original
+      case_idx so per-case junit XML / case log filenames in the retry
+      report dir match the main-run filenames. The worker count comes from
+      --max-workers, a comma-separated per-round plan (e.g. '8,1'); a
+      single '1' (the default) keeps the historical strictly serial
+      behavior (one worker subprocess at a time, one pytest.main() per
+      case).
+    - Each case gets up to --max-attempts isolated rounds (default
       1 = the historical single retry). A case that passes ANY round is
       recovered and its later rounds are skipped; only a case that fails
       ALL of its rounds keeps a failed/error/timeout status. Rounds after
@@ -48,6 +51,7 @@ Usage:
         --device-env privateuse1 \
         --max-retry-cases 0 \
         --max-attempts 3 \
+        --max-workers 8,1 \
         --verbose
 """
 
@@ -90,10 +94,17 @@ def parse_args():
     parser.add_argument("--max-retry-cases", type=int, default=100,
                         help="Max cases to retry serially, 0 = unlimited (default: 100)")
     parser.add_argument("--max-attempts", type=int, default=1,
-                        help="Max isolated serial rounds per case, 1 = single "
+                        help="Max isolated rounds per case, 1 = single "
                              "retry (historical behavior). A case that passes "
                              "any round is recovered; only a case failing all "
                              "rounds keeps its failed status (default: 1)")
+    parser.add_argument("--max-workers", type=str, default="1",
+                        help="Comma-separated worker count per retry round, "
+                             "e.g. '8,1' (round 1 with 8 workers, round 2 "
+                             "serially); shorter lists reuse the last value, "
+                             "longer lists ignore the extra values. '1' = "
+                             "strictly serial, the historical behavior "
+                             "(default: 1)")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     args = parser.parse_args()
 
@@ -101,7 +112,28 @@ def parse_args():
         parser.error("--max-retry-cases must be >= 0 (0 = unlimited)")
     if args.max_attempts < 1:
         parser.error("--max-attempts must be >= 1")
+    # Expand the per-round worker plan here so a malformed value fails fast
+    # (parse_worker_plan is defined below; it resolves at call time).
+    args.worker_plan = parse_worker_plan(args.max_workers, args.max_attempts, parser)
     return args
+
+
+def parse_worker_plan(raw: str, attempts: int, parser) -> List[int]:
+    """Expand a comma-separated --max-workers value into one worker count per round.
+
+    '8,1' with 3 rounds -> [8, 1, 1]: a list shorter than the round count
+    reuses its last value, a longer list has its extra values ignored.
+    """
+    try:
+        values = [int(part) for part in str(raw).split(",") if part.strip()]
+    except ValueError:
+        parser.error(f"--max-workers must be comma-separated ints, got {raw!r}")
+    if not values or any(value < 1 for value in values):
+        parser.error(f"--max-workers entries must be >= 1, got {raw!r}")
+    return [
+        values[index] if index < len(values) else values[-1]
+        for index in range(attempts)
+    ]
 
 
 def write_github_outputs(pairs) -> None:
@@ -302,6 +334,7 @@ def main() -> int:
     )
 
     max_attempts = args.max_attempts
+    worker_plan = args.worker_plan
 
     # Per-case final outcome across rounds: a case leaves the pending set as
     # soon as any round passes it; later rounds only re-run the
@@ -339,9 +372,16 @@ def main() -> int:
                     test_file=case.get("file", ""),
                 ))
 
+            worker_count = worker_plan[attempt_no - 1]
             attempt_desc = (
-                f"Retrying {len(tasks)} case(s) serially "
-                f"(single worker, one case at a time, per-case timeout {args.timeout}s)"
+                f"Retrying {len(tasks)} case(s) "
+                + (
+                    "serially (single worker, one case at a time, "
+                    f"per-case timeout {args.timeout}s)"
+                    if worker_count == 1
+                    else f"with {worker_count} concurrent workers "
+                         f"(per-case timeout {args.timeout}s)"
+                )
             )
             if max_attempts > 1:
                 attempt_desc += f" [attempt {attempt_no}/{max_attempts}]"
@@ -356,7 +396,7 @@ def main() -> int:
                 args.timeout,
                 args.verbose,
                 shard_type,
-                1,  # max_workers: strictly serial, no concurrent execution
+                worker_count,  # max_workers: per-round, from --max-workers
                 parse_test_results,
                 None,  # quick_test
                 console=console,
@@ -382,6 +422,7 @@ def main() -> int:
                 "attempted": len(tasks),
                 "recovered": recovered_round,
                 "still_not_passed": len(pending),
+                "max_workers": worker_count,
             })
             print(f"[attempt {attempt_no}] {recovered_round} recovered, "
                   f"{len(pending)} still failed/error/timeout")

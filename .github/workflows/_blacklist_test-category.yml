@@ -115,6 +115,40 @@ on:
           cases-shards-a3 / cases-shards-a5). Produced by
           _blacklist_shard.yml; a3 and a5 run in the same workflow run so
           the names must stay per-platform.
+      # Opt-in per-shard retry of failed/error/timeout cases (mirrors
+      # _nightly_test-category.yml). All four default to the historical
+      # behavior so existing callers (blacklist-test.yml) are unaffected.
+      retry_failed_cases:
+        required: false
+        type: boolean
+        default: false
+        description: >-
+          Opt-in: after each shard run, retry its failed/error/timeout cases
+          in isolated rounds (retry_failed_cases.py) before results are
+          parsed. Default false keeps the existing behavior.
+      retry_max_cases:
+        required: false
+        type: string
+        default: '0'
+        description: >-
+          Max cases to retry per shard, as a string (0 = unlimited). Only
+          used when retry_failed_cases is true.
+      retry_attempts:
+        required: false
+        type: string
+        default: '3'
+        description: >-
+          Max isolated retry rounds per case (string). A case that passes
+          any round is recovered; only a case failing all rounds stays
+          failed. Only used when retry_failed_cases is true.
+      retry_max_workers:
+        required: false
+        type: string
+        default: '1'
+        description: >-
+          Per-round retry concurrency, comma-separated (e.g. '8,1' = round 1
+          with 8 workers, round 2 serially). Default '1' = strictly serial.
+          Only used when retry_failed_cases is true.
 
 jobs:
   test:
@@ -432,6 +466,37 @@ jobs:
           TEST_STATUS=${PIPESTATUS[0]}
           set -e
           echo "status=${TEST_STATUS}" >> "$GITHUB_OUTPUT"
+
+      # Opt-in per-shard retry of failed/error/timeout cases (mirrors
+      # _nightly_test-category.yml). Sits between the run and the parse
+      # step so the parse step and every downstream consumer see
+      # post-retry numbers. Off by default: callers that do not set
+      # retry_failed_cases keep the exact current behavior. The cases
+      # file uses result_prefix ("reg"), not the artifact prefix, because
+      # the shard JSONs carry test_type "regular".
+      - name: Retry failed cases for ${{ inputs.category }} shard ${{ matrix.shard }}/${{ inputs.num_shards }}
+        id: retry_failed
+        if: always() && inputs.retry_failed_cases && steps.run_tests.outcome != 'skipped'
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+          export LD_LIBRARY_PATH="$(python3 -c 'import sys; print(sys.prefix)')/lib:$LD_LIBRARY_PATH"
+
+          # Ensure the pinned plog dir exists before retry workers start.
+          mkdir -p "${ASCEND_PROCESS_LOG_PATH}"
+
+          python ci-scripts/.github/scripts/retry_failed_cases.py \
+            --cases-file "test-reports/shard_${{ steps.prefix.outputs.result_prefix }}-${{ matrix.shard }}_cases.json" \
+            --test-dir pytorch/test \
+            --report-dir test-reports \
+            --retry-report-dir test-reports/retry \
+            --timeout 500 \
+            --device-env "${{ inputs.device_env }}" \
+            --max-retry-cases ${{ inputs.retry_max_cases || '0' }} \
+            --max-attempts ${{ inputs.retry_attempts || '3' }} \
+            --max-workers "${{ inputs.retry_max_workers || '1' }}" \
+            --verbose \
+            2>&1 | tee /tmp/retry_${{ inputs.category }}_${{ matrix.shard }}.log
 
       - name: Parse test results
         id: parse_results

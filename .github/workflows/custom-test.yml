@@ -59,7 +59,7 @@ on:
         description: '单机并发 worker 数'
         required: true
         type: string
-        default: '1'
+        default: '16'
 
 permissions:
   id-token: write
@@ -440,13 +440,19 @@ jobs:
       category: custom_test_cases-a3
       num_shards: '4'
       matrix_json: '[1,2,3,4]'
-      max_workers: ${{ inputs.max_workers || '1' }}
+      max_workers: ${{ inputs.max_workers || '16' }}
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17
       report_to_upstream: false
-      runner_label: linux-aarch64-a3-800i-2-cn12-001
+      runner_label: linux-aarch64-a3-800i-8-cn12-001
       device_env: 'privateuse1,cpu'
       patch_triton_cxx20: true
       cases_artifact_name: custom_test_cases-a3
+      # 失败用例分级重试：分片首轮 16 并发跑完后，失败用例先 8 并发重试一轮，
+      # 仍失败再单并发重试一轮，最终仍失败才算真失败，首轮失败后续成功的记为不稳定用例。
+      retry_failed_cases: true
+      retry_max_cases: '0'
+      retry_attempts: '2'
+      retry_max_workers: '8,1'
 
   test-a5:
     name: custom a5
@@ -465,13 +471,17 @@ jobs:
       category: custom_test_cases-a5
       num_shards: '4'
       matrix_json: '[1,2,3,4]'
-      max_workers: ${{ inputs.max_workers || '1' }}
+      max_workers: ${{ inputs.max_workers || '16' }}
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.11-torch-master-cann9.2.0-20260910200430-202610160226-8a315d17
       report_to_upstream: false
       runner_label: linux-amd64-a5-2
       device_env: 'privateuse1,cpu'
       patch_triton_cxx20: true
       cases_artifact_name: custom_test_cases-a5
+      retry_failed_cases: true
+      retry_max_cases: '0'
+      retry_attempts: '2'
+      retry_max_workers: '8,1'
 
   # ==========================================================================
   # 4. 报告: 每个平台各生成一份，格式与 a3/a5 nightly 一致
@@ -539,8 +549,13 @@ jobs:
             --torch-npu-short "${NPU_SHORT}" \
             --shard-matrix-json '["reg-1","reg-2","reg-3","reg-4"]' \
             --docker-image swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17 \
-            --runner linux-aarch64-a3-800i-2-cn12-001 \
+            --runner linux-aarch64-a3-800i-8-cn12-001 \
             --cases-by-file-dir ../cases-by-file
+          # 把“首轮失败、重试后成功”的不稳定用例并入同一份报告（无则跳过）。
+          python3 ../.github/scripts/append_flaky_summary.py \
+            --reports-root ../reports-a3 \
+            --markdown npu-full-test-summary.md \
+            --json npu-full-test-summary.json
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "---" >> "$GITHUB_STEP_SUMMARY"
           echo "# Custom Test — A3 (aarch64) 结果" >> "$GITHUB_STEP_SUMMARY"
@@ -565,6 +580,11 @@ jobs:
             --docker-image swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.11-torch-master-cann9.2.0-20260910200430-202610160226-8a315d17 \
             --runner linux-amd64-a5-2 \
             --cases-by-file-dir ../cases-by-file
+          # 把“首轮失败、重试后成功”的不稳定用例并入同一份报告（无则跳过）。
+          python3 ../.github/scripts/append_flaky_summary.py \
+            --reports-root ../reports-a5 \
+            --markdown npu-full-test-summary.md \
+            --json npu-full-test-summary.json
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "---" >> "$GITHUB_STEP_SUMMARY"
           echo "# Custom Test — A5 (x86_64) 结果" >> "$GITHUB_STEP_SUMMARY"
