@@ -11,5 +11,8 @@
   <!-- npu="A3,910b" id1 -->
   - [Scalable RootInfo分级建链](./communication_strategy/scalable_rootinfo_link_setup.md)
   <!-- end id1 -->
+  <!-- npu="A3,950" id2 -->
+  - [HCCL对称内存池](./communication_strategy/hccl_mem_pool.md)
+  <!-- end id2 -->
 - [参数配置](./parameter_configuration/_menu_parameter_configuration.md)
   - [通过pg\_options配置HCCL通信域参数](./parameter_configuration/setting_HCCL_communicator_parameter.md)

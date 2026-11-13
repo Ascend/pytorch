@@ -39,6 +39,10 @@ TorchNPU将支持的配置项转换为 `HcclCommConfig` 的对应字段，并在
 >
 > `hccl_sdma_qos` 参数仅在有存量业务情况下正常使用，`hccl_sdma_qos` 和 `hccl_qos` 同时配置时会生效 `hccl_qos` 配置项，同时输出warning日志，提示 `hccl_sdma_qos` 已不推荐使用（建议迁移至 `hccl_qos`）。
 
+### 对称内存窗口配置
+
+`hccl_sym_win_max_mem_size_per_rank`用于设置每个rank预留的对称内存虚拟地址空间大小，类型为整数，单位为GB，初始化时不会立即占用等量物理内存。默认值和取值范围参见前述`HcclCommConfig`说明，使用方式参见[HCCL对称内存池](../communication_strategy/hccl_mem_pool.md)。
+
 ### 配置优先级
 
 对于支持对应环境变量的配置项，优先级为：**`hccl_config` 中的有效配置（通信域粒度） > 对应环境变量（全局配置） > 默认配置**。

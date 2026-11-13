@@ -48,6 +48,8 @@ PyTorch分布式通信层（C10D）提供了集合通信API（如all_reduce、al
 
 - **Scalable RootInfo分级建链**：TorchNPU在默认RootInfo协商路径上提供的扩展，满足使用条件时默认开启，可通过`TORCH_HCCL_RANKS_PER_ROOT=-1`关闭。大规模通信域可以划分为多个连续且均衡的group，由多个root分别承担RootInfo协商工作，降低单root的建链压力。可以阅读[Scalable RootInfo分级建链](./communication_strategy/scalable_rootinfo_link_setup.md)了解配置方法与使用约束。
 
+- **HCCL对称内存池**：使用HCCL分配器管理通信缓冲区，并将内存池注册到通信域。使用方法参见[HCCL对称内存池](./communication_strategy/hccl_mem_pool.md)。
+
 ## 基础设施与工具
 
 - **DistributedSampler**：确保分布式训练过程中每个进程加载不同的数据子集。TorchNPU提供与PyTorch一致的用法。可以阅读[PyTorch DistributedSampler](https://pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler)了解基础用法。
