@@ -2,6 +2,7 @@
 #include <chrono>
 #include <torch/extension.h>
 #include "torch_npu/csrc/core/npu/NPUFormat.h"
+#include "torch_npu/csrc/core/npu/PythonLazyInitBridge.h"
 #include "torch_npu/csrc/framework/OpCommand.h"
 #include "torch_npu/csrc/framework/OpHook.h"
 // test   in  .setup with relative path
@@ -78,6 +79,8 @@ void reset_op_hook_call_count()
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 {
+    m.def("run_python_lazy_init", &c10_npu::impl::runPythonLazyInit,
+          pybind11::call_guard<pybind11::gil_scoped_release>());
     m.def("tanh_add", &tanh_add, "tanh(x) + tanh(y)");
     m.def("npu_add", &npu_add, "x + y");
     m.def("check_storage_sizes", &check_storage_sizes, "check_storage_sizes");
