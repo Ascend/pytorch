@@ -6,4 +6,3 @@
 - [Building libtorch\_npu](building_libtorch_npu.md)
 - [Querying Versions](check_installed_versions.md)
 - [FAQs](faq.md)
-

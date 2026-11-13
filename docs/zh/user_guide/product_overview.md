@@ -2,7 +2,7 @@
 
 TorchNPU插件是基于昇腾的深度学习适配框架，使昇腾NPU可以支持PyTorch框架，为PyTorch框架的使用者提供昇腾AI处理器的超强算力。TorchNPU插件采用**设备适配**的实现方案，将昇腾NPU作为新的后端设备注册到PyTorch的Device抽象层中，使其与CPU、CUDA等设备类型并列。开发者只需在代码中将设备指定为NPU，PyTorch原生的算子分发机制即可自动将计算任务路由到NPU侧执行，无需修改模型结构和训练逻辑。
 
-TorchNPU插件位于PyTorch上层API与底层昇腾CANN（异构计算架构）软件栈之间，向上承载PyTorch框架的全部特性（动态图、自动微分、Profiling等），向下对接CANN的ACL（Ascend Computing Language）运行时、算子库及HCCL集合通信库，完成从PyTorch算子到NPU可执行内核的完整映射。
+TorchNPU插件位于PyTorch上层API与底层昇腾CANN（异构计算架构）软件栈之间，向上承载PyTorch框架的全部特性（动态图、自动微分、Profiling等），向下对接CANN的AscendCL（Ascend Computing Language）运行时、算子库及HCCL集合通信库，完成从PyTorch算子到NPU可执行内核的完整映射。
 
 TorchNPU插件在设计上最大限度继承了PyTorch框架的原生特性，开发者几乎无需改变原有的开发习惯和代码风格：
 

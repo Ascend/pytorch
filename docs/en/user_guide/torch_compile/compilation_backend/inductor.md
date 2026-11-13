@@ -4,7 +4,7 @@
 
 Inductor is the default backend compiler of `torch.compile()`. Through the collaboration of "Dynamo frontend graph capture + Inductor backend optimization + high-performance operator generation", it automatically performs operator fusion and code generation without changing the model logic, significantly improving training or inference throughput.
 
-The Inductor backend supports four operator compilers, which can be selected based on the scenario:
+The Inductor backend supports three operator compilers, which can be selected based on the scenario:
 
 | Compiler | Mode | How to Enable | Description |
 | - | - | - | - |
@@ -260,5 +260,5 @@ Compilation options supported by Inductor (the `options` parameter):
 
 ## Constraints
 
-1. Optimizers are usually not included in the graph. The optimizer's `step()` contains Python-side dynamic logic (such as learning rate scheduling, gradient accumulation, and adaptive update rules), which is difficult to capture in a static graph.
-2. `torch.compile(backend="inductor")` supports dynamic shapes, but triggers recompilation (adding overhead). It is recommended to fix the shape as much as possible.
+- Optimizers are usually not included in the graph. The optimizer's `step()` contains Python-side dynamic logic (such as learning rate scheduling, gradient accumulation, and adaptive update rules), which is difficult to capture in a static graph.
+- `torch.compile(backend="inductor")` supports dynamic shapes, but triggers recompilation (adding overhead). It is recommended to fix the shape as much as possible.

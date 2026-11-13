@@ -14,7 +14,7 @@ The `setup.py` in this project automatically detects the Ninja environment, and 
 
 - If `CMAKE_GENERATOR` is set, this setting is strictly followed. For example, Ninja builds are enabled when the generator is set to `ninja`; if another generator is set, Ninja will not be automatically enabled even if `ninja` exists in `PATH`.
 
-If `CMAKE_GENERATOR` is not set, the system automatically detects whether `ninja` exists in `PATH`. If it does, Ninja builds are enabled by default; otherwise, the default generator is used.
+- If `CMAKE_GENERATOR` is not set, the system automatically detects whether `ninja` exists in `PATH`. If it does, Ninja builds are enabled by default; otherwise, the default generator is used.
 
 The installation command is as follows:
 

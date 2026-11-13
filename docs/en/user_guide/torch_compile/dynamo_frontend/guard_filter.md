@@ -39,9 +39,9 @@ Native PyTorch provides the `guard_filter_fn` compilation option, allowing users
 
 Before use, confirm the following:
 
-1. The filtered states will indeed not change semantically during the entire inference process.
-2. Verify output correctness through parity tests.
-3. Verify through recompile count tests that recompilation has been eliminated.
+- The filtered states will indeed not change semantically during the entire inference process.
+- Verify output correctness through parity tests.
+- Verify through recompile count tests that recompilation has been eliminated.
 
 ## Usage Guide
 

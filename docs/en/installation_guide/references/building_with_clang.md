@@ -4,7 +4,7 @@ Before compilation, ensure that the compiler settings are correct:
 
 ```bash
 export CC=clang
-export CCXX=clang++
+export CXX=clang++
 ```
 
 ## Compiling PyTorch with Clang
