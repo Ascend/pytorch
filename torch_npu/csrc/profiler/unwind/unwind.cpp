@@ -7,8 +7,31 @@
 #include <torch/csrc/utils/cpp_stacktraces.h>
 #include "unwind.h"
 
+#if defined(__linux__) && defined(__aarch64__)
+#include <link.h>
+#endif
+
 #if !defined(__linux__) || !defined(__x86_64__) || !defined(__has_include) || !__has_include("ext/stdio_filebuf.h")
 namespace torch_npu::unwind {
+#if defined(__linux__) && defined(__aarch64__)
+namespace {
+// PyTorch's symbolizer reads a four-byte header from each EH segment.
+bool hasInvalidEhSegment() {
+  return dl_iterate_phdr(
+             [](struct dl_phdr_info* info, size_t, void*) {
+               for (size_t i = 0; i < info->dlpi_phnum; ++i) {
+                 const auto& segment = info->dlpi_phdr[i];
+                 if (segment.p_type == PT_GNU_EH_FRAME && segment.p_memsz < 4) {
+                   return 1;
+                 }
+               }
+               return 0;
+             },
+             nullptr) != 0;
+}
+} // namespace
+#endif
+
 std::vector<void*> unwind() {
 #if defined(__linux__) && defined(__aarch64__)
   return torch::unwind::unwind();
@@ -26,8 +49,11 @@ c10::optional<std::pair<std::string, uint64_t>> libraryFor(void* addr) {
 
 std::vector<torch::unwind::Frame> symbolize(const std::vector<void*>& frames) {
 #if defined(__linux__) && defined(__aarch64__)
-  return torch::unwind::symbolize(frames, torch::get_symbolize_mode());
-#else
+  // Fall back to dladdr below when a loaded ELF object has an undersized EH segment.
+  if (!hasInvalidEhSegment()) {
+    return torch::unwind::symbolize(frames, torch::get_symbolize_mode());
+  }
+#endif
   std::vector<torch::unwind::Frame> results;
   for (const auto& addr : frames) {
     torch::unwind::Frame frame;
@@ -58,7 +84,6 @@ std::vector<torch::unwind::Frame> symbolize(const std::vector<void*>& frames) {
     results.push_back(frame);
   }
   return results;
-#endif
 }
 
 Stats stats() {
