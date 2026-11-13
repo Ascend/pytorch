@@ -71,6 +71,10 @@ from typing import (
 
 import torch.fx
 from torch import Tensor
+from torch._dynamo.graph_bytecode_inputs import (
+    CURRENT_STREAM_INDEX,
+    set_external_object_by_index,
+)
 from torch._dynamo.mutation_guard import GenerationTracker
 from torch._dynamo.utils import counters, dynamo_timed, preserve_rng_state
 from torch._inductor import config
@@ -276,16 +280,24 @@ class TreeManagerContainer:
             return self.tree_manager
 
 
-local = threading.local()
+def _initialize_tls(local: threading.local) -> None:
+    # one tree manager per device
+    # Use npu-specific TLS keys to avoid colliding with upstream
+    # torch._inductor.cudagraph_trees, which stashes the same-named objects under
+    # the keys "tree_manager_containers" / "tree_manager_locks". Upstream's stash
+    # does not INCREF, so overwriting an entry triggers use-after-free on the
+    # previous owner. See cudagraph_trees.py lines 306-321.
+    local.npu_tree_manager_containers = {}
+    local.npu_tree_manager_locks = defaultdict(threading.Lock)
 
-# one tree manager per device
-# Use npu-specific TLS keys to avoid colliding with upstream
-# torch._inductor.cudagraph_trees, which stashes the same-named objects under
-# the keys "tree_manager_containers" / "tree_manager_locks". Upstream's stash
-# does not INCREF, so overwriting an entry triggers use-after-free on the
-# previous owner. See cudagraph_trees.py lines 306-321.
-local.npu_tree_manager_containers = {}
-local.npu_tree_manager_locks = defaultdict(threading.Lock)
+    # We need to register this as an object that will be copied over as TLS when new
+    # threads are created in autograd
+    torch._C._stash_obj_in_tls("npu_tree_manager_containers", local.npu_tree_manager_containers)
+    torch._C._stash_obj_in_tls("npu_tree_manager_locks", local.npu_tree_manager_locks)
+
+
+local = threading.local()
+_initialize_tls(local)
 
 
 # MarkStepBox and mark_step_begin live in the lightweight _graph_tree_state
@@ -295,12 +307,6 @@ from torch_npu.npu._graph_tree_state import (  # noqa: F401
     MarkStepBox,
     mark_step_begin,
 )
-
-
-# We need to register this as an object that will be copied over as TLS when new
-# threads are created in autograd
-torch._C._stash_obj_in_tls("npu_tree_manager_containers", local.npu_tree_manager_containers)
-torch._C._stash_obj_in_tls("npu_tree_manager_locks", local.npu_tree_manager_locks)
 
 
 def reset_npugraph_trees() -> None:
@@ -325,10 +331,10 @@ def reset_npugraph_trees() -> None:
 def get_obj(thread_local: Any, attr_name: str) -> Any:
     if hasattr(thread_local, attr_name):
         return getattr(thread_local, attr_name)
-    else:
-        if not torch._C._is_key_in_tls(attr_name):
-            raise RuntimeError("check torch._C._is_key_in_tls(attr_name) fail")
-        return torch._C._get_obj_in_tls(attr_name)
+    if not torch._C._is_key_in_tls(attr_name):
+        _initialize_tls(thread_local)
+        return getattr(thread_local, attr_name)
+    return torch._C._get_obj_in_tls(attr_name)
 
 
 def get_container(device_index: int) -> TreeManagerContainer:
@@ -348,6 +354,17 @@ def get_manager(
     if create_if_none_exists:
         return get_container(device_index).get_tree_manager()
     return get_container(device_index).tree_manager
+
+
+def is_cudagraph_capture_sizes(int_key: Union[int, Tuple[int, ...]]) -> bool:
+    """
+    Returns true if all dynamic shapes should be captured or the dynamic shape
+    int_key should be captured.
+    """
+    return (
+        config.triton.cudagraph_capture_sizes is None
+        or int_key in config.triton.cudagraph_capture_sizes
+    )
 
 
 def npugraphify_impl(
@@ -377,6 +394,10 @@ def npugraphify_impl(
         nonlocal has_warn
 
         int_key = get_ints(inputs)
+
+        if not is_cudagraph_capture_sizes(int_key):
+            return model(inputs)
+
         fn = fn_cache.get(int_key)
         if fn is not None:
             return fn(inputs)
@@ -558,6 +579,19 @@ def _use_npu_memory_pool_manager(
     torch.npu.current_stream().wait_stream(stream)
 
 
+@contextlib.contextmanager
+def _update_current_stream_external_object() -> Generator[None, None, None]:
+    """Update the external object registry so custom ops see the capture stream.
+
+    During npugraph recording/warmup the current stream differs from the
+    trace-time default stream.  The external object at CURRENT_STREAM_INDEX
+    must reflect the actual current stream so that custom ops (e.g. event
+    record/wait) executed during capture use the right stream.
+    """
+    set_external_object_by_index(CURRENT_STREAM_INDEX, torch.npu.current_stream())
+    yield
+
+
 def map_to_ref(t: Optional[Tensor]) -> Optional[StorageWeakRefWrapper]:
     if not isinstance(t, torch.Tensor):
         if t is not None:
@@ -652,7 +686,7 @@ class NPUWarmupNode:
             self.device_index
         ), disable_conv_cache_emptying(), clear_cublas_manager(), _use_npu_memory_pool_manager(
             self.device_index, self.npu_graphs_pool, self.stream
-        ), get_history_recording():
+        ), _update_current_stream_external_object(), get_history_recording():
             if torch_npu.npu.aclnn._use_static_aclnn_kernel:
                 from torch_npu._inductor.npu_static_kernel import StaticKernelCompiler
                 static_kernel_compiler = StaticKernelCompiler()
@@ -813,10 +847,7 @@ class NPUGraphNode:
 
         # Enable re-record a cudagraph when static tensor address changed.
         # if not we should error when it changed.
-        self.rerecord_if_static_inputs_change = (
-            torch._dynamo.config.inline_inbuilt_nn_modules
-            or torch._inductor.config.triton.cudagraph_support_input_mutation
-        )
+        self.rerecord_if_static_inputs_change = True
 
         # if this is a root parent will be None. use weakref to prevent reference cycle
         self._parent = weakref.ref(parent) if parent is not None else None
@@ -1301,7 +1332,7 @@ class NPUGraphNode:
             pool=self.npu_graphs_pool,
             capture_error_mode="thread_local",
             auto_dispatch_capture=True,
-        ), get_history_recording():
+        ), _update_current_stream_external_object(), get_history_recording():
             static_outputs = model(inputs)
 
         # running model should reclaim memory
@@ -1727,8 +1758,8 @@ class NPUGraphNode:
         ):
             for i, inp in enumerate(inputs):
                 if not isinstance(inp, torch.Tensor):
-                    if not isinstance(inp, int):
-                        raise RuntimeError("check isinstance(inp, int) fail")
+                    if not isinstance(inp, (int, torch.Generator)):
+                        raise RuntimeError("check isinstance(inp, (int, torch.Generator)) fail")
                     recording_inputs.append(inp)
                 elif i not in self.static_input_idxs:
                     # static_input does an allocation!
@@ -1882,6 +1913,7 @@ def check_memory_pool(
     # at this point we are past the fast-path. we have seen rare cases where a dead tensor is dead,
     # but hasn't been gc'd yet, and gives false positive for allocated_not_in_live_storages
     gc.collect()
+    torch.npu.synchronize()
 
     segments = get_npugraph_segments(pool_id)
 
@@ -2124,9 +2156,6 @@ class NPUGraphTreeManager:
     def exceed_rerecord_limit(
         self, node_id: Optional[GraphID], function_id: FunctionID
     ) -> bool:
-        if torch._dynamo.config.inline_inbuilt_nn_modules:
-            return False
-
         return (
             self.num_rerecord[node_id][function_id]
             > torch._inductor.config.triton.cudagraph_unexpected_rerecord_limit
@@ -2195,10 +2224,12 @@ class NPUGraphTreeManager:
                 if status == CheckInvariantStatus.SUCCESS:
                     return self.execute_node(child, new_inputs)
 
-                if (
-                    status == CheckInvariantStatus.StaticInputIdxMismatch
-                    or status == CheckInvariantStatus.CudagraphManagedIdxMismatch
-                ):
+                # StaticInputIdxMismatch fires on non-npugraph-managed static
+                # inputs (nn parameters / mark_static_address tensors) whose
+                # identity can churn. Re-record but do not count those toward
+                # cudagraph_unexpected_rerecord_limit. All other mismatch
+                # reasons do count.
+                if status != CheckInvariantStatus.StaticInputIdxMismatch:
                     unexpected_rerecord = True
                     unexpected_rerecord_reason = status_logger
 
@@ -2541,8 +2572,12 @@ class NPUGraphTreeManager:
 
         stor_stack_trace: Dict[int, Optional[str]] = {}
         for node in self.current_node._path_from_root:
-            if not len(node.tensor_weakrefs) == len(node.stack_traces):
-                raise RuntimeError("check len(node.tensor_weakrefs) == len(node.stack_traces) fail")
+            if len(node.tensor_weakrefs) != len(node.stack_traces):
+                log.warning(
+                    "tensor_weakrefs length (%d) != stack_traces length (%d)",
+                    len(node.tensor_weakrefs),
+                    len(node.stack_traces),
+                )
             for t, stack_trace in zip(node.tensor_weakrefs, node.stack_traces):
                 ten = None if t is None else t()
                 if ten is None:
