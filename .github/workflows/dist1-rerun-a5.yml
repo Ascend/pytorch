@@ -56,7 +56,7 @@ on:
         required: false
         default: ''
       resolved_short:
-        description: 'Upstream PyTorch short SHA (source tarball key)'
+        description: 'Upstream PyTorch short SHA (used in the wheels object name)'
         required: true
         default: '887633d60b'
       resolved_sha:

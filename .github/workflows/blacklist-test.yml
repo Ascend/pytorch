@@ -105,9 +105,9 @@ jobs:
   # Look up already-built objects, one complete (source + wheels-pytorch +
   # wheels-torchnpu) triple per platform. The wheels objects live in the
   # dedicated Guiyang bucket (pytorch-torchnpu, cn-south-west-2, key pair
-  # ACCESSKEY_GUIYANG/SECRETACCESSKEY_GUIYANG); the source tarballs stay in
-  # the legacy ap-southeast-1 bucket, so this job switches obsutil between
-  # the two endpoints as it goes. The nightly a3/a5 pipelines build with the
+  # ACCESSKEY_GUIYANG/SECRETACCESSKEY_GUIYANG); the source is cloned from
+  # the in-cluster git-cdn, so only the wheels bucket needs OBS access here.
+  # The nightly a3/a5 pipelines build with the
   # SAME builder image tags as build-a3/build-a5 below, so any triple present
   # today was produced by a recent nightly and is byte-identical to what a
   # build here would produce. When a triple is found the corresponding build
@@ -129,10 +129,12 @@ jobs:
       contents: read
     outputs:
       a3_found: ${{ steps.pick.outputs.a3_found }}
+      a3_resolved_sha: ${{ steps.pick.outputs.a3_resolved_sha }}
       a3_resolved_short: ${{ steps.pick.outputs.a3_resolved_short }}
       a3_pytorch_wheels_tarball: ${{ steps.pick.outputs.a3_pytorch_wheels_tarball }}
       a3_torchnpu_wheels_tarball: ${{ steps.pick.outputs.a3_torchnpu_wheels_tarball }}
       a5_found: ${{ steps.pick.outputs.a5_found }}
+      a5_resolved_sha: ${{ steps.pick.outputs.a5_resolved_sha }}
       a5_resolved_short: ${{ steps.pick.outputs.a5_resolved_short }}
       a5_pytorch_wheels_tarball: ${{ steps.pick.outputs.a5_pytorch_wheels_tarball }}
       a5_torchnpu_wheels_tarball: ${{ steps.pick.outputs.a5_torchnpu_wheels_tarball }}
@@ -178,24 +180,26 @@ jobs:
       - name: Pick reusable OBS wheels triples
         id: pick
         env:
-          # Guiyang (wheels) and legacy (source) buckets use different key
-          # pairs; the script switches obsutil between the endpoints.
+          # The GUIYANG key pair owns the wheels bucket. The short SHA found
+          # in the object names is expanded to a full SHA through the GitHub
+          # API so the shards can fetch the source from the in-cluster
+          # git-cdn (a short SHA cannot be fetched directly).
           WHEELS_AK: ${{ secrets.ACCESSKEY_GUIYANG }}
           WHEELS_SK: ${{ secrets.SECRETACCESSKEY_GUIYANG }}
-          SOURCE_AK: ${{ secrets.ACCESSKEY }}
-          SOURCE_SK: ${{ secrets.SECRETACCESSKEY }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           export PATH="${HOME}/.local/obsutil:${PATH}"
           python3 - <<'PY'
+          import json
           import os
           import re
           import subprocess
           import sys
+          import urllib.request
 
           WHEELS_BASE = "obs://pytorch-torchnpu/7day-cache"
-          SOURCE_BASE = "obs://pytorch-ci-cache/7day-cache"
           WHEELS_ENDPOINT = "obs.cn-southwest-2.myhuaweicloud.com"
-          SOURCE_ENDPOINT = "obs.ap-southeast-1.myhuaweicloud.com"
+          UPSTREAM_REPO = "pytorch/pytorch"
 
           # Builder image tags. MUST stay identical to the docker_image tags
           # passed to build-a3 / build-a5 below: the wheels object key embeds
@@ -222,12 +226,6 @@ jobs:
                       f"-k={os.environ['WHEELS_SK']}",
                       f"-e={WHEELS_ENDPOINT}")
 
-          def use_source_config():
-              obsutil("config",
-                      f"-i={os.environ['SOURCE_AK']}",
-                      f"-k={os.environ['SOURCE_SK']}",
-                      f"-e={SOURCE_ENDPOINT}")
-
           def ls_objects(object_prefix):
               use_wheels_config()
               result = obsutil("ls", f"{WHEELS_BASE}/{object_prefix}", "-limit=1000")
@@ -245,10 +243,10 @@ jobs:
                       names.append(line.rsplit("/", 1)[-1])
               return names
 
-          def source_last_modified(upstream_short):
-              """LastModified of the source tarball, or None when it is absent."""
-              use_source_config()
-              result = obsutil("stat", f"{SOURCE_BASE}/pytorch-source-{upstream_short}.tar.gz")
+          def object_last_modified(tarball):
+              """LastModified of the wheels object, or None when it is absent."""
+              use_wheels_config()
+              result = obsutil("stat", f"{WHEELS_BASE}/{tarball}")
               if result.returncode != 0:
                   return None
               match = LAST_MODIFIED_RE.search(result.stdout)
@@ -256,10 +254,26 @@ jobs:
               # sorts before any real timestamp, so the first candidate wins.
               return match.group(1) if match else ""
 
+          def resolve_full_sha(upstream_short):
+              """Expand the 10-char short SHA into the full 40-char SHA.
+
+              The shards fetch the source by full SHA from the in-cluster
+              git-cdn, which cannot be done with a short SHA.
+              """
+              url = f"https://api.github.com/repos/{UPSTREAM_REPO}/commits/{upstream_short}"
+              request = urllib.request.Request(url, headers={
+                  "Accept": "application/vnd.github+json",
+                  "Authorization": f"Bearer {os.environ['GH_TOKEN']}",
+                  "User-Agent": "pytorch-ci-resolve",
+              })
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  return json.load(response)["sha"]
+
           resolved = {}
           for platform, image_tag in PLATFORMS.items():
               picks = {
                   "found": "false",
+                  "resolved_sha": "",
                   "resolved_short": "",
                   "pytorch_wheels_tarball": "",
                   "torchnpu_wheels_tarball": "",
@@ -296,7 +310,7 @@ jobs:
 
               best = None
               for upstream_short, pytorch_name, torchnpu_name in candidates[:MAX_STAT]:
-                  modified = source_last_modified(upstream_short)
+                  modified = object_last_modified(pytorch_name)
                   if modified is None:
                       continue
                   if best is None or modified > best[0]:
@@ -304,19 +318,20 @@ jobs:
 
               if best is None:
                   print(
-                      f"[{platform}] no complete source+wheels triple in OBS for "
+                      f"[{platform}] no complete wheels triple in OBS for "
                       f"image {image_tag}; build-a{platform[1]} will run"
                   )
               else:
                   _, upstream_short, pytorch_name, torchnpu_name = best
                   picks = {
                       "found": "true",
+                      "resolved_sha": resolve_full_sha(upstream_short),
                       "resolved_short": upstream_short,
                       "pytorch_wheels_tarball": pytorch_name,
                       "torchnpu_wheels_tarball": torchnpu_name,
                   }
                   print(f"[{platform}] reusing OBS triple for upstream {upstream_short}:")
-                  print(f"[{platform}]   pytorch-source-{upstream_short}.tar.gz")
+                  print(f"[{platform}]   source commit {picks['resolved_sha']}")
                   print(f"[{platform}]   {pytorch_name}")
                   print(f"[{platform}]   {torchnpu_name}")
               resolved[platform] = picks
@@ -389,7 +404,7 @@ jobs:
     secrets: inherit
     with:
       resolved_short: ${{ needs.resolve.outputs.a3_resolved_short || needs.build-a3.outputs.resolved_short }}
-      resolved_sha: ${{ needs.resolve.outputs.a3_resolved_short || needs.build-a3.outputs.resolved_sha }}
+      resolved_sha: ${{ needs.resolve.outputs.a3_resolved_sha || needs.build-a3.outputs.resolved_sha }}
       pytorch_wheels_tarball: ${{ needs.resolve.outputs.a3_pytorch_wheels_tarball || needs.build-a3.outputs.pytorch_wheels_tarball }}
       torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a3_torchnpu_wheels_tarball || needs.build-a3.outputs.torchnpu_wheels_tarball }}
       upstream_repo: pytorch/pytorch
@@ -474,7 +489,7 @@ jobs:
     secrets: inherit
     with:
       resolved_short: ${{ needs.resolve.outputs.a5_resolved_short || needs.build-a5.outputs.resolved_short }}
-      resolved_sha: ${{ needs.resolve.outputs.a5_resolved_short || needs.build-a5.outputs.resolved_sha }}
+      resolved_sha: ${{ needs.resolve.outputs.a5_resolved_sha || needs.build-a5.outputs.resolved_sha }}
       pytorch_wheels_tarball: ${{ needs.resolve.outputs.a5_pytorch_wheels_tarball || needs.build-a5.outputs.pytorch_wheels_tarball }}
       torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a5_torchnpu_wheels_tarball || needs.build-a5.outputs.torchnpu_wheels_tarball }}
       upstream_repo: pytorch/pytorch
@@ -521,7 +536,7 @@ jobs:
     secrets: inherit
     with:
       resolved_short: ${{ needs.resolve.outputs.a3_resolved_short || needs.build-a3.outputs.resolved_short }}
-      resolved_sha: ${{ needs.resolve.outputs.a3_resolved_short || needs.build-a3.outputs.resolved_sha }}
+      resolved_sha: ${{ needs.resolve.outputs.a3_resolved_sha || needs.build-a3.outputs.resolved_sha }}
       pytorch_wheels_tarball: ${{ needs.resolve.outputs.a3_pytorch_wheels_tarball || needs.build-a3.outputs.pytorch_wheels_tarball }}
       torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a3_torchnpu_wheels_tarball || needs.build-a3.outputs.torchnpu_wheels_tarball }}
       upstream_repo: pytorch/pytorch
@@ -555,7 +570,7 @@ jobs:
     secrets: inherit
     with:
       resolved_short: ${{ needs.resolve.outputs.a5_resolved_short || needs.build-a5.outputs.resolved_short }}
-      resolved_sha: ${{ needs.resolve.outputs.a5_resolved_short || needs.build-a5.outputs.resolved_sha }}
+      resolved_sha: ${{ needs.resolve.outputs.a5_resolved_sha || needs.build-a5.outputs.resolved_sha }}
       pytorch_wheels_tarball: ${{ needs.resolve.outputs.a5_pytorch_wheels_tarball || needs.build-a5.outputs.pytorch_wheels_tarball }}
       torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a5_torchnpu_wheels_tarball || needs.build-a5.outputs.torchnpu_wheels_tarball }}
       upstream_repo: pytorch/pytorch
@@ -778,7 +793,7 @@ jobs:
     secrets: inherit
     with:
       resolved_short: ${{ needs.resolve.outputs.a3_resolved_short || needs.build-a3.outputs.resolved_short }}
-      resolved_sha: ${{ needs.resolve.outputs.a3_resolved_short || needs.build-a3.outputs.resolved_sha }}
+      resolved_sha: ${{ needs.resolve.outputs.a3_resolved_sha || needs.build-a3.outputs.resolved_sha }}
       pytorch_wheels_tarball: ${{ needs.resolve.outputs.a3_pytorch_wheels_tarball || needs.build-a3.outputs.pytorch_wheels_tarball }}
       torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a3_torchnpu_wheels_tarball || needs.build-a3.outputs.torchnpu_wheels_tarball }}
       upstream_repo: pytorch/pytorch
@@ -812,7 +827,7 @@ jobs:
     secrets: inherit
     with:
       resolved_short: ${{ needs.resolve.outputs.a5_resolved_short || needs.build-a5.outputs.resolved_short }}
-      resolved_sha: ${{ needs.resolve.outputs.a5_resolved_short || needs.build-a5.outputs.resolved_sha }}
+      resolved_sha: ${{ needs.resolve.outputs.a5_resolved_sha || needs.build-a5.outputs.resolved_sha }}
       pytorch_wheels_tarball: ${{ needs.resolve.outputs.a5_pytorch_wheels_tarball || needs.build-a5.outputs.pytorch_wheels_tarball }}
       torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a5_torchnpu_wheels_tarball || needs.build-a5.outputs.torchnpu_wheels_tarball }}
       upstream_repo: pytorch/pytorch

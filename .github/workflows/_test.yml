@@ -8,13 +8,11 @@ on:
         type: string
         description: Short SHA of upstream PyTorch (from _build.yml outputs)
       resolved_sha:
-        required: false
+        required: true
         type: string
-        default: ''
         description: >-
-          Full 40-char SHA of upstream PyTorch (from _build.yml outputs).
-          When set, the test shards clone the source from the in-cluster
-          git-cdn instead of downloading the OBS source tarball.
+          Full 40-char SHA of upstream PyTorch the shards check out from the
+          in-cluster git-cdn. A short SHA cannot be fetched directly.
       upstream_repo:
         required: false
         type: string
@@ -146,9 +144,8 @@ on:
         default: 'obs.ap-southeast-1.myhuaweicloud.com'
         description: >-
           OBS endpoint for the wheels cache objects (wheel downloads in
-          the collect and shard jobs). The PyTorch source tarball always
-          stays on the legacy ap-southeast-1 endpoint regardless of this
-          input. Must match the endpoint the build phase uploaded to.
+          the collect and shard jobs). The PyTorch source itself comes from
+          the in-cluster git-cdn, not from OBS.
       wheels_obs_bucket:
         required: false
         type: string

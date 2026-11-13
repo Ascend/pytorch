@@ -3,9 +3,11 @@ name: Build torch_npu against upstream release wheels
 # Build flow that does NOT build PyTorch from source: it downloads prebuilt
 # upstream release wheels (torch + torchvision, linux aarch64 cpu) from
 # download.pytorch.org, resolves the exact upstream commit the torch wheel
-# was built from (torch/version.py git_version), publishes the wheels and
-# the matching PyTorch source tarball to OBS, and builds torch_npu against
-# the installed upstream wheel (ci/build.sh --torch=<torch_version>).
+# was built from (torch/version.py git_version), publishes the wheels to
+# OBS, and builds torch_npu against the installed upstream wheel
+# (ci/build.sh --torch=<torch_version>). The test jobs clone the matching
+# upstream commit from the in-cluster git-cdn, so no source tarball is
+# published.
 #
 # OBS cache namespace: the wheels objects deliberately live in a separate
 # key space from the source-build flow (_nightly_build.yml), so the two
@@ -13,9 +15,6 @@ name: Build torch_npu against upstream release wheels
 # to build at the same upstream commit:
 #   wheels-pytorch-upstream-<ver>-<upstream_short>-<py>-<arch>-v1.tar.gz
 #   wheels-torchnpu-upstream-<ver>-<npu_short>-<upstream_short>-<py>-<image_tag>-<arch>-v1.tar.gz
-# The PyTorch source tarball keeps the shared pytorch-source-<short>.tar.gz
-# convention (same commit + same packaging recipe => identical content, so
-# it safely deduplicates with the PR CI fetch job).
 #
 # report_to_upstream (cross-repo CI relay) is intentionally not supported
 # here; this pipeline is internal validation only.
@@ -80,8 +79,8 @@ on:
         default: 'obs.ap-southeast-1.myhuaweicloud.com'
         description: >-
           OBS endpoint for the wheels cache objects (wheel probe, upload
-          and download). The PyTorch source tarball always stays on the
-          legacy ap-southeast-1 endpoint regardless of this input.
+          and download). The PyTorch source itself comes from the in-cluster
+          git-cdn, not from OBS.
       wheels_obs_bucket:
         required: false
         type: string
@@ -127,10 +126,10 @@ jobs:
   # ======================================================================
   # Job 1: Download upstream release wheels on a GitHub-hosted runner (US,
   # fast cross-border access to download.pytorch.org), resolve the upstream
-  # commit the torch wheel was built from, and publish wheels + the
-  # matching PyTorch source tarball to OBS. Mirrors the fetch job of
-  # _nightly_build.yml, except the pytorch side comes from upstream
-  # release wheels instead of a source build.
+  # commit the torch wheel was built from, and publish the wheels to OBS.
+  # Mirrors the fetch job of _nightly_build.yml, except the pytorch side
+  # comes from upstream release wheels instead of a source build, and the
+  # test jobs clone that upstream commit from the in-cluster git-cdn.
   # ======================================================================
   fetch:
     runs-on: ubuntu-latest
@@ -223,12 +222,9 @@ jobs:
           VERSION_BASE="${TORCH_VERSION%%+*}"
           PY="py$(echo "${PYTHON_VERSION}" | tr -d .)"
 
-          SOURCE_TARBALL="pytorch-source-${UPSTREAM_SHORT}.tar.gz"
           PYTORCH_TARBALL="wheels-pytorch-upstream-${VERSION_BASE}-${UPSTREAM_SHORT}-${PY}-${ARCH}-v1.tar.gz"
 
-          echo "source_tarball=${SOURCE_TARBALL}" >> "$GITHUB_OUTPUT"
           echo "pytorch_wheels_tarball=${PYTORCH_TARBALL}" >> "$GITHUB_OUTPUT"
-          echo "PyTorch source tarball: ${SOURCE_TARBALL}"
           echo "Upstream wheels tarball: ${PYTORCH_TARBALL}"
 
       # obsutil is not preinstalled on GitHub-hosted runners; install it
@@ -271,34 +267,19 @@ jobs:
           ln -sf "${OBSUTIL_HOME}"/obsutil_linux_${OBS_ARCH}_*/obsutil "${OBSUTIL_HOME}/obsutil"
           "${OBSUTIL_HOME}/obsutil" version
 
-      # Consult the OBS cache before doing any expensive work. The wheels
-      # object and the source tarball are checked independently (partial
-      # hits supported), mirroring the per-object cache semantics of
-      # _nightly_build.yml. A broken probe degrades to miss.
+      # Consult the OBS cache before doing any expensive work. A broken
+      # probe degrades to miss.
       - name: Check OBS cache
         id: obs_cache
         run: |
           set +e
           export PATH="${HOME}/.local/obsutil:${PATH}"
-          # Source stays on the legacy ap-southeast-1 endpoint; the
-          # wheels object lives in the caller-selectable wheels bucket.
-          # The cn-southwest-2 (Guiyang) bucket uses a different key
-          # pair, so the credentials follow the endpoint.
+          # The cn-southwest-2 (Guiyang) bucket uses a different key pair,
+          # so the credentials follow the endpoint.
           WHEELS_ENDPOINT='${{ inputs.wheels_obs_endpoint }}'
           WHEELS_BUCKET='${{ inputs.wheels_obs_bucket }}'
 
-          SOURCE_TARBALL="${{ steps.names.outputs.source_tarball }}"
           WHEELS_TARBALL="${{ steps.names.outputs.pytorch_wheels_tarball }}"
-
-          SOURCE_HIT=false
-          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
-          if obsutil stat "obs://pytorch-ci-cache/7day-cache/${SOURCE_TARBALL}" >/dev/null 2>&1; then
-            SOURCE_HIT=true
-            echo "PyTorch source already cached in OBS, skipping source checkout+packaging"
-          else
-            echo "PyTorch source not in OBS cache"
-          fi
-          echo "source_hit=${SOURCE_HIT}" >> "$GITHUB_OUTPUT"
 
           if [[ "${WHEELS_ENDPOINT}" == *cn-southwest-2* ]]; then
             obsutil config -i=${{ secrets.ACCESSKEY_GUIYANG }} -k=${{ secrets.SECRETACCESSKEY_GUIYANG }} -e=${WHEELS_ENDPOINT}
@@ -362,57 +343,6 @@ jobs:
           echo "Upload failed after 2 attempts"
           exit 1
 
-      # Check out PyTorch at the exact commit the torch wheel was built
-      # from (wheel git_version). This is the test-suite source the test
-      # jobs will receive via the OBS source tarball — it matches the
-      # wheel, not main HEAD. Reachable from the release branch refs, so
-      # a fetch-depth-1 SHA checkout works.
-      - name: Checkout upstream PyTorch at wheel commit
-        if: steps.obs_cache.outputs.source_hit != 'true'
-        uses: actions/checkout@v6
-        with:
-          repository: pytorch/pytorch
-          ref: ${{ steps.wheel_id.outputs.sha }}
-          fetch-depth: 1
-          submodules: false
-          path: pytorch
-
-      - name: Init submodules
-        if: steps.obs_cache.outputs.source_hit != 'true'
-        working-directory: pytorch
-        run: |
-          git submodule update --init --recursive --depth 1 --jobs=$(nproc)
-
-      # Same packaging recipe as the PR CI fetch job (submodules included,
-      # .git excluded) so the shared pytorch-source-<short>.tar.gz key
-      # space stays content-compatible.
-      - name: Package PyTorch source
-        if: steps.obs_cache.outputs.source_hit != 'true'
-        run: |
-          TARBALL="${{ steps.names.outputs.source_tarball }}"
-          echo "Packaging pytorch/ into ${TARBALL} ..."
-          tar -czf "${TARBALL}" --exclude='.git' --exclude='*.git' pytorch/
-          echo "Package size: $(du -h ${TARBALL} | cut -f1)"
-
-      - name: Upload PyTorch source to OBS
-        if: steps.obs_cache.outputs.source_hit != 'true'
-        run: |
-          set -e
-          export PATH="${HOME}/.local/obsutil:${PATH}"
-          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
-
-          TARBALL="${{ steps.names.outputs.source_tarball }}"
-          for attempt in 1 2; do
-            echo "=== Upload attempt ${attempt} ==="
-            if obsutil cp "./${TARBALL}" "obs://pytorch-ci-cache/7day-cache/${TARBALL}" -f -vlength; then
-              echo "Upload succeeded on attempt ${attempt}"
-              exit 0
-            fi
-            echo "Upload attempt ${attempt} failed"
-            sleep 10
-          done
-          echo "Upload failed after 2 attempts"
-          exit 1
 
   # ======================================================================
   # Job 2: Build torch_npu on the self-hosted ARM64 builder, against the
