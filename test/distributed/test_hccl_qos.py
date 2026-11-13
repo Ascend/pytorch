@@ -115,10 +115,10 @@ class HcclQosTest(TestCase):
 
     @classmethod
     def _test_qos_multi_group(cls, rank, ranks, world_size, input1, input2):
-        # Default group (new key) and a conflict new_group must stay isolated;
-        # repeated collectives must not amplify the per-group warning.
+        # Both groups carry conflicting configs: WARN_ONCE is process-level, so
+        # two groups and repeated collectives still yield exactly one warning.
         options1 = torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()
-        options1.hccl_config = {"hccl_qos": 7}
+        options1.hccl_config = {"hccl_qos": 7, "hccl_sdma_qos": 0}
         HcclQosTest._init_dist_hccl(rank, options1, world_size, seq=20)
 
         dist.all_reduce(input1.npu(rank))
@@ -272,8 +272,8 @@ class HcclQosTest(TestCase):
         _, input2 = create_common_tensor(shape, -10, 10)
         evidence = self._test_multiprocess(
             HcclQosTest._test_qos_multi_group, world_size, input1, input2)
-        # Default group uses the new key (7); the conflict new_group takes 5
-        # and warns exactly once despite two collectives.
+        # Both groups conflict ({7,0} and {5,5}): values stay isolated per comm
+        # (7 / 5) while WARN_ONCE emits exactly one warning per process.
         self._assert_plog_qos(evidence, {"group_name_0": 7, "group_name_1": 5},
                               expect_warnings=1)
 
