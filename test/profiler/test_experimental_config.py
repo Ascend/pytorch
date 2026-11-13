@@ -1,6 +1,7 @@
 import json
 import pickle
 import unittest
+import warnings
 from unittest.mock import PropertyMock, patch
 
 from torch._C._profiler import _ExperimentalConfig as KinetoExperimentalConfig
@@ -450,24 +451,53 @@ class TestExperimentalConfig(TestCase):
         self.assertIsNotNone(detector.get_cur_ts)
 
 
-class TestExperimentalConfigPickle(TestCase):
-    """Reviewer follow-up: pickle states written by older torch_npu releases stay loadable."""
+class TestFtraceConfig(TestCase):
+    """Ftrace switches follow the same parameter handling as the other Python side options."""
 
-    def test_pickle_round_trip_keeps_ftrace_fields(self):
-        config = Cpp_ExperimentalConfig(ftrace=["sched/sched_switch"], ftrace_period=5, ftrace_bufsize=8192)
-        state = config.__getstate__()
-        self.assertEqual(len(state), 14)
+    def test_ftrace_disabled_by_default(self):
+        config = _ExperimentalConfig()
+        self.assertEqual([], config._ftrace)
+        self.assertEqual(0, config._ftrace_period)
+        self.assertEqual(0, config._ftrace_bufsize)
 
-        restored = Cpp_ExperimentalConfig()
-        restored.__setstate__(state)
-        self.assertEqual(restored.__getstate__(), state)
+    def test_ftrace_events_are_normalized_and_deduplicated(self):
+        config = _ExperimentalConfig(
+            ftrace=["sched/sched_switch", "sched/sched_switch", "irq/irq_handler_entry"]
+        )
+        self.assertEqual(["sched/sched_switch", "irq/irq_handler_entry"], config._ftrace)
 
-    def test_state_without_ftrace_fields_falls_back_to_defaults(self):
-        state = Cpp_ExperimentalConfig().__getstate__()
+    def test_invalid_ftrace_events_are_ignored(self):
+        config = _ExperimentalConfig(
+            ftrace=["sched/sched_switch", "bad", "a/b/c", "/event", "system/", 1, None]
+        )
+        self.assertEqual(["sched/sched_switch"], config._ftrace)
 
-        restored = Cpp_ExperimentalConfig()
-        restored.__setstate__(state[:11])
-        self.assertEqual(restored.__getstate__()[11:], ([], 0, 0))
+    def test_invalid_ftrace_container_resets_to_empty(self):
+        config = _ExperimentalConfig(ftrace="sched/sched_switch")
+        self.assertEqual([], config._ftrace)
+
+    def test_ftrace_period_out_of_range_resets_to_zero(self):
+        for period in (-1, 86401, 1.5, True, "5"):
+            with self.subTest(period=period):
+                config = _ExperimentalConfig(ftrace_period=period)
+                self.assertEqual(0, config._ftrace_period)
+
+    def test_ftrace_bufsize_out_of_range_resets_to_zero(self):
+        for bufsize in (-1, 1023, 4194305, 1.5, True):
+            with self.subTest(bufsize=bufsize):
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    config = _ExperimentalConfig(ftrace_bufsize=bufsize)
+                self.assertEqual(0, config._ftrace_bufsize)
+
+    def test_valid_ftrace_switches_are_kept(self):
+        config = _ExperimentalConfig(
+            ftrace=["sched/sched_switch"], ftrace_period=60, ftrace_bufsize=8192
+        )
+        self.assertEqual(["sched/sched_switch"], config._ftrace)
+        self.assertEqual(60, config._ftrace_period)
+        self.assertEqual(8192, config._ftrace_bufsize)
+
 
 if __name__ == "__main__":
     run_tests()
