@@ -460,44 +460,38 @@ jobs:
             echo "hit=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # Step 1d: Download the PyTorch source tarball published to OBS by
-      # the fetch job (GitHub free runner). Submodules are already included
-      # in the tarball, so no submodule fetch is needed on this runner.
-      # Gated on the wheels cache check: on a cache hit no build runs, so
-      # the ~800MB download would be wasted — the Summary/Report steps only
-      # need the torch_npu checkout.
-      # obsutil is preinstalled in the build image; auth is done inline
-      # via `obsutil config` (AK/SK are masked by the runner in logs).
-      # Objects above the 50MB threshold use segment download
-      # automatically; a failed attempt leaves a checkpoint record in
-      # ~/.obsutil_checkpoint/down, so the retry resumes the transfer
-      # instead of restarting from byte 0. -vlength verifies the local
-      # file size against the object. Do NOT delete the .obs.temp partial
-      # file between attempts — it is the resume state.
-      - name: Download PyTorch source from OBS
+      # Step 1d: Clone the PyTorch source from the in-cluster git-cdn instead of
+      # downloading the ~800MB source tarball from OBS. The runner's git config
+      # rewrites https://github.com/ to the cluster git-cdn, so the traffic stays
+      # inside the cluster and is served from cache. Gated on the wheels cache
+      # check: on a cache hit no build runs, so the checkout would be wasted.
+      # Submodules are deliberately NOT shallow-cloned (no --depth 1): a shallow
+      # submodule has none of the pinned SHAs reachable from its local refs, so
+      # git re-fetches every pin serially after the parallel `--jobs` clone phase
+      # (measured on the pytorch tree: 239s shallow vs 126s full history).
+      - name: Clone PyTorch source from git-cdn
         if: steps.wheels_cache.outputs.pytorch_hit != 'true'
+        env:
+          UPSTREAM_REPO: ${{ inputs.upstream_repo }}
+          UPSTREAM_REF: ${{ inputs.upstream_ref }}
+          UPSTREAM_SHA: ${{ needs.fetch.outputs.resolved_sha }}
         run: |
-          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
-
-          TARBALL="${{ needs.fetch.outputs.source_tarball }}"
-          for attempt in 1 2; do
-            echo "=== Download attempt ${attempt} ==="
-            if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "./${TARBALL}" -vlength; then
-              echo "Download succeeded on attempt ${attempt}"
-              exit 0
-            fi
-            echo "Download attempt ${attempt} failed"
-            sleep 10
-          done
-          echo "Download failed after 2 attempts"
-          exit 1
-
-      - name: Extract PyTorch source
-        if: steps.wheels_cache.outputs.pytorch_hit != 'true'
-        run: |
-          tar -xzf ${{ needs.fetch.outputs.source_tarball }}
-          rm ${{ needs.fetch.outputs.source_tarball }}
-          echo "PyTorch source extracted: $(du -sh pytorch/ | cut -f1)"
+          set -euo pipefail
+          git init -q pytorch
+          cd pytorch
+          git remote add origin "https://github.com/${UPSTREAM_REPO}.git"
+          # Prefer fetching the resolved commit directly (git-cdn allows SHA
+          # wants); fall back to the ref for servers that do not.
+          git fetch --depth 1 origin "${UPSTREAM_SHA}" || git fetch --depth 1 origin "${UPSTREAM_REF}"
+          git checkout -q -b build FETCH_HEAD
+          # The wheels are keyed by this commit; refuse to build a different
+          # tree if the ref moved between the fetch job and here.
+          test "$(git rev-parse HEAD)" = "${UPSTREAM_SHA}" || {
+            echo "ERROR: checked out $(git rev-parse HEAD), expected ${UPSTREAM_SHA}"
+            exit 1
+          }
+          git submodule update --init --recursive --jobs=$(nproc)
+          echo "PyTorch source ready: $(git rev-parse --short HEAD), $(du -sh . | cut -f1)"
 
       # Step 1e: torch_npu submodules are fetched only when a build is
       # actually needed (parallel fetch like the PyTorch one above).

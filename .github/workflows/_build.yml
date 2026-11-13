@@ -358,28 +358,36 @@ jobs:
           echo "pytorch_wheels_tarball=${TARBALL}" >> "$GITHUB_OUTPUT"
           echo "Pytorch wheels tarball: ${TARBALL}"
 
-      - name: Download PyTorch source from OBS
+      # Step 1c: Clone the PyTorch source from the in-cluster git-cdn instead of
+      # downloading the ~800MB source tarball from OBS. The runner's git config
+      # rewrites https://github.com/ to the cluster git-cdn, so the traffic stays
+      # inside the cluster and is served from cache.
+      # Submodules are deliberately NOT shallow-cloned (no --depth 1): a shallow
+      # submodule has none of the pinned SHAs reachable from its local refs, so
+      # git re-fetches every pin serially after the parallel `--jobs` clone phase
+      # (measured on the pytorch tree: 239s shallow vs 126s full history).
+      - name: Clone PyTorch source from git-cdn
+        env:
+          UPSTREAM_REPO: ${{ inputs.upstream_repo }}
+          UPSTREAM_REF: ${{ inputs.upstream_ref }}
+          UPSTREAM_SHA: ${{ needs.fetch.outputs.resolved_sha }}
         run: |
-          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
-
-          TARBALL="${{ steps.sha.outputs.source_tarball }}"
-          for attempt in 1 2; do
-            echo "=== Download attempt ${attempt} ==="
-            if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "./${TARBALL}" -vlength; then
-              echo "Download succeeded on attempt ${attempt}"
-              exit 0
-            fi
-            echo "Download attempt ${attempt} failed"
-            sleep 10
-          done
-          echo "Download failed after 2 attempts"
-          exit 1
-
-      - name: Extract PyTorch source
-        run: |
-          tar -xzf ${{ steps.sha.outputs.source_tarball }}
-          rm ${{ steps.sha.outputs.source_tarball }}
-          echo "PyTorch source extracted: $(du -sh pytorch/ | cut -f1)"
+          set -euo pipefail
+          git init -q pytorch
+          cd pytorch
+          git remote add origin "https://github.com/${UPSTREAM_REPO}.git"
+          # Prefer fetching the resolved commit directly (git-cdn allows SHA
+          # wants); fall back to the ref for servers that do not.
+          git fetch --depth 1 origin "${UPSTREAM_SHA}" || git fetch --depth 1 origin "${UPSTREAM_REF}"
+          git checkout -q -b build FETCH_HEAD
+          # The wheel was built from this exact commit; refuse to build a
+          # different tree if the ref moved between the fetch job and here.
+          test "$(git rev-parse HEAD)" = "${UPSTREAM_SHA}" || {
+            echo "ERROR: checked out $(git rev-parse HEAD), expected ${UPSTREAM_SHA}"
+            exit 1
+          }
+          git submodule update --init --recursive --jobs=$(nproc)
+          echo "PyTorch source ready: $(git rev-parse --short HEAD), $(du -sh . | cut -f1)"
 
       # Step 2: Build and install PyTorch
       - name: Build and install PyTorch
