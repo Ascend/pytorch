@@ -7,11 +7,11 @@ NPUGraph是一种在Eager Mode（单算子执行模式）下使用的静态图�
 ### 工作流程
 
 1. **捕获（Capture）**：将NPU流置于捕获模式后，内核调用被记录为计算图结构。
-2. **重放（Replay）**：捕获完成后，通过`g.replay()`多次重放相同计算逻辑。每次重放的kernel序列、执行顺序与捕获时完全一致，无需重复的图构建和kernel启动准备。
+2. **重放（Replay）**：捕获完成后，通过`g.replay()`多次重放相同计算逻辑。每次重放的内核序列、执行顺序与捕获时完全一致，无需重复的图构建和内核启动准备。
 
     重放时的内存管理是核心要点：捕获阶段分配的张量内存地址在重放时保持不变。若需要在不同step之间使用新数据，必须通过`copy_()`将新数据写入捕获时占用的内存地址，而不能直接对张量重新赋值（如`tensor = new_data`），否则变量将指向新内存地址，重放仍在旧地址上操作导致数据失效。该机制在`make_graphed_callables`内部实现中自动处理。对于前向和反向传播，当检测到输入张量的`data_ptr()`与捕获时不同时，自动执行`copy_()`更新。
 
-3. **更新（Update）**：对于需要动态参数（如序列长度）的算子（如FlashAttention），NPUGraph通过专用的update机制在重放前刷新参数值，无需重新捕获整张图。该机制由`_npugraph_handlers`中的算子Handler自动管理，用户通过`auto_dispatch_capture=True`启用。
+3. **更新（Update）**：对于需要动态参数（如序列长度）的算子（如FlashAttention），NPUGraph通过专用的update机制在重放前刷新参数值，无需重新捕获整张图。该机制由[_npugraph_handlers](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/torch_npu-npu_npugraph_handlers.md)中的算子Handler自动管理，用户通过`auto_dispatch_capture=True`启用。
 
 ### 核心优势
 
@@ -26,7 +26,7 @@ NPUGraph的优势可以通过下图展示：
 
 > [!NOTE]
 >
-> CPU逐个启动一列短核时，CPU启动开销会在核之间造成显著间隙。而使用NPUGraph替代这串核序列，最初需要花更多时间构建图并一次性启动整个图，但后续执行会非常快，因为核间的间隙非常小。当同一操作序列重复多次（例如训练步数非常多）时，差异更为明显。构建和启动图的初始成本将在整个训练迭代次数中摊销。
+> CPU逐个启动一系列短核时，CPU启动开销会在核之间造成显著间隙。而使用NPUGraph替代这串核序列，最初需要花更多时间构建图并一次性启动整个图，但后续执行会非常快，因为核间的间隙非常小。当同一操作序列重复多次（例如训练步数非常多）时，差异更为明显。构建和启动图的初始成本将在整个训练迭代次数中摊销。
 
 ## 使用场景
 
@@ -59,7 +59,7 @@ NPUGraph提供了三种方式：
 |-----|--------|---------|---------|
 | NPUGraph类（`capture_begin/end`）| 手动创建Stream、调用`capture_begin/end`、管理内存池、处理同步 | ACLGraph捕获和重放 | 多Stream协同、分区域捕获 |
 | graph()上下文管理器 | 决定捕获边界 | 自动创建Stream，同步与缓存处理 | 快速上手，单流场景 | 
-| `make_graphed_callables()` |传入callables和样例输入| 自动完成warmup、捕获前后向图、处理数据copy_更新 | 含动态控制流的安全子图捕获 | 
+| make_graphed_callables() |传入callables和样例输入| 自动完成warmup、捕获前后向图、处理数据copy_更新 | 含动态控制流的安全子图捕获 | 
 
 ## 使用样例
 
@@ -115,7 +115,7 @@ def graph_simple():
 graph_simple()
 ```
 
-**方式三：make_graphed_callables：安全子图捕获**
+**方式三：使用make_graphed_callables（安全子图捕获）**
 
 该API将安全部分封装为图化可调用对象，其余部分保持eager执行。
 
@@ -128,13 +128,13 @@ import torch.optim as optim
 from itertools import chain
 
 def main():
-    # 1. 环境检查：验证NPU可用性
+    # 1. 环境检查: 验证NPU可用性
     if not torch.npu.is_available():
         print("# NPU不可用，请在支持NPU的环境中运行本示例")
         return
-    print(f"# PyTorch版本：{torch.__version__}")
-    print(f"# torch_npu版本：{torch_npu.__version__}")
-    print(f"# NPU设备数量：{torch.npu.device_count()}")
+    print(f"# PyTorch版本: {torch.__version__}")
+    print(f"# torch_npu版本: {torch_npu.__version__}")
+    print(f"# NPU设备数量: {torch.npu.device_count()}")
 
     # 2. 可复现性设置
     torch.manual_seed(42)
@@ -152,7 +152,7 @@ def main():
         lr=0.1
     )
 
-    # 4. 准备捕获用静态张量（requires_grad状态需与实际输入匹配）
+    # 4. 准备捕获用静态张量(requires_grad状态需与实际输入匹配)
     x = torch.randn(N, D_in, device='npu')  # module1输入无需梯度
     h = torch.randn(N, H, device='npu', requires_grad=True)  # module2/3输入需梯度
 
@@ -167,16 +167,16 @@ def main():
     real_inputs = [torch.randn_like(x) for _ in range(10)]
     real_targets = [torch.randn(N, D_out, device='npu') for _ in range(10)]
 
-    # 7. 执行训练迭代（含动态分支）
-    print("# 开始10次迭代（使用NPUGraphed Callables）")
+    # 7. 执行训练迭代(含动态分支)
+    print("# 开始10次迭代(使用NPUGraphed Callables)")
     for i, (data, target) in enumerate(zip(real_inputs, real_targets)):
         optimizer.zero_grad(set_to_none=True)
 
-        # 前向：module1无条件执行
+        # 前向: module1无条件执行
         tmp = module1(data)  # 图化前向
 
-        # 动态分支：根据中间结果选择module2或module3
-        # ⚠️ 注意：NPUGraph要求分支结构在捕获时确定；此处分支仅影响复用哪个图，
+        # 动态分支: 根据中间结果选择module2或module3
+        # ⚠️ 注意: NPUGraph要求分支结构在捕获时确定; 此处分支仅影响复用哪个图，
         #        各分支内部计算图保持静态，因此安全可用
         if tmp.sum().item() > 0:
             tmp = module2(tmp)  # 图化前向
