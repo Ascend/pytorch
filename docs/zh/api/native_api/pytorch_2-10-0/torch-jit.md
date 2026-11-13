@@ -109,7 +109,6 @@
 
 </div>
 
-<!-- npu="910b,A3" id244 -->
 ### torch.jit.fork
 
 <div style="margin-left: 2em">
@@ -117,7 +116,6 @@
 **原生文档**：[torch.jit.fork](https://pytorch.org/docs/2.10/generated/torch.jit.fork.html)
 
 **产品支持情况**：
-<!-- end id244 -->
 
 <!-- npu="910b" id13 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -125,10 +123,11 @@
 <!-- npu="A3" id14 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id14 -->
+<!-- npu="950" id252 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id252 -->
 
-<!-- npu="910b,A3" id245 -->
 </div>
-<!-- end id245 -->
 
 <!-- npu="910b,A3" id246 -->
 ### torch.jit.wait
