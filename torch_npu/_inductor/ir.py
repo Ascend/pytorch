@@ -108,6 +108,10 @@ def num_splits(
         not in (
             "argmax",
             "argmin",
+            "argmax_value",
+            "argmin_value",
+            "argmax_with_value",
+            "argmin_with_value",
         )
         and config.split_reductions
     )

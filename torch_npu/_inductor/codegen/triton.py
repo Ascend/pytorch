@@ -609,7 +609,15 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
                 and isinstance(V.kernel.current_node.node.data, ir.Reduction)
             ):
                 reduction_type = V.kernel.current_node.node.data.reduction_type
-                if reduction_type in {"argmax", "argmin"}:
+                # Value-only and paired arg reductions also carry indices.
+                if reduction_type in {
+                    "argmax",
+                    "argmin",
+                    "argmax_value",
+                    "argmin_value",
+                    "argmax_with_value",
+                    "argmin_with_value",
+                }:
                     self.writeline(
                         f"{self.parent.prefix}index = {self.codegen_index(None)}"
                     )
@@ -4296,21 +4304,30 @@ class NPUIndexTritonKernel(TritonKernel):
         # semantics (see _make_reduction_inner). The tuple goes through the
         # broadcast/reshape maps above so value and index stay shape-aligned.
         # The type set mirrors upstream arg_reduction_types.
+        arg_index_types = {"argmax", "argmin"}
+        arg_value_types = {"argmax_value", "argmin_value"}
+        arg_with_value_types = {"argmax_with_value", "argmin_with_value"}
+        arg_types = arg_index_types | arg_value_types | arg_with_value_types
+        arg_root_ops = {
+            name: "max" if name.startswith("argmax") else "min"
+            for name in arg_types
+        }
         logical_index = None
-        if reduction_type in {
-            "argmax",
-            "argmin",
-            "argmax_value",
-            "argmin_value",
-            "argmax_with_value",
-            "argmin_with_value",
-        } and isinstance(value, tuple):
+        if reduction_type in arg_types and isinstance(value, tuple):
             value, logical_index = value
 
         dim: int
         root_op: str
 
         def final_reduction(value):
+            if reduction_type in {"max", "min"} and src_dtype.is_floating_point:
+                # Upstream max2/min2 use comparison/select combines, which
+                # scalarize on NPU. Share the native floating-extremum path
+                # with arg reductions without computing their indices.
+                return self.reduction_resize(
+                    f"triton_helpers._extremum({value}, {dim}, {reduction_type == 'max'})",
+                    dim,
+                )
             use_helper = reduction_type in {"any", "prod"}
             module = "triton_helpers" if use_helper else "tl"
             if reduction_type in {"max"}:
@@ -4323,12 +4340,23 @@ class NPUIndexTritonKernel(TritonKernel):
             )
 
         def final_argreduce(buffer, result_var, value, index):
-            buffer.splice(
-                f"""\
-                _, {result_var}_tmp = triton_helpers.{root_op}_with_index({value}, {index}, {dim})
-                {result_var} = {self.reduction_resize(f"{result_var}_tmp", dim)}
-                """
-            )
+            if reduction_type in arg_with_value_types:
+                result_value, result_index = result_var
+                buffer.splice(
+                    f"""\
+                    {result_value}, {result_index} = triton_helpers.{root_op}_with_index({value}, {index}, {dim})
+                    {result_value} = {self.reduction_resize(result_value, dim)}
+                    {result_index} = {self.reduction_resize(result_index, dim)}
+                    """
+                )
+            else:
+                result = "value" if reduction_type in arg_value_types else "index"
+                buffer.splice(
+                    f"""\
+                    {result_var}_value, {result_var}_index = triton_helpers.{root_op}_with_index({value}, {index}, {dim})
+                    {result_var} = {self.reduction_resize(f"{result_var}_{result}", dim)}
+                    """
+                )
 
         def get_reduction_axis():
             reduce_dim = self.reduction_dim()
@@ -4351,8 +4379,19 @@ class NPUIndexTritonKernel(TritonKernel):
         else:
             result_shape = list(self.dense_size_list())
             result_shape[dim] = "1"
-        result_var: Any = self.cse.newvar(dtype=torch_acc_type, shape=tuple(result_shape))
-        result_var.mask_vars = {var for var in masks if var[0] != "r"}  # noqa: set_linter
+        result_masks = {var for var in masks if var[0] != "r"}  # noqa: set_linter
+        result_var: Any
+        if reduction_type in arg_with_value_types:
+            result_var = (
+                self.cse.newvar(dtype=torch_acc_type, shape=tuple(result_shape)),
+                self.cse.newvar(dtype=torch.int64, shape=tuple(result_shape)),
+            )
+            for var in result_var:
+                var.mask_vars = result_masks
+        else:
+            result_dtype = torch.int64 if reduction_type in arg_index_types else torch_acc_type
+            result_var = self.cse.newvar(dtype=result_dtype, shape=tuple(result_shape))
+            result_var.mask_vars = result_masks
         cond_expr = " & ".join(masks)
         if not cond_expr:
             cond = ""
@@ -4435,8 +4474,8 @@ class NPUIndexTritonKernel(TritonKernel):
                 else:
                     masked_value = mask_value(value, default)
 
-            if reduction_type in {"argmax", "argmin", "max", "min"}:
-                if reduction_type == "argmax" or reduction_type == "argmin":
+            if reduction_type in arg_types | {"max", "min"}:
+                if reduction_type in arg_types:
                     if logical_index is not None:
                         # Non-contiguous input: use the loader-computed
                         # logical row-major index instead of the axis-derived
@@ -4464,7 +4503,7 @@ class NPUIndexTritonKernel(TritonKernel):
                                 self.compute, broadcast_string, dtype=torch.int64, shape=masked_value.shape,
                             )
                         )
-                    root_op = {"argmax": "max", "argmin": "min"}[reduction_type]
+                    root_op = arg_root_ops[reduction_type]
                     final_argreduce(
                         self.compute, result_var, masked_value, accumulator_index
                     )
@@ -4615,7 +4654,8 @@ class NPUIndexTritonKernel(TritonKernel):
                     shape=tuple(result_shape) if use_contiguous_sum_layout else masked_value.shape,
                 )
         else:
-            accumulator = self.cse.namedvar(f"_{result_var}", dtype=torch_acc_type, shape=tuple(self.dense_size_list()))
+            result_prefix = result_var[0] if reduction_type in arg_with_value_types else result_var
+            accumulator = self.cse.namedvar(f"_{result_prefix}", dtype=torch_acc_type, shape=tuple(self.dense_size_list()))
             default = ir.Reduction.default_accumulator(reduction_type, src_dtype)
             default = self._map_tuple_or_scalar(constant_repr, default)
             if not isinstance(default, tuple):
@@ -4623,13 +4663,13 @@ class NPUIndexTritonKernel(TritonKernel):
                     f"{accumulator} = tl.full({self.dense_size_str()}, {default}, {acc_type})"
                 )
 
-            if reduction_type in {"argmax", "argmin"}:
-                accumulator_index = f"_{result_var}_index"
+            if reduction_type in arg_types:
+                accumulator_index = f"_{result_prefix}_index"
                 long_max = torch.iinfo(torch.int64).max
                 self.prefix.writeline(
                     f"{accumulator_index} = tl.full({self.dense_size_str()}, {long_max}, tl.int64)"
                 )
-                root_op = {"argmax": "max", "argmin": "min"}[reduction_type]
+                root_op = arg_root_ops[reduction_type]
                 # Non-contiguous input: combine with the loader-computed
                 # logical row-major index; fall back to the axis-derived
                 # physical index otherwise

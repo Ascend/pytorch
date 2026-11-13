@@ -7,6 +7,7 @@ from torch._inductor.runtime.triton_helpers import (
     maximum,
     minimum,
     promote_to_tensor,
+    select_one,
 )
 
 try:
@@ -51,21 +52,32 @@ def _restore_reduced_dim(reduced, dim: tl.constexpr, ndim: tl.constexpr):
 
 
 @triton.jit
-def _extremum(value, dim: tl.constexpr, want_max: tl.constexpr):
-    """Min/max that stays equal to some lane of value.
+def _minimum_propagate_nan(a, b):
+    return tl.minimum(a, b, propagate_nan=tl.PropagateNan.ALL)
 
-    tl.min/tl.max are the fast path on this backend, but for integer dtypes
-    the result does not match any input lane. The follow-up index reduce then
-    sees no hit and returns the argmin identity 2**63-1. Integers go through
-    inductor's minimum/maximum, which are plain compares.
+
+@triton.jit
+def _extremum(value, dim: tl.constexpr, want_max: tl.constexpr):
+    """Keep integer extrema on comparison-based reductions.
+
+    Native integer min/max may return a value absent from the input lanes,
+    leaving the following index reduction with no match. Floating extrema
+    propagate NaNs so the index reduction can select the first NaN lane.
     """
     if value.dtype.is_floating():
+        # Match tl.max's promotion and keep the min combine's input/output
+        # types consistent for fp16 and bf16.
+        if tl.constexpr(value.dtype.primitive_bitwidth) < tl.constexpr(32):
+            value = value.to(tl.float32)
         if want_max:
-            return tl.max(value, dim)
-        return tl.min(value, dim)
-    if want_max:
-        return tl.reduce(value, dim, maximum)
-    return tl.reduce(value, dim, minimum)
+            return tl.max(value, dim, propagate_nan=True)
+        else:
+            return tl.reduce(value, dim, _minimum_propagate_nan)
+    else:
+        if want_max:
+            return tl.reduce(value, dim, maximum)
+        else:
+            return tl.reduce(value, dim, minimum)
 
 
 @triton.jit
@@ -77,14 +89,21 @@ def max_with_index(value, index, dim: tl.constexpr):
     instead of the carried index, so an argmax over a dynamic reduction axis comes
     out as the position within one tile.
 
-    Split into two reduces: the extremum, then the lowest carried index among
-    lanes that hit it. Index is always integer, so that second reduce can stay
-    on builtin tl.min/tl.max.
+    Reduce the extremum, then the lowest carried index among matching lanes.
+    For floats, return that lane's original value, preserving NaN payloads
+    and signed zero like upstream's paired reduction.
     """
     peak = _extremum(value, dim, True)
     peak_bcast = _restore_reduced_dim(peak, dim, len(value.shape))
     filler = _restore_reduced_dim(tl.max(index, dim), dim, len(value.shape))
-    return peak, tl.min(tl.where(value == peak_bcast, index, filler), dim)
+    matches = value == peak_bcast
+    if value.dtype.is_floating():
+        matches = matches | ((value != value) & (peak_bcast != peak_bcast))
+    selected_index = tl.min(tl.where(matches, index, filler), dim)
+    if value.dtype.is_floating():
+        selected = index == _restore_reduced_dim(selected_index, dim, len(value.shape))
+        peak = select_one(value, selected, dim)
+    return peak, selected_index
 
 
 @triton.jit
@@ -93,7 +112,14 @@ def min_with_index(value, index, dim: tl.constexpr):
     valley = _extremum(value, dim, False)
     valley_bcast = _restore_reduced_dim(valley, dim, len(value.shape))
     filler = _restore_reduced_dim(tl.max(index, dim), dim, len(value.shape))
-    return valley, tl.min(tl.where(value == valley_bcast, index, filler), dim)
+    matches = value == valley_bcast
+    if value.dtype.is_floating():
+        matches = matches | ((value != value) & (valley_bcast != valley_bcast))
+    selected_index = tl.min(tl.where(matches, index, filler), dim)
+    if value.dtype.is_floating():
+        selected = index == _restore_reduced_dim(selected_index, dim, len(value.shape))
+        valley = select_one(value, selected, dim)
+    return valley, selected_index
 
 
 @triton.jit

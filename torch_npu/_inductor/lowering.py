@@ -409,20 +409,24 @@ def _register_npu_inductor_fallbacks():
     @register_lowering(aten.max, type_promotion_kind=None)
     def reduce_max(x, dim=None, keepdim=False):
         if dim is not None:
-            return (
-                reduce_amax(x, axis=dim, keepdims=keepdim),
-                reduce_argmax(x, axis=dim, keepdims=keepdim),
-            )
+            if npu_config.dump_fx_graph:
+                return (
+                    reduce_amax(x, axis=dim, keepdims=keepdim),
+                    reduce_argmax(x, axis=dim, keepdims=keepdim),
+                )
+            return lowering.reduce_max(x, dim, keepdim)
 
         return reduce_amax(x, axis=None, keepdims=keepdim)
 
     @register_lowering(aten.min, type_promotion_kind=None)
     def reduce_min(x, dim=None, keepdim=False):
         if dim is not None:
-            return (
-                reduce_amin(x, axis=dim, keepdims=keepdim),
-                reduce_argmin(x, axis=dim, keepdims=keepdim),
-            )
+            if npu_config.dump_fx_graph:
+                return (
+                    reduce_amin(x, axis=dim, keepdims=keepdim),
+                    reduce_argmin(x, axis=dim, keepdims=keepdim),
+                )
+            return lowering.reduce_min(x, dim, keepdim)
 
         return reduce_amin(x, axis=None, keepdims=keepdim)
 

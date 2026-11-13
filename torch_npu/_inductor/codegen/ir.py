@@ -1572,6 +1572,10 @@ def should_skip_linearization_on_a5(var_ranges, indexing):
 _SIMT_TEMPLATE_UNSAFE_REDUCTION_TYPES = {
     "argmax",
     "argmin",
+    "argmax_value",
+    "argmin_value",
+    "argmax_with_value",
+    "argmin_with_value",
     "welford_reduce",
     "welford_combine",
 }
