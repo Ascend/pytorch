@@ -32,23 +32,12 @@ on:
         description: Container options
         required: false
         type: string
-      # 编译机调度标签 (arch 从入口流水线传递)
-      RUNS_ON_ARCH:
-        description: Runner architecture label
-        required: false
-        type: string
-        default: "arm"
-      RUNS_ON_SPEC:
-        description: Runner CPU spec label
-        required: false
-        type: string
-        default: "cpu=32"
 
 jobs:
   build:
     name: build
     select: selected_by_default
-    runs-on: [ self-hosted, "${{ inputs.RUNS_ON_SPEC }}" ]
+    runs-on: [ self-hosted, op_plugin, arm, cpu=32 ]
     container:
       image: ${{ inputs.DOCKER_IMAGE }}
       options: ${{ inputs.CONTAINER_OPTIONS }}
@@ -85,10 +74,6 @@ jobs:
             --python-exe python3.11 \
             ${NIGHTLY_DATE_ARG}
 
-      - name: Install nanobind
-        run: |
-          python3.11 -m pip install nanobind
-
       - name: Build torch_npu wheel
         id: build
         env:
@@ -96,6 +81,7 @@ jobs:
           DISABLE_INSTALL_TORCHAIR: "FALSE"
           BUILD_WITHOUT_SHA: "1"
         run: |
+          export OMP_NUM_THREADS=32
           export CCACHE_BASEDIR="${ATOMGIT_WORKSPACE}"
           source .gitcode/scripts/ccache_env.sh
           # release/2.15 -> 2.15.0 (build.sh --torch= expects X.Y.Z)

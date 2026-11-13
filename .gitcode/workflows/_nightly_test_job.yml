@@ -51,10 +51,10 @@ jobs:
   test:
     name: test
     select: selected_by_default
-    runs-on: [ self-hosted, "${{ inputs.NPU_LABEL }}" ]
+    runs-on: [ self-hosted, nightly, "${{ inputs.NPU_LABEL }}" ]
     timeout-minutes: 360
     container:
-      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_test:20261021
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_2.15.0_aarch64_test:cann-9.2.0-20261112
       options: ${{ inputs.CONTAINER_OPTIONS }}
     steps:
       - name: checkout
