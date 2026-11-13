@@ -30,12 +30,16 @@ on:
       resolved_sha:
         required: true
         type: string
-        description: Full resolved SHA of upstream PyTorch (interface compatibility; the tested source comes from the OBS tarball keyed by resolved_short).
+        description: >-
+          Full resolved SHA of upstream PyTorch. When it is a full 40-char
+          SHA the source is cloned from the in-cluster git-cdn; callers that
+          only recover the 10-char short SHA from OBS object names fall back
+          to the OBS source tarball.
       upstream_repo:
         required: false
         type: string
         default: 'pytorch/pytorch'
-        description: The upstream repository full name (owner/repo). No longer used to clone here — source comes from OBS.
+        description: The upstream repository full name (owner/repo) the source is cloned from.
       pytorch_wheels_tarball:
         required: true
         type: string
@@ -234,17 +238,55 @@ jobs:
         env:
           PYTORCH_WHEELS_TARBALL: ${{ inputs.pytorch_wheels_tarball }}
           TORCHNPU_WHEELS_TARBALL: ${{ inputs.torchnpu_wheels_tarball }}
+          RESOLVED_SHA: ${{ inputs.resolved_sha }}
         run: |
           UPSTREAM_SHORT="${{ inputs.resolved_short }}"
           echo "source_tarball=pytorch-source-${UPSTREAM_SHORT}.tar.gz" >> "$GITHUB_OUTPUT"
           echo "pytorch_wheels_tarball=${PYTORCH_WHEELS_TARBALL}" >> "$GITHUB_OUTPUT"
           echo "torchnpu_wheels_tarball=${TORCHNPU_WHEELS_TARBALL}" >> "$GITHUB_OUTPUT"
+          # Only a full SHA can be fetched directly; the 10-char short SHA
+          # that blacklist-test / custom-test recover from OBS object names
+          # cannot, so those callers keep the OBS tarball path.
+          if [[ "${RESOLVED_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "source_mode=gitcdn" >> "$GITHUB_OUTPUT"
+          else
+            echo "source_mode=obs" >> "$GITHUB_OUTPUT"
+          fi
 
-      # Source and wheels are fetched from OBS only (no GitHub clone on the
-      # NPU runner, no GHA artifacts): the build job (or the PR CI fetch job,
+      # Primary path: clone the tested commit from the in-cluster git-cdn.
+      # The NPU runner's gitconfig rewrites github.com to git-cdn (a
+      # cluster-local service in NO_PROXY), so this is a cache hit rather
+      # than a public-internet clone. Submodules are deliberately NOT
+      # shallow-cloned: with `--depth 1` every pinned submodule commit is
+      # unreachable, so `git submodule update` has to run two extra serial
+      # `git fetch` round-trips per submodule; full-history clones reach
+      # the pin directly and go straight to the checkout. The extra .git
+      # bytes stay on the runner — the shard only needs the working tree.
+      - name: Clone PyTorch source from git-cdn
+        if: steps.sha.outputs.source_mode == 'gitcdn'
+        env:
+          UPSTREAM_REPO: ${{ inputs.upstream_repo }}
+          UPSTREAM_SHA: ${{ inputs.resolved_sha }}
+        run: |
+          set -euo pipefail
+          git init -q pytorch
+          cd pytorch
+          git remote add origin "https://github.com/${UPSTREAM_REPO}.git"
+          git fetch --depth 1 origin "${UPSTREAM_SHA}"
+          git checkout -q -b build FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "${UPSTREAM_SHA}" || {
+            echo "ERROR: checked out $(git rev-parse HEAD), expected ${UPSTREAM_SHA}" >&2
+            exit 1
+          }
+          git submodule update --init --recursive --jobs=$(nproc)
+          echo "PyTorch source ready: $(git rev-parse --short HEAD), $(du -sh . | cut -f1)"
+
+      # Fallback: wheels still come from OBS, and so does the source when
+      # only a short SHA is known. The build job (or the PR CI fetch job,
       # which shares the same content-addressed key) published
       # pytorch-source-<upstream_short>.tar.gz there.
       - name: Download PyTorch source from OBS
+        if: steps.sha.outputs.source_mode == 'obs'
         run: |
           obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
 
@@ -262,6 +304,7 @@ jobs:
           exit 1
 
       - name: Extract PyTorch source
+        if: steps.sha.outputs.source_mode == 'obs'
         run: |
           tar -xzf ${{ steps.sha.outputs.source_tarball }}
           rm ${{ steps.sha.outputs.source_tarball }}

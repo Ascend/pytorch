@@ -7,6 +7,19 @@ on:
         required: true
         type: string
         description: Short SHA of upstream PyTorch (from _build.yml outputs)
+      resolved_sha:
+        required: false
+        type: string
+        default: ''
+        description: >-
+          Full 40-char SHA of upstream PyTorch (from _build.yml outputs).
+          When set, the test shards clone the source from the in-cluster
+          git-cdn instead of downloading the OBS source tarball.
+      upstream_repo:
+        required: false
+        type: string
+        default: 'pytorch/pytorch'
+        description: The upstream repository full name (owner/repo) the source is cloned from.
       torch_npu_short:
         required: false
         type: string
@@ -161,6 +174,8 @@ jobs:
     secrets: inherit
     with:
       resolved_short: ${{ inputs.resolved_short }}
+      resolved_sha: ${{ inputs.resolved_sha }}
+      upstream_repo: ${{ inputs.upstream_repo }}
       pytorch_wheels_tarball: ${{ inputs.pytorch_wheels_tarball }}
       torchnpu_wheels_tarball: ${{ inputs.torchnpu_wheels_tarball }}
       case_paths_config: ${{ inputs.case_paths_config }}
@@ -191,6 +206,8 @@ jobs:
     secrets: inherit
     with:
       resolved_short: ${{ inputs.resolved_short }}
+      resolved_sha: ${{ inputs.resolved_sha }}
+      upstream_repo: ${{ inputs.upstream_repo }}
       pytorch_wheels_tarball: ${{ inputs.pytorch_wheels_tarball }}
       torchnpu_wheels_tarball: ${{ inputs.torchnpu_wheels_tarball }}
       category: ${{ matrix.category }}
