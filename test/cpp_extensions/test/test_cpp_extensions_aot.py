@@ -5,7 +5,8 @@ import os
 import stat
 import pathlib
 import subprocess
-import unittest
+import sys
+import textwrap
 import numpy as np
 
 import torch
@@ -29,6 +30,37 @@ except ImportError as e:
 class TestCppExtensionAOT(TestCase):
     """Tests ahead-of-time cpp extensions
     """
+
+    def test_cpp_lazy_init_before_python(self):
+        # Use a fresh interpreter so earlier tests cannot initialize the NPU.
+        code = textwrap.dedent("""
+            import torch_npu
+            import torch_test_cpp_extension.npu as extension
+
+            assert not torch_npu.npu.is_initialized()
+
+            # Verify deferred Python initialization runs exactly once.
+            completed = []
+            torch_npu.npu._lazy_call(lambda: completed.append(True))
+
+            extension.run_python_lazy_init()
+            assert torch_npu.npu.is_initialized()
+            assert completed == [True]
+
+            torch_npu.npu.init()
+            assert completed == [True]
+        """)
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        self.assertEqual(
+            result.returncode,
+            0,
+            f"Subprocess failed:\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}",
+        )
 
     def test_npu_extension(self):
         x = torch.randn(4, 4)

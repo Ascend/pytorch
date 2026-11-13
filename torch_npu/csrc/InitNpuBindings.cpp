@@ -7,6 +7,7 @@
 #include <torch/csrc/Generator.h>
 #include <torch/csrc/autograd/python_variable.h>
 #include <torch/csrc/profiler/python/combined_traceback.h>
+#include <torch/csrc/utils/pybind.h>
 
 #include "torch_npu/csrc/aten/common/TensorFactories.h"
 #include "torch_npu/csrc/npu/Event.h"
@@ -29,6 +30,7 @@
 #include "torch_npu/csrc/utils/TensorType.h"
 #include "torch_npu/csrc/utils/PythonGilAdapter.h"
 #include "torch_npu/csrc/utils/PythonOomAdapter.h"
+#include "torch_npu/csrc/utils/LazyInit.h"
 #include "torch_npu/csrc/utils/AutocastMode.h"
 #include "torch_npu/csrc/core/npu/NPURecoveryBindings.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
@@ -231,6 +233,7 @@ PyObject* initModule()
     at::internal::lazy_init_num_threads();
   torch_npu::utils::registerPythonGilAdapter();
   torch_npu::utils::registerPythonOomAdapter();
+  torch_npu::utils::initializePythonRuntimeAdapter();
 
   AddPyMethodDefs(methods, TorchNpuMethods);
 #ifndef BUILD_LIBTORCH
@@ -255,6 +258,8 @@ PyObject* initModule()
         methods.data()
     };
     module = PyModule_Create(&torchnpu_module);
+  auto m = py::handle(module).cast<py::module>();
+  m.def("_set_default_acl_config_path", &c10_npu::SetDefaultAclConfigPath);
 
     // This will only initialize base classes and attach them to library namespace
     // They won't be ready for real usage until importing npu module, that will
