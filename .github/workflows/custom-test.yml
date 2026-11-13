@@ -54,7 +54,7 @@ on:
           - both
           - a3
           - a5
-        default: a3
+        default: a5
       max_workers:
         description: '单机并发 worker 数'
         required: true
