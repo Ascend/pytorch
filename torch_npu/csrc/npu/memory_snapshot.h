@@ -15,7 +15,9 @@ TORCH_NPU_API void _record_memory_history(
     bool clearHistory = false,
     bool compileContext = false,
     const std::vector<std::string>& skip_actions = {},
-    bool globalRecordAnnotations = false);
+    bool globalRecordAnnotations = false,
+    bool record_pinned_host_memory = false,
+    bool record_npu = true);
 
 TORCH_NPU_API std::string _memory_snapshot_pickled();
 

@@ -5,10 +5,12 @@
 #include <sstream>
 #include <sys/stat.h>
 #include <thread>
+#include <type_traits>
 #include <unordered_map>
 #include <algorithm>
 
 #include <ATen/ATen.h>
+#include <ATen/core/CachingHostAllocator.h>
 #include <ATen/CachedTensorUtils.h>
 #include <torch/csrc/Exceptions.h>
 #include <torch/csrc/Generator.h>
@@ -64,6 +66,7 @@
 #include <torch_npu/csrc/npu/Stream.h>
 #include <torch_npu/csrc/npu/Stress_detect.h>
 #include <torch_npu/csrc/npu/memory_snapshot.h>
+#include <torch_npu/csrc/_compat/version.h>
 #include <torch_npu/csrc/profiler/combined_traceback.h>
 #include <torch_npu/csrc/profiler/python/combined_traceback.h>
 #include <torch_npu/csrc/utils/LazyInit.h>
@@ -188,6 +191,8 @@ void RegisterNPUDeviceProperties(PyObject* module) {
           bool,
           bool,
           const std::vector<std::string>&,
+          bool,
+          bool,
           bool)>(torch_npu::_record_memory_history));
 
   m.def("_npu_isHistoryEnabled", []() { return c10_npu::NPUCachingAllocator::isHistoryEnabled(); });
@@ -1439,33 +1444,58 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* arg) {
 
   using namespace c10_npu::NPUCachingAllocator;
 
-  auto action_to_str = [&](TraceEntry::Action action) {
-    switch (action) {
-      case TraceEntry::ALLOC:
-        return alloc_s;
-      case TraceEntry::FREE_REQUESTED:
-        return free_requested_s;
-      case TraceEntry::FREE_COMPLETED:
-        return free_completed_s;
-      case TraceEntry::SEGMENT_ALLOC:
-        return segment_alloc_s;
-      case TraceEntry::SEGMENT_FREE:
-        return segment_free_s;
-      case TraceEntry::OOM:
-        return oom_s;
-      case TraceEntry::SNAPSHOT:
-        return snapshot_s;
-      case TraceEntry::WORKSPACE_SNAPSHOT:
+  auto action_to_str = [&](auto action) {
+    using Action = decltype(action);
+    if constexpr (std::is_same_v<Action, TraceEntry::Action>) {
+      if (action == Action::WORKSPACE_SNAPSHOT) {
         return workspace_snapshot_s;
-      case TraceEntry::SEGMENT_UNMAP:
+      }
+    }
+    switch (action) {
+      case Action::ALLOC:
+        return alloc_s;
+      case Action::FREE_REQUESTED:
+        return free_requested_s;
+      case Action::FREE_COMPLETED:
+        return free_completed_s;
+      case Action::SEGMENT_ALLOC:
+        return segment_alloc_s;
+      case Action::SEGMENT_FREE:
+        return segment_free_s;
+      case Action::OOM:
+        return oom_s;
+      case Action::SNAPSHOT:
+        return snapshot_s;
+      case Action::SEGMENT_UNMAP:
         return segment_unmap_s;
-      case TraceEntry::SEGMENT_MAP:
+      case Action::SEGMENT_MAP:
         return segment_map_s;
       default:
         AT_ERROR("invalid TraceEntry action");
     }
     throw std::runtime_error("unreachable");
   };
+
+// COMPAT(>= 2.14): Host allocator history APIs.
+// CAN REMOVE guard when MIN_SUPPORTED >= (2, 14).
+#if TORCH_NPU_VERSION_GE(2, 14)
+  auto traceEntryToDict = [&](const auto& te) {
+    py::dict trace_entry;
+    trace_entry[action_s] = action_to_str(te.action_);
+    trace_entry[addr_s] = te.addr_;
+    trace_entry[size_s] = te.size_;
+    trace_entry[stream_s] = int64_t(te.stream_);
+    trace_entry[pool_id_s] = te.mempool_;
+    trace_entry["time_us"] = te.time_.t_;
+    trace_entry["compile_context"] = te.compile_context_;
+    trace_entry["user_metadata"] = te.user_metadata_;
+    if (te.context_) {
+      to_gather_frames.emplace_back(getFromContext(te.context_));
+      to_gather_dest.emplace_back(trace_entry);
+    }
+    return trace_entry;
+  };
+#endif
 
   for (const auto& traceInfo : snapshot.device_traces) {
     py::list trace;
@@ -1489,9 +1519,49 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* arg) {
     traces.append(trace);
   }
 
+  py::list host_segments;
+  py::list host_traces;
+// COMPAT(>= 2.14): Host allocator history APIs.
+// CAN REMOVE guard when MIN_SUPPORTED >= (2, 14).
+#if TORCH_NPU_VERSION_GE(2, 14)
+  auto* host_allocator = at::getHostAllocator(at::kPrivateUse1);
+  if (host_allocator && host_allocator->is_history_enabled()) {
+    for (const auto& seg : host_allocator->get_segments()) {
+      py::dict segment;
+      segment[device_s] = -1;
+      segment[address_s] = seg.address;
+      segment[total_size_s] = seg.size;
+      segment[allocated_size_s] = seg.allocated ? seg.size : 0;
+      segment[active_size_s] = seg.active ? seg.size : 0;
+      segment[requested_size_s] = seg.size;
+      segment[stream_s] = int64_t(0);
+      segment[segment_type_s] = small_s;
+      segment[segment_pool_id] = seg.owner_private_pool_id;
+      segment[is_expandable_s] = false;
+      add_frame_key(segment, seg.context_when_allocated);
+
+      py::dict block;
+      block[address_s] = seg.address;
+      block[size_s] = seg.size;
+      block[requested_size_s] = seg.size;
+      block[state_s] = seg.allocated ? active_allocated_s : (seg.active ? active_pending_free_s : inactive_s);
+      add_frame_key(block, seg.context_when_allocated);
+      py::list blocks;
+      blocks.append(block);
+      segment[blocks_s] = blocks;
+      host_segments.append(segment);
+    }
+    for (const auto& te : host_allocator->get_traces()) {
+      host_traces.append(traceEntryToDict(te));
+    }
+  }
+#endif
+
   py::dict result;
   result["segments"] = segments;
   result["device_traces"] = traces;
+  result["host_segments"] = host_segments;
+  result["host_traces"] = host_traces;
 
   py::list external_annotations;
   for (const auto& ae : snapshot.external_annotations) {

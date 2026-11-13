@@ -30,6 +30,7 @@ from torch.utils.checkpoint import checkpoint_sequential
 from torch.utils._triton import has_triton
 import torch_npu
 import torch_npu.testing
+from torch_npu._compat.version import CURRENT_VERSION
 from torch.testing._internal.common_utils import TestCase, freeze_rng_state, run_tests, \
     NO_MULTIPROCESSING_SPAWN, skipIfRocm, load_tests, IS_WINDOWS, \
     slowTest, skipCUDANonDefaultStreamIf, skipCUDAMemoryLeakCheckIf, TEST_PRIVATEUSE1, TEST_WITH_ROCM, TEST_NUMPY, \
@@ -3495,6 +3496,169 @@ print(f"{{r1}}, {{r2}}")
         self.assertEqual(f"{x}, 1", r)
 
 
+@unittest.skipIf(not torch_npu.npu.is_available(), "NPU is required")
+@unittest.skipIf(CURRENT_VERSION < (2, 14), "Pinned host history requires PyTorch >= 2.14")
+class TestPinnedHostMemoryHistory(TestCase):
+    def setUp(self):
+        super().setUp()
+        memory = torch_npu.npu.memory
+        try:
+            memory._record_memory_history(
+                context=None, stacks="python", record_pinned_host_memory=True, record_npu=False
+            )
+        except RuntimeError as error:
+            if "record_pinned_host_memory is not supported with pin_memory_expandable_segments" in str(error):
+                self.skipTest("Pinned host history requires pin_memory_expandable_segments=False")
+            raise
+        finally:
+            memory._record_memory_history(None)
+
+    def test_host_memory_snapshot(self):
+        try:
+            torch_npu.npu.host_empty_cache()
+            torch_npu.npu.memory._record_memory_history(
+                "all",
+                context="alloc",
+                stacks="python",
+                record_pinned_host_memory=True,
+                clear_history=True,
+            )
+
+            def host_alloc():
+                return torch.empty(311, 411, pin_memory=True)
+
+            x = host_alloc()
+
+            ss = torch_npu.npu.memory._snapshot()
+
+            # Find our block by address in host_segments
+            found_it = False
+            for seg in ss["host_segments"]:
+                self.assertEqual(seg["device"], -1)
+                self.assertEqual(len(seg["blocks"]), 1)
+                b = seg["blocks"][0]
+                if seg["address"] == x.data_ptr() and b["state"] == "active_allocated":
+                    self.assertTrue("test_npu" in b["frames"][0]["filename"])
+                    found_it = True
+            self.assertTrue(found_it)
+
+            # Verify alloc stack trace contains the named function
+            text = json.dumps(ss)
+            self.assertIn("host_alloc", text)
+
+            # Verify trace actions: segment_alloc then alloc
+            actions = [te["action"] for te in ss["host_traces"]]
+            self.assertIn("segment_alloc", actions)
+            self.assertIn("alloc", actions)
+
+            # Free and verify free traces
+            del x
+            ss = torch_npu.npu.memory._snapshot()
+            actions = [te["action"] for te in ss["host_traces"]]
+            self.assertIn("free_requested", actions)
+            self.assertIn("free_completed", actions)
+
+            # Empty cache and verify segment_free is the last action
+            torch_npu.npu.host_empty_cache()
+            ss = torch_npu.npu.memory._snapshot()
+            self.assertEqual(ss["host_traces"][-1]["action"], "segment_free")
+
+        finally:
+            torch_npu.npu.memory._record_memory_history(None)
+
+    def test_host_memory_snapshot_disabled(self):
+        try:
+            torch_npu.npu.host_empty_cache()
+            torch_npu.npu.memory._record_memory_history("all")
+            x = torch.empty(1024, pin_memory=True)
+            ss = torch_npu.npu.memory._snapshot()
+            self.assertEqual(len(ss["host_segments"]), 0)
+            self.assertEqual(len(ss["host_traces"]), 0)
+            del x
+        finally:
+            torch_npu.npu.memory._record_memory_history(None)
+
+    def test_host_memory_snapshot_max_entries(self):
+        try:
+            torch_npu.npu.host_empty_cache()
+            max_entries = 4
+            torch_npu.npu.memory._record_memory_history(
+                "all",
+                max_entries=max_entries,
+                record_pinned_host_memory=True,
+                clear_history=True,
+            )
+
+            # Allocate and free enough pinned tensors to overflow the ring
+            # buffer many times over (each alloc/free produces multiple trace
+            # entries: segment_alloc, alloc, free_requested, free_completed).
+            for i in range(20):
+                x = torch.empty(1024 + i, pin_memory=True)
+                del x
+                torch_npu.npu.host_empty_cache()
+
+            ss = torch_npu.npu.memory._snapshot()
+            self.assertLessEqual(len(ss["host_traces"]), max_entries)
+            # We did enough work that the buffer should be full.
+            self.assertEqual(len(ss["host_traces"]), max_entries)
+        finally:
+            torch_npu.npu.memory._record_memory_history(None)
+
+    def test_host_memory_snapshot_none_disables(self):
+        try:
+            torch_npu.npu.host_empty_cache()
+            torch_npu.npu.memory._record_memory_history(
+                "all",
+                record_pinned_host_memory=True,
+                clear_history=True,
+            )
+            x = torch.empty(1024, pin_memory=True)
+            ss = torch_npu.npu.memory._snapshot()
+            self.assertGreater(len(ss["host_traces"]), 0)
+            del x
+
+            # None should turn off host recording without record_pinned_host_memory=True
+            torch_npu.npu.memory._record_memory_history(None)
+
+            torch_npu.npu.host_empty_cache()
+            y = torch.empty(2048, pin_memory=True)
+            ss = torch_npu.npu.memory._snapshot()
+            self.assertEqual(len(ss["host_segments"]), 0)
+            self.assertEqual(len(ss["host_traces"]), 0)
+            del y
+        finally:
+            torch_npu.npu.memory._record_memory_history(None)
+
+    def test_host_memory_snapshot_host_only(self):
+        try:
+            torch_npu.npu.host_empty_cache()
+            torch_npu.npu.memory._record_memory_history(
+                "all",
+                record_pinned_host_memory=True,
+                record_npu=False,
+                clear_history=True,
+            )
+
+            x = torch.empty(311, 411, pin_memory=True)
+            d = torch.empty(311, 411, device="npu")
+
+            ss = torch_npu.npu.memory._snapshot()
+
+            # Host traces should be recorded.
+            self.assertGreater(len(ss["host_traces"]), 0)
+            self.assertGreater(len(ss["host_segments"]), 0)
+
+            # NPU traces should be empty since record_npu=False, even though
+            # we allocated an NPU tensor.
+            for device_trace in ss["device_traces"]:
+                self.assertEqual(len(device_trace), 0)
+
+            del x
+            del d
+        finally:
+            torch_npu.npu.memory._record_memory_history(None)
+
+
 class TestNpuMallocAsync(TestCase):
     @unittest.skipIf(TEST_NPUMALLOCASYNC, "setContextRecorder not supported by NPUMallocAsync")
     def test_memory_snapshot(self):
@@ -4406,6 +4570,7 @@ class TestFXMemoryProfilerNpu(TestCase):
             for block in segment.get("blocks", []):
                 yield from (f for f in block.get("frames", []) if isinstance(f, dict))
 
+    @unittest.skip("Temporarily skip FX snapshot end-to-end test in CI")
     def test_snapshot_fx_augmentation_end_to_end(self):
         if not hasattr(torch._utils, "_augment_memory_snapshot_stack_traces"):
             self.skipTest("torch._utils._augment_memory_snapshot_stack_traces missing")

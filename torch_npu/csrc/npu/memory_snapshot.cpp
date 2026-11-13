@@ -1,4 +1,5 @@
 #include <ATen/Context.h>
+#include <ATen/core/CachingHostAllocator.h>
 #include <ATen/record_function.h>
 #include <torch/csrc/profiler/combined_traceback.h>
 #include <torch/csrc/jit/serialization/pickler.h>
@@ -6,8 +7,10 @@
 #include "torch_npu/csrc/utils/LazyInit.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
+#include "torch_npu/csrc/core/npu/NPUAllocatorConfig.h"
 #include "torch_npu/csrc/profiler/combined_traceback.h"
 #include "torch_npu/csrc/npu/memory_snapshot.h"
+#include "torch_npu/csrc/_compat/version.h"
 
 using c10_npu::NPUCachingAllocator::BlockInfo;
 using c10_npu::NPUCachingAllocator::SegmentInfo;
@@ -133,7 +136,15 @@ void _record_memory_history(
     bool clearHistory,
     bool compileContext,
     const std::vector<std::string>& skip_actions,
-    bool globalRecordAnnotations) {
+    bool globalRecordAnnotations,
+    bool record_pinned_host_memory,
+    bool record_npu) {
+  TORCH_CHECK(
+      !record_pinned_host_memory || enabled.has_value(),
+      "record_pinned_host_memory requires memory history recording to be enabled");
+  TORCH_CHECK(
+      !record_pinned_host_memory || !c10_npu::NPUCachingAllocator::NPUAllocatorConfig::pin_memory_expandable_segments(),
+      "record_pinned_host_memory is not supported with pin_memory_expandable_segments");
   if (enabled) {
     checkOptionIn(*enabled, {"state", "all"}, "expected state to be 'state', 'all', or None");
   }
@@ -169,9 +180,23 @@ void _record_memory_history(
   }
   torch_npu::utils::npu_lazy_init();
   setRecordFunctionCallbacks(enabled.has_value(), compileContext, globalRecordAnnotations);
-  c10_npu::NPUCachingAllocator::recordHistory(
-      enabled.has_value(), recorder, max_entries, when, clearHistory, skip_actions);
-  c10_npu::NPUWorkspaceAllocator::recordHistory(enabled.has_value(), recorder, when, skip_actions);
+  bool npu_enabled = enabled.has_value() && record_npu;
+  c10_npu::NPUCachingAllocator::recordHistory(npu_enabled, recorder, max_entries, when, clearHistory, skip_actions);
+  c10_npu::NPUWorkspaceAllocator::recordHistory(npu_enabled, recorder, when, skip_actions);
+// COMPAT(>= 2.14): Host allocator history APIs.
+// CAN REMOVE guard when MIN_SUPPORTED >= (2, 14).
+#if TORCH_NPU_VERSION_GE(2, 14)
+  bool host_enabled = enabled.has_value() && record_pinned_host_memory;
+  auto* host_allocator = at::getHostAllocator(at::kPrivateUse1);
+  if (host_allocator && (host_enabled || host_allocator->is_history_enabled())) {
+    host_allocator->record_history(
+        host_enabled,
+        recorder,
+        max_entries,
+        static_cast<c10::CachingDeviceAllocator::RecordContext>(when),
+        clearHistory);
+  }
+#endif
 }
 
 std::string write_pickle(const c10::IValue& v) {
@@ -344,31 +369,53 @@ std::string _memory_snapshot_pickled() {
 
   using namespace c10_npu::NPUCachingAllocator;
 
-  auto action_to_str = [&](TraceEntry::Action action) {
+  auto action_to_str = [&](auto action) {
+    using Action = decltype(action);
     switch (action) {
-      case TraceEntry::ALLOC:
+      case Action::ALLOC:
         return alloc_s;
-      case TraceEntry::FREE_REQUESTED:
+      case Action::FREE_REQUESTED:
         return free_requested_s;
-      case TraceEntry::FREE_COMPLETED:
+      case Action::FREE_COMPLETED:
         return free_completed_s;
-      case TraceEntry::SEGMENT_ALLOC:
+      case Action::SEGMENT_ALLOC:
         return segment_alloc_s;
-      case TraceEntry::SEGMENT_FREE:
+      case Action::SEGMENT_FREE:
         return segment_free_s;
-      case TraceEntry::OOM:
+      case Action::OOM:
         return oom_s;
-      case TraceEntry::SNAPSHOT:
+      case Action::SNAPSHOT:
         return snapshot_s;
-      case TraceEntry::SEGMENT_UNMAP:
+      case Action::SEGMENT_UNMAP:
         return segment_unmap_s;
-      case TraceEntry::SEGMENT_MAP:
+      case Action::SEGMENT_MAP:
         return segment_map_s;
       default:
         AT_ERROR("invalid TraceEntry action");
     }
     throw std::runtime_error("unreachable");
   };
+
+// COMPAT(>= 2.14): Host allocator history APIs.
+// CAN REMOVE guard when MIN_SUPPORTED >= (2, 14).
+#if TORCH_NPU_VERSION_GE(2, 14)
+  auto traceEntryToDict = [&](const auto& te) {
+    auto trace_entry = new_dict();
+    trace_entry.insert(action_s, action_to_str(te.action_));
+    trace_entry.insert(addr_s, static_cast<int64_t>(te.addr_));
+    trace_entry.insert(size_s, static_cast<int64_t>(te.size_));
+    trace_entry.insert(stream_s, int64_t(te.stream_));
+    trace_entry.insert(pool_id_s, std::tuple<int64_t, int64_t>(te.mempool_));
+    trace_entry.insert("time_us", te.time_.t_);
+    trace_entry.insert("compile_context", te.compile_context_);
+    trace_entry.insert("user_metadata", te.user_metadata_);
+    if (te.context_) {
+      frame_tracebacks.push_back(getFromContext(te.context_));
+      frame_dict.push_back(trace_entry);
+    }
+    return trace_entry;
+  };
+#endif
 
   for (const auto& traceInfo : snapshot.device_traces) {
     auto trace = new_list();
@@ -390,9 +437,49 @@ std::string _memory_snapshot_pickled() {
     traces.push_back(trace);
   }
 
+  auto host_segments = new_list();
+  auto host_traces = new_list();
+// COMPAT(>= 2.14): Host allocator history APIs.
+// CAN REMOVE guard when MIN_SUPPORTED >= (2, 14).
+#if TORCH_NPU_VERSION_GE(2, 14)
+  auto* host_allocator = at::getHostAllocator(at::kPrivateUse1);
+  if (host_allocator && host_allocator->is_history_enabled()) {
+    for (const auto& seg : host_allocator->get_segments()) {
+      auto segment = new_dict();
+      segment.insert(device_s, -1);
+      segment.insert(address_s, static_cast<int64_t>(seg.address));
+      segment.insert(total_size_s, static_cast<int64_t>(seg.size));
+      segment.insert(allocated_size_s, static_cast<int64_t>(seg.allocated ? seg.size : 0));
+      segment.insert(active_size_s, static_cast<int64_t>(seg.active ? seg.size : 0));
+      segment.insert(requested_size_s, static_cast<int64_t>(seg.size));
+      segment.insert(stream_s, int64_t(0));
+      segment.insert(segment_type_s, small_s);
+      segment.insert(segment_pool_id, std::tuple<int64_t, int64_t>(seg.owner_private_pool_id));
+      segment.insert(is_expandable_s, false);
+      add_frame_key(segment, seg.context_when_allocated);
+
+      auto block = new_dict();
+      block.insert(address_s, static_cast<int64_t>(seg.address));
+      block.insert(size_s, static_cast<int64_t>(seg.size));
+      block.insert(requested_size_s, static_cast<int64_t>(seg.size));
+      block.insert(state_s, seg.allocated ? active_allocated_s : (seg.active ? active_pending_free_s : inactive_s));
+      add_frame_key(block, seg.context_when_allocated);
+      auto blocks = new_list();
+      blocks.push_back(block);
+      segment.insert(blocks_s, blocks);
+      host_segments.push_back(segment);
+    }
+    for (const auto& te : host_allocator->get_traces()) {
+      host_traces.push_back(traceEntryToDict(te));
+    }
+  }
+#endif
+
   auto result = new_dict();
   result.insert("segments", segments);
   result.insert("device_traces", traces);
+  result.insert("host_segments", host_segments);
+  result.insert("host_traces", host_traces);
 
   auto external_annotations = new_list();
   for (const auto& ae : snapshot.external_annotations) {

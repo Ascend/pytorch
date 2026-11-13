@@ -10,6 +10,7 @@ from typing import Optional, Tuple
 
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
+from torch_npu._compat.version import CURRENT_VERSION
 from . import is_initialized, _get_device_index, _lazy_init
 from .utils import _dummy_type
 from ._memory_viz import memory as _memory, segments as _segments
@@ -885,7 +886,8 @@ def _record_memory_history(enabled="all", *args, **kwargs):
             The independent user annotation buffer uses the same limit.
             With enabled="state", the effective limit is one entry.
         clear_history (bool, optional): Clear existing history when enabling
-            recording. Defaults to False. Disabling recording always clears history.
+            recording. Defaults to False. Disabling recording always clears device
+            history; host history is cleared only when clear_history=True.
         compile_context (bool, optional): Record the innermost Torch-Compiled
             Region name for each allocator event. Events outside compiled
             regions use "N/A". Defaults to False. As in CUDA, once enabled,
@@ -903,6 +905,18 @@ def _record_memory_history(enabled="all", *args, **kwargs):
             scope. Annotations are exported in external_annotations with
             name, stage (START/END), device and Unix time_us. Existing entries
             are kept unless clear_history=True or recording is disabled.
+        record_pinned_host_memory (bool, optional): Also record pinned host
+            allocations and export host_segments and host_traces in snapshots.
+            Defaults to False. Requires PyTorch host allocator history support
+            (PyTorch >= 2.14) and pin_memory_expandable_segments=False.
+            Cannot be True when enabled is None. Calling again with False, or
+            disabling recording, stops host recording. Host history is retained
+            unless clear_history=True, as in PyTorch. skip_actions applies only
+            to device and workspace events, matching CUDA host recording.
+        record_npu (bool, optional): Record memory history for the NPU device
+            and workspace allocators. Set to False together with
+            record_pinned_host_memory=True to record only host pinned memory.
+            Defaults to True.
     """
     return _record_memory_history_impl(enabled, *args, **kwargs)
 
@@ -917,11 +931,18 @@ def _record_memory_history_impl(
     compile_context: bool = False,
     skip_actions: list[str] | None = None,
     global_record_annotations: bool = False,
+    record_pinned_host_memory: bool = False,
+    record_npu: bool = True,
 ):
+    # COMPAT(>= 2.14): Pinned host memory history requires the upstream allocator APIs.
+    # CAN REMOVE check when MIN_SUPPORTED >= (2, 14).
+    if record_pinned_host_memory and CURRENT_VERSION < (2, 14):
+        raise RuntimeError("record_pinned_host_memory requires PyTorch >= 2.14" + pta_error(ErrCode.NOT_SUPPORT))
     torch_npu.npu._lazy_init()
     torch_npu._C._npu_record_memory_history(
         enabled, context, stacks, max_entries, clear_history, compile_context,
         skip_actions if skip_actions is not None else [], global_record_annotations,
+        record_pinned_host_memory, record_npu,
     )
 
 
@@ -938,6 +959,8 @@ def _snapshot(device=None, augment_with_fx_traces=False):
         class Snapshot(TypedDict):
             segments : List[Segment]
             device_traces: List[List[TraceEntry]]
+            host_segments: List[Segment]  # pinned host memory, device=-1
+            host_traces: List[TraceEntry]  # host events with Unix time_us
             external_annotations: List[AnnotationEntry]
 
         class AnnotationEntry(TypedDict):

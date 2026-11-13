@@ -23,15 +23,18 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <typeinfo>
 
 #include "torch_npu/csrc/core/npu/CachingHostAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
 
 #include <ATen/core/CachingHostAllocator.h>
 #include <c10/util/flat_hash_map.h>
+#include <c10/util/Type.h>
 
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUAllocatorConfig.h"
+#include "torch_npu/csrc/_compat/version.h"
 
 using Block = at::HostBlock<c10_npu::NPUStream>;
 
@@ -1215,6 +1218,32 @@ struct NPUCachingHostAllocator final
     setAllocator();
     impl_->empty_cache();
   }
+
+// COMPAT(>= 2.14): Host allocator history APIs.
+// CAN REMOVE guard when MIN_SUPPORTED >= (2, 14).
+#if TORCH_NPU_VERSION_GE(2, 14)
+  void record_history(
+      bool enabled,
+      c10::CachingDeviceAllocator::CreateContextFn recorder,
+      size_t max_entries,
+      c10::CachingDeviceAllocator::RecordContext when,
+      bool clearHistory) override {
+    setAllocator();
+    auto* allocator_impl = impl_.get();
+    TORCH_CHECK(
+        allocator_impl != nullptr,
+        "NPU host allocator implementation is null; cannot configure record_pinned_host_memory",
+        PTA_ERROR(ErrCode::PTR));
+    TORCH_CHECK(
+        typeid(*allocator_impl) == typeid(NPUCachingHostAllocatorImpl),
+        "record_pinned_host_memory expected NPUCachingHostAllocatorImpl, but got ",
+        c10::demangle(typeid(*allocator_impl).name()),
+        ". This may be caused by pin_memory_expandable_segments=True, "
+        "which is incompatible with record_pinned_host_memory.",
+        PTA_ERROR(ErrCode::NOT_SUPPORT));
+    impl_->recordHistory(enabled, recorder, max_entries, when, clearHistory);
+  }
+#endif
 
   at::HostStats get_stats() override {
     return impl_->getHostStats();
