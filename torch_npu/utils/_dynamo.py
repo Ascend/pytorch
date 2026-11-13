@@ -27,6 +27,12 @@ from torch_npu._compat.inductor import (
 use_jit_script = False
 
 
+def _is_inductor_compile_worker():
+    from torch._inductor.compile_worker.utils import in_toplevel_process
+
+    return not in_toplevel_process()
+
+
 def _create_npu_autocast_mode_variable(func, args, kwargs):
     from torch._dynamo.variables.base import VariableTracker
     from torch._dynamo.variables.ctx_manager import AutocastModeVariable
@@ -56,7 +62,7 @@ class _InductorNpuRegistry:
 
     @classmethod
     def register_inductor_npu(cls):
-        if cls._disabled_register:
+        if cls._disabled_register or _is_inductor_compile_worker():
             return
 
         current = os.getenv("TORCHINDUCTOR_NPU_BACKEND", "default")

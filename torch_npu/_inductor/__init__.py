@@ -24,6 +24,7 @@ os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = ORG_AUTOLOAD
 from torch_npu.utils._dynamo import (
     _dynamo_register_interface_for_device,
     _inject_inductor_npu_backend_config,
+    _is_inductor_compile_worker,
 )
 from .utils import patch_cse_rand_ops, patch_device_supports_tma, patch_is_gpu
 # All backends need npu/cpu/mps device_op_overrides.
@@ -481,5 +482,11 @@ def _load_backend():
     from ..utils._dynamo import _InductorNpuRegistry
     _InductorNpuRegistry._loaded_backend = backend
 
-_load_backend()
+if _is_inductor_compile_worker():
+    # Runtime workers still need the host-extension C++ standard patch.
+    from .triton_compat import patch_triton_extension_cxx_standard
+
+    patch_triton_extension_cxx_standard()
+else:
+    _load_backend()
 _inject_inductor_npu_backend_config()

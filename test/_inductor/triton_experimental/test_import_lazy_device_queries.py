@@ -170,13 +170,39 @@ def test_heuristics_total_cores_lazy_and_consistent():
     assert h._npu_total_cores() == total
 
 
+def test_backend_activation_is_skipped_in_compile_worker():
+    code = (
+        "import torch, torch_npu, sys\n"
+        "from unittest import mock\n"
+        "from torch_npu.utils._dynamo import _InductorNpuRegistry, register_inductor_npu\n"
+        "_InductorNpuRegistry._loaded_backend = None\n"
+        "with mock.patch('torch._inductor.compile_worker.utils.in_toplevel_process', return_value=False):\n"
+        "    register_inductor_npu()\n"
+        "    assert _InductorNpuRegistry._loaded_backend is None\n"
+        "    import torch_npu._inductor\n"
+        "    assert _InductorNpuRegistry._loaded_backend is None\n"
+        "    from triton.backends.ascend import utils\n"
+        "    assert utils._build_npu_ext._torch_npu_cxx20\n"
+        "    assert 'torch_npu._inductor.triton_experimental.npu_triton_heuristics' not in sys.modules\n"
+    )
+    r = _run_py(code, backend="triton_experimental")
+    assert r.returncode == 0, r.stderr
+
+
 def test_compile_in_forked_workers_after_eager_op():
     """End-to-end regression: with the default (fork-pool) parallel compile,
     an eager-first flow with a >=2-kernel graph must compile and match.
     The model is rebuilt inline (identical to the repro that validated the
     fix) because a -c snippet cannot reference host test objects."""
     code = (
+        "import os, tempfile, time\n"
+        "cache = tempfile.TemporaryDirectory()\n"
+        "os.environ['TORCHINDUCTOR_CACHE_DIR'] = cache.name + '/inductor'\n"
+        "os.environ['TRITON_CACHE_DIR'] = cache.name + '/triton'\n"
         "import torch, torch_npu\n"
+        "from torch._inductor.async_compile import AsyncCompile, get_compile_threads\n"
+        "from torch._dynamo.utils import counters\n"
+        "assert get_compile_threads() > 1, get_compile_threads()\n"
         "a = (torch.randn(64, 512, device='npu') @ torch.randn(512, 512, device='npu')).relu()\n"
         "torch.npu.synchronize()\n"
         "class M(torch.nn.Module):\n"
@@ -187,9 +213,17 @@ def test_compile_in_forked_workers_after_eager_op():
         "m = M().npu()\n"
         "x = torch.randn(64, 512, device='npu')\n"
         "ref = m(x)\n"
+        "pool_deadline = time.monotonic() + 60\n"
+        "while not AsyncCompile.use_process_pool():\n"
+        "    if time.monotonic() >= pool_deadline:\n"
+        "        raise TimeoutError('Inductor process pool did not become ready')\n"
+        "    time.sleep(0.1)\n"
         "c = torch.compile(m, options={'npu_backend': 'triton_experimental'})\n"
         "out = c(x)\n"
         "assert torch.allclose(ref, out, rtol=1e-4, atol=1e-4), (ref, out)\n"
+        "assert get_compile_threads() > 1, get_compile_threads()\n"
+        "assert counters['inductor']['async_compile_cache_miss'] >= 2, counters['inductor']\n"
+        "print('parallel compile_threads:', get_compile_threads())\n"
     )
     r = _run_py(code)
     assert r.returncode == 0, r.stderr
