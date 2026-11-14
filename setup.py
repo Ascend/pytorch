@@ -744,7 +744,7 @@ classifiers = [
 ]
 
 requirements = ['torch==2.11.0+cpu' if platform.machine() == 'x86_64' else 'torch==2.11.0',
-                'numpy', 'pyyaml']
+                'numpy']
 
 setup(
     name=os.environ.get('TORCH_NPU_PACKAGE_NAME', 'torch_npu'),
