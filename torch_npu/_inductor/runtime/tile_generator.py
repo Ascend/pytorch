@@ -161,6 +161,10 @@ class TileGenerator:
             self.real_tiling_axis.append(tiling_axis)
         self.split_axis_num = len(self.split_axis)
 
+    @property
+    def max_programs(self):
+        return config.num_vector_core
+
 
     def rebuild_dynamic_axis(self):
         if len(self.tiling_axis) > 3 and not self.no_loop_axis:
@@ -351,7 +355,7 @@ class TileGenerator:
         can_add_initial_shape = (
             self.blocks[axis] != 1
             and not (self.persistent_reduction and self.axis_name[axis][0] == "r")
-            and initial_total_programs <= config.num_vector_core
+            and initial_total_programs <= self.max_programs
             and (initial_total_programs > self.program_threshold or self.dual_reduction)
         )
         if can_add_initial_shape:
@@ -397,7 +401,7 @@ class TileGenerator:
                 self.sub_blocks[axis] = self.blocks[axis]
 
             total_programs = self.calculate_total_programs(self.blocks)
-            if total_programs > config.num_vector_core:
+            if total_programs > self.max_programs:
                 last_blocks = self.calcu_last_split_blocks(axis)
                 if last_blocks != self.blocks[axis]:
                     self.blocks[axis] = last_blocks
@@ -418,7 +422,7 @@ class TileGenerator:
             total_programs = self.calculate_total_programs(self.blocks)
             if self.blocks[axis] == 1 and (total_programs > self.program_threshold or self.dual_reduction) and tuple(
                     self.blocks) not in self.candidate_blocks:
-                if total_programs > config.num_vector_core:
+                if total_programs > self.max_programs:
                     last_blocks = self.calcu_last_split_blocks(axis)
                     if last_blocks != self.blocks[axis]:
                         self.blocks[axis] = last_blocks

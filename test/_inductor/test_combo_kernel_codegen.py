@@ -41,6 +41,94 @@ def make_axis(name, length, order=0):
 
 
 class TestComboKernelCodegen(unittest.TestCase):
+    def test_dispatch_axis_respects_contiguous_access_layout(self):
+        for index_fn, expected in (
+            (lambda x1, x2: 380928 * x1 + x2, "x2"),
+            (lambda x1, x2: x1 + 2 * x2, "x1"),
+        ):
+            axes = [make_axis("x1", 2), make_axis("x2", 380928, 1)]
+            for axis in axes:
+                axis.is_split_axis = True
+            x1, x2 = [axis.symbol() for axis in axes]
+            member = SimpleNamespace(
+                split_axis=axes.copy(),
+                sorted_axis=axes,
+                persistent_reduction=False,
+                no_x_dim=False,
+                low_dims=set(),
+                load_store_indexing=[index_fn(x1, x2)],
+                get_axis_dtype=lambda axis: torch.float32,
+            )
+            with (
+                patch.object(npu_config, "_get_core_nums", return_value=(None, 1, 56)),
+                patch.object(combo_codegen, "NPUIndexTritonKernel", return_value=member),
+            ):
+                actual = NPUComboKernel.create_triton_kernel({}, Mock(), True)
+            self.assertEqual([axis.name for axis in actual.split_axis], [expected])
+
+    def test_numel_partition_regroups_large_outliers(self):
+        nodes = list(range(6))
+        sizes = [3055616, 6111232, 11936, 11936, 11936, 11936]
+        kernels = {
+            i: SimpleNamespace(sorted_axis=[make_axis("x0", size)])
+            for i, size in enumerate(sizes)
+        }
+        with patch.object(npu_config, "_get_core_nums", return_value=(None, 1, 56)):
+            groups = NPUComboKernel._partition_by_numel(nodes, kernels)
+        self.assertEqual(groups, [[2, 3, 4, 5], [0, 1]])
+
+    def test_numel_partition_includes_reduction_extent(self):
+        nodes = list(range(5))
+        shapes = [(256, 1025), (35, 128), (256, 1025), (7, 128), (256, 1025)]
+        kernels = {
+            i: SimpleNamespace(sorted_axis=[make_axis("x0", x), make_axis("r1", r, 1)])
+            for i, (x, r) in enumerate(shapes)
+        }
+        with patch.object(npu_config, "_get_core_nums", return_value=(None, 1, 56)):
+            groups = NPUComboKernel._partition_by_numel(nodes, kernels)
+        self.assertEqual(groups, [[3], [0, 1, 2, 4]])
+
+    def test_numel_partition_boundaries_and_recursive_outliers(self):
+        cases = (
+            ([1, 224, 224], [[0, 1, 2]]),
+            ([1, 225, 225], [[0], [1, 2]]),
+            ([1, 1000, 1000000, 1000000000, 1000000000], [[0], [1], [2], [3, 4]]),
+        )
+        with patch.object(npu_config, "_get_core_nums", return_value=(None, 1, 56)):
+            for sizes, expected in cases:
+                with self.subTest(sizes=sizes):
+                    nodes = list(range(len(sizes)))
+                    kernels = {
+                        i: SimpleNamespace(sorted_axis=[make_axis("x0", size)])
+                        for i, size in enumerate(sizes)
+                    }
+                    self.assertEqual(NPUComboKernel._partition_by_numel(nodes, kernels), expected)
+
+    def test_numel_partition_preserves_dynamic_groups(self):
+        nodes = [0, 1, 2]
+        sizes = [1, sympy.Symbol("s0", positive=True), 1000000]
+        kernels = {
+            i: SimpleNamespace(sorted_axis=[make_axis("x0", size)])
+            for i, size in enumerate(sizes)
+        }
+        self.assertEqual(NPUComboKernel._partition_by_numel(nodes, kernels), [nodes])
+
+    def test_sync_removed_outputs_updates_combo_and_subkernels(self):
+        combo = object.__new__(NPUComboKernel)
+        combo.args = SimpleNamespace(
+            output_buffers={"output": object()},
+            inplace_buffers={"inplace": object()},
+            is_removed=lambda name: name in {"output", "inplace"},
+        )
+        combo.removed_buffers = set()
+        combo.sub_kernels = [SimpleNamespace(removed_buffers=set())]
+
+        combo._sync_removed_outputs()
+
+        expected = {"output", "inplace"}
+        self.assertEqual(combo.removed_buffers, expected)
+        self.assertEqual(combo.sub_kernels[0].removed_buffers, expected)
+
     def test_regroup_fused_subkernels(self):
         def node(name, sizes, reduction=False):
             n = SimpleNamespace(

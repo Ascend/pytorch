@@ -1,3 +1,4 @@
+import math
 from typing import Any, Optional
 
 import sympy
@@ -7,7 +8,11 @@ from torch._inductor.codegen.common import ArgName, ConstexprArg, SizeArg
 from torch._inductor.codegen.simd_kernel_features import SIMDKernelFeatures
 from torch._inductor.codegen.triton import TritonKernel
 from torch._inductor.codegen.triton_combo_kernel import ComboKernel
-from torch._inductor.codegen.triton_utils import signature_to_meta, config_of, equal_1_arg_indices
+from torch._inductor.codegen.triton_utils import (
+    config_of,
+    equal_1_arg_indices,
+    signature_to_meta,
+)
 from torch._inductor.runtime.hints import DeviceProperties
 from torch._inductor.runtime.runtime_utils import next_power_of_2
 from torch._inductor.utils import IndentedBuffer, Placeholder, triton_version_uses_attrs_dict
@@ -16,7 +21,9 @@ from torch.utils._ordered_set import OrderedSet
 
 from ..codegen.npu_kernel_features import NumelList
 from ..codegen.triton import NPUIndexTritonKernel
+from ..codegen.triton_utils import get_aligned_numel
 from ..runtime.triton_heuristics import SequentialComboKernelGrid
+from .. import config as npu_config
 
 
 class NPUComboKernel(ComboKernel):
@@ -30,6 +37,17 @@ class NPUComboKernel(ComboKernel):
     ) -> None:
         super().__init__(triton_kernel_cls, enable_autotune, mixed_sizes, per_subkernel_blocks)
         self.block_size_1d = 4096
+
+    def _sync_removed_outputs(self) -> None:
+        # Source-only TTIR checks happen before graph removals are committed.
+        # DeferredLine must see the same eliminated outputs as python_argdefs.
+        removed = {
+            name for name in (*self.args.output_buffers, *self.args.inplace_buffers)
+            if self.args.is_removed(name)
+        }
+        self.removed_buffers.update(removed)
+        for sub_kernel in self.sub_kernels:
+            sub_kernel.removed_buffers.update(removed)
 
     @staticmethod
     def create_triton_kernel(
@@ -47,11 +65,33 @@ class NPUComboKernel(ComboKernel):
             # Grouped plans use a single kernel's axis arguments and grid.
             allow_grouped_autotune=False,
         )
-        kernel.split_axis = [
+        split_axes = [
             axis for axis in kernel.split_axis
             if not (axis.is_reduction and kernel.persistent_reduction)
             and not (axis.prefix == "x" and kernel.no_x_dim)
-        ][:1]
+        ]
+        selected = split_axes[:1]
+        if split_axes and all(isinstance(axis.length, (Integer, int)) for axis in split_axes):
+            max_programs = npu_config.num_vector_core * npu_config.combo_kernel_max_waves
+            dispatch_axes = [
+                axis for axis in split_axes
+                if axis.sorted_order not in kernel.low_dims
+                or (int(axis.length) + max_programs - 1) // max_programs
+                >= get_aligned_numel(kernel.get_axis_dtype(axis))
+            ]
+            if not dispatch_axes:
+                dispatch_axes = split_axes[:1]
+            selected = dispatch_axes[:1]
+            longest = max(dispatch_axes, key=lambda axis: int(axis.length))
+            symbol = longest.symbol()
+            accesses = [
+                index for index in (kernel.load_store_indexing or ()) if index.has(symbol)
+            ]
+            if accesses and all(
+                not sympy.expand(index - symbol).has(symbol) for index in accesses
+            ):
+                selected = [longest]
+        kernel.split_axis = selected
         for axis in kernel.sorted_axis:
             if axis not in kernel.split_axis:
                 axis.is_split_axis = False
@@ -69,6 +109,40 @@ class NPUComboKernel(ComboKernel):
     def select_dispatch_strategy(self) -> None:
         if self.dispatch_class is None:
             self.dispatch_class = NPUComboKernel.SIMDDispatch
+
+    @staticmethod
+    def _partition_by_numel(nodes, kernel_map):
+        """Separate extreme static iteration sizes without changing block ABI."""
+        numels = {}
+        for node in nodes:
+            axes = kernel_map[node].sorted_axis
+            if any(
+                not isinstance(axis.length, (Integer, int)) or axis.length <= 0
+                for axis in axes
+            ):
+                return [nodes]
+            numels[node] = math.prod(int(axis.length) for axis in axes)
+
+        ratio = 4 * npu_config.num_vector_core
+
+        def partition(group):
+            if len(group) < 2:
+                return [group] if group else []
+            values = sorted(numels[node] for node in group)
+            median2 = values[(len(values) - 1) // 2] + values[len(values) // 2]
+            small, middle, large = [], [], []
+            for node in group:
+                if 2 * numels[node] * ratio < median2:
+                    small.append(node)
+                elif 2 * numels[node] > median2 * ratio:
+                    large.append(node)
+                else:
+                    middle.append(node)
+            if not small and not large:
+                return [group]
+            return partition(small) + partition(middle) + partition(large)
+
+        return partition(nodes)
 
     @staticmethod
     def horizontal_partition(
@@ -118,7 +192,10 @@ class NPUComboKernel(ComboKernel):
                     ),
                 )
                 groups.setdefault(key, []).append(node)
-            compatible_partitions.extend(groups.values())
+            for group in groups.values():
+                compatible_partitions.extend(
+                    NPUComboKernel._partition_by_numel(group, kernel_map)
+                )
         return compatible_partitions
 
     def select_combo_heuristics(
@@ -413,6 +490,8 @@ class NPUComboKernel(ComboKernel):
                     code.writeline("")
                     code.splice(helper)
                     seen_helpers.add(helper)
+
+        self._sync_removed_outputs()
         argdefs, _, signature, _ = self.args.python_argdefs()
         argdefs = self.add_numel_to_args(argdefs, signature)
         # remove enable_autotune condition and add autotune args
@@ -448,7 +527,10 @@ class NPUComboKernel(ComboKernel):
                     uniquified_body = self.uniquify_block_sizes(
                         sub_kernel.body, num, uniquify
                     )
-                    code.splice(uniquified_body)
+                    # Resolve DeferredLine while this subkernel's liveness is
+                    # active. Its eliminated inplace intermediates need not be
+                    # present in the combo or the graph during source-only checks.
+                    code.splice(uniquified_body.getvalue())
 
             code.splice("else:")
             with code.indent():

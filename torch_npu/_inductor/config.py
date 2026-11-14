@@ -135,6 +135,9 @@ def __getattr__(name):
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
+combo_kernel_max_waves = 8
+
+
 def _obtain_precompile_thread_num() -> int:
     """
     in torch/inductor/config.py, compile_threads is introduced with default value or
