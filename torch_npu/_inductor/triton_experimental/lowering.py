@@ -185,7 +185,33 @@ def npu_var_mean_helper_(x, *, axis, correction, keepdim, return_mean):
         keepdim=keepdim,
         return_mean=return_mean,
     )
-    output = var_mean_sum_(**kwargs)
+    # Match the upstream helper: two-step var only for small (unrolled)
+    # reductions, welford otherwise. The unconditional two-step split here
+    # forced an extra mean reduction plus a dependent sum((x-mean)^2) pass,
+    # adding a third loop region and input re-read to fused layernorm kernels.
+    from torch._inductor.lowering import use_two_step_variance, var_mean_welford_
+
+    # Welford through the upstream multi-axis lowering is only validated for
+    # single-axis reductions on NPU; multi-axis reductions (e.g. the
+    # group_norm var_mean over (C/G, H, W)) are split into several reduction
+    # trees by the linearized codegen and still need the two-step form.
+    # aten.var_mean accepts dim=None (reduce all dims); normalize before
+    # counting axes, otherwise len(None) raises.
+    try:
+        from torch._inductor.lowering import _validate_reduction_axis
+
+        _axes = _validate_reduction_axis(x, axis)
+    except ImportError:
+        _axes = list(range(len(x.get_size()))) if axis is None else axis
+    _axis_count = 1 if isinstance(_axes, int) else len(_axes)
+    output = (
+        var_mean_welford_(**kwargs)
+        if _axis_count == 1
+        and not use_two_step_variance(
+            x, axis=axis, keepdim=keepdim, input_dtype=out_dtype
+        )
+        else var_mean_sum_(**kwargs)
+    )
     output = tuple(to_dtype(x, out_dtype, copy=False) for x in output)
     return output[0] if not return_mean else output
 

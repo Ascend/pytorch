@@ -341,6 +341,22 @@ def _npu_scalar_odometer_axis_names(kernel, tree):
     return scalar
 
 
+def _npu_flat_roffset_expr(loop_nodes):
+    """Rebuild the flat reduction offset removed with the ``for roffset`` header.
+
+    The linearized body keeps references to the upstream loop variable
+    (notably ``triton_helpers.welford_reduce(..., roffset == 0)``) while the
+    loop header is replaced by nested per-tile loops. Rebind ``roffset`` to
+    the flattened tile offset so ``roffset == 0`` still means "first tile of
+    the reduction".
+    """
+    parts = []
+    for index, (name, _slot, _tile, _numel) in enumerate(loop_nodes):
+        stride = " * ".join(node[3] for node in loop_nodes[index + 1:])
+        parts.append(f"{name}inner * {stride}" if stride else f"{name}inner")
+    return " + ".join(parts) if parts else "0"
+
+
 def _npu_rewrite_promoted_rtree_body(kernel, real_sizes, real_ndim):
     """Rewrite the assembled reduction body for promoted r-trees. Per tree: turn
     the flat ``for r0_offset ...`` loop into full-residency aranges (each free
@@ -992,6 +1008,9 @@ def _npu_apply_promoted_rtree_lines(
                         reduction_pass, kernel.index_to_str, inner_indent
                     )
                 )
+                new_lines.append(
+                    f"{inner_indent}roffset = {_npu_flat_roffset_expr(loop_nodes)}"
+                )
             else:
                 new_lines.extend(f"{indent}{al}" for al in arange_lines)
                 new_lines.extend(
@@ -999,6 +1018,7 @@ def _npu_apply_promoted_rtree_lines(
                         reduction_pass, kernel.index_to_str, indent
                     )
                 )
+                new_lines.append(f"{indent}roffset = 0")
             continue
 
         if inside_rloop:
@@ -2354,6 +2374,56 @@ class NPUTritonKernel(TritonKernel):
         else:
             condition = _shape_assert_condition(var, shape)
             buffer.writeline(f"tl.static_assert({condition})")
+
+    def _welford(self, buffer, mean, m2, weight, dim, dtype: torch.dtype):
+        """The NPU triton compiler asserts on tl.reduce with more than two
+        sources ("Only reduce or reduce with index are supported"), which
+        breaks triton_helpers.welford's 3-way tuple reduce. Emit the
+        algebraically identical parallel-variance combine with plain 2-way
+        tl.sum ops instead: total weight, the normalized weight-averaged mean
+        (sum_i mean_i * w_i / sum(w), expanded so no unnormalized partial sum
+        is ever formed; 0/0-guarded to match welford_combine's
+        new_weight==0 branch), then the merged
+        m2 = sum(m2_i + w_i*(mean_i - mean_total)^2)."""
+        if dim != self.triton_tensor_ndim() - self.num_reduction_dims:
+            return super()._welford(buffer, mean, m2, weight, dim, dtype)
+        mean, m2, weight = (
+            self.reduction_collapse_dims(buffer, value, dtype)
+            for value in (mean, m2, weight)
+        )
+
+        def reduced_shape(shape):
+            return tuple(shape[0:dim] + shape[dim + 1 :])
+
+        weight_var = self.cse.newvar(dtype=dtype, shape=reduced_shape(weight.shape))
+        mean_var = self.cse.newvar(dtype=dtype, shape=reduced_shape(mean.shape))
+        m2_var = self.cse.newvar(dtype=dtype, shape=reduced_shape(m2.shape))
+        buffer.writeline(f"{weight_var} = tl.sum({weight}, {dim})")
+        # Normalize each lane's weight BEFORE multiplying by its mean. The
+        # direct form sum(mean_i * w_i) accumulates the *unnormalized* total,
+        # i.e. rnumel * |mean|: for FP32 inputs near the top of the range
+        # (e.g. 65536 elements of 1e34, whose true sum is 6.5e38) the running
+        # sum overflows to +inf even though every mean_i and the weighted mean
+        # itself are representable. With w_i / sum(w) each term is a convex
+        # combination, so every partial sum is bounded by max|mean_i| and no
+        # intermediate can exceed the result's own magnitude. Same normalized
+        # form welford_combine uses (weight_2 / new_weight); the w_i == 0
+        # case is still 0/0-guarded.
+        weight_bcast = self.reduction_resize(weight_var)
+        buffer.writeline(
+            f"{mean_var} = tl.sum({mean} * ({weight} / "
+            f"tl.where({weight_bcast} == 0.0, 1.0, {weight_bcast})), {dim})"
+        )
+        buffer.writeline(f"{mean_var} = tl.where({weight_var} == 0.0, 0.0, {mean_var})")
+        mean_bcast = self.reduction_resize(mean_var)
+        buffer.writeline(
+            f"{m2_var} = tl.sum("
+            f"{m2} + {weight} * ({mean} - {mean_bcast}) * ({mean} - {mean_bcast}), {dim})"
+        )
+        return tuple(
+            self.reduction_resize_and_shape(value, value.shape)
+            for value in (mean_var, m2_var, weight_var)
+        )
 
     @classmethod
     def gen_common_triton_imports(cls):
