@@ -1,6 +1,7 @@
 from torch._inductor import config
 from torch._inductor.custom_graph_pass import CustomGraphPass, get_hash_for_files
 from . import ascend_custom_passes
+from .utils.fx_pass_level import PassType
 from .. import config as npu_config
 
 
@@ -61,6 +62,14 @@ class AscendCustomPrePass(CustomGraphPass):
 
 def pre_grad_custom_pass_fuc():
     config.pre_grad_custom_pass = AscendCustomPrePass()
+    # Torch 2.13 defaults UUID-bearing PRE passes to late timing, after AOT has
+    # collected module buffers. The indexed MSC table must exist before that
+    # collection so the POST pass can read it as a lifted graph input.
+    if getattr(config, "pre_grad_pass_timing", None) == "default":
+        levels = ascend_custom_passes.ASCEND_CUSTOME_PASS_REGISTER[PassType.PRE]
+        if any(fn.__name__ == "indexed_slice_concat_table_pass"
+               for fns in levels.values() for fn in fns):
+            config.pre_grad_pass_timing = "early"
 
 
 def post_grad_custom_pass_fuc():
