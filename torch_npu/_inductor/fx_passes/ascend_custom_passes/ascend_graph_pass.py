@@ -786,7 +786,7 @@ def fold_reduce(graph: torch.fx.Graph) -> None:
     for reduce in reversed(candidates):
         inp = get_input_node(reduce, 0)
         shape = get_node_shape(inp, allow_symbolic=True)
-        if shape is None:
+        if shape is None or len(shape) == 0:
             continue
         dims = get_input_kw_node(reduce, "dim") or list(range(len(shape)))
         if not isinstance(dims, list):
