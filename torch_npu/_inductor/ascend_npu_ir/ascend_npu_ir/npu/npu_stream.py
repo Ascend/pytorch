@@ -62,7 +62,7 @@ class StreamResgistrator:
 def npu_set_stream(
     dependency: Sequence[torch.Tensor],
     stream_tag: str,
-    ) -> List[torch.Tensor]:
+) -> List[torch.Tensor]:
     stream = NPU_STREAMS[stream_tag]
     torch_npu.npu.utils.set_stream(stream)
     return dependency
@@ -70,7 +70,7 @@ def npu_set_stream(
 def npu_set_stream_fake(
     dependency: Sequence[torch.Tensor],
     stream_tag: str,
-    ) -> List[torch.Tensor]:
+) -> List[torch.Tensor]:
     return dependency
 
 direct_register_custom_op(
@@ -85,7 +85,7 @@ def npu_event_record(
     dependency: Sequence[torch.Tensor],
     event_tag: str,
     stream_tag: str
-    ) -> List[torch.Tensor]:
+) -> List[torch.Tensor]:
     event = NPU_EVENTS[event_tag]
     stream = NPU_STREAMS[stream_tag]
     event.record(stream)
@@ -95,7 +95,7 @@ def npu_event_record_fake(
     dependency: Sequence[torch.Tensor],
     event_tag: str,
     stream_tag: str
-    ) -> List[torch.Tensor]:
+) -> List[torch.Tensor]:
     return dependency
 
 direct_register_custom_op(
@@ -109,7 +109,7 @@ direct_register_custom_op(
 def npu_event_wait(
     dependency: Sequence[torch.Tensor],
     event_tag: str,
-    ) -> List[torch.Tensor]:
+) -> List[torch.Tensor]:
     event = NPU_EVENTS[event_tag]
     event.wait()
     return dependency
@@ -117,7 +117,7 @@ def npu_event_wait(
 def npu_event_wait_fake(
     dependency: Sequence[torch.Tensor],
     event_tag: str,
-    ) -> List[torch.Tensor]:
+) -> List[torch.Tensor]:
     return dependency
 
 direct_register_custom_op(
@@ -130,12 +130,12 @@ direct_register_custom_op(
 
 def graph_break(
     dependency: Sequence[torch.Tensor],
-    ) -> List[torch.Tensor]:
+) -> List[torch.Tensor]:
     return dependency
 
 def graph_break_fake(
     dependency: Sequence[torch.Tensor],
-    ) -> List[torch.Tensor]:
+) -> List[torch.Tensor]:
     return dependency
 
 utils_lib = Library("npu_utils", "FRAGMENT")  # noqa
@@ -153,7 +153,7 @@ def npu_wait_stream(
     dependency: Sequence[torch.Tensor],
     stream1_tag: str,
     stream2_tag: str,
-    ) -> List[torch.Tensor]:
+) -> List[torch.Tensor]:
     stream1 = NPU_STREAMS[stream1_tag]
     stream2 = NPU_STREAMS[stream2_tag]
     stream1.wait_stream(stream2)
@@ -163,7 +163,7 @@ def npu_wait_stream_fake(
     dependency: Sequence[torch.Tensor],
     stream1_tag: str,
     stream2_tag: str,
-    ) -> List[torch.Tensor]:
+) -> List[torch.Tensor]:
     return dependency
 
 direct_register_custom_op(
@@ -204,8 +204,10 @@ def npu_fusion_attention(
     actual_seq_kvlen: Optional[torch.Tensor] = None,
     sparse_mode: int = 0,
     gen_mask_parallel: bool = True,
-    sync: bool = False
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    sync: bool = False,
+    softmax_layout: str = "",
+    sink: Optional[torch.Tensor] = None
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     prefix = prefix.tolist() if prefix is not None else prefix
     actual_seq_qlen = actual_seq_qlen.tolist() if actual_seq_qlen is not None else actual_seq_qlen
     actual_seq_kvlen = actual_seq_kvlen.tolist() if actual_seq_kvlen is not None else actual_seq_kvlen
@@ -228,7 +230,9 @@ def npu_fusion_attention(
         actual_seq_kvlen=actual_seq_kvlen,
         sparse_mode=sparse_mode,
         gen_mask_parallel=gen_mask_parallel,
-        sync=sync
+        sync=sync,
+        softmax_layout=softmax_layout,
+        sink=sink
     )
 
     seed = torch.tensor([seed], device='npu', dtype=torch.int64)
@@ -256,8 +260,10 @@ def npu_fusion_attention_fake(
     actual_seq_kvlen: Optional[torch.Tensor] = None,
     sparse_mode: int = 0,
     gen_mask_parallel: bool = True,
-    sync: bool = False
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    sync: bool = False,
+    softmax_layout: str = "",
+    sink: Optional[torch.Tensor] = None
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     B = query.size(0)
     N = head_num
     S1 = query.size(2)
@@ -327,8 +333,10 @@ def npu_fusion_attention_grad(
     actual_seq_kvlen: Optional[torch.Tensor] = None,
     sparse_mode: int = 0,
     gen_mask_parallel: bool = True,
-    sync: bool = False
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    sync: bool = False,
+    softmax_layout: str = "",
+    sink: Optional[torch.Tensor] = None
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     prefix = prefix.tolist() if prefix is not None else prefix
     actual_seq_qlen = actual_seq_qlen.tolist() if actual_seq_qlen is not None else actual_seq_qlen
     actual_seq_kvlen = actual_seq_kvlen.tolist() if actual_seq_kvlen is not None else actual_seq_kvlen
@@ -337,15 +345,16 @@ def npu_fusion_attention_grad(
     offset = offset.item()
     numels = numels.item()
 
-    dq, dk, dv, dpse = torch.ops.npu.npu_fusion_attention_grad(
+    dq, dk, dv, dpse, dsink = torch.ops.npu.npu_fusion_attention_grad(
         query, key, value, dy, head_num, input_layout, pse=pse, padding_mask=padding_mask, atten_mask=atten_mask,
-        softmax_max=softmax_max, softmax_sum=softmax_sum, softmax_in=softmax_in, attention_in=attention_in, scale_value=scale_value,
-        keep_prob=keep_prob, pre_tockens=pre_tockens, next_tockens=next_tockens, inner_precise=inner_precise, seed=seed, offset=offset,
+        softmax_max=softmax_max, softmax_sum=softmax_sum, softmax_in=softmax_in,
+        attention_in=attention_in, scale_value=scale_value, keep_prob=keep_prob,
+        pre_tockens=pre_tockens, next_tockens=next_tockens, inner_precise=inner_precise, seed=seed, offset=offset,
         numels=numels, prefix=prefix, actual_seq_qlen=actual_seq_qlen, actual_seq_kvlen=actual_seq_kvlen, sparse_mode=sparse_mode,
-        gen_mask_parallel=gen_mask_parallel, sync=sync
+        gen_mask_parallel=gen_mask_parallel, sync=sync, softmax_layout=softmax_layout, sink=sink
     )
 
-    return dq, dk, dv, dpse
+    return dq, dk, dv, dpse if pse is not None else None, dsink if sink is not None else None
 
 def npu_fusion_attention_grad_fake(
     query: torch.Tensor,
@@ -375,13 +384,16 @@ def npu_fusion_attention_grad_fake(
     actual_seq_kvlen: Optional[torch.Tensor] = None,
     sparse_mode: int = 0,
     gen_mask_parallel: bool = True,
-    sync: bool = False
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    sync: bool = False,
+    softmax_layout: str = "",
+    sink: Optional[torch.Tensor] = None
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     dq = torch.empty_like(query, dtype=query.dtype, device=query.device).contiguous()
     dk = torch.empty_like(key, dtype=query.dtype, device=query.device).contiguous()
     dv = torch.empty_like(value, dtype=query.dtype, device=query.device).contiguous()
-    dpse = torch.empty([0], dtype=query.dtype, device=query.device).contiguous()
-    return dq, dk, dv, dpse if pse else None
+    dpse = torch.empty_like(pse).contiguous() if pse is not None else None
+    dsink = torch.empty_like(sink).contiguous() if sink is not None else None
+    return dq, dk, dv, dpse, dsink
 
 direct_register_custom_op(
     op_name="npu_fusion_attention_grad",
@@ -396,15 +408,19 @@ class InductorNpuAttentionFunction(torch.autograd.Function):
     @staticmethod
     def forward(ctx, query, key, value, head_num, input_layout, pse=None, padding_mask=None, atten_mask=None, scale=1.0,
                 keep_prob=1.0, pre_tockens=2147483647, next_tockens=2147483647, inner_precise=0, prefix=None,
-                actual_seq_qlen=None, actual_seq_kvlen=None, sparse_mode=0, gen_mask_parallel=True, sync=False):
+                actual_seq_qlen=None, actual_seq_kvlen=None, sparse_mode=0, gen_mask_parallel=True, sync=False,
+                softmax_layout="", sink=None):
         attention_score, softmax_max, softmax_sum, softmax_out, seed, offset, numels = torch.ops.inductor_npu.npu_fusion_attention(
             query, key, value, head_num, input_layout, pse=pse, padding_mask=padding_mask, atten_mask=atten_mask,
             scale=scale, keep_prob=keep_prob, pre_tockens=pre_tockens, next_tockens=next_tockens,
             inner_precise=inner_precise, prefix=prefix, actual_seq_qlen=actual_seq_qlen,
-            actual_seq_kvlen=actual_seq_kvlen, sparse_mode=sparse_mode, gen_mask_parallel=gen_mask_parallel, sync=sync
+            actual_seq_kvlen=actual_seq_kvlen, sparse_mode=sparse_mode, gen_mask_parallel=gen_mask_parallel, sync=sync,
+            softmax_layout=softmax_layout, sink=sink
         )
-        ctx.save_for_backward(query, key, value, pse, padding_mask, atten_mask, actual_seq_qlen, actual_seq_kvlen,\
-                              softmax_max, softmax_sum, softmax_out, attention_score, seed, offset, numels)
+        ctx.save_for_backward(
+            query, key, value, pse, padding_mask, atten_mask, actual_seq_qlen, actual_seq_kvlen,
+            softmax_max, softmax_sum, softmax_out, attention_score, seed, offset, numels, sink
+        )
         ctx.head_num = head_num
         ctx.input_layout = input_layout
         ctx.scale = scale
@@ -418,34 +434,37 @@ class InductorNpuAttentionFunction(torch.autograd.Function):
         ctx.sparse_mode = sparse_mode
         ctx.gen_mask_parallel = gen_mask_parallel
         ctx.sync = sync
+        ctx.softmax_layout = softmax_layout
 
         return attention_score, softmax_max, softmax_sum, softmax_out, seed, offset, numels
 
     @staticmethod
-    def backward(ctx, grad_attention_score, grad_softmax_max, grad_softmax_sum, grad_softmax_out, grad_seed, grad_offset, grad_numels):
+    def backward(
+        ctx, grad_attention_score, grad_softmax_max, grad_softmax_sum,
+        grad_softmax_out, grad_seed, grad_offset, grad_numels
+    ):
         query, key, value, pse, padding_mask, atten_mask, actual_seq_qlen, actual_seq_kvlen, \
-            softmax_max, softmax_sum, softmax_out, attention_score, seed, offset, numels = ctx.saved_tensors
-        grad_query, grad_key, grad_value, grad_pse = torch.ops.inductor_npu.npu_fusion_attention_grad(
+            softmax_max, softmax_sum, softmax_out, attention_score, seed, offset, numels, sink = ctx.saved_tensors
+        grad_query, grad_key, grad_value, grad_pse, grad_sink = torch.ops.inductor_npu.npu_fusion_attention_grad(
             query, key, value, grad_attention_score, ctx.head_num, ctx.input_layout, pse=pse, padding_mask=padding_mask,
-            atten_mask=atten_mask, softmax_max=softmax_max, softmax_sum=softmax_sum, softmax_in=softmax_out, attention_in=attention_score,
+            atten_mask=atten_mask, softmax_max=softmax_max, softmax_sum=softmax_sum,
+            softmax_in=softmax_out, attention_in=attention_score,
             scale_value=ctx.scale, keep_prob=ctx.keep_prob, pre_tockens=ctx.pre_tockens, next_tockens=ctx.next_tockens,
             inner_precise=ctx.inner_precise, seed=seed, offset=offset, numels=numels, prefix=None,
             actual_seq_qlen=actual_seq_qlen, actual_seq_kvlen=actual_seq_kvlen, sparse_mode=ctx.sparse_mode,
-            gen_mask_parallel=ctx.gen_mask_parallel, sync=ctx.sync
+            gen_mask_parallel=ctx.gen_mask_parallel, sync=ctx.sync, softmax_layout=ctx.softmax_layout, sink=sink
         )
-        return (
-        grad_query, grad_key, grad_value, None, None, grad_pse, None, None, None, None, None, None, None, None, None,
-        None, None, None, None, None, None, None, None, None, None, None)
+        return (grad_query, grad_key, grad_value, None, None, grad_pse) + (None,) * 14 + (grad_sink,)
 
 def inductor_npu_fusion_attention(query, key, value, head_num, input_layout, pse=None, padding_mask=None,
-                               atten_mask=None, scale=1.0, keep_prob=1.0, pre_tockens=2147483647,
-                               next_tockens=2147483647,
-                               inner_precise=0, prefix=None, actual_seq_qlen=None, actual_seq_kvlen=None, sparse_mode=0,
-                               gen_mask_parallel=True, sync=False):
+                                  atten_mask=None, scale=1.0, keep_prob=1.0, pre_tockens=2147483647,
+                                  next_tockens=2147483647,
+                                  inner_precise=0, prefix=None, actual_seq_qlen=None, actual_seq_kvlen=None, sparse_mode=0,
+                                  gen_mask_parallel=True, sync=False, softmax_layout="", sink=None):
     return InductorNpuAttentionFunction.apply(query, key, value, head_num, input_layout, pse, padding_mask,
-                                           atten_mask, scale, keep_prob, pre_tockens, next_tockens,
-                                           inner_precise, prefix, actual_seq_qlen, actual_seq_kvlen, sparse_mode,
-                                           gen_mask_parallel, sync)
+                                              atten_mask, scale, keep_prob, pre_tockens, next_tockens,
+                                              inner_precise, prefix, actual_seq_qlen, actual_seq_kvlen, sparse_mode,
+                                              gen_mask_parallel, sync, softmax_layout, sink)
 
 def apply_inductor_npu_attention_patch():
     torch.ops.npu.npu_fusion_attention = inductor_npu_fusion_attention

@@ -1,11 +1,26 @@
 import torch
 import torch_npu  # noqa: F401
+from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu import npu_stream
 from torch_npu._inductor.fx_passes.pattern_match.npu_fusion_attention_graph import NpuGraphAttentionFunction
 from torch_npu.testing.testcase import TestCase, run_tests
 from version_mark import runIfVersion
 
 
 class TestNpuFusionAttentionGraph(TestCase):
+    def test_inductor_attention_autograd(self):
+        inputs = [torch.randn(2, 4, 8, 16, device="npu", dtype=torch.float16,
+                              requires_grad=True) for _ in range(3)]
+        grad = torch.randn_like(inputs[0])
+        expected = torch_npu.npu_fusion_attention(*inputs, 4, "BNSD", scale=0.25)[0]
+        expected_grads = torch.autograd.grad(expected, inputs, grad)
+        actual_inputs = [tensor.detach().clone().requires_grad_() for tensor in inputs]
+        fn = torch.compile(npu_stream.inductor_npu_fusion_attention, backend="aot_eager", fullgraph=True)
+        actual = fn(*actual_inputs, 4, "BNSD", scale=0.25)[0]
+        actual_grads = torch.autograd.grad(actual, actual_inputs, grad)
+        torch.testing.assert_close(actual, expected, atol=1e-3, rtol=1e-3)
+        for actual_grad, expected_grad in zip(actual_grads, expected_grads):
+            torch.testing.assert_close(actual_grad, expected_grad, atol=1e-3, rtol=1e-3)
+
     @runIfVersion(max="2.13")
     def test_npu_graph_attention_function(self):
         query = torch.randn(2, 4, 8, 16, device='npu', requires_grad=True)
