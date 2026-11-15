@@ -59,7 +59,7 @@ on:
         description: '单机并发 worker 数'
         required: true
         type: string
-        default: '16'
+        default: '8'
 
 permissions:
   id-token: write
@@ -440,14 +440,14 @@ jobs:
       category: custom_test_cases-a3
       num_shards: '4'
       matrix_json: '[1,2,3,4]'
-      max_workers: ${{ inputs.max_workers || '16' }}
+      max_workers: ${{ inputs.max_workers || '8' }}
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17
       report_to_upstream: false
       runner_label: linux-aarch64-a3-800i-8-cn12-001
       device_env: 'privateuse1,cpu'
       patch_triton_cxx20: true
       cases_artifact_name: custom_test_cases-a3
-      # 失败用例分级重试：分片首轮 16 并发跑完后，失败用例先 8 并发重试一轮，
+      # 失败用例分级重试：分片首轮 8 并发跑完后，失败用例先 8 并发重试一轮，
       # 仍失败再单并发重试一轮，最终仍失败才算真失败，首轮失败后续成功的记为不稳定用例。
       retry_failed_cases: true
       retry_max_cases: '0'
@@ -471,7 +471,7 @@ jobs:
       category: custom_test_cases-a5
       num_shards: '4'
       matrix_json: '[1,2,3,4]'
-      max_workers: ${{ inputs.max_workers || '16' }}
+      max_workers: ${{ inputs.max_workers || '8' }}
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.11-torch-master-cann9.2.0-20260910200430-202610160226-8a315d17
       report_to_upstream: false
       runner_label: linux-amd64-a5-2
