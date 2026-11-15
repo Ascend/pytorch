@@ -479,7 +479,10 @@ enable_grouped_matmul_fusion = _parse_bool_env(
 enable_matmul_triton = _parse_bool_env("TORCHINDUCTOR_ENABLE_MATMUL_TRITON", False)
 
 class flex_attention:
-    """Runtime strategy switches for the NPU FlexAttention lowering."""
+    """Configuration for the NPU FlexAttention lowering."""
+
+    # Enable outer-loop scheduling for the forward and dQ compute templates.
+    enable_outer_main_loop = False
 
     # Maximum byte-mask workspace per forward. Zero uses exact-capacity allocation.
     fwd_mask_workspace_bytes = 256 * 1024 * 1024

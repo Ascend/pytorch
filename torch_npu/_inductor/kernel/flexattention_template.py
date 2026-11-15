@@ -36,6 +36,7 @@ from torch_npu._inductor.select_algorithm import (
 
 _FWD_COMPILE_OPTIONS = NPUTemplateCompileOption(
     {
+        "enable_outer_main_loop": False,
         "enable_ubuf_saving": True,
         "unit_flag": True,
         "set_workspace_multibuffer": 4,
@@ -57,6 +58,7 @@ _FWD_COMPILE_OPTIONS = NPUTemplateCompileOption(
 )
 _BWD_DQ_COMPILE_OPTIONS = NPUTemplateCompileOption(
     {
+        "enable_outer_main_loop": False,
         "limit_auto_multi_buffer_buffer": "no-limit",
         "hfusion_enable_multiple_consumer_fusion": True,
         "limit_auto_multi_buffer_of_local_buffer": "no-l0c",

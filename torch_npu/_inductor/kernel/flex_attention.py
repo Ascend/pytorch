@@ -778,6 +778,10 @@ def patch_flex_attention() -> None:
             {} if kernel_options is None else dict(kernel_options)
         )
         updated_kernel_options[_EXPLICIT_SCORE_MOD_OPTION] = score_mod is not None
+        # Carry the config value in the graph so cache entries follow the switch.
+        updated_kernel_options["enable_outer_main_loop"] = (
+            npu_config.flex_attention.enable_outer_main_loop
+        )
         # Include the strategy in the HOP/FX cache key, not only in lowering's
         # process-local config. Otherwise a warm graph cache can ignore a toggle.
         updated_kernel_options[_FWD_WORKSPACE_OPTION] = (
@@ -2195,6 +2199,9 @@ def _register_npu_inductor_flex_attention():
         freeze_irnodes(mask_graph_buffer)
 
         kernel_options = dict(kernel_options)
+        enable_outer_main_loop = kernel_options.pop(
+            "enable_outer_main_loop", npu_config.flex_attention.enable_outer_main_loop
+        )
         backend = kernel_options.get("BACKEND", "AUTO")
         # Upstream flex_attention adds GPU backend dispatch options that NPU
         # templates do not consume.
@@ -2552,6 +2559,7 @@ def _register_npu_inductor_flex_attention():
         # because they're implicitly added by the score_mod function
         # We do need to explicitly pass it in for autotuning though.
         original_kernel_options = kernel_options.copy()
+        original_kernel_options["enable_outer_main_loop"] = enable_outer_main_loop
         for cfg in dict_configs:
             BLOCK_M = cfg["BLOCK_M"]
             BLOCK_N = cfg["BLOCK_N"]
@@ -2937,6 +2945,9 @@ def _register_npu_inductor_flex_attention():
             )
 
         kernel_options = dict(kernel_options)
+        enable_outer_main_loop = kernel_options.pop(
+            "enable_outer_main_loop", npu_config.flex_attention.enable_outer_main_loop
+        )
         # Forward-only strategy hint; never leak into backward constexprs.
         kernel_options.pop(_FWD_WORKSPACE_OPTION, None)
         # Strip upstream GPU dispatch knobs before they leak into Triton
@@ -3559,6 +3570,7 @@ def _register_npu_inductor_flex_attention():
             opts = make_bwd_base_kernel_options(cfg)
             opts.update(
                 {
+                    "enable_outer_main_loop": enable_outer_main_loop,
                     "num_stages": 1,
                     "num_warps": 4,
                 }
