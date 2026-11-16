@@ -221,6 +221,8 @@ class TestSinkPointwiseCatDevice(unittest.TestCase):
         rewrites = []
 
         def hook(graph):
+            # The compiler collects tables after AOT, before sinking.
+            passes.indexed_slice_concat_table_pass(graph)
             before = str(graph)
             passes.sink_pointwise_cat_pass(graph)
             rewrites.append(before != str(graph))
@@ -228,7 +230,6 @@ class TestSinkPointwiseCatDevice(unittest.TestCase):
 
         x = torch.randn(4, 40, dtype=torch.bfloat16, device='npu')[:, 1:39:2]
         with config.patch(
-                pre_grad_custom_pass=passes.indexed_slice_concat_table_pass,
                 post_grad_custom_post_pass=hook, fx_graph_cache=False):
             actual = torch.compile(fn, fullgraph=True)(x)
         torch.testing.assert_close(actual, fn(x), rtol=0, atol=0)
@@ -273,12 +274,13 @@ class TestSinkPointwiseCatDevice(unittest.TestCase):
                 rewrites = []
 
                 def hook(graph):
+                    # The compiler collects tables after AOT, before sinking.
+                    passes.indexed_slice_concat_table_pass(graph)
                     before = str(graph)
                     passes.sink_pointwise_cat_pass(graph)
                     rewrites.append((before != str(graph), before))
                     passes.multi_slice_concat_pass(graph)
                 with self.subTest(dtype=dtype, kind=kind), config.patch(
-                        pre_grad_custom_pass=passes.indexed_slice_concat_table_pass,
                         post_grad_custom_post_pass=hook, fx_graph_cache=False,
                         fx_graph_remote_cache=False):
                     actual, codes = run_and_get_code(torch.compile(fn, fullgraph=True), x, y)

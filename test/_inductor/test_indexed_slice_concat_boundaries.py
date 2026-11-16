@@ -239,14 +239,14 @@ class TestIndexedSliceConcatBoundaries(unittest.TestCase):
         def apply_pass(graph):
             nonlocal pass_ran
             pass_ran = True
+            # The gather reads a table the post_grad pass registers as a constant.
+            passes.indexed_slice_concat_table_pass(graph)
             passes.multi_slice_concat_pass(graph)
             matches.extend(n for n in graph.nodes
                            if n.target is passes.INDEXED_SLICE_CONCAT_TARGET)
 
         src = torch.randn(5, 67, device="npu", dtype=torch.bfloat16)
         with config.patch(
-            # The gather reads a table the pre_grad pass registers as a buffer.
-            pre_grad_custom_pass=passes.indexed_slice_concat_table_pass,
             post_grad_custom_post_pass=apply_pass,
             fx_graph_cache=False,
             fx_graph_remote_cache=False,
