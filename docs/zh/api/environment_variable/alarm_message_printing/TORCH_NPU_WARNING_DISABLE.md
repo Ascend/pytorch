@@ -9,7 +9,7 @@
 
 此环境变量默认未配置。
 
-> [!CAUTION]  
+> [!CAUTION]
 >
 > - 关闭告警信息打印，仅针对TorchNPU的告警信息，不会影响原生PyTorch、第三方库或用户脚本中的告警。
 > - 本环境变量与已废弃的[TORCH\_NPU\_DISABLED\_WARNING](TORCH_NPU_DISABLED_WARNING.md)功能完全相同。两者同时配置时，本环境变量优先生效。

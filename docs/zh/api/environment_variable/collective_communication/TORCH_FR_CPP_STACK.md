@@ -18,6 +18,8 @@
 
 ## 配置示例
 
+开启FR记录并采集通信操作C++调用栈的配置示例如下：
+
 ```bash
 export TORCH_FR_BUFFER_SIZE=2000
 export TORCH_FR_CPP_STACK=1

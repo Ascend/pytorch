@@ -17,7 +17,7 @@ INDUCTOR_ASCEND_CHECK_ACCURACY是TorchNPU提供的精度校验工具，在torch.
 
 ## 配置示例
 
-示例一：启用精度工具，使用默认精度阈值配置
+示例一：启用精度校验工具，使用默认精度阈值配置
 
 ```bash
 export INDUCTOR_ASCEND_CHECK_ACCURACY=1
@@ -32,7 +32,7 @@ export INDUCTOR_ASCEND_CHECK_ACCURACY=1
 | bfloat16 | 1.6e-2 | 1e-5 |
 | 其他 | 1.3e-6 | 1e-5 |
 
-示例二：启用精度工具，并设置精度对比阈值
+示例二：启用精度工具，并设置精度对比阈值：
 
 ```bash
 export INDUCTOR_ASCEND_CHECK_ACCURACY=1
@@ -47,7 +47,7 @@ export INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL="rtol=1e-6,atol=1e-7"
 > - Triton：[config](../../../../../torch_npu/_inductor/config.py)
 > - DVM：[config](../../../../../torch_npu/_inductor/ascend_npu_ir/ascend_npu_ir/config.py)
 
-精度比对无异常时不打印额外信息。比对有异常时打印如下格式的告警：
+精度对比无异常时不打印额外信息。对比有异常时打印如下格式的告警：
 
 ```bash
 CHECK ACCURACY FAILED! Kernel: <kernel_name>, Output idx: <idx>, Mismatched: <m>/<n> (<pct>%), Greatest Rel Diff: <rel>, Greatest Abs Diff: <abs>, rtol: <rtol>, atol: <atol>, dump_path: <path> 

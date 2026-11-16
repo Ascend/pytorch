@@ -13,7 +13,7 @@
 >
 > - 当前版本同时兼容旧名称`HCCL_ASYNC_ERROR_HANDLING`。
 > - 当`TORCH_HCCL_ASYNC_ERROR_HANDLING`和`HCCL_ASYNC_ERROR_HANDLING`同时配置时，优先使用`TORCH_HCCL_ASYNC_ERROR_HANDLING`。
-> - 当前版本，开启异步处理时，若出现ERROR CQE错误，进程会终止；其他错误信息，仅屏显信息提示，不会终止进程。
+> - 当前版本，开启异步错误处理时，若出现ERROR CQE错误，进程会终止；其他错误信息，仅屏显信息提示，不会终止进程。
 
 ## 配置示例
 

@@ -15,7 +15,7 @@
 
 ## 配置示例
 
-不在常规监控或管道转储中输出FR条目调用栈：
+不在常规故障转储或管道转储中输出FR条目调用栈：
 
 ```bash
 export TORCH_INCLUDE_STACK_TRACE=0
@@ -24,7 +24,7 @@ export TORCH_INCLUDE_STACK_TRACE=0
 ## 使用约束
 
 - 在相应转储请求处理时读取，建议在启动训练进程前设置。
-- 首次故障转储等待超时后的重试，以及`TORCH_HCCL_EXTRA_DUMP_ON_EXEC=1`触发的额外快照，均不输出FR条目调用栈，不受该变量为1的设置影响。
+- 首次故障转储等待超时后的重试，以及`TORCH_HCCL_EXTRA_DUMP_ON_EXEC=1`触发的额外快照，均不输出FR条目调用栈，不受该变量设置为1的影响。
 - 不关闭独立的Python线程调用栈采集。
 - Python手动导出接口使用`includeStackTraces`参数控制输出，不自动使用该变量替代参数默认值。
 

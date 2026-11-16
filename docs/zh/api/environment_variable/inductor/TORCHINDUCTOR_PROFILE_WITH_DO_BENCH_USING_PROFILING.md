@@ -2,7 +2,7 @@
 
 ## 功能描述
 
-通过此环境变量可控制autotune过程中是否使用profiling进行性能测量。开启后，Inductor会使用profiling获取更精确的kernel执行时间，而非基于事件计时的估算。
+通过此环境变量可控制autotune过程中是否使用profiling进行性能测量。开启后，Inductor会使用profiling获取更精确的Kernel执行时间，而非基于事件计时的估算。
 
 - 默认值为“0”：不使用profiling，基于事件计时估算性能。
 - 配置为“1”：使用profiling测量kernel执行时间。

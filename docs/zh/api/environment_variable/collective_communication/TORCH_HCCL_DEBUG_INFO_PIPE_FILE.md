@@ -37,7 +37,7 @@ test -p ./fr_request_rank_0.pipe && printf 'dump\n' > ./fr_request_rank_0.pipe
 - 管道异步采集不会等待转储完成，也不广播到其他rank；如需多rank快照，应分别向各rank所在机器上的管道发送请求。
 - 调用栈和活动条目过滤由[TORCH\_INCLUDE\_STACK\_TRACE](TORCH_INCLUDE_STACK_TRACE.md)、[TORCH\_INCLUDE\_ONLY\_ACTIVE](TORCH_INCLUDE_ONLY_ACTIVE.md)控制。
 - 设置`TORCH_HCCL_DUMP_ON_TIMEOUT=0`不会禁用管道，但会调整监控循环的轮询间隔，可能导致请求响应延迟。
-- 若遇到同步通信提交失败或`NoHandling`模式下的采集存在已知限制，请参见[飞行记录器](../../../developer_notes/fault_diagnosis/flight_recorder.md)。
+- 同步通信提交失败后，或在`TORCH_HCCL_ASYNC_ERROR_HANDLING=0`（NoHandling）模式下主动采集时，可能受通信事件生命周期限制导致进程异常退出；请参见[飞行记录器](../../../developer_notes/fault_diagnosis/flight_recorder.md)。
 
 ## 支持的型号
 

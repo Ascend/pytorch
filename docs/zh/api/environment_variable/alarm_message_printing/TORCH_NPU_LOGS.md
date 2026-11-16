@@ -4,7 +4,7 @@
 
 此环境变量用于配置TorchNPU新增模块的日志打印功能，为开发者在debugging场景下提供精准的调试定位能力。
 
-TorchNPU新增的模块不支持通过原生`TORCH_LOGS`进行设置，如需设置新增模块的日志信息，需要使用`TORCH_NPU_LOGS`，新增模块列表如下：
+TorchNPU新增的模块不支持通过原生`TORCH_LOGS`进行设置，如需设置新增模块的日志信息，需要使用`TORCH_NPU_LOGS`。新增模块列表如下：
 
 | 字段名 | 对应模块 | 功能描述 |
 | --- | ---- | --- |
@@ -43,7 +43,7 @@ TorchNPU对原生的logging打印功能进行了增强，支持C++侧的日志�
 
     - -：ERROR级别，仅输出错误和警告信息。
 
-    以上配置示例表示memory（内存管理）打印INFO级别日志，dispatch（算子下发）打印DEBUG级别日志，all（其余所有模块包含原生TorchNPU新增模块）打印ERROR级别日志信息。
+    以上配置示例表示memory（内存管理）打印INFO级别日志，dispatch（算子下发）打印DEBUG级别日志，all（其余所有模块，包含原生模块与TorchNPU新增模块）打印ERROR级别日志信息。
 
 - 关闭logging日志信息打印：
 

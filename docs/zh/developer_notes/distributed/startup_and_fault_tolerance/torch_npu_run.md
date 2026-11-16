@@ -13,12 +13,12 @@ torch\_npu\_run相对torchrun有以下改进：
 
     **图 1**  原torchrun的建链方式  <a id="原torchrun的建链方式"></a>  
     
-    ![](../../../figures/link_setup_in_torchrun_mode.png)
+    ![原torchrun建链方式：各节点agent和worker均与0号节点agent建立TCP连接，建链时间随进程数线性增长](../../../figures/link_setup_in_torchrun_mode.png)
 
     torch\_npu\_run在torchrun的基础上引入了TCPStore分层架构方案，即在每一个节点上由agent启动一个新角色proxy，管理worker的通信。节点上的worker与proxy建立UnixSocket连接，所有的proxy与node0的proxy建立TCP连接。实现通信的分层，打破建链时间线性瓶颈，使得建链时间复杂度从$O(n)$降低到$O(\sqrt{n})$，如[图2](#建链方式)所示。
 
     **图 2**  torch\_npu\_run的建链方式   <a id="建链方式"></a>  
-    ![](../../../figures/link_setup_in_torch_npu_run_mode.png)
+    ![torch_npu_run分层建链方式：节点内worker与proxy以UnixSocket连接，各节点proxy与0号节点proxy建立TCP连接](../../../figures/link_setup_in_torch_npu_run_mode.png)
 
 ## 使用场景
 

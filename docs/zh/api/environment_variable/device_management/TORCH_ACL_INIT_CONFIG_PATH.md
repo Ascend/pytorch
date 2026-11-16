@@ -2,7 +2,7 @@
 
 ## 功能描述
 
-通过此环境变量可指定aclInit初始化配置文件的路径，用于在NPU初始化阶段传入自定义ACL JSON配置，替代默认的`acl_default.json`或`acl.json`。
+通过此环境变量可指定`aclInit`初始化配置文件的路径，用于在NPU初始化阶段传入自定义ACL JSON配置，替代默认的`acl_default.json`或`acl.json`。
 
 - 配置为有效文件路径时：使用用户指定的配置文件进行ACL初始化。
 - 未配置或路径无效时：使用默认配置文件（CANN >= 8.3.RC1使用`acl_default.json`，否则使用`acl.json`）。
@@ -26,7 +26,7 @@ export TORCH_ACL_INIT_CONFIG_PATH=/path/to/custom_acl.json
 }
 ```
 
-`defaultDevice`配置用于默认Device配置（用于配置默认的计算设备），初始化阶段不会立即执行set_device操作，从而实现按需延迟执行set_device操作。
+`defaultDevice`配置用于设置默认计算设备，初始化阶段不会立即执行`set_device`操作，从而实现按需延迟执行set_device操作。
 
 用户自定义配置文件时：
 

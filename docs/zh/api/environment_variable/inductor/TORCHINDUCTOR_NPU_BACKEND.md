@@ -2,7 +2,7 @@
 
 ## 功能描述
 
-通过此环境变量可配置图模式（Inductor）下的编译模式，支持在Triton、DVM、Ascend C等模式之间切换。
+通过此环境变量可配置图模式（Inductor）下的编译模式，支持在Triton、DVM、Ascend C三种模式之间切换。
 
 - 默认值为`default`：使用默认的Triton模式。
 - 配置为`dvm`：使用DVM模式。

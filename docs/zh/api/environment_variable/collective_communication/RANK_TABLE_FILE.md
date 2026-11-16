@@ -11,7 +11,7 @@
 
 > [!NOTE]
 >
-> 配置RANK\_TABLE\_FILE场景下，执行模型分布式训练时如果出现“RuntimeError: The Inner Error ...”的报错，建议将HCCL\_CONNECT\_TIMEOUT的超时时间适当增大，避免ranktable场景下无协商导致的建链超时问题，具体请参考[在进行模型分布式训练时遇到报错“RuntimeError: The Inner Error ...”](../appendix/runtimeerror_Inner_Error.md)。
+> 配置RANK\_TABLE\_FILE的场景下，执行模型分布式训练时如果出现“RuntimeError: The Inner Error ...”的报错，建议将HCCL\_CONNECT\_TIMEOUT的超时时间适当增大，避免ranktable场景下无协商导致的建链超时问题，具体请参考[在进行模型分布式训练时遇到报错“RuntimeError: The Inner Error ...”](../appendix/runtimeerror_Inner_Error.md)。
 
 ## 配置示例
 

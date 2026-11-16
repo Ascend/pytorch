@@ -4,7 +4,7 @@
 
 通过此环境变量可配置stream pool的最大流数。
 
-stream pool采用Round Robin策略。
+其中，stream pool内部采用Round Robin（轮询）策略分配流，本环境变量控制该池可创建的最大流数。
 
 - 配置为“32”时：stream pool有32条流。
 - 配置为“8”时：stream pool有8条流。

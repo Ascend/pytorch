@@ -2,7 +2,7 @@
 
 ## 功能描述
 
-通过此环境变量可配置max autotune过程中矩阵乘（matmul）类算子参与调优的候选实现列表。此处的"实现"指matmul kernel的生成来源（如ATen算子库、Triton模板、Catlass模板），不同于`TORCHINDUCTOR_NPU_BACKEND`配置的编译模式（Triton、DVM等）。仅在`TORCHINDUCTOR_MAX_AUTOTUNE=1`时生效。
+通过此环境变量可配置max autotune过程中矩阵乘（matmul）类算子参与调优的候选实现列表。此处的“实现”指matmul kernel的生成来源（如ATen算子库、Triton模板、Catlass模板），不同于`TORCHINDUCTOR_NPU_BACKEND`配置的编译模式（Triton、DVM等）。仅在`TORCHINDUCTOR_MAX_AUTOTUNE=1`时生效。
 
 - 默认值为`"ATEN,TRITON,CPP"`：NPU上实际参与调优的为ATen算子库与Triton模板两类候选实现（`CPP`仅面向CPU设备）。
 - 配置为逗号分隔的实现名称列表：自定义候选实现组合（可选项如下）。

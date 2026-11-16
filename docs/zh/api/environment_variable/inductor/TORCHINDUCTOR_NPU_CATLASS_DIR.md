@@ -4,7 +4,7 @@
 
 通过此环境变量可配置Catlass模板库的路径。Catlass是NPU平台上的矩阵乘模板加速库，Inductor在autotune时可通过Catlass模板库对matmul类算子进行模板调优。
 
-- 默认值未配置：使用`torch`安装目录下`../third_party/catlass`路径（源码编译场景），若该路径不存在则不加载Catlass模板库。
+- 未配置（默认值）：使用`torch`安装目录下`../third_party/catlass`路径（源码编译场景），若该路径不存在则不加载Catlass模板库。
 - 配置为有效路径：从配置的路径加载Catlass模板库。
 - 配置为无效路径：加载Catlass模板库失败，打印WARNING日志并自动跳过Catlass模板库，不影响其他候选实现的调优。
 

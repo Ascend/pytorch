@@ -2,7 +2,7 @@
 
 ## 功能描述
 
-通过此环境变量可配置Catlass模板库支持的矩阵乘类型算子列表。设置后，Inductor将对指定类型的matmul算子尝试使用Catlass模板库进行模板调优。
+通过此环境变量可配置Catlass模板库支持的矩阵乘算子列表。设置后，Inductor将对指定类型的matmul算子尝试使用Catlass模板库进行模板调优。
 
 - 默认值为`"mm,addmm,bmm"`：对`mm`、`addmm`、`bmm`算子启用Catlass。
 - 配置为`"ALL"`：对全部支持的矩阵乘算子启用Catlass。

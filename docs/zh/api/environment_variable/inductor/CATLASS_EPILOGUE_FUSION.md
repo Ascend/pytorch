@@ -2,7 +2,7 @@
 
 ## 功能描述
 
-通过此环境变量可控制是否开启Catlass epilogue融合功能。开启后，Catlass模板库会将epilogue操作（如bias add、activation等）融合到matmul kernel中，减少额外的kernel launch和内存搬运。
+通过此环境变量可控制是否开启Catlass epilogue融合功能。开启后，Catlass模板库会将epilogue操作（如bias add、activation等）融合到matmul kernel中，减少额外的kernel launch和存储搬运。
 
 - 默认值为“0”：关闭Catlass epilogue融合。
 - 配置为“1”：开启Catlass epilogue融合。

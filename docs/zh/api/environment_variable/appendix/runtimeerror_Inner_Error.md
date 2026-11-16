@@ -2,9 +2,9 @@
 
 ## 问题描述
 
-配置RANK\_TABLE\_FILE的场景下，在进行模型分布式训练时遇到报错“RuntimeError: The Inner Error ...”，并且打印的operator name是具体的通信算子。
+配置RANK\_TABLE\_FILE的场景下，在进行模型分布式训练时遇到报错“RuntimeError: The Inner Error ...”，并且打印的算子名称是具体的通信算子。
 
-![](../../../figures/RuntimeError.png)
+![配置RANK_TABLE_FILE进行分布式训练时报错RuntimeError: The Inner Error的命令行回显](../../../figures/RuntimeError.png)
 
 ## 问题分析
 

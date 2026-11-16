@@ -4,7 +4,7 @@
 
 通过此环境变量可控制是否开启Scalable RootInfo分级建链，配置每个root期望管理的最大rank数量，并据此计算当前通信域使用的root数量。
 
-- 配置为“-1”时：关闭分级建链，使用原单RootInfo路径。
+- 配置为“-1”时：关闭分级建链，使用原RootInfo路径。
 - 配置为1~4294967295的十进制整数时：设置每个root期望管理的最大rank数量，满足使用条件时采用分级建链。
 
 该环境变量默认值为“128”，未设置时使用默认值。
@@ -36,7 +36,7 @@ export TORCH_HCCL_RANKS_PER_ROOT=-1
 
 ## 使用约束
 
-- 其他型号使用原RootInfo路径；未设置本变量时按默认值128处理，与显式设置正整数时一样，每个进程仅打印一次机型不支持Warning，且不以N大于R为前提。设置为“-1”时不打印机型不支持告警。
+- 其他型号使用原RootInfo路径；未设置本变量时按默认值128处理，与显式设置正整数时一样，每个进程仅打印一次机型不支持告警，且不以N大于R为前提。设置为“-1”时不打印机型不支持告警。
 - 仅作用于RootInfo建链路径中的DEFAULT类型HCCL通信域，不改变ranktable和P2P通信域的建链行为。DEFAULT表示通信域类型，全局ProcessGroup和通过`torch.distributed.new_group`创建的非全局ProcessGroup均可使用。
 - HCCL库可正常加载但缺少`HcclGetRootInfoScalable`或`HcclCommInitRootInfoScalable`接口时，使用原RootInfo路径。HCCL库加载失败或分级接口调用失败时会报错，不会自动回退。
 - 配置为空字符串、0、小于-1的负数、非数字、包含尾随非法字符或超过4294967295时，会返回参数错误。

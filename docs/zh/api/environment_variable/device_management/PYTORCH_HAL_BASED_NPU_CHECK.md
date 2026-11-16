@@ -7,14 +7,14 @@
 - 配置为“1”时：`torch_npu.npu.is_available()`通过HAL接口探测设备数量（与`torch_npu.npu.device_count()`采用相同路径）。
   - 动态加载`libascend_hal.so`。
   - 解析`ASCEND_RT_VISIBLE_DEVICES`环境变量。
-  - 若HAL探测失败，则回退至Runtime方式检测。
+  - 若HAL探测失败，则回退至Runtime检测方式。
 - 配置为其他值或者未配置时：`torch_npu.npu.is_available()`通过Runtime接口查询设备数量。
   - 首次查询到的非零设备数将被缓存。
-  - 有效降低NPU初始化前频繁调用`is_available()`的开销。
+  - 从而有效降低NPU初始化前频繁调用`is_available()`的开销。
 
 此环境变量默认未配置。
 
-该变量的命名与取值语义设计上参考了PyTorch的[PYTORCH_NVML_BASED_CUDA_CHECK](https://docs.pytorch.org/docs/stable/cuda_environment_variables.html)，在功能模式和使用逻辑上保持一致，便于开发者迁移和理解。
+该变量的命名与取值语义在设计上参考了PyTorch的[PYTORCH_NVML_BASED_CUDA_CHECK](https://docs.pytorch.org/docs/stable/cuda_environment_variables.html)，在功能模式和使用逻辑上保持一致，便于开发者迁移和理解。
 
 ## 配置示例
 

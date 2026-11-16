@@ -2,7 +2,7 @@
 
 ## 功能描述
 
-通过此环境变量可控制是否开启max autotune功能。开启后，Inductor会对候选config进行更全面的自动调优，以获取最优的kernel配置。
+通过此环境变量可控制是否开启max autotune功能。开启后，Inductor会对候选配置进行更全面的自动调优，以获取最优的Kernel配置。
 
 - 默认值为“0”：关闭max autotune。
 - 配置为“1”：开启max autotune。
