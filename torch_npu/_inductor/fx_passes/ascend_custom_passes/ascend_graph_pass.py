@@ -9,7 +9,7 @@ from typing import List, Optional
 
 import torch
 import torch.fx
-from torch._dynamo.source import SyntheticLocalSource
+from torch.utils._python_dispatch import _disable_current_modes
 from torch.utils._ordered_set import OrderedSet
 from torch.fx.operator_schemas import normalize_function
 
@@ -193,11 +193,51 @@ def index_plan_columns(offsets, widths):
 
 INDEX_TABLE_PREFIX = "_npu_index_table_"
 
-# The post_grad pass reads a table's columns to find its own run in them, but by
-# then the table is a fake graph input holding no data, so the columns are kept
-# here under the name the two stages share. An entry is a few hundred integers
-# and only a plan the compiler has already seen adds one.
+# Keep the immutable column plans for matching table windows without reading
+# device tensors. The compiled artifact owns the real table; reload does not
+# depend on this compile-time dictionary.
 INDEX_TABLE_COLUMNS = {}
+
+
+def rebuild_index_table(columns, device, dtype):
+    """Recreate an index table while saving and loading a compiled artifact.
+
+    The device belongs in the payload. A reloaded artifact goes straight to the
+    kernel launcher, long after lowering ran, so nothing downstream is left to
+    move the table where the kernel expects it. Building on the host instead
+    would hand that kernel a host pointer, so an absent device has to raise.
+    """
+    with _disable_current_modes(), torch.inference_mode(False):
+        return torch.tensor(columns, dtype=dtype, device=device).as_subclass(IndexTable)
+
+
+class IndexTable(torch.Tensor):
+    """A compiler-owned index table that pickles as its column plan.
+
+    The table holds compile-time column numbers, so an artifact only has to
+    carry those numbers. Saving the device storage instead would ask the
+    serializer for a device-to-host copy, which the compiler's fake mode
+    refuses, and would make every save depend on the device serialization path.
+
+    The kernel launcher reads device pointer, dtype and shape on every call.
+    A subclass routes those reads through __torch_function__, which costs more
+    than the launch itself, so the table opts out of that protocol.
+    """
+
+    __torch_function__ = torch._C._disabled_torch_function_impl
+
+    def _plan(self):
+        # Saving happens inside compilation, where a fake mode is installed.
+        # Reading our own real values is not an operation that mode should see.
+        with _disable_current_modes():
+            return tuple(int(column) for column in self.detach().flatten().tolist())
+
+    def __reduce_ex__(self, protocol):
+        return rebuild_index_table, (self._plan(), str(self.device), self.dtype)
+
+    def __deepcopy__(self, memo):
+        # The table is read-only compile-time data, so a copy is the same plan.
+        return rebuild_index_table(self._plan(), str(self.device), self.dtype)
 
 
 def _msc_node_shape(node):
@@ -239,7 +279,10 @@ def index_table_name(columns):
     return INDEX_TABLE_PREFIX + digest
 
 
-_PRE_CAT_TARGETS = (torch.cat, torch.concat, torch.ops.aten.cat.default)
+# The table pass reads a post_grad graph, where a concat is always the aten op.
+# Matching the python level forms as well would let the pass register buffers on
+# a module that AOT has not lifted yet, which the caller cannot bind at runtime.
+_POST_CAT_TARGETS = (torch.ops.aten.cat.default,)
 
 
 def _pre_column_bounds(node, dim):
@@ -337,26 +380,20 @@ def _pre_index_runs(cat):
     return runs
 
 
-# Runs last among the pre_grad passes: the folds ahead of it rewrite slices and
-# cats, and a table collected before them would describe a shape that no longer
-# exists by the time the post_grad pass looks for it.
-@register_custom_pass(PassType.PRE, FxPassLevel.LEVEL3, ignore_inference_check=True)
+# Run before multi_slice_concat_pass at the same POST level. Tables registered
+# after AOT input collection become get_attr constants owned by Inductor.
+@register_custom_pass(PassType.POST, FxPassLevel.LEVEL1, ignore_inference_check=True)
 def indexed_slice_concat_table_pass(graph: torch.fx.Graph) -> None:
-    """Register the column table of every candidate column slice-cat as a buffer.
+    """Register candidate index tables on the post-grad module as constants.
 
-    Only AOTAutograd turns a tensor into a graph input, and it does so for module
-    buffers before the post_grad graph exists, while how a cat is worth splitting
-    is decided there. So each candidate is read here as widely as possible and the
-    whole reading is registered; the post_grad pass takes the window it needs out
-    of it. An unused table costs one buffer, and a fused kernel never has to build
-    its own table through an operator call on every invocation.
+    The fusion pass reads a window through get_attr. Inductor retains the table
+    in the compiled artifact, so bundled reload needs no extra caller input.
     """
     module = graph.owning_module
     if module is None:
         return
-    sources = getattr(module, "_param_name_to_source", None)
     for node in graph.nodes:
-        if node.op != "call_function" or node.target not in _PRE_CAT_TARGETS:
+        if node.op != "call_function" or node.target not in _POST_CAT_TARGETS:
             continue
         for run in _pre_index_runs(node):
             columns = index_plan_columns([segment[1] for segment in run],
@@ -370,15 +407,12 @@ def indexed_slice_concat_table_pass(graph: torch.fx.Graph) -> None:
                     INDEX_TABLE_COLUMNS[name] = tuple(columns)
                 continue
             try:
-                table = torch.tensor(columns, dtype=torch.int32, device=value.device)
+                table = rebuild_index_table(tuple(columns), value.device, torch.int32)
                 module.register_buffer(name, table, persistent=False)
             except (AssertionError, RuntimeError, TypeError, ValueError):
                 log.debug("[inductor_fx] indexed_slice_concat skip: cannot register table", exc_info=True)
                 continue
             INDEX_TABLE_COLUMNS[name] = tuple(columns)
-            if sources is not None:
-                # AOTAutograd only lifts buffers dynamo knows a source for.
-                sources[name] = SyntheticLocalSource(name)
 
 
 @register_custom_pass(PassType.PRE)
@@ -3993,15 +4027,11 @@ def _msc_column_window(name, columns):
 
 
 def _msc_index_window(graph, columns):
-    """The table these columns are read from, and where in it they start.
+    """Find the window in a registered index table.
 
-    The pre_grad pass registers one table per candidate cat, read as widely as it
-    can; a run settled on here is a contiguous part of that reading, so it borrows
-    a window of that table rather than needing a table of its own. AOTAutograd
-    lifts the buffer into a graph input, so that is where the table usually comes
-    from; on a graph that still owns the module it is read as an attribute. A cat
-    that first appeared after pre_grad ran finds no table and stays a cat, because
-    only AOTAutograd can turn a tensor into a graph input.
+    The POST table pass registers real constants on the owning module. A get_attr
+    node exposes each constant to Inductor; its metadata uses the graph's fake
+    mode. Existing lifted tables remain readable for directly supplied graphs.
     """
     columns = tuple(columns)
     placeholders = []
@@ -4024,15 +4054,23 @@ def _msc_index_window(graph, columns):
         value = getattr(module, name)
         if offset is None or not _msc_valid_index_table(value, offset, len(columns)):
             continue
+        try:
+            fake_mode = get_fake_mode(graph)
+            table_meta = (fake_mode.from_tensor(value, static_shapes=True)
+                          if fake_mode is not None else value)
+        except (AssertionError, RuntimeError, TypeError, ValueError):
+            log.debug("[inductor_fx] indexed_slice_concat skip: cannot infer table metadata", exc_info=True)
+            continue
         existing = next((node for node in graph.nodes
                          if node.op == "get_attr" and node.target == name), None)
         if existing is not None:
             if _msc_valid_index_table(existing.meta.get("val", value), offset, len(columns)):
+                existing.meta["val"] = table_meta
                 return existing, offset
             continue
         with graph.inserting_after(placeholders[-1] if placeholders else None):
             table = graph.get_attr(name)
-        table.meta["val"] = value
+        table.meta["val"] = table_meta
         return table, offset
     return None
 

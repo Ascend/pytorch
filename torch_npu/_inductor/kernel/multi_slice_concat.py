@@ -77,11 +77,21 @@ def _register_indexed_slice_concat(target):
     @register_lowering(target, type_promotion_kind=None)
     def indexed_slice_concat(src, table, offset, count, dtype):
         src = ir.ExternKernel.realize_input(src)
-        # The table is a graph input the pass registered as a module buffer, so the
-        # kernel reads it without building it. A compiler-owned constant would hold
-        # the same numbers but as a device tensor the AOT package cannot serialize,
-        # which silently drops the cache entry and makes the service recompile on
-        # every start.
+        # Keep read-only get_attr tables in the artifact's constant pool. The
+        # generic get_attr lowering may inline small tensors; realizing that IR
+        # would rebuild the index table with an extra kernel on every call.
+        node = getattr(V.graph, "current_node", None)
+        table_node = None
+        if node is not None and node.target is target:
+            table_node = node.args[1] if len(node.args) > 1 else node.kwargs.get("table")
+        # Both fields are Inductor internals; read them the way the rest of this
+        # backend does, so a version that renames one degrades to the generic
+        # get_attr lowering instead of failing the compile.
+        mutated = getattr(V.graph, "mutated_named_buffers", ())
+        if (isinstance(table_node, torch.fx.Node) and table_node.op == "get_attr"
+                and table_node.target not in mutated):
+            table = V.graph.add_tensor_constant(
+                V.graph.fetch_attr(table_node.target), table_node.target)
         index = ir.ExternKernel.realize_input(table)
         # One table serves several cats; this one reads count columns from offset.
         rows, total = src.get_size()[0], count
