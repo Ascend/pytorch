@@ -14,6 +14,7 @@ import unittest
 import warnings
 import subprocess
 import random
+import shutil
 from random import randint
 import json
 
@@ -3706,6 +3707,87 @@ class TestNpuMallocAsync(TestCase):
 
         finally:
             torch_npu.npu.memory._record_memory_history(None)
+
+    def _skip_unless_native_allocator(self):
+        if torch_npu.npu.memory.get_allocator_backend() != 'native':
+            self.skipTest('snapshot requires the native caching allocator')
+
+    def test_memory_snapshot_allocator_settings(self):
+        # Check allocator_settings schema, value types and roundup keys.
+        self._skip_unless_native_allocator()
+        ss = torch_npu.npu.memory._snapshot()
+        self.assertIn('allocator_settings', ss)
+        settings = ss['allocator_settings']
+        expected_types = {
+            'PYTORCH_NPU_ALLOC_CONF': str,
+            'max_split_size': int,
+            'garbage_collection_threshold': float,
+            'expandable_segments': bool,
+            'release_lock_on_npumalloc': bool,
+            'max_round_threshold': int,
+            'max_cached_size': int,
+            'large_segment_size': int,
+            'max_non_split_rounding_size': int,
+            'pinned_use_background_threads': bool,
+            'pin_memory_expandable_segments': bool,
+            'pinned_mem_register': bool,
+            'base_addr_aligned_size': int,
+            'page_size_1g': bool,
+            'segment_size': int,
+            'multi_stream_lazy_reclaim': bool,
+            'per_process_memory_fraction': float,
+            'pinned_reserve_segment_size': int,
+            'throw_on_npumalloc_oom': bool,
+            'roundup_power2_divisions': dict}
+        self.assertEqual(set(settings.keys()), set(expected_types))
+        for key, expected_type in expected_types.items():
+            with self.subTest(field=key):
+                self.assertIs(type(settings[key]), expected_type)
+        roundup = settings['roundup_power2_divisions']
+        self.assertEqual(set(roundup.keys()), {str(2 ** i) for i in range(16)})
+
+    @unittest.skipIf(not IS_LINUX, "cpp extension build requires linux")
+    def test_memory_snapshot_pickled_consistency(self):
+        self._skip_unless_native_allocator()
+        from torch.utils.cpp_extension import load_inline
+
+        npu_root = os.path.dirname(torch_npu.__file__)
+        required_headers = [
+            os.path.join(npu_root, 'include', 'torch_npu', 'csrc', 'npu', 'memory_snapshot.h'),
+            os.path.join(npu_root, 'include', 'torch_npu', 'csrc', 'core', 'npu', 'NPUMacros.h'),
+        ]
+        for header in required_headers:
+            self.assertTrue(os.path.exists(header), 'missing header in wheel: %s' % header)
+        cxx = os.environ.get('CXX')
+        compiler = cxx.split()[0] if cxx else 'c++'
+        if shutil.which(compiler) is None:
+            self.skipTest('cpp compiler unavailable')
+
+        source = r"""
+        #include <string>
+        #include <torch_npu/csrc/core/npu/NPUMacros.h>
+        #include <torch_npu/csrc/npu/memory_snapshot.h>
+        py::bytes pickled() {
+            return py::bytes(torch_npu::_memory_snapshot_pickled());
+        }
+        """
+        module = load_inline(
+            name='npu_snapshot_pickled',
+            cpp_sources=[source],
+            functions=['pickled'],
+            extra_include_paths=[os.path.join(npu_root, 'include')],
+            extra_ldflags=[
+                '-L' + os.path.join(npu_root, 'lib'),
+                '-Wl,-rpath,' + os.path.join(npu_root, 'lib'),
+                '-ltorch_npu',
+            ],
+        )
+
+        pickled = pickle.loads(module.pickled())
+        live = torch_npu.npu.memory._snapshot()
+
+        self.assertIn('allocator_settings', pickled)
+        self.assertEqual(pickled['allocator_settings'], live['allocator_settings'])
 
     @unittest.skipIf(not IS_LINUX, "linux only cpp unwinding")
     def test_direct_traceback(self):

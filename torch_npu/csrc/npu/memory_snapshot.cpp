@@ -474,12 +474,41 @@ std::string _memory_snapshot_pickled() {
     }
   }
 #endif
+  const auto& md = snapshot.config_metadata;
+  auto allocator_settings = new_dict();
+  allocator_settings.insert("PYTORCH_NPU_ALLOC_CONF", md.last_allocator_settings);
+  allocator_settings.insert("max_split_size", int64_t(md.max_split_size));
+  allocator_settings.insert("garbage_collection_threshold", md.garbage_collection_threshold);
+  allocator_settings.insert("expandable_segments", md.expandable_segments);
+  allocator_settings.insert("release_lock_on_npumalloc", md.release_lock_on_npumalloc);
+  allocator_settings.insert("max_round_threshold", int64_t(md.max_round_threshold));
+  allocator_settings.insert("max_cached_size", int64_t(md.max_cached_size));
+  allocator_settings.insert("large_segment_size", int64_t(md.large_segment_size));
+  allocator_settings.insert("max_non_split_rounding_size", int64_t(md.max_non_split_rounding_size));
+  allocator_settings.insert("pinned_use_background_threads", md.pinned_use_background_threads);
+  allocator_settings.insert("pin_memory_expandable_segments", md.pin_memory_expandable_segments);
+  allocator_settings.insert("pinned_mem_register", md.pinned_mem_register);
+  allocator_settings.insert("base_addr_aligned_size", int64_t(md.base_addr_aligned_size));
+  allocator_settings.insert("page_size_1g", md.page_size_1g);
+  allocator_settings.insert("segment_size", int64_t(md.segment_size));
+  allocator_settings.insert("multi_stream_lazy_reclaim", md.multi_stream_lazy_reclaim);
+  allocator_settings.insert("per_process_memory_fraction", md.per_process_memory_fraction);
+  allocator_settings.insert("pinned_reserve_segment_size", int64_t(md.pinned_reserve_segment_size));
+  allocator_settings.insert("throw_on_npumalloc_oom", md.throw_on_npumalloc_oom);
+  unsigned int roundup_key = 1;
+  auto roundup_settings = new_dict();
+  for (const auto& v : md.roundup_power2_divisions) {
+    roundup_settings.insert(std::to_string(roundup_key), int64_t(v));
+    roundup_key *= 2;
+  }
+  allocator_settings.insert("roundup_power2_divisions", roundup_settings);
 
   auto result = new_dict();
   result.insert("segments", segments);
   result.insert("device_traces", traces);
   result.insert("host_segments", host_segments);
   result.insert("host_traces", host_traces);
+  result.insert("allocator_settings", allocator_settings);
 
   auto external_annotations = new_list();
   for (const auto& ae : snapshot.external_annotations) {

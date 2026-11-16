@@ -14,7 +14,10 @@
 
 #include <mutex>
 #include <atomic>
+#include <limits>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 inline std::shared_ptr<npu_logging::Logger>& GetLoggerMem() {
   static std::shared_ptr<npu_logging::Logger> loggerMem = npu_logging::logging().getLogger("torch_npu.memory");
@@ -194,10 +197,38 @@ inline TraceEntry::Action parseTraceEntryAction(const std::string& action) {
   return it->second;
 }
 
+// Allocator configuration captured together with a memory snapshot.
+// Size fields hold byte counts; segment_size and pinned_reserve_segment_size are converted to bytes.
+struct AllocatorConfigInfo {
+  std::string last_allocator_settings;
+  size_t max_split_size;
+  double garbage_collection_threshold;
+  bool expandable_segments;
+  std::vector<size_t> roundup_power2_divisions;
+  size_t max_round_threshold;
+  size_t max_cached_size;
+  bool release_lock_on_npumalloc;
+
+  size_t large_segment_size;
+  size_t max_non_split_rounding_size;
+  bool pinned_use_background_threads;
+
+  bool pin_memory_expandable_segments;
+  bool pinned_mem_register;
+  size_t base_addr_aligned_size;
+  bool page_size_1g;
+  size_t segment_size;
+  bool multi_stream_lazy_reclaim;
+  double per_process_memory_fraction;
+  size_t pinned_reserve_segment_size;
+  bool throw_on_npumalloc_oom;
+};
+
 struct SnapshotInfo {
   std::vector<SegmentInfo> segments;
   std::vector<std::vector<TraceEntry>> device_traces;
   std::vector<AnnotationEntry> external_annotations;
+  AllocatorConfigInfo config_metadata;
 };
 
 // returns the pointers freed in the pool

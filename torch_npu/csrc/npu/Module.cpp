@@ -1556,12 +1556,42 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* arg) {
     }
   }
 #endif
+  // CUDA-only keys pinned_num_register_threads, pinned_use_cuda_host_register,
+  // graph_capture_record_stream_reuse are omitted; release_lock_on_cudamalloc maps to release_lock_on_npumalloc.
+  py::dict allocator_settings;
+  allocator_settings["PYTORCH_NPU_ALLOC_CONF"] = snapshot.config_metadata.last_allocator_settings;
+  allocator_settings["max_split_size"] = int64_t(snapshot.config_metadata.max_split_size);
+  allocator_settings["garbage_collection_threshold"] = snapshot.config_metadata.garbage_collection_threshold;
+  allocator_settings["expandable_segments"] = snapshot.config_metadata.expandable_segments;
+  allocator_settings["release_lock_on_npumalloc"] = snapshot.config_metadata.release_lock_on_npumalloc;
+  allocator_settings["max_round_threshold"] = int64_t(snapshot.config_metadata.max_round_threshold);
+  allocator_settings["max_cached_size"] = int64_t(snapshot.config_metadata.max_cached_size);
+  allocator_settings["large_segment_size"] = int64_t(snapshot.config_metadata.large_segment_size);
+  allocator_settings["max_non_split_rounding_size"] = int64_t(snapshot.config_metadata.max_non_split_rounding_size);
+  allocator_settings["pinned_use_background_threads"] = snapshot.config_metadata.pinned_use_background_threads;
+  allocator_settings["pin_memory_expandable_segments"] = snapshot.config_metadata.pin_memory_expandable_segments;
+  allocator_settings["pinned_mem_register"] = snapshot.config_metadata.pinned_mem_register;
+  allocator_settings["base_addr_aligned_size"] = int64_t(snapshot.config_metadata.base_addr_aligned_size);
+  allocator_settings["page_size_1g"] = snapshot.config_metadata.page_size_1g;
+  allocator_settings["segment_size"] = int64_t(snapshot.config_metadata.segment_size);
+  allocator_settings["multi_stream_lazy_reclaim"] = snapshot.config_metadata.multi_stream_lazy_reclaim;
+  allocator_settings["per_process_memory_fraction"] = snapshot.config_metadata.per_process_memory_fraction;
+  allocator_settings["pinned_reserve_segment_size"] = int64_t(snapshot.config_metadata.pinned_reserve_segment_size);
+  allocator_settings["throw_on_npumalloc_oom"] = snapshot.config_metadata.throw_on_npumalloc_oom;
+  unsigned int roundup_key = 1;
+  py::dict roundup_settings;
+  for (const auto& v : snapshot.config_metadata.roundup_power2_divisions) {
+    roundup_settings[py::str(std::to_string(roundup_key))] = int64_t(v);
+    roundup_key *= 2;
+  }
+  allocator_settings["roundup_power2_divisions"] = roundup_settings;
 
   py::dict result;
   result["segments"] = segments;
   result["device_traces"] = traces;
   result["host_segments"] = host_segments;
   result["host_traces"] = host_traces;
+  result["allocator_settings"] = allocator_settings;
 
   py::list external_annotations;
   for (const auto& ae : snapshot.external_annotations) {

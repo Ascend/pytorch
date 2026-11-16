@@ -102,6 +102,11 @@ class NPUAllocatorConfig {
     return c10::CachingAllocator::AcceleratorAllocatorConfig::roundup_power2_divisions(size);
   }
 
+  static const std::vector<size_t>& roundup_power2_divisions() {
+    instance();
+    return c10::CachingAllocator::AcceleratorAllocatorConfig::roundup_power2_divisions();
+  }
+
   static bool pinned_use_background_threads() {
     instance();
     return c10::CachingAllocator::AcceleratorAllocatorConfig::pinned_use_background_threads();

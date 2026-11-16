@@ -4082,6 +4082,29 @@ class NpuCachingAllocator : public NPUAllocator {
       auto snap = device_allocator[i]->snapshot(mempool_id);
       result.segments.insert(result.segments.end(), snap.begin(), snap.end());
     }
+
+    auto& md = result.config_metadata;
+    md.max_split_size = NPUAllocatorConfig::max_split_size();
+    md.garbage_collection_threshold = NPUAllocatorConfig::garbage_collection_threshold();
+    md.expandable_segments = NPUAllocatorConfig::expandable_segments();
+    md.roundup_power2_divisions = NPUAllocatorConfig::roundup_power2_divisions();
+    md.max_round_threshold = NPUAllocatorConfig::pinned_max_round_threshold();
+    md.max_cached_size = NPUAllocatorConfig::pinned_max_cached_size();
+    md.release_lock_on_npumalloc = NPUAllocatorConfig::release_lock_on_npumalloc();
+    md.large_segment_size = NPUAllocatorConfig::large_segment_size();
+    md.max_non_split_rounding_size = NPUAllocatorConfig::max_non_split_rounding_size();
+    md.pinned_use_background_threads = NPUAllocatorConfig::pinned_use_background_threads();
+    md.pin_memory_expandable_segments = NPUAllocatorConfig::pin_memory_expandable_segments();
+    md.pinned_mem_register = NPUAllocatorConfig::pinned_mem_register();
+    md.base_addr_aligned_size = NPUAllocatorConfig::base_addr_aligned_size();
+    md.page_size_1g = NPUAllocatorConfig::page_size_1g_enable();
+    md.segment_size = NPUAllocatorConfig::segment_size_mb();
+    md.multi_stream_lazy_reclaim = NPUAllocatorConfig::multi_stream_lazy_reclaim();
+    md.per_process_memory_fraction = NPUAllocatorConfig::per_process_memory_fraction();
+    md.pinned_reserve_segment_size = NPUAllocatorConfig::pinned_reserve_segment_size_mb() * 1024 * 1024;
+    md.throw_on_npumalloc_oom = NPUAllocatorConfig::throw_on_npumalloc_oom();
+    // Read the raw settings string after the getters above initialize the allocator config.
+    md.last_allocator_settings = c10::CachingAllocator::getAllocatorSettings();
     return result;
   }
 
