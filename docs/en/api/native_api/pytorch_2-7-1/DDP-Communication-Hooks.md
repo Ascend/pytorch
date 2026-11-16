@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.7/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.7/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
 > - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.7/ddp_comm_hooks.html).
 
@@ -197,48 +197,6 @@
 
 </div>
 
-### torch.distributed.algorithms.ddp_comm_hooks.default_hooks.fp16_compress_wrapper
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.algorithms.ddp_comm_hooks.default_hooks.fp16_compress_wrapper](https://pytorch.org/docs/2.7/ddp_comm_hooks.html#torch.distributed.algorithms.ddp_comm_hooks.default_hooks.fp16_compress_wrapper)
-
-**Support Status**:
-
-<!-- npu="910b" id25 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id25 -->
-<!-- npu="A3" id26 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id26 -->
-<!-- npu="950" id27 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id27 -->
-
-**Constraints & Notes**: `input` only supports fp32
-
-</div>
-
-### torch.distributed.algorithms.ddp_comm_hooks.default_hooks.bf16_compress_wrapper
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.algorithms.ddp_comm_hooks.default_hooks.bf16_compress_wrapper](https://pytorch.org/docs/2.7/ddp_comm_hooks.html#torch.distributed.algorithms.ddp_comm_hooks.default_hooks.bf16_compress_wrapper)
-
-**Support Status**:
-
-<!-- npu="910b" id28 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id28 -->
-<!-- npu="A3" id29 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id29 -->
-<!-- npu="950" id30 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id30 -->
-
-</div>
-
 ### torch.distributed.algorithms.ddp_comm_hooks.default_hooks.fp16_compress_hook
 
 <div style="margin-left: 2em">
@@ -261,6 +219,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id56 -->
 ### torch.distributed.algorithms.ddp_comm_hooks.default_hooks.bf16_compress_hook
 
 <div style="margin-left: 2em">
@@ -268,6 +227,7 @@
 **Native Documentation**: [torch.distributed.algorithms.ddp_comm_hooks.default_hooks.bf16_compress_hook](https://pytorch.org/docs/2.7/ddp_comm_hooks.html#torch.distributed.algorithms.ddp_comm_hooks.default_hooks.bf16_compress_hook)
 
 **Support Status**:
+<!-- end id56 -->
 
 <!-- npu="910b" id34 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -275,33 +235,56 @@
 <!-- npu="A3" id35 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id35 -->
-<!-- npu="950" id36 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id36 -->
 
+<!-- npu="910b,A3" id57 -->
 </div>
+<!-- end id57 -->
 
-## PowerSGD Communication Hook
-
-### torch.distributed.algorithms.ddp_comm_hooks.powerSGD_hook.batched_powerSGD_hook
+<!-- npu="910b,A3" id52 -->
+### torch.distributed.algorithms.ddp_comm_hooks.default_hooks.fp16_compress_wrapper
 
 <div style="margin-left: 2em">
 
-**Native Documentation**: [torch.distributed.algorithms.ddp_comm_hooks.powerSGD_hook.batched_powerSGD_hook](https://pytorch.org/docs/2.7/ddp_comm_hooks.html#torch.distributed.algorithms.ddp_comm_hooks.powerSGD_hook.batched_powerSGD_hook)
+**Native Documentation**: [torch.distributed.algorithms.ddp_comm_hooks.default_hooks.fp16_compress_wrapper](https://pytorch.org/docs/2.7/ddp_comm_hooks.html#torch.distributed.algorithms.ddp_comm_hooks.default_hooks.fp16_compress_wrapper)
 
 **Support Status**:
+<!-- end id52 -->
 
-<!-- npu="910b" id37 -->
+<!-- npu="910b" id25 -->
 - <term>Atlas A2 training products</term>: Supported
-<!-- end id37 -->
-<!-- npu="A3" id38 -->
+<!-- end id25 -->
+<!-- npu="A3" id26 -->
 - <term>Atlas A3 training products</term>: Supported
-<!-- end id38 -->
-<!-- npu="950" id39 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id39 -->
+<!-- end id26 -->
+
+<!-- npu="910b,A3" id53 -->
+**Constraints & Notes**: `input` only supports fp32
 
 </div>
+<!-- end id53 -->
+
+<!-- npu="910b,A3" id54 -->
+### torch.distributed.algorithms.ddp_comm_hooks.default_hooks.bf16_compress_wrapper
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.algorithms.ddp_comm_hooks.default_hooks.bf16_compress_wrapper](https://pytorch.org/docs/2.7/ddp_comm_hooks.html#torch.distributed.algorithms.ddp_comm_hooks.default_hooks.bf16_compress_wrapper)
+
+**Support Status**:
+<!-- end id54 -->
+
+<!-- npu="910b" id28 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id28 -->
+<!-- npu="A3" id29 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id29 -->
+
+<!-- npu="910b,A3" id55 -->
+</div>
+<!-- end id55 -->
+
+## PowerSGD Communication Hook
 
 ### <code><i>class</i></code> torch.distributed.algorithms.ddp_comm_hooks.powerSGD_hook.PowerSGDState
 
@@ -325,7 +308,7 @@
 
 <div style="margin-left: 2em">
 
-**Native Documentation**: [torch.distributed.algorithms.ddp\\\_comm_hooks.powerSGD_hook.PowerSGDState._\_getstate__](https://pytorch.org/docs/2.7/ddp_comm_hooks.html#torch.distributed.algorithms.ddp_comm_hooks.powerSGD_hook.PowerSGDState.__getstate__)
+**Native Documentation**: [torch.distributed.algorithms.ddp_comm_hooks.powerSGD_hook.PowerSGDState.\_\_getstate\_\_](https://pytorch.org/docs/2.7/ddp_comm_hooks.html#torch.distributed.algorithms.ddp_comm_hooks.powerSGD_hook.PowerSGDState.__getstate__)
 
 **Support Status**:
 
@@ -360,6 +343,26 @@
 <!-- npu="950" id48 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id48 -->
+
+</div>
+
+### torch.distributed.algorithms.ddp_comm_hooks.powerSGD_hook.batched_powerSGD_hook
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.algorithms.ddp_comm_hooks.powerSGD_hook.batched_powerSGD_hook](https://pytorch.org/docs/2.7/ddp_comm_hooks.html#torch.distributed.algorithms.ddp_comm_hooks.powerSGD_hook.batched_powerSGD_hook)
+
+**Support Status**:
+
+<!-- npu="910b" id37 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id37 -->
+<!-- npu="A3" id38 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id38 -->
+<!-- npu="950" id39 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id39 -->
 
 </div>
 

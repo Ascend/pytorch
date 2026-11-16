@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.7/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.7/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
 > - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.7/distributed.tensor.parallel.html).
 
@@ -75,26 +75,27 @@
 
 </div>
 
-### <code><i>class</i></code> torch.distributed.tensor.parallel.PrepareModuleInput
+### <code><i>class</i></code> torch.distributed.tensor.parallel.SequenceParallel
 
 <div style="margin-left: 2em">
 
-**Native Documentation**: [torch.distributed.tensor.parallel.PrepareModuleInput](https://pytorch.org/docs/2.7/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.PrepareModuleInput)
+**Native Documentation**: [torch.distributed.tensor.parallel.SequenceParallel](https://docs.pytorch.org/docs/2.7/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.SequenceParallel)
 
 **Support Status**:
 
-<!-- npu="910b" id10 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id10 -->
-<!-- npu="A3" id11 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id11 -->
-<!-- npu="950" id12 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id12 -->
+<!-- npu="910b" id22 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id22 -->
+<!-- npu="A3" id23 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id23 -->
+<!-- npu="950" id24 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id24 -->
 
 </div>
 
+<!-- npu="910b,A3" id20 -->
 ### <code><i>class</i></code> torch.distributed.tensor.parallel.PrepareModuleOutput
 
 <div style="margin-left: 2em">
@@ -102,6 +103,7 @@
 **Native Documentation**: [torch.distributed.tensor.parallel.PrepareModuleOutput](https://pytorch.org/docs/2.7/distributed.tensor.parallel.html#torch.distributed.tensor.parallel.PrepareModuleOutput)
 
 **Support Status**:
+<!-- end id20 -->
 
 <!-- npu="910b" id13 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -109,11 +111,10 @@
 <!-- npu="A3" id14 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id14 -->
-<!-- npu="950" id15 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id15 -->
 
+<!-- npu="910b,A3" id21 -->
 </div>
+<!-- end id21 -->
 
 ### torch.distributed.tensor.parallel.loss_parallel
 

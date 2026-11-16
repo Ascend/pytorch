@@ -3,14 +3,16 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.7/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.7/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
 > - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.7/backends.html).
 
 <div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
 <div style="margin: 8px 0"><font size="5"><b>Contents</b></font></div>
 
+<!-- npu="910b,A3" id110 -->
 - [torch.backends.cpu](#torchbackendscpu)
+<!-- end id110 -->
 - [torch.backends.cuda](#torchbackendscuda)
 - [torch.backends.cudnn](#torchbackendscudnn)
 - [torch.backends.mps](#torchbackendsmps)
@@ -27,8 +29,10 @@
 
 </div>
 
+<!-- npu="910b,A3" id111 -->
 ## torch.backends.cpu
 
+<!-- npu="910b,A3" id98 -->
 ### torch.backends.cpu.get_cpu_capability
 
 <div style="margin-left: 2em">
@@ -36,6 +40,7 @@
 **Native Documentation**: [torch.backends.cpu.get_cpu_capability](https://pytorch.org/docs/2.7/backends.html#torch.backends.cpu.get_cpu_capability)
 
 **Support Status**:
+<!-- end id98 -->
 
 <!-- npu="910b" id1 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -43,12 +48,12 @@
 <!-- npu="A3" id2 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id2 -->
-<!-- npu="950" id3 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id3 -->
 
+<!-- npu="910b,A3" id99 -->
 </div>
+<!-- end id99 -->
 
+<!-- end id111 -->
 ## torch.backends.cuda
 
 ### torch.backends.cuda.is_built
@@ -115,6 +120,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id100 -->
 ### torch.backends.cuda.cufft_plan_cache.size
 
 <div style="margin-left: 2em">
@@ -124,6 +130,7 @@
 **NPU-Adapted Name**: torch.npu.backends.fft_plan_cache.size
 
 **Support Status**:
+<!-- end id100 -->
 
 <!-- npu="910b" id13 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -131,12 +138,12 @@
 <!-- npu="A3" id14 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id14 -->
-<!-- npu="950" id15 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id15 -->
 
+<!-- npu="910b,A3" id101 -->
 </div>
+<!-- end id101 -->
 
+<!-- npu="910b,A3" id102 -->
 ### torch.backends.cuda.cufft_plan_cache.max_size
 
 <div style="margin-left: 2em">
@@ -146,6 +153,7 @@
 **NPU-Adapted Name**: torch.npu.backends.fft_plan_cache.max_size
 
 **Support Status**:
+<!-- end id102 -->
 
 <!-- npu="910b" id16 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -153,14 +161,14 @@
 <!-- npu="A3" id17 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id17 -->
-<!-- npu="950" id18 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id18 -->
 
+<!-- npu="910b,A3" id103 -->
 **Constraints & Notes**: The input range is 1-99.
 
 </div>
+<!-- end id103 -->
 
+<!-- npu="910b,A3" id104 -->
 ### torch.backends.cuda.cufft_plan_cache.clear
 
 <div style="margin-left: 2em">
@@ -170,6 +178,7 @@
 **NPU-Adapted Name**: torch.npu.backends.fft_plan_cache.clear
 
 **Support Status**:
+<!-- end id104 -->
 
 <!-- npu="910b" id19 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -177,11 +186,10 @@
 <!-- npu="A3" id20 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id20 -->
-<!-- npu="950" id21 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id21 -->
 
+<!-- npu="910b,A3" id105 -->
 </div>
+<!-- end id105 -->
 
 ### torch.backends.cuda.preferred_linalg_library
 
@@ -453,6 +461,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id106 -->
 ### torch.backends.cudnn.benchmark_limit
 
 <div style="margin-left: 2em">
@@ -460,6 +469,7 @@
 **Native Documentation**: [torch.backends.cudnn.benchmark_limit](https://pytorch.org/docs/2.7/backends.html#torch.backends.cudnn.benchmark_limit)
 
 **Support Status**:
+<!-- end id106 -->
 
 <!-- npu="910b" id61 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -467,11 +477,10 @@
 <!-- npu="A3" id62 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id62 -->
-<!-- npu="950" id63 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id63 -->
 
+<!-- npu="910b,A3" id107 -->
 </div>
+<!-- end id107 -->
 
 ## torch.backends.mps
 
@@ -517,6 +526,7 @@
 
 ## torch.backends.mkl
 
+<!-- npu="910b,A3" id108 -->
 ### torch.backends.mkl.is_available
 
 <div style="margin-left: 2em">
@@ -524,6 +534,7 @@
 **Native Documentation**: [torch.backends.mkl.is_available](https://pytorch.org/docs/2.7/backends.html#torch.backends.mkl.is_available)
 
 **Support Status**:
+<!-- end id108 -->
 
 <!-- npu="910b" id70 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -531,11 +542,10 @@
 <!-- npu="A3" id71 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id71 -->
-<!-- npu="950" id72 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id72 -->
 
+<!-- npu="910b,A3" id109 -->
 </div>
+<!-- end id109 -->
 
 ### torch.backends.mkl.verbose
 
@@ -567,9 +577,6 @@
 
 **Support Status**:
 
-<!-- npu="910" id76 -->
-- <term>Atlas training products</term>: supported
-<!-- end id76 -->
 <!-- npu="910b" id77 -->
 - <term>Atlas A2 training products</term>: Supported
 <!-- end id77 -->

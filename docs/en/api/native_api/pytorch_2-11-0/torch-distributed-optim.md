@@ -3,53 +3,13 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.11/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.11/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
 > - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.11/distributed.optim.html).
 
 <div style="display:none;">
 
 ## &#8203;torch.distributed.optim
-
-</div>
-
-### <code><i>class</i></code> torch.distributed.optim.DistributedOptimizer
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.optim.DistributedOptimizer](https://pytorch.org/docs/2.11/distributed.optim.html#torch.distributed.optim.DistributedOptimizer)
-
-**Support Status**:
-
-<!-- npu="910b" id1 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id1 -->
-<!-- npu="A3" id2 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id2 -->
-<!-- npu="950" id3 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id3 -->
-
-> <font size="3">step()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.optim.DistributedOptimizer.step](https://pytorch.org/docs/2.11/distributed.optim.html#torch.distributed.optim.DistributedOptimizer.step)
-
-**Support Status**:
-
-<!-- npu="910b" id4 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id4 -->
-<!-- npu="A3" id5 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id5 -->
-<!-- npu="950" id6 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id6 -->
-
-</div>
 
 </div>
 
@@ -196,6 +156,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id45 -->
 > <font size="3">join_device()</font>
 
 <div style="margin-left: 2em">
@@ -203,6 +164,7 @@
 **Native Documentation**: [torch.distributed.optim.ZeroRedundancyOptimizer.join_device](https://pytorch.org/docs/2.11/distributed.optim.html#torch.distributed.optim.ZeroRedundancyOptimizer.join_device)
 
 **Support Status**:
+<!-- end id45 -->
 
 <!-- npu="910b" id28 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -210,12 +172,12 @@
 <!-- npu="A3" id29 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id29 -->
-<!-- npu="950" id30 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id30 -->
 
+<!-- npu="910b,A3" id46 -->
 </div>
+<!-- end id46 -->
 
+<!-- npu="910b,A3" id47 -->
 > <font size="3">join_hook()</font>
 
 <div style="margin-left: 2em">
@@ -223,6 +185,7 @@
 **Native Documentation**: [torch.distributed.optim.ZeroRedundancyOptimizer.join_hook](https://pytorch.org/docs/2.11/distributed.optim.html#torch.distributed.optim.ZeroRedundancyOptimizer.join_hook)
 
 **Support Status**:
+<!-- end id47 -->
 
 <!-- npu="910b" id31 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -230,12 +193,12 @@
 <!-- npu="A3" id32 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id32 -->
-<!-- npu="950" id33 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id33 -->
 
+<!-- npu="910b,A3" id48 -->
 </div>
+<!-- end id48 -->
 
+<!-- npu="910b,A3" id49 -->
 > <font size="3">join_process_group()</font>
 
 <div style="margin-left: 2em">
@@ -243,6 +206,7 @@
 **Native Documentation**: [torch.distributed.optim.ZeroRedundancyOptimizer.join_process_group](https://pytorch.org/docs/2.11/distributed.optim.html#torch.distributed.optim.ZeroRedundancyOptimizer.join_process_group)
 
 **Support Status**:
+<!-- end id49 -->
 
 <!-- npu="910b" id34 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -250,12 +214,12 @@
 <!-- npu="A3" id35 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id35 -->
-<!-- npu="950" id36 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id36 -->
 
+<!-- npu="910b,A3" id50 -->
 </div>
+<!-- end id50 -->
 
+<!-- npu="910b,A3" id51 -->
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -263,6 +227,7 @@
 **Native Documentation**: [torch.distributed.optim.ZeroRedundancyOptimizer.load_state_dict](https://pytorch.org/docs/2.11/distributed.optim.html#torch.distributed.optim.ZeroRedundancyOptimizer.load_state_dict)
 
 **Support Status**:
+<!-- end id51 -->
 
 <!-- npu="910b" id37 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -270,11 +235,10 @@
 <!-- npu="A3" id38 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id38 -->
-<!-- npu="950" id39 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id39 -->
 
+<!-- npu="910b,A3" id52 -->
 </div>
+<!-- end id52 -->
 
 > <font size="3">state_dict()</font>
 
@@ -296,6 +260,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id53 -->
 > <font size="3">step()</font>
 
 <div style="margin-left: 2em">
@@ -303,6 +268,7 @@
 **Native Documentation**: [torch.distributed.optim.ZeroRedundancyOptimizer.step](https://pytorch.org/docs/2.11/distributed.optim.html#torch.distributed.optim.ZeroRedundancyOptimizer.step)
 
 **Support Status**:
+<!-- end id53 -->
 
 <!-- npu="910b" id43 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -310,10 +276,9 @@
 <!-- npu="A3" id44 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id44 -->
-<!-- npu="950" id45 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id45 -->
 
+<!-- npu="910b,A3" id54 -->
 </div>
+<!-- end id54 -->
 
 </div>

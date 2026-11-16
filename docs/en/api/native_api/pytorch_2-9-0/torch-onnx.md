@@ -3,13 +3,13 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.9/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.9/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
-> - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://docs.pytorch.org/docs/2.9/onnx.html).
-> - Note: The modules and some APIs included in this document are located on separate pages; for related descriptions, see the documentation:
+> - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.9/onnx.html).
+> - Note: The modules and some APIs covered in this document are located on separate pages. For related descriptions, see:
 >    - [torch.onnx.verification](https://docs.pytorch.org/docs/2.9/onnx_verification.html)
 >
-> - Since 2.9, the legacy Dynamo export and ONNX Runtime backend interfaces have been removed; `torch.onnx.export` uses `dynamo=True` by default. The legacy TorchScript auxiliary interfaces are deprecated; prefer the new export workflow.
+> - Since 2.9, the legacy Dynamo export and ONNX Runtime backend interfaces have been removed; `torch.onnx.export` uses `dynamo=True` by default. The legacy TorchScript helper interfaces are deprecated. Use the new export flow preferentially.
 
 <div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
 <div style="margin: 8px 0"><font size="5"><b>Contents</b></font></div>
@@ -26,13 +26,17 @@
 
 ## torch.onnx APIs
 
+<!-- npu="910b,A3,950" id37 -->
 ### <code><i>class</i></code> torch.onnx.ONNXProgram
+<!-- end id37 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id38 -->
 **Native Documentation**: [torch.onnx.ONNXProgram](https://docs.pytorch.org/docs/2.9/onnx_export.html#torch.onnx.ONNXProgram)
 
 **Support Status**:
+<!-- end id38 -->
 
 <!-- npu="910b" id1 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -40,10 +44,8 @@
 <!-- npu="A3" id2 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id2 -->
-<!-- npu="950" id3 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id3 -->
 
+<!-- npu="910b,A3" id39 -->
 > <font size="3">model_proto()</font>
 
 <div style="margin-left: 2em">
@@ -51,6 +53,7 @@
 **Native Documentation**: [torch.onnx.ONNXProgram.model_proto](https://docs.pytorch.org/docs/2.9/onnx_export.html#torch.onnx.ONNXProgram.model_proto)
 
 **Support Status**:
+<!-- end id39 -->
 
 <!-- npu="910b" id4 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -58,12 +61,12 @@
 <!-- npu="A3" id5 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id5 -->
-<!-- npu="950" id6 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id6 -->
 
+<!-- npu="910b,A3" id40 -->
 </div>
+<!-- end id40 -->
 
+<!-- npu="910b,A3" id41 -->
 > <font size="3">save()</font>
 
 <div style="margin-left: 2em">
@@ -71,6 +74,7 @@
 **Native Documentation**: [torch.onnx.ONNXProgram.save](https://docs.pytorch.org/docs/2.9/onnx_export.html#torch.onnx.ONNXProgram.save)
 
 **Support Status**:
+<!-- end id41 -->
 
 <!-- npu="910b" id7 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -78,11 +82,10 @@
 <!-- npu="A3" id8 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id8 -->
-<!-- npu="950" id9 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id9 -->
 
+<!-- npu="910b,A3" id42 -->
 </div>
+<!-- end id42 -->
 
 > <font size="3">initialize_inference_session()</font>
 
@@ -113,13 +116,6 @@
 **Native Documentation**: [torch.onnx.OnnxExporterError](https://docs.pytorch.org/docs/2.9/onnx_export.html#torch.onnx.OnnxExporterError)
 
 **Support Status**:
-
-<!-- npu="910b" id13 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id13 -->
-<!-- npu="A3" id14 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id14 -->
 <!-- npu="950" id15 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id15 -->
@@ -152,8 +148,6 @@
 
 **Native Documentation**: [torch.onnx.register_custom_op_symbolic](https://docs.pytorch.org/docs/2.9/onnx.html#torch.onnx.register_custom_op_symbolic)
 
-**Version Notes**: This legacy TorchScript export auxiliary interface has been deprecated; use `torch.onnx.export` in the new export workflow.
-
 **Support Status**:
 
 <!-- npu="910b" id19 -->
@@ -174,8 +168,6 @@
 
 **Native Documentation**: [torch.onnx.unregister_custom_op_symbolic](https://docs.pytorch.org/docs/2.9/onnx.html#torch.onnx.unregister_custom_op_symbolic)
 
-**Version Notes**: This legacy TorchScript export auxiliary interface has been deprecated; use `torch.onnx.export` in the new export workflow.
-
 **Support Status**:
 
 <!-- npu="910b" id22 -->
@@ -195,8 +187,6 @@
 <div style="margin-left: 2em">
 
 **Native Documentation**: [torch.onnx.select_model_mode_for_export](https://docs.pytorch.org/docs/2.9/onnx.html#torch.onnx.select_model_mode_for_export)
-
-**Version Notes**: This API has been deprecated; set the model to training or inference mode before export.
 
 **Support Status**:
 
@@ -275,5 +265,31 @@
 <!-- npu="950" id36 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id36 -->
+
+</div>
+
+### <code><i>class</i></code> torch.onnx.verification.VerificationInfo
+
+<div style="margin-left: 2em">
+
+> <font size="3">from_tensors()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.onnx.verification.VerificationInfo.from\_tensors](https://docs.pytorch.org/docs/2.9/onnx_verification.html#torch.onnx.verification.VerificationInfo.from_tensors)
+
+**Support Status**:
+
+<!-- npu="910b" id43 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id43 -->
+<!-- npu="A3" id44 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id44 -->
+<!-- npu="950" id45 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id45 -->
+
+</div>
 
 </div>

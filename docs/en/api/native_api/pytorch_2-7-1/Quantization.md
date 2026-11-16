@@ -3,24 +3,34 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.7/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.7/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
-> - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://docs.pytorch.org/docs/2.7/quantization-support.html).
-> - Note: In [Quantization Accuracy Debugging](https://docs.pytorch.org/docs/2.7/quantization-accuracy-debugging.html), you can find the specific usage of the APIs under [Numerical Debugging Tooling](#numerical-debugging-tooling).
+> - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.7/quantization-support.html).
+> - Note: In [Quantization Accuracy Debugging](https://docs.pytorch.org/docs/2.7/quantization-accuracy-debugging.html), you can find [Numerical Debugging Tooling](#numerical-debugging-tooling) for the usage of the APIs below.
 
 <div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
 <div style="margin: 8px 0"><font size="5"><b>Contents</b></font></div>
 
 - [torch.ao.quantization](#torchaoquantization)
+
+- [torch.ao.quantization.quantize_fx](#torchaoquantizationquantize_fx)
 - [torch.ao.quantization.qconfig_mapping](#torchaoquantizationqconfig_mapping)
 - [torch.ao.quantization.backend_config](#torchaoquantizationbackend_config)
 - [torch.ao.quantization.fx.custom_config](#torchaoquantizationfxcustom_config)
+
+- [PT2 Export (pt2e) Numeric Debugger](#pt2-export-pt2e-numeric-debugger)
 - [torch.ao.quantization.observer](#torchaoquantizationobserver)
 - [torch.ao.quantization.fake_quantize](#torchaoquantizationfake_quantize)
 - [torch.ao.quantization.qconfig](#torchaoquantizationqconfig)
 - [torch.ao.nn.intrinsic](#torchaonnintrinsic)
 - [torch.ao.nn.intrinsic.qat](#torchaonnintrinsicqat)
+
+- [torch.ao.nn.intrinsic.quantized](#torchaonnintrinsicquantized)
+
 - [torch.ao.nn.qat](#torchaonnqat)
+- [torch.ao.nn.quantized](#torchaonnquantized)
+
+- [torch.ao.nn.quantized.functional](#torchaonnquantizedfunctional)
 - [torch.ao.nn.quantizable](#torchaonnquantizable)
 - [torch.ao.nn.quantized.dynamic](#torchaonnquantizeddynamic)
 - [Numerical Debugging Tooling](#numerical-debugging-tooling)
@@ -34,6 +44,46 @@
 </div>
 
 ## torch.ao.quantization
+
+### <code><i>class</i></code> torch.ao.quantization.quantize\_qat
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.quantize\_qat](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.quantize_qat.html#torch.ao.quantization.quantize_qat)
+
+**Support Status**:
+
+<!-- npu="910b" id540 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id540 -->
+<!-- npu="A3" id541 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id541 -->
+<!-- npu="950" id542 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id542 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.prepare
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.prepare](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.prepare.html#torch.ao.quantization.prepare)
+
+**Support Status**:
+
+<!-- npu="910b" id543 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id543 -->
+<!-- npu="A3" id544 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id544 -->
+<!-- npu="950" id545 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id545 -->
+
+</div>
 
 ### torch.ao.quantization.prepare_qat
 
@@ -55,6 +105,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id490 -->
 ### torch.ao.quantization.convert
 
 <div style="margin-left: 2em">
@@ -62,6 +113,7 @@
 **Native Documentation**: [torch.ao.quantization.convert](https://pytorch.org/docs/2.7/generated/torch.ao.quantization.convert.html)
 
 **Support Status**:
+<!-- end id490 -->
 
 <!-- npu="910b" id4 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -69,29 +121,28 @@
 <!-- npu="A3" id5 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id5 -->
-<!-- npu="950" id6 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id6 -->
 
+<!-- npu="910b,A3" id491 -->
 </div>
+<!-- end id491 -->
 
-### <code><i>class</i></code> torch.ao.quantization.QuantWrapper
+### <code><i>class</i></code> torch.ao.quantization.fuse\_modules.fuse\_modules
 
 <div style="margin-left: 2em">
 
-**Native Documentation**: [torch.ao.quantization.QuantWrapper](https://pytorch.org/docs/2.7/generated/torch.ao.quantization.QuantWrapper.html)
+**Native Documentation**: [torch.ao.quantization.fuse\_modules.fuse\_modules](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.fuse_modules.fuse_modules.html#torch.ao.quantization.fuse_modules.fuse_modules)
 
 **Support Status**:
 
-<!-- npu="910b" id7 -->
+<!-- npu="910b" id546 -->
 - <term>Atlas A2 training products</term>: Supported
-<!-- end id7 -->
-<!-- npu="A3" id8 -->
+<!-- end id546 -->
+<!-- npu="A3" id547 -->
 - <term>Atlas A3 training products</term>: Supported
-<!-- end id8 -->
-<!-- npu="950" id9 -->
+<!-- end id547 -->
+<!-- npu="950" id548 -->
 - <term>Ascend 950DT products</term>: Supported
-<!-- end id9 -->
+<!-- end id548 -->
 
 </div>
 
@@ -134,6 +185,188 @@
 <!-- end id15 -->
 
 </div>
+
+### <code><i>class</i></code> torch.ao.quantization.QuantWrapper
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.QuantWrapper](https://pytorch.org/docs/2.7/generated/torch.ao.quantization.QuantWrapper.html)
+
+**Support Status**:
+
+<!-- npu="910b" id7 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id7 -->
+<!-- npu="A3" id8 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id8 -->
+<!-- npu="950" id9 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id9 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.add\_quant\_dequant
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.add\_quant\_dequant](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.add_quant_dequant.html#torch.ao.quantization.add_quant_dequant)
+
+**Support Status**:
+
+<!-- npu="910b" id549 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id549 -->
+<!-- npu="A3" id550 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id550 -->
+<!-- npu="950" id551 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id551 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.swap\_module
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.swap\_module](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.swap_module.html#torch.ao.quantization.swap_module)
+
+**Support Status**:
+
+<!-- npu="910b" id552 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id552 -->
+<!-- npu="A3" id553 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id553 -->
+<!-- npu="950" id554 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id554 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.propagate\_qconfig\_
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.propagate\_qconfig\_](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.propagate_qconfig_.html#torch.ao.quantization.propagate_qconfig_)
+
+**Support Status**:
+
+<!-- npu="910b" id555 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id555 -->
+<!-- npu="A3" id556 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id556 -->
+<!-- npu="950" id557 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id557 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.default\_eval\_fn
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.default\_eval\_fn](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.default_eval_fn.html#torch.ao.quantization.default_eval_fn)
+
+**Support Status**:
+
+<!-- npu="910b" id558 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id558 -->
+<!-- npu="A3" id559 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id559 -->
+<!-- npu="950" id560 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id560 -->
+
+</div>
+
+## torch.ao.quantization.quantize_fx
+
+### <code><i>class</i></code> torch.ao.quantization.quantize\_fx.prepare\_fx
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.quantize\_fx.prepare\_fx](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.quantize_fx.prepare_fx.html#torch.ao.quantization.quantize_fx.prepare_fx)
+
+**Support Status**:
+
+<!-- npu="910b" id561 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id561 -->
+<!-- npu="A3" id562 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id562 -->
+<!-- npu="950" id563 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id563 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.quantize\_fx.prepare\_qat\_fx
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.quantize\_fx.prepare\_qat\_fx](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.quantize_fx.prepare_qat_fx.html#torch.ao.quantization.quantize_fx.prepare_qat_fx)
+
+**Support Status**:
+
+<!-- npu="910b" id564 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id564 -->
+<!-- npu="A3" id565 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id565 -->
+<!-- npu="950" id566 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id566 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.quantize\_fx.convert\_fx
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.quantize\_fx.convert\_fx](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.quantize_fx.convert_fx.html#torch.ao.quantization.quantize_fx.convert_fx)
+
+**Support Status**:
+
+<!-- npu="910b" id567 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id567 -->
+<!-- npu="A3" id568 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id568 -->
+<!-- npu="950" id569 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id569 -->
+
+</div>
+
+<!-- npu="910b,A3" id573 -->
+### <code><i>class</i></code> torch.ao.quantization.quantize\_fx.fuse\_fx
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.quantize\_fx.fuse\_fx](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.quantize_fx.fuse_fx.html#torch.ao.quantization.quantize_fx.fuse_fx)
+
+**Support Status**:
+
+<!-- npu="910b" id570 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id570 -->
+<!-- npu="A3" id571 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id571 -->
+
+</div>
+
+<!-- end id573 -->
 
 ## torch.ao.quantization.qconfig_mapping
 
@@ -195,6 +428,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id27 -->
 > <font size="3">set_module_name()</font>
 
 <div style="margin-left: 2em">
@@ -209,11 +443,9 @@
 <!-- npu="A3" id26 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id26 -->
-<!-- npu="950" id27 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id27 -->
 
 </div>
+<!-- end id27 -->
 
 > <font size="3">set_module_name_object_type_order()</font>
 
@@ -1301,7 +1533,109 @@
 
 </div>
 
+## PT2 Export (pt2e) Numeric Debugger
+
+### <code><i>class</i></code> torch.ao.quantization.prepare\_for\_propagation\_comparison
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.prepare\_for\_propagation\_comparison](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.prepare_for_propagation_comparison.html#torch.ao.quantization.prepare_for_propagation_comparison)
+
+**Support Status**:
+
+<!-- npu="910b" id574 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id574 -->
+<!-- npu="A3" id575 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id575 -->
+<!-- npu="950" id576 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id576 -->
+
+</div>
+
+<!-- npu="910b,A3" id580 -->
+### <code><i>class</i></code> torch.ao.quantization.extract\_results\_from\_loggers
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.extract\_results\_from\_loggers](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.extract_results_from_loggers.html#torch.ao.quantization.extract_results_from_loggers)
+
+**Support Status**:
+
+<!-- npu="910b" id577 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id577 -->
+<!-- npu="A3" id578 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id578 -->
+
+</div>
+
+<!-- end id580 -->
+
+### <code><i>class</i></code> torch.ao.quantization.compare\_results
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.compare\_results](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.compare_results.html#torch.ao.quantization.compare_results)
+
+**Support Status**:
+
+<!-- npu="910b" id581 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id581 -->
+<!-- npu="A3" id582 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id582 -->
+<!-- npu="950" id583 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id583 -->
+
+</div>
+
 ## torch.ao.quantization.observer
+
+### <code><i>class</i></code> torch.ao.quantization.pt2e.export_utils.model_is_exported
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.pt2e.export_utils.model_is_exported](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.pt2e.export_utils.model_is_exported.html#torch.ao.quantization.pt2e.export_utils.model_is_exported)
+
+**Support Status**:
+
+<!-- npu="910b" id534 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id534 -->
+<!-- npu="A3" id535 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id535 -->
+<!-- npu="950" id536 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id536 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.generate_numeric_debug_handle
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.generate_numeric_debug_handle](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.generate_numeric_debug_handle.html#torch.ao.quantization.generate_numeric_debug_handle)
+
+**Support Status**:
+
+<!-- npu="910b" id522 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id522 -->
+<!-- npu="A3" id523 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id523 -->
+<!-- npu="950" id524 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id524 -->
+
+</div>
 
 ### <code><i>class</i></code> torch.ao.quantization.observer.ObserverBase
 
@@ -1805,7 +2139,287 @@
 
 </div>
 
+### <code><i>class</i></code> torch.ao.quantization.observer.Granularity
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.observer.Granularity](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.observer.Granularity.html#torch.ao.quantization.observer.Granularity)
+
+**Support Status**:
+
+<!-- npu="910b" id729 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id729 -->
+<!-- npu="A3" id730 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id730 -->
+<!-- npu="950" id731 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id731 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.observer.PerAxis
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.observer.PerAxis](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.observer.PerAxis.html#torch.ao.quantization.observer.PerAxis)
+
+**Support Status**:
+
+<!-- npu="910b" id732 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id732 -->
+<!-- npu="A3" id733 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id733 -->
+<!-- npu="950" id734 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id734 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.observer.PerBlock
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.observer.PerBlock](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.observer.PerBlock.html#torch.ao.quantization.observer.PerBlock)
+
+**Support Status**:
+
+<!-- npu="910b" id735 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id735 -->
+<!-- npu="A3" id736 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id736 -->
+<!-- npu="950" id737 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id737 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.observer.PerRow
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.observer.PerRow](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.observer.PerRow.html#torch.ao.quantization.observer.PerRow)
+
+**Support Status**:
+
+<!-- npu="910b" id738 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id738 -->
+<!-- npu="A3" id739 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id739 -->
+<!-- npu="950" id740 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id740 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.observer.PerTensor
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.observer.PerTensor](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.observer.PerTensor.html#torch.ao.quantization.observer.PerTensor)
+
+**Support Status**:
+
+<!-- npu="910b" id741 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id741 -->
+<!-- npu="A3" id742 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id742 -->
+<!-- npu="950" id743 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id743 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.observer.PerToken
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.observer.PerToken](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.observer.PerToken.html#torch.ao.quantization.observer.PerToken)
+
+**Support Status**:
+
+<!-- npu="910b" id744 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id744 -->
+<!-- npu="A3" id745 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id745 -->
+<!-- npu="950" id746 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id746 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.observer.TorchAODType
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.observer.TorchAODType](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.observer.TorchAODType.html#torch.ao.quantization.observer.TorchAODType)
+
+**Support Status**:
+
+<!-- npu="910b" id747 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id747 -->
+<!-- npu="A3" id748 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id748 -->
+<!-- npu="950" id749 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id749 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.observer.get\_block\_size
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.observer.get\_block\_size](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.observer.get_block_size.html#torch.ao.quantization.observer.get_block_size)
+
+**Support Status**:
+
+<!-- npu="910b" id750 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id750 -->
+<!-- npu="A3" id751 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id751 -->
+<!-- npu="950" id752 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id752 -->
+
+</div>
+
 ## torch.ao.quantization.fake_quantize
+
+### <code><i>class</i></code> torch.ao.quantization.observer.AffineQuantizedObserverBase
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.observer.AffineQuantizedObserverBase](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.observer.AffineQuantizedObserverBase.html#torch.ao.quantization.observer.AffineQuantizedObserverBase)
+
+**Support Status**:
+
+<!-- npu="910b" id537 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id537 -->
+<!-- npu="A3" id538 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id538 -->
+<!-- npu="950" id539 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id539 -->
+
+> <font size="3">calculate_qparams()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.observer.AffineQuantizedObserverBase.calculate_qparams](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.observer.AffineQuantizedObserverBase.html#torch.ao.quantization.observer.AffineQuantizedObserverBase.calculate_qparams)
+
+**Support Status**:
+
+<!-- npu="910b" id525 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id525 -->
+<!-- npu="A3" id526 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id526 -->
+<!-- npu="950" id527 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id527 -->
+
+</div>
+
+> <font size="3">forward()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.observer.AffineQuantizedObserverBase.forward](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.observer.AffineQuantizedObserverBase.html#torch.ao.quantization.observer.AffineQuantizedObserverBase.forward)
+
+**Support Status**:
+
+<!-- npu="910b" id528 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id528 -->
+<!-- npu="A3" id529 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id529 -->
+<!-- npu="950" id530 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id530 -->
+
+</div>
+
+> <font size="3">with_args()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.observer.AffineQuantizedObserverBase.with\_args](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.observer.AffineQuantizedObserverBase.html#torch.ao.quantization.observer.AffineQuantizedObserverBase.with_args)
+
+**Support Status**:
+
+<!-- npu="910b" id787 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id787 -->
+<!-- npu="A3" id788 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id788 -->
+<!-- npu="950" id789 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id789 -->
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.observer.MappingType
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.observer.MappingType](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.observer.MappingType.html#torch.ao.quantization.observer.MappingType)
+
+**Support Status**:
+
+<!-- npu="910b" id531 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id531 -->
+<!-- npu="A3" id532 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id532 -->
+<!-- npu="950" id533 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id533 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.quantization.fake\_quantize.FakeQuantizeBase
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.fake\_quantize.FakeQuantizeBase](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.fake_quantize.FakeQuantizeBase.html#torch.ao.quantization.fake_quantize.FakeQuantizeBase)
+
+**Support Status**:
+
+<!-- npu="910b" id726 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id726 -->
+<!-- npu="A3" id727 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id727 -->
+<!-- npu="950" id728 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id728 -->
+
+</div>
 
 ### <code><i>class</i></code> torch.ao.quantization.fake_quantize.FakeQuantize
 
@@ -1948,6 +2562,146 @@
 <!-- npu="950" id285 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id285 -->
+
+</div>
+
+### torch.ao.quantization.fake\_quantize.default\_fake\_quant
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.fake\_quantize.default\_fake\_quant](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.fake_quantize.default_fake_quant.html#torch.ao.quantization.fake_quantize.default_fake_quant)
+
+**Support Status**:
+
+<!-- npu="910b" id766 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id766 -->
+<!-- npu="A3" id767 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id767 -->
+<!-- npu="950" id768 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id768 -->
+
+</div>
+
+### torch.ao.quantization.fake\_quantize.default\_weight\_fake\_quant
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.fake\_quantize.default\_weight\_fake\_quant](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.fake_quantize.default_weight_fake_quant.html#torch.ao.quantization.fake_quantize.default_weight_fake_quant)
+
+**Support Status**:
+
+<!-- npu="910b" id784 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id784 -->
+<!-- npu="A3" id785 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id785 -->
+<!-- npu="950" id786 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id786 -->
+
+</div>
+
+### torch.ao.quantization.fake\_quantize.default\_per\_channel\_weight\_fake\_quant
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.fake\_quantize.default\_per\_channel\_weight\_fake\_quant](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.fake_quantize.default_per_channel_weight_fake_quant.html#torch.ao.quantization.fake_quantize.default_per_channel_weight_fake_quant)
+
+**Support Status**:
+
+<!-- npu="910b" id781 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id781 -->
+<!-- npu="A3" id782 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id782 -->
+<!-- npu="950" id783 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id783 -->
+
+</div>
+
+### torch.ao.quantization.fake\_quantize.default\_histogram\_fake\_quant
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.fake\_quantize.default\_histogram\_fake\_quant](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.fake_quantize.default_histogram_fake_quant.html#torch.ao.quantization.fake_quantize.default_histogram_fake_quant)
+
+**Support Status**:
+
+<!-- npu="910b" id778 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id778 -->
+<!-- npu="A3" id779 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id779 -->
+<!-- npu="950" id780 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id780 -->
+
+</div>
+
+### torch.ao.quantization.fake\_quantize.default\_fused\_act\_fake\_quant
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.fake\_quantize.default\_fused\_act\_fake\_quant](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.fake_quantize.default_fused_act_fake_quant.html#torch.ao.quantization.fake_quantize.default_fused_act_fake_quant)
+
+**Support Status**:
+
+<!-- npu="910b" id769 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id769 -->
+<!-- npu="A3" id770 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id770 -->
+<!-- npu="950" id771 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id771 -->
+
+</div>
+
+### torch.ao.quantization.fake\_quantize.default\_fused\_wt\_fake\_quant
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.fake\_quantize.default\_fused\_wt\_fake\_quant](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.fake_quantize.default_fused_wt_fake_quant.html#torch.ao.quantization.fake_quantize.default_fused_wt_fake_quant)
+
+**Support Status**:
+
+<!-- npu="910b" id775 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id775 -->
+<!-- npu="A3" id776 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id776 -->
+<!-- npu="950" id777 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id777 -->
+
+</div>
+
+### torch.ao.quantization.fake\_quantize.default\_fused\_per\_channel\_wt\_fake\_quant
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.quantization.fake\_quantize.default\_fused\_per\_channel\_wt\_fake\_quant](https://docs.pytorch.org/docs/2.7/generated/torch.ao.quantization.fake_quantize.default_fused_per_channel_wt_fake_quant.html#torch.ao.quantization.fake_quantize.default_fused_per_channel_wt_fake_quant)
+
+**Support Status**:
+
+<!-- npu="910b" id772 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id772 -->
+<!-- npu="A3" id773 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id773 -->
+<!-- npu="950" id774 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id774 -->
 
 </div>
 
@@ -2215,6 +2969,66 @@
 
 ## torch.ao.nn.intrinsic
 
+### <code><i>class</i></code> torch.ao.nn.intrinsic.ConvReLU1d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.intrinsic.ConvReLU1d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.intrinsic.ConvReLU1d.html#torch.ao.nn.intrinsic.ConvReLU1d)
+
+**Support Status**:
+
+<!-- npu="910b" id507 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id507 -->
+<!-- npu="A3" id508 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id508 -->
+<!-- npu="950" id509 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id509 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.ConvReLU2d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.intrinsic.ConvReLU2d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.intrinsic.ConvReLU2d.html#torch.ao.nn.intrinsic.ConvReLU2d)
+
+**Support Status**:
+
+<!-- npu="910b" id584 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id584 -->
+<!-- npu="A3" id585 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id585 -->
+<!-- npu="950" id586 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id586 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.ConvReLU3d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.intrinsic.ConvReLU3d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.intrinsic.ConvReLU3d.html#torch.ao.nn.intrinsic.ConvReLU3d)
+
+**Support Status**:
+
+<!-- npu="910b" id587 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id587 -->
+<!-- npu="A3" id588 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id588 -->
+<!-- npu="950" id589 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id589 -->
+
+</div>
+
 ### <code><i>class</i></code> torch.ao.nn.intrinsic.LinearReLU
 
 <div style="margin-left: 2em">
@@ -2235,7 +3049,171 @@
 
 </div>
 
+### <code><i>class</i></code> torch.ao.nn.intrinsic.ConvBn1d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.intrinsic.ConvBn1d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.intrinsic.ConvBn1d.html#torch.ao.nn.intrinsic.ConvBn1d)
+
+**Support Status**:
+
+<!-- npu="910b" id590 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id590 -->
+<!-- npu="A3" id591 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id591 -->
+<!-- npu="950" id592 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id592 -->
+
+<!-- npu="950" id794 -->
+**Constraints & Notes**: On <term>Ascend 950DT products</term>, the W dimension of the underlying convolution calculation cannot exceed 1000000.
+<!-- end id794 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.ConvBn2d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.intrinsic.ConvBn2d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.intrinsic.ConvBn2d.html#torch.ao.nn.intrinsic.ConvBn2d)
+
+**Support Status**:
+
+<!-- npu="910b" id593 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id593 -->
+<!-- npu="A3" id594 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id594 -->
+<!-- npu="950" id595 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id595 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.ConvBn3d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.intrinsic.ConvBn3d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.intrinsic.ConvBn3d.html#torch.ao.nn.intrinsic.ConvBn3d)
+
+**Support Status**:
+
+<!-- npu="910b" id596 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id596 -->
+<!-- npu="A3" id597 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id597 -->
+<!-- npu="950" id598 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id598 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.ConvBnReLU1d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.intrinsic.ConvBnReLU1d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.intrinsic.ConvBnReLU1d.html#torch.ao.nn.intrinsic.ConvBnReLU1d)
+
+**Support Status**:
+
+<!-- npu="910b" id599 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id599 -->
+<!-- npu="A3" id600 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id600 -->
+<!-- npu="950" id601 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id601 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.ConvBnReLU2d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.intrinsic.ConvBnReLU2d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.intrinsic.ConvBnReLU2d.html#torch.ao.nn.intrinsic.ConvBnReLU2d)
+
+**Support Status**:
+
+<!-- npu="910b" id602 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id602 -->
+<!-- npu="A3" id603 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id603 -->
+<!-- npu="950" id604 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id604 -->
+
+</div>
+
 ## torch.ao.nn.intrinsic.qat
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.ConvBnReLU3d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.intrinsic.ConvBnReLU3d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.intrinsic.ConvBnReLU3d.html#torch.ao.nn.intrinsic.ConvBnReLU3d)
+
+**Support Status**:
+
+<!-- npu="910b" id504 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id504 -->
+<!-- npu="A3" id505 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id505 -->
+<!-- npu="950" id506 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id506 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.BNReLU2d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.intrinsic.BNReLU2d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.intrinsic.BNReLU2d.html#torch.ao.nn.intrinsic.BNReLU2d)
+
+**Support Status**:
+
+<!-- npu="910b" id498 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id498 -->
+<!-- npu="A3" id499 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id499 -->
+<!-- npu="950" id500 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id500 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.BNReLU3d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.intrinsic.BNReLU3d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.intrinsic.BNReLU3d.html#torch.ao.nn.intrinsic.BNReLU3d)
+
+**Support Status**:
+
+<!-- npu="910b" id501 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id501 -->
+<!-- npu="A3" id502 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id502 -->
+<!-- npu="950" id503 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id503 -->
+
+</div>
 
 ### <code><i>class</i></code> torch.ao.nn.intrinsic.qat.LinearReLU
 
@@ -2297,6 +3275,26 @@
 
 </div>
 
+### <code><i>class</i></code> torch.ao.nn.intrinsic.qat.ConvBn2d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.intrinsic.qat.ConvBn2d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.intrinsic.qat.ConvBn2d.html#torch.ao.nn.intrinsic.qat.ConvBn2d)
+
+**Support Status**:
+
+<!-- npu="910b" id605 -->
+- <term>Atlas A2 training products</term>: Not Supported
+<!-- end id605 -->
+<!-- npu="A3" id606 -->
+- <term>Atlas A3 training products</term>: Not Supported
+<!-- end id606 -->
+<!-- npu="950" id607 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id607 -->
+
+</div>
+
 ### <code><i>class</i></code> torch.ao.nn.intrinsic.qat.ConvBnReLU2d
 
 <div style="margin-left: 2em">
@@ -2314,6 +3312,66 @@
 <!-- npu="950" id339 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id339 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.qat.ConvReLU2d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.intrinsic.qat.ConvReLU2d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.intrinsic.qat.ConvReLU2d.html#torch.ao.nn.intrinsic.qat.ConvReLU2d)
+
+**Support Status**:
+
+<!-- npu="910b" id608 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id608 -->
+<!-- npu="A3" id609 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id609 -->
+<!-- npu="950" id610 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id610 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.qat.ConvBn3d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.intrinsic.qat.ConvBn3d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.intrinsic.qat.ConvBn3d.html#torch.ao.nn.intrinsic.qat.ConvBn3d)
+
+**Support Status**:
+
+<!-- npu="910b" id611 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id611 -->
+<!-- npu="A3" id612 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id612 -->
+<!-- npu="950" id613 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id613 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.qat.ConvBnReLU3d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.intrinsic.qat.ConvBnReLU3d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.intrinsic.qat.ConvBnReLU3d.html#torch.ao.nn.intrinsic.qat.ConvBnReLU3d)
+
+**Support Status**:
+
+<!-- npu="910b" id614 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id614 -->
+<!-- npu="A3" id615 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id615 -->
+<!-- npu="950" id616 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id616 -->
 
 </div>
 
@@ -2359,10 +3417,133 @@
 
 </div>
 
+## torch.ao.nn.intrinsic.quantized
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.quantized.BNReLU2d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.intrinsic.quantized.BNReLU2d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.intrinsic.quantized.BNReLU2d.html#torch.ao.nn.intrinsic.quantized.BNReLU2d)
+
+**Support Status**:
+
+<!-- npu="910b" id617 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id617 -->
+<!-- npu="A3" id618 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id618 -->
+<!-- npu="950" id619 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id619 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.quantized.BNReLU3d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.intrinsic.quantized.BNReLU3d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.intrinsic.quantized.BNReLU3d.html#torch.ao.nn.intrinsic.quantized.BNReLU3d)
+
+**Support Status**:
+
+<!-- npu="910b" id621 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id621 -->
+<!-- npu="A3" id622 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id622 -->
+<!-- npu="950" id623 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id623 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.quantized.ConvReLU1d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.intrinsic.quantized.ConvReLU1d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.intrinsic.quantized.ConvReLU1d.html#torch.ao.nn.intrinsic.quantized.ConvReLU1d)
+
+**Support Status**:
+
+<!-- npu="910b" id625 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id625 -->
+<!-- npu="A3" id626 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id626 -->
+<!-- npu="950" id627 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id627 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.intrinsic.quantized.ConvReLU2d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.intrinsic.quantized.ConvReLU2d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.intrinsic.quantized.ConvReLU2d.html#torch.ao.nn.intrinsic.quantized.ConvReLU2d)
+
+**Support Status**:
+
+<!-- npu="910b" id629 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id629 -->
+<!-- npu="A3" id630 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id630 -->
+<!-- npu="950" id631 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id631 -->
+
+</div>
+
 ## torch.ao.nn.qat
+
+### <code><i>class</i></code> torch.ao.nn.qat.Conv2d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.qat.Conv2d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.qat.Conv2d.html#torch.ao.nn.qat.Conv2d)
+
+**Support Status**:
+
+<!-- npu="910b" id633 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id633 -->
+<!-- npu="A3" id634 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id634 -->
+<!-- npu="950" id635 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id635 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.qat.Conv3d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.qat.Conv3d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.qat.Conv3d.html#torch.ao.nn.qat.Conv3d)
+
+**Support Status**:
+
+<!-- npu="910b" id637 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id637 -->
+<!-- npu="A3" id638 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id638 -->
+<!-- npu="950" id639 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id639 -->
+
+</div>
 
 ### <code><i>class</i></code> torch.ao.nn.qat.Linear
 
+<!-- npu="910b,A3" id793 -->
 <div style="margin-left: 2em">
 
 **Native Documentation**: [torch.ao.nn.qat.Linear](https://pytorch.org/docs/2.7/generated/torch.ao.nn.qat.Linear.html)
@@ -2379,9 +3560,718 @@
 - <term>Ascend 950DT products</term>: Not Supported
 <!-- end id348 -->
 
+<!-- end id793 -->
+
+> <font size="3">from_float()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.qat.Linear.from\_float](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.qat.Linear.html#torch.ao.nn.qat.Linear.from_float)
+
+**Support Status**:
+
+<!-- npu="910b" id753 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id753 -->
+<!-- npu="A3" id754 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id754 -->
+<!-- npu="950" id755 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id755 -->
+
+</div>
+
+<!-- npu="910b,A3" id756 -->
+</div>
+
+<!-- end id756 -->
+
+## torch.ao.nn.quantized
+
+### <code><i>class</i></code> torch.ao.nn.quantized.ReLU6
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.ReLU6](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.ReLU6.html#torch.ao.nn.quantized.ReLU6)
+
+**Support Status**:
+
+<!-- npu="910b" id641 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id641 -->
+<!-- npu="A3" id642 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id642 -->
+<!-- npu="950" id643 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id643 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.ELU
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.ELU](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.ELU.html#torch.ao.nn.quantized.ELU)
+
+**Support Status**:
+
+<!-- npu="910b" id644 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id644 -->
+<!-- npu="A3" id645 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id645 -->
+<!-- npu="950" id646 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id646 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.LeakyReLU
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.LeakyReLU](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.LeakyReLU.html#torch.ao.nn.quantized.LeakyReLU)
+
+**Support Status**:
+
+<!-- npu="910b" id647 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id647 -->
+<!-- npu="A3" id648 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id648 -->
+<!-- npu="950" id649 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id649 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.Sigmoid
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.Sigmoid](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.Sigmoid.html#torch.ao.nn.quantized.Sigmoid)
+
+**Support Status**:
+
+<!-- npu="910b" id650 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id650 -->
+<!-- npu="A3" id651 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id651 -->
+<!-- npu="950" id652 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id652 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.BatchNorm2d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.BatchNorm2d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.BatchNorm2d.html#torch.ao.nn.quantized.BatchNorm2d)
+
+**Support Status**:
+
+<!-- npu="910b" id653 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id653 -->
+<!-- npu="A3" id654 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id654 -->
+<!-- npu="950" id655 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id655 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.BatchNorm3d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.BatchNorm3d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.BatchNorm3d.html#torch.ao.nn.quantized.BatchNorm3d)
+
+**Support Status**:
+
+<!-- npu="910b" id656 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id656 -->
+<!-- npu="A3" id657 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id657 -->
+<!-- npu="950" id658 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id658 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.Conv1d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.Conv1d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.Conv1d.html#torch.ao.nn.quantized.Conv1d)
+
+**Support Status**:
+
+<!-- npu="910b" id659 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id659 -->
+<!-- npu="A3" id660 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id660 -->
+<!-- npu="950" id661 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id661 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.Conv2d
+
+<div style="margin-left: 2em">
+
+> <font size="3">from_float()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.Conv2d.from\_float](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.Conv2d.html#torch.ao.nn.quantized.Conv2d.from_float)
+
+**Support Status**:
+
+<!-- npu="910b" id760 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id760 -->
+<!-- npu="A3" id761 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id761 -->
+<!-- npu="950" id762 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id762 -->
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.Conv3d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.Conv3d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.Conv3d.html#torch.ao.nn.quantized.Conv3d)
+
+**Support Status**:
+
+<!-- npu="910b" id662 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id662 -->
+<!-- npu="A3" id663 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id663 -->
+<!-- npu="950" id664 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id664 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.ConvTranspose1d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.ConvTranspose1d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.ConvTranspose1d.html#torch.ao.nn.quantized.ConvTranspose1d)
+
+**Support Status**:
+
+<!-- npu="910b" id665 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id665 -->
+<!-- npu="A3" id666 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id666 -->
+<!-- npu="950" id667 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id667 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.ConvTranspose2d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.ConvTranspose2d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.ConvTranspose2d.html#torch.ao.nn.quantized.ConvTranspose2d)
+
+**Support Status**:
+
+<!-- npu="910b" id668 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id668 -->
+<!-- npu="A3" id669 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id669 -->
+<!-- npu="950" id670 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id670 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.Embedding
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.Embedding](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.Embedding.html#torch.ao.nn.quantized.Embedding)
+
+**Support Status**:
+
+<!-- npu="910b" id671 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id671 -->
+<!-- npu="A3" id672 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id672 -->
+<!-- npu="950" id673 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id673 -->
+
+> <font size="3">from_float()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.Embedding.from\_float](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.Embedding.html#torch.ao.nn.quantized.Embedding.from_float)
+
+**Support Status**:
+
+<!-- npu="910b" id763 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id763 -->
+<!-- npu="A3" id764 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id764 -->
+<!-- npu="950" id765 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id765 -->
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.QFunctional
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.QFunctional](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.QFunctional.html#torch.ao.nn.quantized.QFunctional)
+
+**Support Status**:
+
+<!-- npu="910b" id674 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id674 -->
+<!-- npu="A3" id675 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id675 -->
+<!-- npu="950" id676 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id676 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.LayerNorm
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.LayerNorm](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.LayerNorm.html#torch.ao.nn.quantized.LayerNorm)
+
+**Support Status**:
+
+<!-- npu="910b" id677 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id677 -->
+<!-- npu="A3" id678 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id678 -->
+<!-- npu="950" id679 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id679 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.InstanceNorm1d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.InstanceNorm1d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.InstanceNorm1d.html#torch.ao.nn.quantized.InstanceNorm1d)
+
+**Support Status**:
+
+<!-- npu="910b" id680 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id680 -->
+<!-- npu="A3" id681 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id681 -->
+<!-- npu="950" id682 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id682 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.InstanceNorm2d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.InstanceNorm2d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.InstanceNorm2d.html#torch.ao.nn.quantized.InstanceNorm2d)
+
+**Support Status**:
+
+<!-- npu="910b" id683 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id683 -->
+<!-- npu="A3" id684 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id684 -->
+<!-- npu="950" id685 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id685 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.InstanceNorm3d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.InstanceNorm3d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.InstanceNorm3d.html#torch.ao.nn.quantized.InstanceNorm3d)
+
+**Support Status**:
+
+<!-- npu="910b" id686 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id686 -->
+<!-- npu="A3" id687 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id687 -->
+<!-- npu="950" id688 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id688 -->
+
+</div>
+
+## torch.ao.nn.quantized.functional
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.avg\_pool2d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.functional.avg\_pool2d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.functional.avg_pool2d.html#torch.ao.nn.quantized.functional.avg_pool2d)
+
+**Support Status**:
+
+<!-- npu="910b" id689 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id689 -->
+<!-- npu="A3" id690 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id690 -->
+<!-- npu="950" id691 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id691 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.avg\_pool3d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.functional.avg\_pool3d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.functional.avg_pool3d.html#torch.ao.nn.quantized.functional.avg_pool3d)
+
+**Support Status**:
+
+<!-- npu="950" id692 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id692 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.conv3d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.functional.conv3d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.functional.conv3d.html#torch.ao.nn.quantized.functional.conv3d)
+
+**Support Status**:
+
+<!-- npu="910b" id693 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id693 -->
+<!-- npu="A3" id694 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id694 -->
+<!-- npu="950" id695 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id695 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.interpolate
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.functional.interpolate](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.functional.interpolate.html#torch.ao.nn.quantized.functional.interpolate)
+
+**Support Status**:
+
+<!-- npu="910b" id696 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id696 -->
+<!-- npu="A3" id697 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id697 -->
+<!-- npu="950" id698 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id698 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.linear
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.functional.linear](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.functional.linear.html#torch.ao.nn.quantized.functional.linear)
+
+**Support Status**:
+
+<!-- npu="910b" id699 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id699 -->
+<!-- npu="A3" id700 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id700 -->
+<!-- npu="950" id701 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id701 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.max\_pool1d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.functional.max\_pool1d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.functional.max_pool1d.html#torch.ao.nn.quantized.functional.max_pool1d)
+
+**Support Status**:
+
+<!-- npu="910b" id702 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id702 -->
+<!-- npu="A3" id703 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id703 -->
+<!-- npu="950" id704 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id704 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.max\_pool2d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.functional.max\_pool2d](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.functional.max_pool2d.html#torch.ao.nn.quantized.functional.max_pool2d)
+
+**Support Status**:
+
+<!-- npu="910b" id705 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id705 -->
+<!-- npu="A3" id706 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id706 -->
+<!-- npu="950" id707 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id707 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.hardtanh
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.functional.hardtanh](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.functional.hardtanh.html#torch.ao.nn.quantized.functional.hardtanh)
+
+**Support Status**:
+
+<!-- npu="910b" id708 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id708 -->
+<!-- npu="A3" id709 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id709 -->
+<!-- npu="950" id710 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id710 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.hardswish
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.functional.hardswish](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.functional.hardswish.html#torch.ao.nn.quantized.functional.hardswish)
+
+**Support Status**:
+
+<!-- npu="910b" id711 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id711 -->
+<!-- npu="A3" id712 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id712 -->
+<!-- npu="950" id713 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id713 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.threshold
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.functional.threshold](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.functional.threshold.html#torch.ao.nn.quantized.functional.threshold)
+
+**Support Status**:
+
+<!-- npu="910b" id714 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id714 -->
+<!-- npu="A3" id715 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id715 -->
+<!-- npu="950" id716 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id716 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.elu
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.functional.elu](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.functional.elu.html#torch.ao.nn.quantized.functional.elu)
+
+**Support Status**:
+
+<!-- npu="910b" id717 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id717 -->
+<!-- npu="A3" id718 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id718 -->
+<!-- npu="950" id719 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id719 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.hardsigmoid
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.functional.hardsigmoid](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.functional.hardsigmoid.html#torch.ao.nn.quantized.functional.hardsigmoid)
+
+**Support Status**:
+
+<!-- npu="910b" id720 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id720 -->
+<!-- npu="A3" id721 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id721 -->
+<!-- npu="950" id722 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id722 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.clamp
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.functional.clamp](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.functional.clamp.html#torch.ao.nn.quantized.functional.clamp)
+
+**Support Status**:
+
+<!-- npu="910b" id723 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id723 -->
+<!-- npu="A3" id724 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id724 -->
+<!-- npu="950" id725 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id725 -->
+
 </div>
 
 ## torch.ao.nn.quantizable
+
+### <code><i>class</i></code> torch.ao.nn.quantized.FloatFunctional
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.FloatFunctional](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.FloatFunctional.html#torch.ao.nn.quantized.FloatFunctional)
+
+**Support Status**:
+
+<!-- npu="910b" id513 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id513 -->
+<!-- npu="A3" id514 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id514 -->
+<!-- npu="950" id515 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id515 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.FXFloatFunctional
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.FXFloatFunctional](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.FXFloatFunctional.html#torch.ao.nn.quantized.FXFloatFunctional)
+
+**Support Status**:
+
+<!-- npu="910b" id519 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id519 -->
+<!-- npu="A3" id520 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id520 -->
+<!-- npu="950" id521 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id521 -->
+
+</div>
+
+### <code><i>class</i></code> torch.ao.nn.quantized.functional.leaky_relu
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantized.functional.leaky_relu](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.functional.leaky_relu.html#torch.ao.nn.quantized.functional.leaky_relu)
+
+**Support Status**:
+
+<!-- npu="910b" id516 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id516 -->
+<!-- npu="A3" id517 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id517 -->
+<!-- npu="950" id518 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id518 -->
+
+</div>
 
 ### <code><i>class</i></code> torch.ao.nn.quantizable.LSTM
 
@@ -2405,23 +4295,43 @@
 
 ## torch.ao.nn.quantized.dynamic
 
-### <code><i>class</i></code> torch.ao.nn.quantized.dynamic.Linear
+### <code><i>class</i></code> torch.ao.nn.quantizable.MultiheadAttention
 
 <div style="margin-left: 2em">
 
-**Native Documentation**: [torch.ao.nn.quantized.dynamic.Linear](https://pytorch.org/docs/2.7/generated/torch.ao.nn.quantized.dynamic.Linear.html)
+**Native Documentation**: [torch.ao.nn.quantizable.MultiheadAttention](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantizable.MultiheadAttention.html#torch.ao.nn.quantizable.MultiheadAttention)
 
 **Support Status**:
 
-<!-- npu="910b" id352 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id352 -->
-<!-- npu="A3" id353 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id353 -->
-<!-- npu="950" id354 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id354 -->
+<!-- npu="910b" id510 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id510 -->
+<!-- npu="A3" id511 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id511 -->
+<!-- npu="950" id512 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id512 -->
+
+> <font size="3">forward()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.ao.nn.quantizable.MultiheadAttention.forward](https://docs.pytorch.org/docs/2.7/generated/torch.ao.nn.quantizable.MultiheadAttention.html#torch.ao.nn.quantizable.MultiheadAttention.forward)
+
+**Support Status**:
+
+<!-- npu="910b" id757 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id757 -->
+<!-- npu="A3" id758 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id758 -->
+<!-- npu="950" id759 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id759 -->
+
+</div>
 
 </div>
 
@@ -2779,6 +4689,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id492 -->
 > <font size="3">mul()</font>
 
 <div style="margin-left: 2em">
@@ -2786,6 +4697,7 @@
 **Native Documentation**: [torch.ao.ns._numeric_suite.Shadow.mul](https://pytorch.org/docs/2.7/torch.ao.ns._numeric_suite.html#torch.ao.ns._numeric_suite.Shadow.mul)
 
 **Support Status**:
+<!-- end id492 -->
 
 <!-- npu="910b" id406 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -2793,14 +4705,14 @@
 <!-- npu="A3" id407 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id407 -->
-<!-- npu="950" id408 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id408 -->
 
+<!-- npu="910b,A3" id493 -->
 **Constraints & Notes**: `input` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
 
 </div>
+<!-- end id493 -->
 
+<!-- npu="910b,A3" id494 -->
 > <font size="3">mul_scalar()</font>
 
 <div style="margin-left: 2em">
@@ -2808,6 +4720,7 @@
 **Native Documentation**: [torch.ao.ns._numeric_suite.Shadow.mul_scalar](https://pytorch.org/docs/2.7/torch.ao.ns._numeric_suite.html#torch.ao.ns._numeric_suite.Shadow.mul_scalar)
 
 **Support Status**:
+<!-- end id494 -->
 
 <!-- npu="910b" id409 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -2815,13 +4728,12 @@
 <!-- npu="A3" id410 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id410 -->
-<!-- npu="950" id411 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id411 -->
 
+<!-- npu="910b,A3" id495 -->
 **Constraints & Notes**: `input` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
 
 </div>
+<!-- end id495 -->
 
 > <font size="3">cat()</font>
 

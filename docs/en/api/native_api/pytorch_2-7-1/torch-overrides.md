@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.7/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.7/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
 > - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.7/torch.overrides.html).
 
@@ -102,6 +102,26 @@
 
 </div>
 
+### torch.overrides.handle_torch_function
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.overrides.handle_torch_function](https://pytorch.org/docs/2.7/torch.overrides.html#torch.overrides.handle_torch_function)
+
+**Support Status**:
+
+<!-- npu="910b" id22 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id22 -->
+<!-- npu="A3" id23 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id23 -->
+<!-- npu="950" id24 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id24 -->
+
+</div>
+
 ### torch.overrides.has_torch_function
 
 <div style="margin-left: 2em">
@@ -119,6 +139,26 @@
 <!-- npu="950" id15 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id15 -->
+
+</div>
+
+### torch.overrides.is_tensor_like
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.overrides.is_tensor_like](https://pytorch.org/docs/2.7/torch.overrides.html#torch.overrides.is_tensor_like)
+
+**Support Status**:
+
+<!-- npu="910b" id25 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id25 -->
+<!-- npu="A3" id26 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id26 -->
+<!-- npu="950" id27 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id27 -->
 
 </div>
 
@@ -159,45 +199,5 @@
 <!-- npu="950" id21 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id21 -->
-
-</div>
-
-### torch.overrides.handle_torch_function
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.overrides.handle_torch_function](https://pytorch.org/docs/2.7/torch.overrides.html#torch.overrides.handle_torch_function)
-
-**Support Status**:
-
-<!-- npu="910b" id22 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id22 -->
-<!-- npu="A3" id23 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id23 -->
-<!-- npu="950" id24 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id24 -->
-
-</div>
-
-### torch.overrides.is_tensor_like
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.overrides.is_tensor_like](https://pytorch.org/docs/2.7/torch.overrides.html#torch.overrides.is_tensor_like)
-
-**Support Status**:
-
-<!-- npu="910b" id25 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id25 -->
-<!-- npu="A3" id26 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id26 -->
-<!-- npu="950" id27 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id27 -->
 
 </div>

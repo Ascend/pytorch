@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.13/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.13/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
 > - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.13/distributed.algorithms.join.html).
 
@@ -13,13 +13,18 @@
 
 </div>
 
+<!-- npu="910b,A3" id43 -->
+<!-- npu="910b,A3" id27 -->
 ### <code><i>class</i></code> torch.distributed.algorithms.Join
+<!-- end id27 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id28 -->
 **Native Documentation**: [torch.distributed.algorithms.Join](https://pytorch.org/docs/2.13/distributed.algorithms.join.html#torch.distributed.algorithms.Join)
 
 **Support Status**:
+<!-- end id28 -->
 
 <!-- npu="910b" id1 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -27,10 +32,8 @@
 <!-- npu="A3" id2 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id2 -->
-<!-- npu="950" id3 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id3 -->
 
+<!-- npu="910b,A3" id29 -->
 > <font size="3">notify_join_context()</font>
 
 <div style="margin-left: 2em">
@@ -38,6 +41,7 @@
 **Native Documentation**: [torch.distributed.algorithms.Join.notify_join_context](https://pytorch.org/docs/2.13/distributed.algorithms.join.html#torch.distributed.algorithms.Join.notify_join_context)
 
 **Support Status**:
+<!-- end id29 -->
 
 <!-- npu="910b" id4 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -45,21 +49,25 @@
 <!-- npu="A3" id5 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id5 -->
-<!-- npu="950" id6 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id6 -->
+
+<!-- npu="910b,A3" id30 -->
+</div>
+<!-- end id30 -->
 
 </div>
+<!-- end id43 -->
 
-</div>
-
+<!-- npu="910b,A3,950" id31 -->
 ### <code><i>class</i></code> torch.distributed.algorithms.Joinable
+<!-- end id31 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id32 -->
 **Native Documentation**: [torch.distributed.algorithms.Joinable](https://pytorch.org/docs/2.13/distributed.algorithms.join.html#torch.distributed.algorithms.Joinable)
 
 **Support Status**:
+<!-- end id32 -->
 
 <!-- npu="910b" id7 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -67,10 +75,8 @@
 <!-- npu="A3" id8 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id8 -->
-<!-- npu="950" id9 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id9 -->
 
+<!-- npu="910b,A3" id33 -->
 > <font size="3">join_device()</font>
 
 <div style="margin-left: 2em">
@@ -78,6 +84,7 @@
 **Native Documentation**: [torch.distributed.algorithms.Joinable.join_device](https://pytorch.org/docs/2.13/distributed.algorithms.join.html#torch.distributed.algorithms.Joinable.join_device)
 
 **Support Status**:
+<!-- end id33 -->
 
 <!-- npu="910b" id10 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -85,11 +92,10 @@
 <!-- npu="A3" id11 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id11 -->
-<!-- npu="950" id12 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id12 -->
 
+<!-- npu="910b,A3" id34 -->
 </div>
+<!-- end id34 -->
 
 > <font size="3">join_hook()</font>
 
@@ -111,6 +117,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id35 -->
 > <font size="3">join_process_group()</font>
 
 <div style="margin-left: 2em">
@@ -118,6 +125,7 @@
 **Native Documentation**: [torch.distributed.algorithms.Joinable.join_process_group](https://pytorch.org/docs/2.13/distributed.algorithms.join.html#torch.distributed.algorithms.Joinable.join_process_group)
 
 **Support Status**:
+<!-- end id35 -->
 
 <!-- npu="910b" id16 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -125,21 +133,25 @@
 <!-- npu="A3" id17 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id17 -->
-<!-- npu="950" id18 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id18 -->
+
+<!-- npu="910b,A3" id36 -->
+</div>
+<!-- end id36 -->
 
 </div>
 
-</div>
-
+<!-- npu="910b,A3" id44 -->
+<!-- npu="910b,A3" id37 -->
 ### <code><i>class</i></code> torch.distributed.algorithms.JoinHook
+<!-- end id37 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id38 -->
 **Native Documentation**: [torch.distributed.algorithms.JoinHook](https://pytorch.org/docs/2.13/distributed.algorithms.join.html#torch.distributed.algorithms.JoinHook)
 
 **Support Status**:
+<!-- end id38 -->
 
 <!-- npu="910b" id19 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -147,10 +159,8 @@
 <!-- npu="A3" id20 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id20 -->
-<!-- npu="950" id21 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id21 -->
 
+<!-- npu="910b,A3" id39 -->
 > <font size="3">main_hook()</font>
 
 <div style="margin-left: 2em">
@@ -158,6 +168,7 @@
 **Native Documentation**: [torch.distributed.algorithms.JoinHook.main_hook](https://pytorch.org/docs/2.13/distributed.algorithms.join.html#torch.distributed.algorithms.JoinHook.main_hook)
 
 **Support Status**:
+<!-- end id39 -->
 
 <!-- npu="910b" id22 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -165,12 +176,12 @@
 <!-- npu="A3" id23 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id23 -->
-<!-- npu="950" id24 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id24 -->
 
+<!-- npu="910b,A3" id40 -->
 </div>
+<!-- end id40 -->
 
+<!-- npu="910b,A3" id41 -->
 > <font size="3">post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -178,6 +189,7 @@
 **Native Documentation**: [torch.distributed.algorithms.JoinHook.post_hook](https://pytorch.org/docs/2.13/distributed.algorithms.join.html#torch.distributed.algorithms.JoinHook.post_hook)
 
 **Support Status**:
+<!-- end id41 -->
 
 <!-- npu="910b" id25 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -185,10 +197,10 @@
 <!-- npu="A3" id26 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id26 -->
-<!-- npu="950" id27 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id27 -->
+
+<!-- npu="910b,A3" id42 -->
+</div>
+<!-- end id42 -->
 
 </div>
-
-</div>
+<!-- end id44 -->

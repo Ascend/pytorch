@@ -2,9 +2,9 @@
 
 > [!NOTE]
 >
-> - TorchScript is deprecated; prefer `torch.export` or `torch.compile`. This page retains the support information inherited from the previous version for reference by existing code.
+> - TorchScript is deprecated. Use `torch.export` or `torch.compile` preferentially. This page retains the support information inherited from earlier versions for reference by existing code.
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.9/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.9/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
 > - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.9/jit.html).
 
@@ -109,6 +109,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id244 -->
 ### torch.jit.fork
 
 <div style="margin-left: 2em">
@@ -116,6 +117,7 @@
 **Native Documentation**: [torch.jit.fork](https://pytorch.org/docs/2.9/generated/torch.jit.fork.html)
 
 **Support Status**:
+<!-- end id244 -->
 
 <!-- npu="910b" id13 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -123,12 +125,12 @@
 <!-- npu="A3" id14 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id14 -->
-<!-- npu="950" id15 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id15 -->
 
+<!-- npu="910b,A3" id245 -->
 </div>
+<!-- end id245 -->
 
+<!-- npu="910b,A3" id246 -->
 ### torch.jit.wait
 
 <div style="margin-left: 2em">
@@ -136,6 +138,7 @@
 **Native Documentation**: [torch.jit.wait](https://pytorch.org/docs/2.9/generated/torch.jit.wait.html)
 
 **Support Status**:
+<!-- end id246 -->
 
 <!-- npu="910b" id16 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -143,11 +146,10 @@
 <!-- npu="A3" id17 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id17 -->
-<!-- npu="950" id18 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id18 -->
 
+<!-- npu="910b,A3" id247 -->
 </div>
+<!-- end id247 -->
 
 ### <code><i>class</i></code> torch.jit.ScriptModule
 
@@ -487,26 +489,6 @@
 
 </div>
 
-> <font size="3">get_extra_state()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.jit.ScriptModule.get_extra_state](https://pytorch.org/docs/2.9/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.get_extra_state)
-
-**Support Status**:
-
-<!-- npu="910b" id67 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id67 -->
-<!-- npu="A3" id68 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id68 -->
-<!-- npu="950" id69 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id69 -->
-
-</div>
-
 > <font size="3">get_parameter()</font>
 
 <div style="margin-left: 2em">
@@ -811,26 +793,6 @@
 
 </div>
 
-> <font size="3">register_buffer()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.jit.ScriptModule.register_buffer](https://pytorch.org/docs/2.9/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.register_buffer)
-
-**Support Status**:
-
-<!-- npu="910b" id112 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id112 -->
-<!-- npu="A3" id113 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id113 -->
-<!-- npu="950" id114 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id114 -->
-
-</div>
-
 > <font size="3">register_forward_hook()</font>
 
 <div style="margin-left: 2em">
@@ -919,28 +881,6 @@
 
 </div>
 
-> <font size="3">register_load_state_dict_pre_hook()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.jit.ScriptModule.register_load_state_dict_pre_hook](https://pytorch.org/docs/2.9/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.register_load_state_dict_pre_hook)
-
-**Support Status**:
-
-<!-- npu="910b" id127 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id127 -->
-<!-- npu="A3" id128 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id128 -->
-<!-- npu="950" id129 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id129 -->
-
-**Constraints & Notes**: `input` only supports fp32
-
-</div>
-
 > <font size="3">register_load_state_dict_post_hook()</font>
 
 <div style="margin-left: 2em">
@@ -963,63 +903,23 @@
 
 </div>
 
-> <font size="3">register_module()</font>
+> <font size="3">register_load_state_dict_pre_hook()</font>
 
 <div style="margin-left: 2em">
 
-**Native Documentation**: [torch.jit.ScriptModule.register_module](https://pytorch.org/docs/2.9/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.register_module)
+**Native Documentation**: [torch.jit.ScriptModule.register_load_state_dict_pre_hook](https://pytorch.org/docs/2.9/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.register_load_state_dict_pre_hook)
 
 **Support Status**:
 
-<!-- npu="910b" id133 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id133 -->
-<!-- npu="A3" id134 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id134 -->
-<!-- npu="950" id135 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id135 -->
-
-</div>
-
-> <font size="3">register_parameter()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.jit.ScriptModule.register_parameter](https://pytorch.org/docs/2.9/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.register_parameter)
-
-**Support Status**:
-
-<!-- npu="910b" id136 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id136 -->
-<!-- npu="A3" id137 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id137 -->
-<!-- npu="950" id138 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id138 -->
-
-</div>
-
-> <font size="3">register_state_dict_pre_hook()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.jit.ScriptModule.register_state_dict_pre_hook](https://pytorch.org/docs/2.9/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.register_state_dict_pre_hook)
-
-**Support Status**:
-
-<!-- npu="910b" id139 -->
+<!-- npu="910b" id127 -->
 - <term>Atlas A2 training products</term>: Supported
-<!-- end id139 -->
-<!-- npu="A3" id140 -->
+<!-- end id127 -->
+<!-- npu="A3" id128 -->
 - <term>Atlas A3 training products</term>: Supported
-<!-- end id140 -->
-<!-- npu="950" id141 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id141 -->
+<!-- end id128 -->
+<!-- npu="950" id129 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id129 -->
 
 **Constraints & Notes**: `input` only supports fp32
 
@@ -1042,6 +942,28 @@
 <!-- npu="950" id144 -->
 - <term>Ascend 950DT products</term>: Not Supported
 <!-- end id144 -->
+
+**Constraints & Notes**: `input` only supports fp32
+
+</div>
+
+> <font size="3">register_state_dict_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.jit.ScriptModule.register_state_dict_pre_hook](https://pytorch.org/docs/2.9/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.register_state_dict_pre_hook)
+
+**Support Status**:
+
+<!-- npu="910b" id139 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id139 -->
+<!-- npu="A3" id140 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id140 -->
+<!-- npu="950" id141 -->
+- <term>Ascend 950DT products</term>: Not Supported
+<!-- end id141 -->
 
 **Constraints & Notes**: `input` only supports fp32
 
@@ -1091,73 +1013,11 @@
 
 </div>
 
-> <font size="3">set_extra_state()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.jit.ScriptModule.set_extra_state](https://pytorch.org/docs/2.9/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.set_extra_state)
-
-**Support Status**:
-
-<!-- npu="910b" id151 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id151 -->
-<!-- npu="A3" id152 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id152 -->
-<!-- npu="950" id153 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id153 -->
-
-</div>
-
-> <font size="3">set_submodule()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.jit.ScriptModule.set_submodule](https://pytorch.org/docs/2.9/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.set_submodule)
-
-**Support Status**:
-
-<!-- npu="910b" id154 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id154 -->
-<!-- npu="A3" id155 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id155 -->
-<!-- npu="950" id156 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id156 -->
-
-</div>
-
-> <font size="3">share_memory()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.jit.ScriptModule.share_memory](https://pytorch.org/docs/2.9/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.share_memory)
-
-**Support Status**:
-
-<!-- npu="910b" id157 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id157 -->
-<!-- npu="A3" id158 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id158 -->
-<!-- npu="950" id159 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id159 -->
-
-</div>
-
 > <font size="3">state_dict()</font>
 
 <div style="margin-left: 2em">
 
 **Native Documentation**: [torch.jit.ScriptModule.state_dict](https://pytorch.org/docs/2.9/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.state_dict)
-
-**Version Notes**: Passing `destination`, `prefix`, and `keep_vars` as positional arguments is deprecated; use keyword arguments.
 
 **Support Status**:
 
@@ -1475,6 +1335,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id248 -->
 ### torch.jit.set_fusion_strategy
 
 <div style="margin-left: 2em">
@@ -1482,6 +1343,7 @@
 **Native Documentation**: [torch.jit.set_fusion_strategy](https://pytorch.org/docs/2.9/generated/torch.jit.set_fusion_strategy.html)
 
 **Support Status**:
+<!-- end id248 -->
 
 <!-- npu="910b" id205 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1489,12 +1351,12 @@
 <!-- npu="A3" id206 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id206 -->
-<!-- npu="950" id207 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id207 -->
 
+<!-- npu="910b,A3" id249 -->
 </div>
+<!-- end id249 -->
 
+<!-- npu="910b,A3" id250 -->
 ### torch.jit.strict_fusion
 
 <div style="margin-left: 2em">
@@ -1502,6 +1364,7 @@
 **Native Documentation**: [torch.jit.strict_fusion](https://pytorch.org/docs/2.9/generated/torch.jit.strict_fusion.html)
 
 **Support Status**:
+<!-- end id250 -->
 
 <!-- npu="910b" id208 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1509,11 +1372,10 @@
 <!-- npu="A3" id209 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id209 -->
-<!-- npu="950" id210 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id210 -->
 
+<!-- npu="910b,A3" id251 -->
 </div>
+<!-- end id251 -->
 
 ### torch.jit.save
 

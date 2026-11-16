@@ -3,9 +3,9 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.9/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.9/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
-> When using supported cuda APIs, replace cuda in the API name with the NPU-Adapted Name: replace torch.cuda. with torch_npu.npu. or torch.npu.. The two calling conventions torch_npu.npu. and torch.npu. are functionally identical. Examples are as follows:
+> When using the supported CUDA APIs, replace "cuda" in the API name with the NPU form: replace "torch.cuda." with "torch_npu.npu." or "torch.npu.".
 >
 >   `torch.cuda.current_device` --> `torch_npu.npu.current_device`<br>
 >   `torch.cuda.current_device` --> `torch.npu.current_device`
@@ -15,10 +15,17 @@
 <div style="margin: 8px 0"><font size="5"><b>Contents</b></font></div>
 
 - [Random Number Generator](#random-number-generator)
+
 - [Communication collectives](#communication-collectives)
 - [Streams and events](#streams-and-events)
 - [Graphs (beta)](#graphs-beta)
 - [Memory management](#memory-management)
+
+- [Jiterator (beta)](#jiterator-beta)
+
+- [TunableOp](#tunableop)
+
+- [GPUDirect Storage (prototype)](#gpudirect-storage-prototype)
 
 </div>
 
@@ -94,6 +101,28 @@
 
 </div>
 
+### torch.cuda.current_device
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.current_device](https://pytorch.org/docs/2.9/generated/torch.cuda.current_device.html)
+
+**NPU-Adapted Name**: torch_npu.npu.current_device
+
+**Support Status**:
+
+<!-- npu="910b" id70 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id70 -->
+<!-- npu="A3" id71 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id71 -->
+<!-- npu="950" id72 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id72 -->
+
+</div>
+
 ### torch.cuda.current_stream
 
 <div style="margin-left: 2em">
@@ -161,6 +190,26 @@
 <!-- npu="950" id18 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id18 -->
+
+</div>
+
+### torch.cuda.device_memory_used
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.device_memory_used](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.device_memory_used.html#torch.cuda.device_memory_used)
+
+**Support Status**:
+
+<!-- npu="910b" id251 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id251 -->
+<!-- npu="A3" id252 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id252 -->
+<!-- npu="950" id253 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id253 -->
 
 </div>
 
@@ -256,6 +305,26 @@
 
 </div>
 
+### torch.cuda.get\_stream\_from\_external
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.get\_stream\_from\_external](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.get_stream_from_external.html#torch.cuda.get_stream_from_external)
+
+**Support Status**:
+
+<!-- npu="910b" id296 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id296 -->
+<!-- npu="A3" id297 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id297 -->
+<!-- npu="950" id298 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id298 -->
+
+</div>
+
 ### torch.cuda.get_sync_debug_mode
 
 <div style="margin-left: 2em">
@@ -344,6 +413,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id239 -->
 ### torch.cuda.is_initialized
 
 <div style="margin-left: 2em">
@@ -353,6 +423,7 @@
 **NPU-Adapted Name**: torch_npu.npu.is_initialized
 
 **Support Status**:
+<!-- end id239 -->
 
 <!-- npu="910b" id43 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -360,9 +431,28 @@
 <!-- npu="A3" id44 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id44 -->
-<!-- npu="950" id45 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id45 -->
+
+<!-- npu="910b,A3" id240 -->
+</div>
+<!-- end id240 -->
+
+### torch.cuda.is\_tf32\_supported
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.is\_tf32\_supported](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.is_tf32_supported.html#torch.cuda.is_tf32_supported)
+
+**Support Status**:
+
+<!-- npu="910b" id299 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id299 -->
+<!-- npu="A3" id300 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id300 -->
+<!-- npu="950" id301 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id301 -->
 
 </div>
 
@@ -528,15 +618,15 @@
 
 **Support Status**:
 
-<!-- npu="910b" id229 -->
+<!-- npu="910b" id230 -->
 - <term>Atlas A2 training products</term>: Not Supported
-<!-- end id229 -->
-<!-- npu="A3" id230 -->
-- <term>Atlas A3 training products</term>: Not Supported
 <!-- end id230 -->
-<!-- npu="950" id231 -->
-- <term>Ascend 950DT products</term>: Not Supported
+<!-- npu="A3" id231 -->
+- <term>Atlas A3 training products</term>: Not Supported
 <!-- end id231 -->
+<!-- npu="950" id232 -->
+- <term>Ascend 950DT products</term>: Not Supported
+<!-- end id232 -->
 
 **Constraints & Notes**: You can use the `npu-smi info -t common -i <id>` command to view the Temperature(C) metric instead.
 
@@ -552,19 +642,42 @@
 
 **Support Status**:
 
-<!-- npu="910b" id232 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id232 -->
-<!-- npu="A3" id233 -->
-- <term>Atlas A3 training products</term>: Not Supported
+<!-- npu="910b" id233 -->
+- <term>Atlas A2 training products</term>: Supported
 <!-- end id233 -->
-<!-- npu="950" id234 -->
-- <term>Ascend 950DT products</term>: Not Supported
+<!-- npu="A3" id234 -->
+- <term>Atlas A3 training products</term>: Supported
 <!-- end id234 -->
+<!-- npu="950" id235 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id235 -->
 
-**Constraints & Notes**: You can use the `npu-smi info -t common -i <id>` command to view the NPU Real-time Power(W) metric instead.
+**Constraints & Notes**: You can use `npu-smi info -t common -i <id>` to view the NPU Real-time Power(W) metric instead.
 
 </div>
+
+<!-- npu="910b,A3" id241 -->
+### torch.cuda._sanitizer.enable_cuda_sanitizer
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda._sanitizer.enable_cuda_sanitizer](https://pytorch.org/docs/2.9/cuda._sanitizer.html#torch.cuda._sanitizer.enable_cuda_sanitizer)
+
+**NPU-Adapted Name**: torch_npu.npu._sanitizer.enable_npu_sanitizer
+
+**Support Status**:
+<!-- end id241 -->
+
+<!-- npu="910b" id67 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id67 -->
+<!-- npu="A3" id68 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id68 -->
+
+<!-- npu="910b,A3" id242 -->
+</div>
+<!-- end id242 -->
 
 ### torch.cuda.clock_rate
 
@@ -576,61 +689,117 @@
 
 **Support Status**:
 
-<!-- npu="910b" id235 -->
+<!-- npu="910b" id236 -->
 - <term>Atlas A2 training products</term>: Not Supported
-<!-- end id235 -->
-<!-- npu="A3" id236 -->
-- <term>Atlas A3 training products</term>: Not Supported
 <!-- end id236 -->
-<!-- npu="950" id237 -->
-- <term>Ascend 950DT products</term>: Not Supported
+<!-- npu="A3" id237 -->
+- <term>Atlas A3 training products</term>: Not Supported
 <!-- end id237 -->
+<!-- npu="950" id238 -->
+- <term>Ascend 950DT products</term>: Not Supported
+<!-- end id238 -->
 
 **Constraints & Notes**: You can use the `npu-smi info -t common -i <id>` command to view the AI Core curFreq(MHZ) metric instead.
 
 </div>
 
-### torch.cuda._sanitizer.enable_cuda_sanitizer
+### torch.cuda.memory.caching_allocator_enable
 
 <div style="margin-left: 2em">
 
-**Native Documentation**: [torch.cuda._sanitizer.enable_cuda_sanitizer](https://pytorch.org/docs/2.9/cuda._sanitizer.html#torch.cuda._sanitizer.enable_cuda_sanitizer)
-
-**NPU-Adapted Name**: torch_npu.npu._sanitizer.enable_npu_sanitizer
+**Native Documentation**: [torch.cuda.memory.caching_allocator_enable](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.memory.caching_allocator_enable.html#torch.cuda.memory.caching_allocator_enable)
 
 **Support Status**:
 
-<!-- npu="910b" id67 -->
+<!-- npu="910b" id257 -->
 - <term>Atlas A2 training products</term>: Supported
-<!-- end id67 -->
-<!-- npu="A3" id68 -->
+<!-- end id257 -->
+<!-- npu="A3" id258 -->
 - <term>Atlas A3 training products</term>: Supported
-<!-- end id68 -->
-<!-- npu="950" id69 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id69 -->
+<!-- end id258 -->
+<!-- npu="950" id259 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id259 -->
 
 </div>
 
-### torch.cuda.current_device
+### <code><i>class</i></code> torch.cuda.use_mem_pool
 
 <div style="margin-left: 2em">
 
-**Native Documentation**: [torch.cuda.current_device](https://pytorch.org/docs/2.9/generated/torch.cuda.current_device.html)
-
-**NPU-Adapted Name**: torch_npu.npu.current_device
+**Native Documentation**: [torch.cuda.use_mem_pool](https://docs.pytorch.org/docs/2.9/cuda.html#torch.cuda.use_mem_pool)
 
 **Support Status**:
 
-<!-- npu="910b" id70 -->
+<!-- npu="910b" id260 -->
 - <term>Atlas A2 training products</term>: Supported
-<!-- end id70 -->
-<!-- npu="A3" id71 -->
+<!-- end id260 -->
+<!-- npu="A3" id261 -->
 - <term>Atlas A3 training products</term>: Supported
-<!-- end id71 -->
-<!-- npu="950" id72 -->
+<!-- end id261 -->
+<!-- npu="950" id262 -->
 - <term>Ascend 950DT products</term>: Supported
-<!-- end id72 -->
+<!-- end id262 -->
+
+</div>
+
+### torch.cuda.nvtx.range_push
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.nvtx.range_push](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.nvtx.range_push.html#torch.cuda.nvtx.range_push)
+
+**Support Status**:
+
+<!-- npu="910b" id272 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id272 -->
+<!-- npu="A3" id273 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id273 -->
+<!-- npu="950" id274 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id274 -->
+
+</div>
+
+### torch.cuda.nvtx.range_pop
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.nvtx.range_pop](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.nvtx.range_pop.html#torch.cuda.nvtx.range_pop)
+
+**Support Status**:
+
+<!-- npu="910b" id269 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id269 -->
+<!-- npu="A3" id270 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id270 -->
+<!-- npu="950" id271 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id271 -->
+
+</div>
+
+### torch.cuda.nvtx.range
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.nvtx.range](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.nvtx.range.html#torch.cuda.nvtx.range)
+
+**Support Status**:
+
+<!-- npu="910b" id266 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id266 -->
+<!-- npu="A3" id267 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id267 -->
+<!-- npu="950" id268 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id268 -->
 
 </div>
 
@@ -655,6 +824,26 @@
 <!-- npu="950" id75 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id75 -->
+
+</div>
+
+### torch.cuda.get_rng_state_all
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.get_rng_state_all](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.get_rng_state_all.html#torch.cuda.get_rng_state_all)
+
+**Support Status**:
+
+<!-- npu="910b" id254 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id254 -->
+<!-- npu="A3" id255 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id255 -->
+<!-- npu="950" id256 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id256 -->
 
 </div>
 
@@ -814,43 +1003,63 @@
 
 ## Communication collectives
 
-### torch.cuda.comm.scatter
+### torch.cuda.comm.broadcast
 
 <div style="margin-left: 2em">
 
-**Native Documentation**: [torch.cuda.comm.scatter](https://pytorch.org/docs/2.9/generated/torch.cuda.comm.scatter.html)
+**Native Documentation**: [torch.cuda.comm.broadcast](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.comm.broadcast.html#torch.cuda.comm.broadcast)
 
 **Support Status**:
 
-<!-- npu="910b" id97 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id97 -->
-<!-- npu="A3" id98 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id98 -->
-<!-- npu="950" id99 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id99 -->
+<!-- npu="910b" id302 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id302 -->
+<!-- npu="A3" id303 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id303 -->
+<!-- npu="950" id304 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id304 -->
 
 </div>
 
-### torch.cuda.comm.gather
+### torch.cuda.comm.broadcast\_coalesced
 
 <div style="margin-left: 2em">
 
-**Native Documentation**: [torch.cuda.comm.gather](https://pytorch.org/docs/2.9/generated/torch.cuda.comm.gather.html)
+**Native Documentation**: [torch.cuda.comm.broadcast\_coalesced](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.comm.broadcast_coalesced.html#torch.cuda.comm.broadcast_coalesced)
 
 **Support Status**:
 
-<!-- npu="910b" id100 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id100 -->
-<!-- npu="A3" id101 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id101 -->
-<!-- npu="950" id102 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id102 -->
+<!-- npu="910b" id305 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id305 -->
+<!-- npu="A3" id306 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id306 -->
+<!-- npu="950" id307 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id307 -->
+
+</div>
+
+### torch.cuda.comm.reduce\_add
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.comm.reduce\_add](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.comm.reduce_add.html#torch.cuda.comm.reduce_add)
+
+**Support Status**:
+
+<!-- npu="910b" id308 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id308 -->
+<!-- npu="A3" id309 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id309 -->
+<!-- npu="950" id310 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id310 -->
 
 </div>
 
@@ -876,6 +1085,87 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id105 -->
 
+> <font size="3">query()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.Stream.query](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.Stream.html#torch.cuda.Stream.query)
+
+**Support Status**:
+
+<!-- npu="910b" id284 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id284 -->
+<!-- npu="A3" id285 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id285 -->
+<!-- npu="950" id286 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id286 -->
+
+</div>
+
+> <font size="3">record_event()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.Stream.record_event](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.Stream.html#torch.cuda.Stream.record_event)
+
+**Support Status**:
+
+<!-- npu="910b" id287 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id287 -->
+<!-- npu="A3" id288 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id288 -->
+<!-- npu="950" id289 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id289 -->
+
+</div>
+
+> <font size="3">synchronize()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.Stream.synchronize](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.Stream.html#torch.cuda.Stream.synchronize)
+
+**Support Status**:
+
+<!-- npu="910b" id290 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id290 -->
+<!-- npu="A3" id291 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id291 -->
+<!-- npu="950" id292 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id292 -->
+
+</div>
+
+> <font size="3">wait_event()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.Stream.wait_event](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.Stream.html#torch.cuda.Stream.wait_event)
+
+**Support Status**:
+
+<!-- npu="910b" id293 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id293 -->
+<!-- npu="A3" id294 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id294 -->
+<!-- npu="950" id295 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id295 -->
+
+</div>
+
+<!-- npu="910b,A3" id243 -->
 > <font size="3">wait_stream()</font>
 
 <div style="margin-left: 2em">
@@ -883,6 +1173,7 @@
 **Native Documentation**: [torch.cuda.Stream.wait_stream](https://pytorch.org/docs/2.9/generated/torch.cuda.Stream.html#torch.cuda.Stream.wait_stream)
 
 **Support Status**:
+<!-- end id243 -->
 
 <!-- npu="910b" id106 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -890,11 +1181,30 @@
 <!-- npu="A3" id107 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id107 -->
-<!-- npu="950" id108 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id108 -->
+
+<!-- npu="910b,A3" id244 -->
+</div>
+<!-- end id244 -->
 
 </div>
+
+### <code><i>class</i></code> torch.cuda.ExternalStream
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.ExternalStream](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.ExternalStream.html#torch.cuda.ExternalStream)
+
+**Support Status**:
+
+<!-- npu="910b" id263 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id263 -->
+<!-- npu="A3" id264 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id264 -->
+<!-- npu="950" id265 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id265 -->
 
 </div>
 
@@ -998,6 +1308,46 @@
 
 </div>
 
+> <font size="3">record()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.Event.record](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.Event.html#torch.cuda.Event.record)
+
+**Support Status**:
+
+<!-- npu="910b" id278 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id278 -->
+<!-- npu="A3" id279 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id279 -->
+<!-- npu="950" id280 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id280 -->
+
+</div>
+
+> <font size="3">synchronize()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.Event.synchronize](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.Event.html#torch.cuda.Event.synchronize)
+
+**Support Status**:
+
+<!-- npu="910b" id281 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id281 -->
+<!-- npu="A3" id282 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id282 -->
+<!-- npu="950" id283 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id283 -->
+
+</div>
+
 > <font size="3">wait()</font>
 
 <div style="margin-left: 2em">
@@ -1088,7 +1438,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id135 -->
 
-**Constraints & Notes**: Currently only supports inference scenarios and does not support training scenarios
+**Constraints & Notes**: Currently supports only inference scenarios, not training scenarios.
 
 > <font size="3">capture_begin()</font>
 
@@ -1108,7 +1458,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id138 -->
 
-**Constraints & Notes**: Currently only supports inference scenarios and does not support training scenarios
+**Constraints & Notes**: Currently supports only inference scenarios, not training scenarios.
 
 </div>
 
@@ -1130,10 +1480,11 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id141 -->
 
-**Constraints & Notes**: Currently only supports inference scenarios and does not support training scenarios
+**Constraints & Notes**: Currently supports only inference scenarios, not training scenarios.
 
 </div>
 
+<!-- npu="910b,A3" id144 -->
 > <font size="3">debug_dump()</font>
 
 <div style="margin-left: 2em">
@@ -1148,17 +1499,36 @@
 <!-- npu="A3" id143 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id143 -->
-<!-- npu="950" id144 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id144 -->
 
 **Constraints & Notes**:
 
-- Currently, only the inference scenario is supported; the training scenario is not supported.
+- Currently supports only inference scenarios and does not support training scenarios.
 - The exported file content is in JSON format.
 
 </div>
+<!-- end id144 -->
 
+> <font size="3">enable_debug_mode()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.CUDAGraph.enable_debug_mode](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.CUDAGraph.html#torch.cuda.CUDAGraph.enable_debug_mode)
+
+**Support Status**:
+
+<!-- npu="910b" id275 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id275 -->
+<!-- npu="A3" id276 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id276 -->
+<!-- npu="950" id277 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id277 -->
+
+</div>
+
+<!-- npu="910b,A3" id147 -->
 > <font size="3">pool()</font>
 
 <div style="margin-left: 2em">
@@ -1173,13 +1543,11 @@
 <!-- npu="A3" id146 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id146 -->
-<!-- npu="950" id147 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id147 -->
 
-**Constraints & Notes**: Currently only supports inference scenarios and does not support training scenarios
+**Constraints & Notes**: Currently supports only inference scenarios, not training scenarios.
 
 </div>
+<!-- end id147 -->
 
 > <font size="3">replay()</font>
 
@@ -1199,7 +1567,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id150 -->
 
-**Constraints & Notes**: Currently only supports inference scenarios and does not support training scenarios
+**Constraints & Notes**: Currently supports only inference scenarios, not training scenarios.
 
 </div>
 
@@ -1221,7 +1589,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id153 -->
 
-**Constraints & Notes**: Currently only supports inference scenarios and does not support training scenarios
+**Constraints & Notes**: Currently supports only inference scenarios, not training scenarios.
 
 </div>
 
@@ -1321,6 +1689,26 @@
 
 </div>
 
+### torch.cuda.get\_per\_process\_memory\_fraction
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.get\_per\_process\_memory\_fraction](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.memory.get_per_process_memory_fraction.html#torch.cuda.memory.get_per_process_memory_fraction)
+
+**Support Status**:
+
+<!-- npu="910b" id311 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id311 -->
+<!-- npu="A3" id312 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id312 -->
+<!-- npu="950" id313 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id313 -->
+
+</div>
+
 ### torch.cuda.mem_get_info
 
 <div style="margin-left: 2em">
@@ -1365,6 +1753,48 @@
 
 </div>
 
+### torch.cuda.reset\_accumulated\_memory\_stats
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.reset\_accumulated\_memory\_stats](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.memory.reset_accumulated_memory_stats.html#torch.cuda.memory.reset_accumulated_memory_stats)
+
+**Support Status**:
+
+<!-- npu="910b" id314 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id314 -->
+<!-- npu="A3" id315 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id315 -->
+<!-- npu="950" id316 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id316 -->
+
+</div>
+
+### torch.cuda.host_memory_stats
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.host_memory_stats](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.memory.host_memory_stats.html#torch.cuda.memory.host_memory_stats)
+
+**NPU-Adapted Name**: torch_npu.npu.host_memory_stats
+
+**Support Status**:
+
+<!-- npu="910b" id226 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id226 -->
+<!-- npu="A3" id227 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id227 -->
+<!-- npu="950" id228 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id228 -->
+
+</div>
+
 ### torch.cuda.memory_summary
 
 <div style="margin-left: 2em">
@@ -1384,6 +1814,26 @@
 <!-- npu="950" id174 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id174 -->
+
+</div>
+
+### torch.cuda.memory\_snapshot
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.memory\_snapshot](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.memory.memory_snapshot.html#torch.cuda.memory.memory_snapshot)
+
+**Support Status**:
+
+<!-- npu="910b" id317 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id317 -->
+<!-- npu="A3" id318 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id318 -->
+<!-- npu="950" id319 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id319 -->
 
 </div>
 
@@ -1497,6 +1947,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id245 -->
 ### torch.cuda.set_per_process_memory_fraction
 
 <div style="margin-left: 2em">
@@ -1506,6 +1957,7 @@
 **NPU-Adapted Name**: torch_npu.npu.set_per_process_memory_fraction
 
 **Support Status**:
+<!-- end id245 -->
 
 <!-- npu="910b" id190 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1513,11 +1965,10 @@
 <!-- npu="A3" id191 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id191 -->
-<!-- npu="950" id192 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id192 -->
 
+<!-- npu="910b,A3" id246 -->
 </div>
+<!-- end id246 -->
 
 ### torch.cuda.memory_cached
 
@@ -1607,6 +2058,28 @@
 
 </div>
 
+### torch.cuda.reset_peak_host_memory_stats
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.reset_peak_host_memory_stats](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.memory.reset_peak_host_memory_stats.html#torch.cuda.memory.reset_peak_host_memory_stats)
+
+**NPU-Adapted Name**: torch_npu.npu.reset_peak_host_memory_stats
+
+**Support Status**:
+
+<!-- npu="910b" id223 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id223 -->
+<!-- npu="A3" id224 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id224 -->
+<!-- npu="950" id225 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id225 -->
+
+</div>
+
 ### torch.cuda.caching_allocator_alloc
 
 <div style="margin-left: 2em">
@@ -1673,6 +2146,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id247 -->
 ### <code><i>class</i></code> torch.cuda.CUDAPluggableAllocator
 
 <div style="margin-left: 2em">
@@ -1682,6 +2156,7 @@
 **NPU-Adapted Name**: torch_npu.npu.NPUPluggableAllocator
 
 **Support Status**:
+<!-- end id247 -->
 
 <!-- npu="910b" id214 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1689,14 +2164,14 @@
 <!-- npu="A3" id215 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id215 -->
-<!-- npu="950" id216 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id216 -->
 
-**Constraints & Notes**: This API involves high-risk operations. For usage, refer to the "[torch_npu.npu.NPUPluggableAllocator](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/en/custom_APIs/torch_npu-npu/torch-npu-npu-NPUPluggableAllocator.md)" section in Custom APIs
+<!-- npu="910b,A3" id248 -->
+**Constraints & Notes**: This API involves high-risk operations. For usage, refer to the "[torch_npu.npu.NPUPluggableAllocator](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/en/custom_APIs/torch_npu-npu/torch-npu-npu-NPUPluggableAllocator.md)" chapter.
 
 </div>
+<!-- end id248 -->
 
+<!-- npu="910b,A3" id249 -->
 ### torch.cuda.change_current_allocator
 
 <div style="margin-left: 2em">
@@ -1706,6 +2181,7 @@
 **NPU-Adapted Name**: torch_npu.npu.change_current_allocator
 
 **Support Status**:
+<!-- end id249 -->
 
 <!-- npu="910b" id217 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1713,13 +2189,12 @@
 <!-- npu="A3" id218 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id218 -->
-<!-- npu="950" id219 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id219 -->
 
+<!-- npu="910b,A3" id250 -->
 **Constraints & Notes**: This API involves high-risk operations. For usage, refer to the "[torch_npu.npu.change_current_allocator](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/en/custom_APIs/torch_npu-npu/torch-npu-npu-change_current_allocator.md)" section in Custom APIs
 
 </div>
+<!-- end id250 -->
 
 ### <code><i>class</i></code> torch.cuda.memory.MemPool
 
@@ -1743,59 +2218,447 @@
 
 **Constraints & Notes**:
 
-- `torch.npu.memory.MemPool`, `torch.npu.MemPool`, and `torch_npu.npu.MemPool` are functionally identical.
-- The function prototype is `MemPool(allocator=None, use_on_oom=False, no_split=False)`. `allocator` specifies the NPU memory allocator used by the memory pool; `use_on_oom=True` indicates that when an OOM occurs in memory requests outside the memory pool, the memory pool can be used as the last memory allocation source; `no_split=True` indicates that the memory segments in the memory pool are not split.
-- The `id` property returns the unique identifier of the memory pool, of type `Tuple[int, int]`. For a memory pool created by the user through this API, the first `int` is fixed to 0, to distinguish it from memory pools created internally by NPUGraph; the second `int` is a monotonically increasing unique number for user memory pools, incremented each time a new user memory pool is created.
-- `use_count()` returns the current reference count of the memory pool, of type `int`. The `MemPool` object itself holds one reference; entering the `torch.npu.use_mem_pool` context increases the reference count by 1, and exiting the context decreases it by 1.
-- `snapshot()` returns a snapshot of the NPU memory allocator state filtered by the current memory pool ID, of type `list`.
-- `torch.npu.use_mem_pool` routes only the memory requests in the current thread to the specified memory pool; new threads created in the context do not automatically use the memory pool. Before reclaiming the memory pool, exit the `torch.npu.use_mem_pool` context and release the Tensors that use the memory pool.
-- TorchNPU does not provide the `MemPoolContext` and `MemPool.allocator` public APIs of native PyTorch 2.7, and additionally supports the `no_split` parameter.
+- `torch.npu.memory.MemPool`, `torch.npu.MemPool`, and `torch_npu.npu.MemPool` have the same functionality.
+- The function prototype is `MemPool(allocator=None, use_on_oom=False, no_split=False)`. The `allocator` parameter specifies the NPU memory allocator used by the memory pool; `use_on_oom=True` indicates that when a memory request outside the memory pool triggers an OOM, the memory pool can be used as the last-resort memory allocation source; `no_split=True` indicates that the memory segments in the memory pool are not split.
+- The `id` attribute returns the unique identifier of the memory pool, with a return type of `Tuple[int, int]`. For memory pools created by users through this interface, the first `int` is fixed to 0 to distinguish them from memory pools created internally by NPUGraph; the second `int` is an incrementally increasing unique number for user memory pools, which increments each time a new user memory pool is created.
+- `use_count()` returns the current reference count of the memory pool, with a return type of `int`. The `MemPool` object itself holds one reference; entering the `torch.npu.use_mem_pool` context increases the reference count by 1, and exiting the context decreases it by 1.
+- `snapshot()` returns a snapshot of the NPU memory allocator state filtered by the current memory pool ID, with a return type of `list`.
+- `torch.npu.use_mem_pool` routes only the memory requests in the current thread to the specified memory pool, and new threads created in the context do not automatically use this memory pool. Before reclaiming the memory pool, exit the `torch.npu.use_mem_pool` context and release the Tensors that use this memory pool.
+- TorchNPU does not provide the `MemPoolContext` and `MemPool.allocator` public interfaces from native PyTorch 2.7, and additionally supports the `no_split` parameter.
 <!-- npu="950" id229 -->
 - Ascend 950DT products support creating a memory pool with the default NPU caching allocator, but do not support specifying `NPUPluggableAllocator` through the `allocator` parameter.
 <!-- end id229 -->
 
-</div>
-
-### torch.cuda.reset_peak_host_memory_stats
+> <font size="3">allocator</font>
 
 <div style="margin-left: 2em">
 
-**Native Documentation**: [torch.cuda.reset_peak_host_memory_stats](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.memory.reset_peak_host_memory_stats.html#torch.cuda.memory.reset_peak_host_memory_stats)
-
-**NPU-Adapted Name**: torch_npu.npu.reset_peak_host_memory_stats
+**Native Documentation**: [torch.cuda.MemPool.allocator](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.memory.MemPool.html#torch.cuda.memory.MemPool.allocator)
 
 **Support Status**:
 
-<!-- npu="910b" id223 -->
+<!-- npu="910b" id326 -->
 - <term>Atlas A2 training products</term>: Supported
-<!-- end id223 -->
-<!-- npu="A3" id224 -->
+<!-- end id326 -->
+<!-- npu="A3" id327 -->
 - <term>Atlas A3 training products</term>: Supported
-<!-- end id224 -->
-<!-- npu="950" id225 -->
+<!-- end id327 -->
+<!-- npu="950" id328 -->
 - <term>Ascend 950DT products</term>: Supported
-<!-- end id225 -->
+<!-- end id328 -->
 
 </div>
 
-### torch.cuda.host_memory_stats
+> <font size="3">id</font>
 
 <div style="margin-left: 2em">
 
-**Native Documentation**: [torch.cuda.host_memory_stats](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.memory.host_memory_stats.html#torch.cuda.memory.host_memory_stats)
-
-**NPU-Adapted Name**: torch_npu.npu.host_memory_stats
+**Native Documentation**: [torch.cuda.MemPool.id](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.memory.MemPool.html#torch.cuda.memory.MemPool.id)
 
 **Support Status**:
 
-<!-- npu="910b" id226 -->
+<!-- npu="910b" id329 -->
 - <term>Atlas A2 training products</term>: Supported
-<!-- end id226 -->
-<!-- npu="A3" id227 -->
+<!-- end id329 -->
+<!-- npu="A3" id330 -->
 - <term>Atlas A3 training products</term>: Supported
-<!-- end id227 -->
-<!-- npu="950" id228 -->
+<!-- end id330 -->
+<!-- npu="950" id331 -->
 - <term>Ascend 950DT products</term>: Supported
-<!-- end id228 -->
+<!-- end id331 -->
+
+</div>
+
+> <font size="3">snapshot()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.MemPool.snapshot](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.memory.MemPool.html#torch.cuda.memory.MemPool.snapshot)
+
+**Support Status**:
+
+<!-- npu="910b" id332 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id332 -->
+<!-- npu="A3" id333 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id333 -->
+<!-- npu="950" id334 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id334 -->
+
+</div>
+
+> <font size="3">use_count()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.MemPool.use\_count](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.memory.MemPool.html#torch.cuda.memory.MemPool.use_count)
+
+**Support Status**:
+
+<!-- npu="910b" id335 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id335 -->
+<!-- npu="A3" id336 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id336 -->
+<!-- npu="950" id337 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id337 -->
+
+</div>
+
+</div>
+
+## Jiterator (beta)
+
+### torch.cuda.jiterator.\_create\_multi\_output\_jit\_fn
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.jiterator.\_create\_multi\_output\_jit\_fn](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.jiterator._create_multi_output_jit_fn.html#torch.cuda.jiterator._create_multi_output_jit_fn)
+
+**Support Status**:
+
+<!-- npu="910b" id320 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id320 -->
+<!-- npu="A3" id321 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id321 -->
+<!-- npu="950" id322 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id322 -->
+
+</div>
+
+## TunableOp
+
+### torch.cuda.tunable.is\_enabled
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.tunable.is\_enabled](https://docs.pytorch.org/docs/2.9/cuda.tunable.html#torch.cuda.tunable.is_enabled)
+
+**Support Status**:
+
+<!-- npu="910b" id347 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id347 -->
+<!-- npu="A3" id348 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id348 -->
+<!-- npu="950" id349 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id349 -->
+
+</div>
+
+### torch.cuda.tunable.tuning\_is\_enabled
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.tunable.tuning\_is\_enabled](https://docs.pytorch.org/docs/2.9/cuda.tunable.html#torch.cuda.tunable.tuning_is_enabled)
+
+**Support Status**:
+
+<!-- npu="910b" id350 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id350 -->
+<!-- npu="A3" id351 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id351 -->
+<!-- npu="950" id352 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id352 -->
+
+</div>
+
+### torch.cuda.tunable.record\_untuned\_enable
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.tunable.record\_untuned\_enable](https://docs.pytorch.org/docs/2.9/cuda.tunable.html#torch.cuda.tunable.record_untuned_enable)
+
+**Support Status**:
+
+<!-- npu="910b" id353 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id353 -->
+<!-- npu="A3" id354 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id354 -->
+<!-- npu="950" id355 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id355 -->
+
+</div>
+
+### torch.cuda.tunable.record\_untuned\_is\_enabled
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.tunable.record\_untuned\_is\_enabled](https://docs.pytorch.org/docs/2.9/cuda.tunable.html#torch.cuda.tunable.record_untuned_is_enabled)
+
+**Support Status**:
+
+<!-- npu="910b" id356 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id356 -->
+<!-- npu="A3" id357 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id357 -->
+<!-- npu="950" id358 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id358 -->
+
+</div>
+
+### torch.cuda.tunable.get\_max\_tuning\_duration
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.tunable.get\_max\_tuning\_duration](https://docs.pytorch.org/docs/2.9/cuda.tunable.html#torch.cuda.tunable.get_max_tuning_duration)
+
+**Support Status**:
+
+<!-- npu="910b" id359 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id359 -->
+<!-- npu="A3" id360 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id360 -->
+<!-- npu="950" id361 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id361 -->
+
+</div>
+
+### torch.cuda.tunable.get\_max\_tuning\_iterations
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.tunable.get\_max\_tuning\_iterations](https://docs.pytorch.org/docs/2.9/cuda.tunable.html#torch.cuda.tunable.get_max_tuning_iterations)
+
+**Support Status**:
+
+<!-- npu="910b" id362 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id362 -->
+<!-- npu="A3" id363 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id363 -->
+<!-- npu="950" id364 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id364 -->
+
+</div>
+
+### torch.cuda.tunable.set\_filename
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.tunable.set\_filename](https://docs.pytorch.org/docs/2.9/cuda.tunable.html#torch.cuda.tunable.set_filename)
+
+**Support Status**:
+
+<!-- npu="910b" id365 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id365 -->
+<!-- npu="A3" id366 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id366 -->
+<!-- npu="950" id367 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id367 -->
+
+</div>
+
+### torch.cuda.tunable.get\_filename
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.tunable.get\_filename](https://docs.pytorch.org/docs/2.9/cuda.tunable.html#torch.cuda.tunable.get_filename)
+
+**Support Status**:
+
+<!-- npu="910b" id368 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id368 -->
+<!-- npu="A3" id369 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id369 -->
+<!-- npu="950" id370 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id370 -->
+
+</div>
+
+### torch.cuda.tunable.get\_validators
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.tunable.get\_validators](https://docs.pytorch.org/docs/2.9/cuda.tunable.html#torch.cuda.tunable.get_validators)
+
+**Support Status**:
+
+<!-- npu="910b" id371 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id371 -->
+<!-- npu="A3" id372 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id372 -->
+<!-- npu="950" id373 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id373 -->
+
+</div>
+
+### torch.cuda.tunable.write\_file\_on\_exit
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.tunable.write\_file\_on\_exit](https://docs.pytorch.org/docs/2.9/cuda.tunable.html#torch.cuda.tunable.write_file_on_exit)
+
+**Support Status**:
+
+<!-- npu="910b" id374 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id374 -->
+<!-- npu="A3" id375 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id375 -->
+<!-- npu="950" id376 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id376 -->
+
+</div>
+
+### torch.cuda.tunable.tune\_gemm\_in\_file
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.tunable.tune\_gemm\_in\_file](https://docs.pytorch.org/docs/2.9/cuda.tunable.html#torch.cuda.tunable.tune_gemm_in_file)
+
+**Support Status**:
+
+<!-- npu="910b" id377 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id377 -->
+<!-- npu="A3" id378 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id378 -->
+<!-- npu="950" id379 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id379 -->
+
+</div>
+
+### torch.cuda.tunable.get\_rotating\_buffer\_size
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.tunable.get\_rotating\_buffer\_size](https://docs.pytorch.org/docs/2.9/cuda.tunable.html#torch.cuda.tunable.get_rotating_buffer_size)
+
+**Support Status**:
+
+<!-- npu="910b" id380 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id380 -->
+<!-- npu="A3" id381 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id381 -->
+<!-- npu="950" id382 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id382 -->
+
+</div>
+
+## GPUDirect Storage (prototype)
+
+### torch.cuda.gds.gds\_deregister\_buffer
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.gds.gds\_deregister\_buffer](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.gds.gds_deregister_buffer.html#torch.cuda.gds.gds_deregister_buffer)
+
+**Support Status**:
+
+<!-- npu="910b" id323 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id323 -->
+<!-- npu="A3" id324 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id324 -->
+<!-- npu="950" id325 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id325 -->
+
+</div>
+
+### <code><i>class</i></code> torch.cuda.gds.GdsFile
+
+<div style="margin-left: 2em">
+
+> <font size="3">deregister_handle()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.gds.GdsFile.deregister\_handle](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.gds.GdsFile.html#torch.cuda.gds.GdsFile.deregister_handle)
+
+**Support Status**:
+
+<!-- npu="910b" id338 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id338 -->
+<!-- npu="A3" id339 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id339 -->
+<!-- npu="950" id340 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id340 -->
+
+</div>
+
+> <font size="3">register_handle()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.gds.GdsFile.register\_handle](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.gds.GdsFile.html#torch.cuda.gds.GdsFile.register_handle)
+
+**Support Status**:
+
+<!-- npu="910b" id341 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id341 -->
+<!-- npu="A3" id342 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id342 -->
+<!-- npu="950" id343 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id343 -->
+
+</div>
+
+> <font size="3">save_storage()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.cuda.gds.GdsFile.save\_storage](https://docs.pytorch.org/docs/2.9/generated/torch.cuda.gds.GdsFile.html#torch.cuda.gds.GdsFile.save_storage)
+
+**Support Status**:
+
+<!-- npu="910b" id344 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id344 -->
+<!-- npu="A3" id345 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id345 -->
+<!-- npu="950" id346 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id346 -->
+
+</div>
 
 </div>

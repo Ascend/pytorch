@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.14/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.14/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
 > - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.14/benchmark_utils.html).
 
@@ -130,6 +130,46 @@
 <!-- npu="950" id18 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id18 -->
+
+> <font size="3">merge()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.benchmark.Measurement.merge](https://docs.pytorch.org/docs/2.14/benchmark_utils.html#torch.utils.benchmark.Measurement.merge)
+
+**Support Status**:
+
+<!-- npu="910b" id55 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id55 -->
+<!-- npu="A3" id56 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id56 -->
+<!-- npu="950" id57 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id57 -->
+
+</div>
+
+> <font size="3">significant_figures</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.benchmark.Measurement.significant\_figures](https://docs.pytorch.org/docs/2.14/benchmark_utils.html#torch.utils.benchmark.Measurement.significant_figures)
+
+**Support Status**:
+
+<!-- npu="910b" id58 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id58 -->
+<!-- npu="A3" id59 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id59 -->
+<!-- npu="950" id60 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id60 -->
+
+</div>
 
 </div>
 

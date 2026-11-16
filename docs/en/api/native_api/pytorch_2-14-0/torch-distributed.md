@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.14/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.14/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
 > - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.14/distributed.html).
 
@@ -29,6 +29,7 @@
 
 ## Initialization
 
+<!-- npu="910b,A3" id232 -->
 ### torch.distributed.is_available
 
 <div style="margin-left: 2em">
@@ -36,6 +37,7 @@
 **Native Documentation**: [torch.distributed.is_available](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.is_available)
 
 **Support Status**:
+<!-- end id232 -->
 
 <!-- npu="910b" id1 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -43,9 +45,73 @@
 <!-- npu="A3" id2 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id2 -->
-<!-- npu="950" id3 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id3 -->
+
+<!-- npu="910b,A3" id233 -->
+</div>
+<!-- end id233 -->
+
+### torch.distributed.init_process_group
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.init_process_group](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.init_process_group)
+
+**Support Status**:
+
+<!-- npu="910b" id19 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id19 -->
+<!-- npu="A3" id20 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id20 -->
+<!-- npu="950" id21 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id21 -->
+
+**Constraints & Notes**: When the `pg_options` parameter is of the type `torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()`, you can configure the `hccl_config` attribute of this variable to control the HCCL communicator buffer size. For a specific example, see[Configuring HCCL Communicator Parameters Through pg_options](../../../developer_notes/distributed/parameter_configuration/setting_HCCL_communicator_parameter.md) for the `hccl_buffer_size` configuration description. You can configure the `group_name` field of the `hccl_config` variable to set a custom name for the HCCL communicator group, and the value must be a string of no more than 32 characters.
+
+</div>
+
+<!-- npu="910b,A3" id234 -->
+### torch.distributed.is_initialized
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.is_initialized](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.is_initialized)
+
+**Support Status**:
+<!-- end id234 -->
+
+<!-- npu="910b" id22 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id22 -->
+<!-- npu="A3" id23 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id23 -->
+
+<!-- npu="910b,A3" id235 -->
+</div>
+<!-- end id235 -->
+
+### <code><i>class</i></code> torch.distributed.ProcessGroupNCCL
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.ProcessGroupNCCL](https://pytorch.org/docs/2.14/distributed.html)
+
+**Support Status**:
+
+<!-- npu="910b" id10 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id10 -->
+<!-- npu="A3" id11 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id11 -->
+<!-- npu="950" id12 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id12 -->
+
+**Constraints & Notes**: This API is supported only after calling `torch_npu.contrib.transfer_to_npu`. After that, the NCCL process group API is mapped to `ProcessGroupHCCL`, and the actual communication is performed by HCCL. When `torch_npu.contrib.transfer_to_npu` is not called, this API is not supported.
 
 </div>
 
@@ -89,28 +155,6 @@
 
 </div>
 
-### <code><i>class</i></code> torch.distributed.ProcessGroupNCCL
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.ProcessGroupNCCL](https://pytorch.org/docs/2.14/distributed.html)
-
-**Support Status**:
-
-<!-- npu="910b" id10 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id10 -->
-<!-- npu="A3" id11 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id11 -->
-<!-- npu="950" id12 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id12 -->
-
-**Constraints & Notes**: This API is supported only after calling `torch_npu.contrib.transfer_to_npu`. After that, the NCCL process group API is mapped to `ProcessGroupHCCL`, and the actual communication is performed by HCCL. When `torch_npu.contrib.transfer_to_npu` is not called, this API is not supported.
-
-</div>
-
 ### torch.distributed.is_gloo_available
 
 <div style="margin-left: 2em">
@@ -148,48 +192,6 @@
 <!-- npu="950" id18 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id18 -->
-
-</div>
-
-### torch.distributed.init_process_group
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.init_process_group](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.init_process_group)
-
-**Support Status**:
-
-<!-- npu="910b" id19 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id19 -->
-<!-- npu="A3" id20 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id20 -->
-<!-- npu="950" id21 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id21 -->
-
-**Constraints & Notes**: When the type passed to the `pg_options` parameter is `torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()`, the buffer size of the HCCL communicator can be controlled by configuring the `hccl_config` attribute of this variable. For specific examples, see the `hccl_buffer_size` configuration description in [Configuring HCCL Communicator Parameters via pg_options](../../../developer_notes/distributed/parameter_configuration/setting_HCCL_communicator_parameter.md). The custom communication group name of the HCCL communicator can be set through the `group_name` field of the `hccl_config` variable, whose value is a string with a length not exceeding 32.
-
-</div>
-
-### torch.distributed.is_initialized
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.is_initialized](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.is_initialized)
-
-**Support Status**:
-
-<!-- npu="910b" id22 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id22 -->
-<!-- npu="A3" id23 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id23 -->
-<!-- npu="950" id24 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id24 -->
 
 </div>
 
@@ -255,13 +257,18 @@
 
 </div>
 
+<!-- npu="910b,A3" id276 -->
+<!-- npu="910b,A3" id236 -->
 ### <code><i>class</i></code> torch.distributed.Backend
+<!-- end id236 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id237 -->
 **Native Documentation**: [torch.distributed.Backend](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.Backend)
 
 **Support Status**:
+<!-- end id237 -->
 
 <!-- npu="910b" id34 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -269,10 +276,8 @@
 <!-- npu="A3" id35 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id35 -->
-<!-- npu="950" id36 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id36 -->
 
+<!-- npu="910b,A3" id238 -->
 > <font size="3">register_backend()</font>
 
 <div style="margin-left: 2em">
@@ -280,6 +285,7 @@
 **Native Documentation**: [torch.distributed.Backend.register_backend](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.Backend.register_backend)
 
 **Support Status**:
+<!-- end id238 -->
 
 <!-- npu="910b" id37 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -287,15 +293,37 @@
 <!-- npu="A3" id38 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id38 -->
-<!-- npu="950" id39 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id39 -->
+
+<!-- npu="910b,A3" id239 -->
+</div>
+<!-- end id239 -->
 
 </div>
-
-</div>
+<!-- end id276 -->
 
 ## Groups
+
+### torch.distributed.new_group
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.new_group](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.new_group)
+
+**Support Status**:
+
+<!-- npu="910b" id49 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id49 -->
+<!-- npu="A3" id50 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id50 -->
+<!-- npu="950" id51 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id51 -->
+
+**Constraints & Notes**: When the type passed to the `pg_options` parameter is `torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()`, the buffer size of the HCCL communicator can be controlled by configuring the `hccl_config` attribute of this variable. For specific examples, see the `hccl_buffer_size` configuration description in [Configuring HCCL Communicator Parameters via pg_options](../../../developer_notes/distributed/parameter_configuration/setting_HCCL_communicator_parameter.md). The custom communication group name of the HCCL communicator can be set through the `group_name` field of the `hccl_config` variable, whose value is a string with a length not exceeding 32.
+
+</div>
 
 ### torch.distributed.get_group_rank
 
@@ -354,28 +382,6 @@
 <!-- npu="950" id48 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id48 -->
-
-</div>
-
-### torch.distributed.new_group
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.new_group](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.new_group)
-
-**Support Status**:
-
-<!-- npu="910b" id49 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id49 -->
-<!-- npu="A3" id50 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id50 -->
-<!-- npu="950" id51 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id51 -->
-
-**Constraints & Notes**: When the type passed to the `pg_options` parameter is `torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()`, the buffer size of the HCCL communicator can be controlled by configuring the `hccl_config` attribute of this variable. For specific examples, see the `hccl_buffer_size` configuration description in [Configuring HCCL Communicator Parameters via pg_options](../../../developer_notes/distributed/parameter_configuration/setting_HCCL_communicator_parameter.md). The custom communication group name of the HCCL communicator can be set through the `group_name` field of the `hccl_config` variable, whose value is a string with a length not exceeding 32.
 
 </div>
 
@@ -523,50 +529,6 @@
 
 ## Point-to-point communication
 
-### torch.distributed.batch_isend_irecv
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.batch_isend_irecv](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.batch_isend_irecv)
-
-**Support Status**:
-
-<!-- npu="910b" id73 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id73 -->
-<!-- npu="A3" id74 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id74 -->
-<!-- npu="950" id75 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id75 -->
-
-**Constraints & Notes**: `p2p_op_list` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
-
-</div>
-
-### <code><i>class</i></code> torch.distributed.P2POp
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.P2POp](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.P2POp)
-
-**Support Status**:
-
-<!-- npu="910b" id76 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id76 -->
-<!-- npu="A3" id77 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id77 -->
-<!-- npu="950" id78 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id78 -->
-
-**Constraints & Notes**: `tensor` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
-
-</div>
-
 ### torch.distributed.send
 
 <div style="margin-left: 2em">
@@ -655,103 +617,71 @@
 
 </div>
 
+### torch.distributed.send_object_list
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.send_object_list](https://docs.pytorch.org/docs/2.14/distributed.html#torch.distributed.send_object_list)
+
+**Support Status**:
+
+<!-- npu="910b" id279 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id279 -->
+<!-- npu="A3" id280 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id280 -->
+<!-- npu="950" id281 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id281 -->
+
+</div>
+
+### torch.distributed.batch_isend_irecv
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.batch_isend_irecv](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.batch_isend_irecv)
+
+**Support Status**:
+
+<!-- npu="910b" id73 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id73 -->
+<!-- npu="A3" id74 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id74 -->
+<!-- npu="950" id75 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id75 -->
+
+**Constraints & Notes**: `p2p_op_list` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
+
+</div>
+
+### <code><i>class</i></code> torch.distributed.P2POp
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.P2POp](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.P2POp)
+
+**Support Status**:
+
+<!-- npu="910b" id76 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id76 -->
+<!-- npu="A3" id77 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id77 -->
+<!-- npu="950" id78 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id78 -->
+
+**Constraints & Notes**: `tensor` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
+
+</div>
+
 ## Collective functions
-
-### torch.distributed.reduce_scatter
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.reduce_scatter](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.reduce_scatter)
-
-**Support Status**:
-
-<!-- npu="910b" id91 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id91 -->
-<!-- npu="A3" id92 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id92 -->
-<!-- npu="950" id93 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id93 -->
-
-**Constraints & Notes**: `input_list` only supports bf16, fp16, fp32, int8, int32
-
-</div>
-
-### torch.distributed.all_to_all_single
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.all_to_all_single](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.all_to_all_single)
-
-**Support Status**:
-
-<!-- npu="910b" id94 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id94 -->
-<!-- npu="A3" id95 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id95 -->
-<!-- npu="950" id96 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id96 -->
-
-**Constraints & Notes**: `input` only supports fp32
-
-</div>
-
-### torch.distributed.all_to_all
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.all_to_all](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.all_to_all)
-
-**Support Status**:
-
-<!-- npu="910b" id97 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id97 -->
-<!-- npu="A3" id98 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id98 -->
-<!-- npu="950" id99 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id99 -->
-
-**Constraints & Notes**:
-
-- `input_tensor_list` only supports fp32
-- By setting `torch_npu.npu.use_compatible_impl(True)`, `torch.distributed.all_to_all` switches to be consistent with the native implementation. For example:
-
-  ```python
-  import torch_npu
-  torch_npu.npu.use_compatible_impl(True)
-  ```
-
-</div>
-
-### torch.distributed.reduce_op
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.reduce_op](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.reduce_op)
-
-**Support Status**:
-
-<!-- npu="910b" id100 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id100 -->
-<!-- npu="A3" id101 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id101 -->
-<!-- npu="950" id102 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id102 -->
-
-**Constraints & Notes**: `input` only supports bf16, fp16, fp32, uint8, int8, int32, int64
-
-</div>
 
 ### torch.distributed.broadcast
 
@@ -792,6 +722,28 @@
 <!-- npu="950" id108 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id108 -->
+
+</div>
+
+### torch.distributed.all_reduce
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.all_reduce](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.all_reduce)
+
+**Support Status**:
+
+<!-- npu="910b" id133 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id133 -->
+<!-- npu="A3" id134 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id134 -->
+<!-- npu="950" id135 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id135 -->
+
+**Constraints & Notes**: `tensor` only supports bf16, fp16, fp32, int32, int64, bool
 
 </div>
 
@@ -963,47 +915,77 @@
 
 </div>
 
-### <code><i>class</i></code> torch.distributed.ReduceOp
+### torch.distributed.reduce_scatter
 
 <div style="margin-left: 2em">
 
-**Native Documentation**: [torch.distributed.ReduceOp](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.ReduceOp)
+**Native Documentation**: [torch.distributed.reduce_scatter](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.reduce_scatter)
 
 **Support Status**:
 
-<!-- npu="910b" id130 -->
+<!-- npu="910b" id91 -->
 - <term>Atlas A2 training products</term>: Supported
-<!-- end id130 -->
-<!-- npu="A3" id131 -->
+<!-- end id91 -->
+<!-- npu="A3" id92 -->
 - <term>Atlas A3 training products</term>: Supported
-<!-- end id131 -->
-<!-- npu="950" id132 -->
+<!-- end id92 -->
+<!-- npu="950" id93 -->
 - <term>Ascend 950DT products</term>: Supported
-<!-- end id132 -->
+<!-- end id93 -->
 
-**Constraints & Notes**: `input` only supports bf16, fp16, fp32, uint8, int8, int32, int64, bool
+**Constraints & Notes**: `input_list` only supports bf16, fp16, fp32, int8, int32
 
 </div>
 
-### torch.distributed.all_reduce
+### torch.distributed.all_to_all_single
 
 <div style="margin-left: 2em">
 
-**Native Documentation**: [torch.distributed.all_reduce](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.all_reduce)
+**Native Documentation**: [torch.distributed.all_to_all_single](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.all_to_all_single)
 
 **Support Status**:
 
-<!-- npu="910b" id133 -->
+<!-- npu="910b" id94 -->
 - <term>Atlas A2 training products</term>: Supported
-<!-- end id133 -->
-<!-- npu="A3" id134 -->
+<!-- end id94 -->
+<!-- npu="A3" id95 -->
 - <term>Atlas A3 training products</term>: Supported
-<!-- end id134 -->
-<!-- npu="950" id135 -->
+<!-- end id95 -->
+<!-- npu="950" id96 -->
 - <term>Ascend 950DT products</term>: Supported
-<!-- end id135 -->
+<!-- end id96 -->
 
-**Constraints & Notes**: `tensor` only supports bf16, fp16, fp32, int32, int64, bool
+**Constraints & Notes**: `input` only supports fp32
+
+</div>
+
+### torch.distributed.all_to_all
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.all_to_all](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.all_to_all)
+
+**Support Status**:
+
+<!-- npu="910b" id97 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id97 -->
+<!-- npu="A3" id98 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id98 -->
+<!-- npu="950" id99 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id99 -->
+
+**Constraints & Notes**:
+
+- `input_tensor_list` only supports fp32
+- By setting `torch_npu.npu.use_compatible_impl(True)`, `torch.distributed.all_to_all` switches to be consistent with the native implementation. For example:
+
+  ```python
+  import torch_npu
+  torch_npu.npu.use_compatible_impl(True)
+  ```
 
 </div>
 
@@ -1047,15 +1029,224 @@
 
 </div>
 
-## Distributed Key-Value Store
-
-### <code><i>class</i></code> torch.distributed.PrefixStore
+### <code><i>class</i></code> torch.distributed.Work
 
 <div style="margin-left: 2em">
 
+**Native Documentation**: [torch.distributed.Work](https://docs.pytorch.org/docs/2.14/distributed.html#torch.distributed.Work)
+
+**Support Status**:
+
+<!-- npu="910b" id282 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id282 -->
+<!-- npu="A3" id283 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id283 -->
+<!-- npu="950" id284 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id284 -->
+
+> <font size="3">boxed()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.Work.boxed](https://docs.pytorch.org/docs/2.14/distributed.html#torch.distributed.Work.boxed)
+
+**Support Status**:
+
+<!-- npu="910b" id285 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id285 -->
+<!-- npu="A3" id286 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id286 -->
+<!-- npu="950" id287 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id287 -->
+
+</div>
+
+> <font size="3">exception()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.Work.exception](https://docs.pytorch.org/docs/2.14/distributed.html#torch.distributed.Work.exception)
+
+**Support Status**:
+
+<!-- npu="910b" id288 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id288 -->
+<!-- npu="A3" id289 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id289 -->
+<!-- npu="950" id290 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id290 -->
+
+</div>
+
+> <font size="3">get_future()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.Work.get_future](https://docs.pytorch.org/docs/2.14/distributed.html#torch.distributed.Work.get_future)
+
+**Support Status**:
+
+<!-- npu="910b" id291 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id291 -->
+<!-- npu="A3" id292 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id292 -->
+<!-- npu="950" id293 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id293 -->
+
+</div>
+
+> <font size="3">is_completed()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.Work.is_completed](https://docs.pytorch.org/docs/2.14/distributed.html#torch.distributed.Work.is_completed)
+
+**Support Status**:
+
+<!-- npu="910b" id294 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id294 -->
+<!-- npu="A3" id295 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id295 -->
+<!-- npu="950" id296 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id296 -->
+
+</div>
+
+> <font size="3">source_rank()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.Work.source_rank](https://docs.pytorch.org/docs/2.14/distributed.html#torch.distributed.Work.source_rank)
+
+**Support Status**:
+
+<!-- npu="910b" id297 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id297 -->
+<!-- npu="A3" id298 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id298 -->
+<!-- npu="950" id299 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id299 -->
+
+</div>
+
+> <font size="3">synchronize()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.Work.synchronize](https://docs.pytorch.org/docs/2.14/distributed.html#torch.distributed.Work.synchronize)
+
+**Support Status**:
+
+<!-- npu="910b" id300 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id300 -->
+<!-- npu="A3" id301 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id301 -->
+<!-- npu="950" id302 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id302 -->
+
+</div>
+
+> <font size="3">wait()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.Work.wait](https://docs.pytorch.org/docs/2.14/distributed.html#torch.distributed.Work.wait)
+
+**Support Status**:
+
+<!-- npu="910b" id303 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id303 -->
+<!-- npu="A3" id304 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id304 -->
+<!-- npu="950" id305 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id305 -->
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.distributed.ReduceOp
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.ReduceOp](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.ReduceOp)
+
+**Support Status**:
+
+<!-- npu="910b" id130 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id130 -->
+<!-- npu="A3" id131 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id131 -->
+<!-- npu="950" id132 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id132 -->
+
+**Constraints & Notes**: `input` only supports bf16, fp16, fp32, uint8, int8, int32, int64, bool
+
+</div>
+
+### torch.distributed.reduce_op
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.reduce_op](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.reduce_op)
+
+**Support Status**:
+
+<!-- npu="910b" id100 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id100 -->
+<!-- npu="A3" id101 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id101 -->
+<!-- npu="950" id102 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id102 -->
+
+**Constraints & Notes**: `input` only supports bf16, fp16, fp32, uint8, int8, int32, int64
+
+</div>
+
+## Distributed Key-Value Store
+
+<!-- npu="910b,A3" id277 -->
+<!-- npu="910b,A3" id240 -->
+### <code><i>class</i></code> torch.distributed.PrefixStore
+<!-- end id240 -->
+
+<div style="margin-left: 2em">
+
+<!-- npu="910b,A3" id241 -->
 **Native Documentation**: [torch.distributed.PrefixStore](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.PrefixStore)
 
 **Support Status**:
+<!-- end id241 -->
 
 <!-- npu="910b" id142 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1063,10 +1254,8 @@
 <!-- npu="A3" id143 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id143 -->
-<!-- npu="950" id144 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id144 -->
 
+<!-- npu="910b,A3" id242 -->
 > <font size="3">\_\_init\_\_()</font>
 
 <div style="margin-left: 2em">
@@ -1074,6 +1263,7 @@
 **Native Documentation**: [torch.distributed.PrefixStore.\_\_init\_\_](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.PrefixStore.__init__)
 
 **Support Status**:
+<!-- end id242 -->
 
 <!-- npu="910b" id145 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1081,12 +1271,12 @@
 <!-- npu="A3" id146 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id146 -->
-<!-- npu="950" id147 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id147 -->
 
+<!-- npu="910b,A3" id243 -->
 </div>
+<!-- end id243 -->
 
+<!-- npu="910b,A3" id244 -->
 > <font size="3">underlying_store()</font>
 
 <div style="margin-left: 2em">
@@ -1094,6 +1284,7 @@
 **Native Documentation**: [torch.distributed.PrefixStore.underlying_store](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.PrefixStore.underlying_store)
 
 **Support Status**:
+<!-- end id244 -->
 
 <!-- npu="910b" id148 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1101,13 +1292,13 @@
 <!-- npu="A3" id149 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id149 -->
-<!-- npu="950" id150 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id150 -->
+
+<!-- npu="910b,A3" id245 -->
+</div>
+<!-- end id245 -->
 
 </div>
-
-</div>
+<!-- end id277 -->
 
 ### <code><i>class</i></code> torch.distributed.Store
 
@@ -1127,6 +1318,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id153 -->
 
+<!-- npu="910b,A3" id246 -->
 > <font size="3">\_\_init\_\_()</font>
 
 <div style="margin-left: 2em">
@@ -1134,6 +1326,7 @@
 **Native Documentation**: [torch.distributed.Store.\_\_init\_\_](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.Store.__init__)
 
 **Support Status**:
+<!-- end id246 -->
 
 <!-- npu="910b" id154 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1141,51 +1334,10 @@
 <!-- npu="A3" id155 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id155 -->
-<!-- npu="950" id156 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id156 -->
 
+<!-- npu="910b,A3" id247 -->
 </div>
-
-> <font size="3">set()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.Store.set](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.Store.set)
-
-**Support Status**:
-
-<!-- npu="910b" id157 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id157 -->
-<!-- npu="A3" id158 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id158 -->
-<!-- npu="950" id159 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id159 -->
-
-</div>
-
-> <font size="3">get()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.Store.get](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.Store.get)
-
-**Support Status**:
-
-<!-- npu="910b" id160 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id160 -->
-<!-- npu="A3" id161 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id161 -->
-<!-- npu="950" id162 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id162 -->
-
-</div>
+<!-- end id247 -->
 
 > <font size="3">add()</font>
 
@@ -1207,6 +1359,48 @@
 
 </div>
 
+<!-- npu="910b,A3" id248 -->
+> <font size="3">append()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.Store.append](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.Store.append)
+
+**Support Status**:
+<!-- end id248 -->
+
+<!-- npu="910b" id181 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id181 -->
+<!-- npu="A3" id182 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id182 -->
+
+<!-- npu="910b,A3" id249 -->
+</div>
+<!-- end id249 -->
+
+<!-- npu="910b,A3" id250 -->
+> <font size="3">check()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.Store.check](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.Store.check)
+
+**Support Status**:
+<!-- end id250 -->
+
+<!-- npu="910b" id184 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id184 -->
+<!-- npu="A3" id185 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id185 -->
+
+<!-- npu="910b,A3" id251 -->
+</div>
+<!-- end id251 -->
+
 > <font size="3">compare_set()</font>
 
 <div style="margin-left: 2em">
@@ -1224,46 +1418,6 @@
 <!-- npu="950" id168 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id168 -->
-
-</div>
-
-> <font size="3">wait()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.Store.wait](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.Store.wait)
-
-**Support Status**:
-
-<!-- npu="910b" id169 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id169 -->
-<!-- npu="A3" id170 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id170 -->
-<!-- npu="950" id171 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id171 -->
-
-</div>
-
-> <font size="3">num_keys()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.Store.num_keys](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.Store.num_keys)
-
-**Support Status**:
-
-<!-- npu="910b" id172 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id172 -->
-<!-- npu="A3" id173 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id173 -->
-<!-- npu="950" id174 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id174 -->
 
 </div>
 
@@ -1287,6 +1441,129 @@
 
 </div>
 
+> <font size="3">get()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.Store.get](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.Store.get)
+
+**Support Status**:
+
+<!-- npu="910b" id160 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id160 -->
+<!-- npu="A3" id161 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id161 -->
+<!-- npu="950" id162 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id162 -->
+
+</div>
+
+<!-- npu="910b,A3" id252 -->
+> <font size="3">has_extended_api()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.Store.has_extended_api](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.Store.has_extended_api)
+
+**Support Status**:
+<!-- end id252 -->
+
+<!-- npu="910b" id187 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id187 -->
+<!-- npu="A3" id188 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id188 -->
+
+<!-- npu="910b,A3" id253 -->
+</div>
+<!-- end id253 -->
+
+<!-- npu="910b,A3" id256 -->
+> <font size="3">multi_get()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.Store.multi_get](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.Store.multi_get)
+
+**Support Status**:
+<!-- end id256 -->
+
+<!-- npu="910b" id193 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id193 -->
+<!-- npu="A3" id194 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id194 -->
+
+<!-- npu="910b,A3" id257 -->
+</div>
+<!-- end id257 -->
+
+<!-- npu="910b,A3" id254 -->
+> <font size="3">multi_set()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.Store.multi_set](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.Store.multi_set)
+
+**Support Status**:
+<!-- end id254 -->
+
+<!-- npu="910b" id190 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id190 -->
+<!-- npu="A3" id191 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id191 -->
+
+<!-- npu="910b,A3" id255 -->
+</div>
+<!-- end id255 -->
+
+> <font size="3">num_keys()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.Store.num_keys](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.Store.num_keys)
+
+**Support Status**:
+
+<!-- npu="910b" id172 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id172 -->
+<!-- npu="A3" id173 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id173 -->
+<!-- npu="950" id174 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id174 -->
+
+</div>
+
+> <font size="3">set()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.Store.set](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.Store.set)
+
+**Support Status**:
+
+<!-- npu="910b" id157 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id157 -->
+<!-- npu="A3" id158 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id158 -->
+<!-- npu="950" id159 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id159 -->
+
+</div>
+
 > <font size="3">set_timeout()</font>
 
 <div style="margin-left: 2em">
@@ -1307,106 +1584,7 @@
 
 </div>
 
-> <font size="3">append()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.Store.append](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.Store.append)
-
-**Support Status**:
-
-<!-- npu="910b" id181 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id181 -->
-<!-- npu="A3" id182 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id182 -->
-<!-- npu="950" id183 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id183 -->
-
-</div>
-
-> <font size="3">check()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.Store.check](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.Store.check)
-
-**Support Status**:
-
-<!-- npu="910b" id184 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id184 -->
-<!-- npu="A3" id185 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id185 -->
-<!-- npu="950" id186 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id186 -->
-
-</div>
-
-> <font size="3">has_extended_api()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.Store.has_extended_api](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.Store.has_extended_api)
-
-**Support Status**:
-
-<!-- npu="910b" id187 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id187 -->
-<!-- npu="A3" id188 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id188 -->
-<!-- npu="950" id189 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id189 -->
-
-</div>
-
-> <font size="3">multi_set()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.Store.multi_set](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.Store.multi_set)
-
-**Support Status**:
-
-<!-- npu="910b" id190 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id190 -->
-<!-- npu="A3" id191 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id191 -->
-<!-- npu="950" id192 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id192 -->
-
-</div>
-
-> <font size="3">multi_get()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.Store.multi_get](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.Store.multi_get)
-
-**Support Status**:
-
-<!-- npu="910b" id193 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id193 -->
-<!-- npu="A3" id194 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id194 -->
-<!-- npu="950" id195 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id195 -->
-
-</div>
-
+<!-- npu="910b,A3" id258 -->
 > <font size="3">timeout()</font>
 
 <div style="margin-left: 2em">
@@ -1414,6 +1592,7 @@
 **Native Documentation**: [torch.distributed.Store.timeout](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.Store.timeout)
 
 **Support Status**:
+<!-- end id258 -->
 
 <!-- npu="910b" id196 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1421,9 +1600,28 @@
 <!-- npu="A3" id197 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id197 -->
-<!-- npu="950" id198 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id198 -->
+
+<!-- npu="910b,A3" id259 -->
+</div>
+<!-- end id259 -->
+
+> <font size="3">wait()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.Store.wait](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.Store.wait)
+
+**Support Status**:
+
+<!-- npu="910b" id169 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id169 -->
+<!-- npu="A3" id170 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id170 -->
+<!-- npu="950" id171 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id171 -->
 
 </div>
 
@@ -1447,6 +1645,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id201 -->
 
+<!-- npu="910b,A3" id260 -->
 > <font size="3">\_\_init\_\_()</font>
 
 <div style="margin-left: 2em">
@@ -1454,6 +1653,7 @@
 **Native Documentation**: [torch.distributed.TCPStore.\_\_init\_\_](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.TCPStore.__init__)
 
 **Support Status**:
+<!-- end id260 -->
 
 <!-- npu="910b" id202 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1461,12 +1661,12 @@
 <!-- npu="A3" id203 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id203 -->
-<!-- npu="950" id204 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id204 -->
 
+<!-- npu="910b,A3" id261 -->
 </div>
+<!-- end id261 -->
 
+<!-- npu="910b,A3" id262 -->
 > <font size="3">host()</font>
 
 <div style="margin-left: 2em">
@@ -1474,6 +1674,7 @@
 **Native Documentation**: [torch.distributed.TCPStore.host](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.TCPStore.host)
 
 **Support Status**:
+<!-- end id262 -->
 
 <!-- npu="910b" id205 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1481,12 +1682,12 @@
 <!-- npu="A3" id206 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id206 -->
-<!-- npu="950" id207 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id207 -->
 
+<!-- npu="910b,A3" id263 -->
 </div>
+<!-- end id263 -->
 
+<!-- npu="910b,A3" id264 -->
 > <font size="3">libuvBackend()</font>
 
 <div style="margin-left: 2em">
@@ -1494,6 +1695,7 @@
 **Native Documentation**: [torch.distributed.TCPStore.libuvBackend](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.TCPStore.libuvBackend)
 
 **Support Status**:
+<!-- end id264 -->
 
 <!-- npu="910b" id208 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1501,12 +1703,12 @@
 <!-- npu="A3" id209 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id209 -->
-<!-- npu="950" id210 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id210 -->
 
+<!-- npu="910b,A3" id265 -->
 </div>
+<!-- end id265 -->
 
+<!-- npu="910b,A3" id266 -->
 > <font size="3">port()</font>
 
 <div style="margin-left: 2em">
@@ -1514,6 +1716,7 @@
 **Native Documentation**: [torch.distributed.TCPStore.port](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.TCPStore.port)
 
 **Support Status**:
+<!-- end id266 -->
 
 <!-- npu="910b" id211 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1521,21 +1724,25 @@
 <!-- npu="A3" id212 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id212 -->
-<!-- npu="950" id213 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id213 -->
+
+<!-- npu="910b,A3" id267 -->
+</div>
+<!-- end id267 -->
 
 </div>
 
-</div>
-
+<!-- npu="910b,A3" id278 -->
+<!-- npu="910b,A3" id268 -->
 ### <code><i>class</i></code> torch.distributed.HashStore
+<!-- end id268 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id269 -->
 **Native Documentation**: [torch.distributed.HashStore](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.HashStore)
 
 **Support Status**:
+<!-- end id269 -->
 
 <!-- npu="910b" id214 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1543,10 +1750,8 @@
 <!-- npu="A3" id215 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id215 -->
-<!-- npu="950" id216 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id216 -->
 
+<!-- npu="910b,A3" id270 -->
 > <font size="3">\_\_init\_\_()</font>
 
 <div style="margin-left: 2em">
@@ -1554,6 +1759,7 @@
 **Native Documentation**: [torch.distributed.HashStore.\_\_init\_\_](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.HashStore.__init__)
 
 **Support Status**:
+<!-- end id270 -->
 
 <!-- npu="910b" id217 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1561,13 +1767,13 @@
 <!-- npu="A3" id218 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id218 -->
-<!-- npu="950" id219 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id219 -->
+
+<!-- npu="910b,A3" id271 -->
+</div>
+<!-- end id271 -->
 
 </div>
-
-</div>
+<!-- end id278 -->
 
 ### <code><i>class</i></code> torch.distributed.FileStore
 
@@ -1587,6 +1793,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id222 -->
 
+<!-- npu="910b,A3" id272 -->
 > <font size="3">\_\_init\_\_()</font>
 
 <div style="margin-left: 2em">
@@ -1594,6 +1801,7 @@
 **Native Documentation**: [torch.distributed.FileStore.\_\_init\_\_](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.FileStore.__init__)
 
 **Support Status**:
+<!-- end id272 -->
 
 <!-- npu="910b" id223 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1601,12 +1809,12 @@
 <!-- npu="A3" id224 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id224 -->
-<!-- npu="950" id225 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id225 -->
 
+<!-- npu="910b,A3" id273 -->
 </div>
+<!-- end id273 -->
 
+<!-- npu="910b,A3" id274 -->
 > <font size="3">path()</font>
 
 <div style="margin-left: 2em">
@@ -1614,6 +1822,7 @@
 **Native Documentation**: [torch.distributed.FileStore.path](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.FileStore.path)
 
 **Support Status**:
+<!-- end id274 -->
 
 <!-- npu="910b" id226 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1621,15 +1830,34 @@
 <!-- npu="A3" id227 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id227 -->
-<!-- npu="950" id228 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id228 -->
 
+<!-- npu="910b,A3" id275 -->
 </div>
+<!-- end id275 -->
 
 </div>
 
 ## Logging
+
+### <code><i>class</i></code> torch.distributed.DistError
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.DistError](https://docs.pytorch.org/docs/2.14/distributed.html#torch.distributed.DistError)
+
+**Support Status**:
+
+<!-- npu="910b" id306 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id306 -->
+<!-- npu="A3" id307 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id307 -->
+<!-- npu="950" id308 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id308 -->
+
+</div>
 
 ### <code><i>class</i></code> torch.distributed.DistBackendError
 
@@ -1648,5 +1876,25 @@
 <!-- npu="950" id231 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id231 -->
+
+</div>
+
+### <code><i>class</i></code> torch.distributed.DistNetworkError
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.DistNetworkError](https://docs.pytorch.org/docs/2.14/distributed.html#torch.distributed.DistNetworkError)
+
+**Support Status**:
+
+<!-- npu="910b" id309 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id309 -->
+<!-- npu="A3" id310 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id310 -->
+<!-- npu="950" id311 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id311 -->
 
 </div>

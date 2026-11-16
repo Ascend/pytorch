@@ -1,13 +1,13 @@
-# List of APIs That Support DTensor
+# DTensor-Supported API List
 
-For the list of Ascend APIs that support DTensor, see [Table 1](#list-of-ascend-apis-supporting-dtensor).
+For the list of APIs supported by Ascend for DTensor, see [Table 1](#ascend-dtensor-api-list).
 
 > [!NOTE]  
 >
-> - **DTensor** (Distributed Tensor) is a distributed tensor abstraction provided by PyTorch and is a subclass of `torch.Tensor`. DTensor follows the SPMD (Single Program, Multiple Data) programming model, describing the sharded layout of tensors across devices through `DeviceMesh` and `Placement` (including `Shard`, `Replicate`, and `Partial`). It transparently handles sharded storage, operator computation, and cross-device collective communication, allowing users to write distributed programs in the same way as single-device programs. For details, see the [official PyTorch DTensor documentation](https://pytorch.org/docs/stable/distributed.tensor.html).
-> - The APIs listed in this document have been verified to support DTensor. Some unverified APIs may also support DTensor; use them with caution in the Ascend NPU environment. We will continue to verify more APIs and update this document regularly.
+> - **DTensor** (Distributed Tensor) is a distributed tensor abstraction provided by PyTorch and a subclass of `torch.Tensor`. DTensor follows the SPMD (Single Program, Multiple Data) programming model and describes the sharded layout of tensors across multiple devices through `DeviceMesh` and `Placement` (including `Shard`, `Replicate`, and `Partial`). It transparently handles sharded storage, operator computation, and cross-device collective communication, so that users can write distributed programs as they would write single-device programs. For details, see the [official PyTorch DTensor documentation](https://pytorch.org/docs/stable/distributed.tensor.html).
+> - The list presented in this document covers APIs that have been verified to support DTensor. Some unverified APIs may also support DTensor; use them with caution in the Ascend NPU environment. We will continue to verify more APIs and update this document regularly.
 
-**Table 1**  List of Ascend APIs that support DTensor<a id="list-of-ascend-apis-supporting-dtensor"></a>
+**Table 1**  List of Ascend-supported DTensor APIs<a id="ascend-dtensor-api-list"></a>
 
 | API Name                                     |
 |-------------------------------------------|

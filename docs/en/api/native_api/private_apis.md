@@ -1,7 +1,7 @@
 # Private APIs
 
 > [!NOTE]  
-> Unless otherwise specified in "Constraints & Notes", the API is supported in all PyTorch versions. If an API is only supported in some PyTorch versions, this will be indicated in "Constraints & Notes".
+> APIs not specifically described in "Constraints & Notes" are supported in all PyTorch versions. If an API is supported only in certain PyTorch versions, this will be noted in "Constraints & Notes".
 
 ## torch
 
@@ -62,7 +62,7 @@
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id8 -->
 <!-- npu="950" id9 -->
-- <term>Ascend 950DT products</term>: Not Supported
+- <term>Ascend 950DT products</term>: Supported
 <!-- end id9 -->
 
 **Constraints & Notes**:
@@ -106,7 +106,7 @@
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id14 -->
 <!-- npu="950" id15 -->
-- <term>Ascend 950DT products</term>: Not Supported
+- <term>Ascend 950DT products</term>: Supported
 <!-- end id15 -->
 
 **Constraints & Notes**:
@@ -442,7 +442,7 @@
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id59 -->
 <!-- npu="950" id60 -->
-- <term>Ascend 950DT products</term>: Not Supported
+- <term>Ascend 950DT products</term>: Supported
 <!-- end id60 -->
 
 **Constraints & Notes**:
@@ -674,7 +674,7 @@
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id89 -->
 <!-- npu="950" id90 -->
-- <term>Ascend 950DT products</term>: Not Supported
+- <term>Ascend 950DT products</term>: Supported
 <!-- end id90 -->
 
 **Constraints & Notes**:

@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.11/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.11/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
 > - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.11/accelerator.html).
 
@@ -13,6 +13,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id34 -->
 ### torch.accelerator.device_count
 
 <div style="margin-left: 2em">
@@ -20,6 +21,7 @@
 **Native Documentation**: [torch.accelerator.device_count](https://pytorch.org/docs/2.11/generated/torch.accelerator.device_count.html)
 
 **Support Status**:
+<!-- end id34 -->
 
 <!-- npu="910b" id1 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -27,11 +29,10 @@
 <!-- npu="A3" id2 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id2 -->
-<!-- npu="950" id3 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id3 -->
 
+<!-- npu="910b,A3" id35 -->
 </div>
+<!-- end id35 -->
 
 ### torch.accelerator.is_available
 
@@ -73,6 +74,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id36 -->
 ### torch.accelerator.set_device_index
 
 <div style="margin-left: 2em">
@@ -80,6 +82,7 @@
 **Native Documentation**: [torch.accelerator.set_device_index](https://pytorch.org/docs/2.11/generated/torch.accelerator.set_device_index.html)
 
 **Support Status**:
+<!-- end id36 -->
 
 <!-- npu="910b" id10 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -87,12 +90,12 @@
 <!-- npu="A3" id11 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id11 -->
-<!-- npu="950" id12 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id12 -->
 
+<!-- npu="910b,A3" id37 -->
 </div>
+<!-- end id37 -->
 
+<!-- npu="910b,A3" id38 -->
 ### torch.accelerator.set_device_idx
 
 <div style="margin-left: 2em">
@@ -100,6 +103,7 @@
 **Native Documentation**: [torch.accelerator.set_device_idx](https://pytorch.org/docs/2.11/generated/torch.accelerator.set_device_idx.html)
 
 **Support Status**:
+<!-- end id38 -->
 
 <!-- npu="910b" id13 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -107,11 +111,10 @@
 <!-- npu="A3" id14 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id14 -->
-<!-- npu="950" id15 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id15 -->
 
+<!-- npu="910b,A3" id39 -->
 </div>
+<!-- end id39 -->
 
 ### torch.accelerator.current_device_index
 
@@ -133,6 +136,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id40 -->
 ### torch.accelerator.current_device_idx
 
 <div style="margin-left: 2em">
@@ -140,6 +144,7 @@
 **Native Documentation**: [torch.accelerator.current_device_idx](https://pytorch.org/docs/2.11/generated/torch.accelerator.current_device_idx.html)
 
 **Support Status**:
+<!-- end id40 -->
 
 <!-- npu="910b" id19 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -147,11 +152,10 @@
 <!-- npu="A3" id20 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id20 -->
-<!-- npu="950" id21 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id21 -->
 
+<!-- npu="910b,A3" id41 -->
 </div>
+<!-- end id41 -->
 
 ### torch.accelerator.set_stream
 

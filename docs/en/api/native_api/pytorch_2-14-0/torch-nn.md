@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.14/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.14/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
 > - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.14/nn.html).
 
@@ -22,6 +22,7 @@
 - [Linear Layers](#linear-layers)
 - [Dropout Layers](#dropout-layers)
 - [Sparse Layers](#sparse-layers)
+- [Distance Functions](#distance-functions)
 - [Loss Functions](#loss-functions)
 - [Vision Layers](#vision-layers)
 - [Shuffle Layers](#shuffle-layers)
@@ -541,26 +542,6 @@
 
 </div>
 
-> <font size="3">ipu()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.nn.Module.ipu](https://pytorch.org/docs/2.14/generated/torch.nn.Module.html#torch.nn.Module.ipu)
-
-**Support Status**:
-
-<!-- npu="910b" id73 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id73 -->
-<!-- npu="A3" id74 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id74 -->
-<!-- npu="950" id75 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id75 -->
-
-</div>
-
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -905,6 +886,26 @@
 
 </div>
 
+> <font size="3">register_state_dict_post_hook()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.Module.register\_state\_dict\_post\_hook](https://docs.pytorch.org/docs/2.14/generated/torch.nn.Module.html#torch.nn.Module.register_state_dict_post_hook)
+
+**Support Status**:
+
+<!-- npu="910b" id1148 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1148 -->
+<!-- npu="A3" id1149 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1149 -->
+<!-- npu="950" id1150 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1150 -->
+
+</div>
+
 > <font size="3">register_state_dict_pre_hook()</font>
 
 <div style="margin-left: 2em">
@@ -985,33 +986,11 @@
 
 </div>
 
-> <font size="3">share_memory()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.nn.Module.share_memory](https://pytorch.org/docs/2.14/generated/torch.nn.Module.html#torch.nn.Module.share_memory)
-
-**Support Status**:
-
-<!-- npu="910b" id136 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id136 -->
-<!-- npu="A3" id137 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id137 -->
-<!-- npu="950" id138 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id138 -->
-
-</div>
-
 > <font size="3">state_dict()</font>
 
 <div style="margin-left: 2em">
 
 **Native Documentation**: [torch.nn.Module.state_dict](https://pytorch.org/docs/2.14/generated/torch.nn.Module.html#torch.nn.Module.state_dict)
-
-**Version Notes**: The positional parameter passing of `destination`, `prefix`, and `keep_vars` is deprecated; use keyword parameters instead.
 
 **Support Status**:
 
@@ -1135,27 +1114,7 @@
 - <term>Ascend 950DT products</term>: Not Supported
 <!-- end id156 -->
 
-**Constraints & Notes**: The NPU form is named `torch.nn.Module.npu`.
-
-</div>
-
-> <font size="3">npu()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.nn.Module.npu](https://pytorch.org/docs/2.14/generated/torch.nn.Module.html)
-
-**Support Status**:
-
-<!-- npu="910b" id157 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id157 -->
-<!-- npu="A3" id158 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id158 -->
-<!-- npu="950" id159 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id159 -->
+**Constraints & Notes**: The NPU-adapted name is `torch.nn.Module.npu`.
 
 </div>
 
@@ -2082,7 +2041,7 @@
 
 - `input` only supports fp16, fp32
 
-<!-- npu="910b,910" id287 -->
+<!-- npu="910b" id287 -->
 - For <term>Atlas training products</term>/<term>Atlas A2 training products</term>, you need to manually set `torch.npu.config.allow_internal_format` to False to support 3-dimensional input
 <!-- end id287 -->
 
@@ -2198,6 +2157,20 @@
 
 <div style="margin-left: 2em">
 
+**Native Documentation**: [torch.nn.LazyConv3d](https://docs.pytorch.org/docs/2.14/generated/torch.nn.LazyConv3d.html#torch.nn.LazyConv3d)
+
+**Support Status**:
+
+<!-- npu="910b" id1112 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1112 -->
+<!-- npu="A3" id1113 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1113 -->
+<!-- npu="950" id1114 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1114 -->
+
 > <font size="3">cls_to_become()</font>
 
 <div style="margin-left: 2em">
@@ -2307,6 +2280,20 @@
 ### <code><i>class</i></code> torch.nn.LazyConvTranspose3d
 
 <div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.LazyConvTranspose3d](https://docs.pytorch.org/docs/2.14/generated/torch.nn.LazyConvTranspose3d.html#torch.nn.LazyConvTranspose3d)
+
+**Support Status**:
+
+<!-- npu="910b" id1115 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1115 -->
+<!-- npu="A3" id1116 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1116 -->
+<!-- npu="950" id1117 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1117 -->
 
 > <font size="3">cls_to_become()</font>
 
@@ -2424,6 +2411,10 @@
   torch_npu.npu.use_compatible_impl(True)
   ```
 
+<!-- npu="950" id1014 -->
+- On <term>Ascend 950DT products</term>, the returned `indices` are aligned with upstream PyTorch and may not be completely consistent with the results on <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>.
+<!-- end id1014 -->
+
 </div>
 
 ### <code><i>class</i></code> torch.nn.MaxPool3d
@@ -2464,7 +2455,13 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id338 -->
 
-**Constraints & Notes**: `input` only supports fp16, fp32
+**Constraints & Notes**:
+
+- `input` only supports fp16, fp32
+
+<!-- npu="950" id1015 -->
+- For <term>Ascend 950DT products</term>, when the input contains duplicate indexes, the calculation results may differ in precision from the GPU implementation and <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>.
+<!-- end id1015 -->
 
 </div>
 
@@ -2574,6 +2571,46 @@
 
 </div>
 
+### <code><i>class</i></code> torch.nn.FractionalMaxPool2d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.FractionalMaxPool2d](https://docs.pytorch.org/docs/2.14/generated/torch.nn.FractionalMaxPool2d.html#torch.nn.FractionalMaxPool2d)
+
+**Support Status**:
+
+<!-- npu="910b" id1049 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1049 -->
+<!-- npu="A3" id1050 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1050 -->
+<!-- npu="950" id1051 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1051 -->
+
+</div>
+
+### <code><i>class</i></code> torch.nn.FractionalMaxPool3d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.FractionalMaxPool3d](https://docs.pytorch.org/docs/2.14/generated/torch.nn.FractionalMaxPool3d.html#torch.nn.FractionalMaxPool3d)
+
+**Support Status**:
+
+<!-- npu="910b" id1052 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1052 -->
+<!-- npu="A3" id1053 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1053 -->
+<!-- npu="950" id1054 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1054 -->
+
+</div>
+
 ### <code><i>class</i></code> torch.nn.LPPool1d
 
 <div style="margin-left: 2em">
@@ -2615,6 +2652,26 @@
 <!-- end id359 -->
 
 **Constraints & Notes**: `input` only supports fp16, fp32, int16, int32, int64, bool
+
+</div>
+
+### <code><i>class</i></code> torch.nn.LPPool3d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.LPPool3d](https://docs.pytorch.org/docs/2.14/generated/torch.nn.LPPool3d.html#torch.nn.LPPool3d)
+
+**Support Status**:
+
+<!-- npu="910b" id1124 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1124 -->
+<!-- npu="A3" id1125 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1125 -->
+<!-- npu="950" id1126 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1126 -->
 
 </div>
 
@@ -3023,6 +3080,66 @@
 
 </div>
 
+### <code><i>class</i></code> torch.nn.CircularPad1d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.CircularPad1d](https://docs.pytorch.org/docs/2.14/generated/torch.nn.CircularPad1d.html#torch.nn.CircularPad1d)
+
+**Support Status**:
+
+<!-- npu="910b" id1031 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1031 -->
+<!-- npu="A3" id1032 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1032 -->
+<!-- npu="950" id1033 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1033 -->
+
+</div>
+
+### <code><i>class</i></code> torch.nn.CircularPad2d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.CircularPad2d](https://docs.pytorch.org/docs/2.14/generated/torch.nn.CircularPad2d.html#torch.nn.CircularPad2d)
+
+**Support Status**:
+
+<!-- npu="910b" id1034 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1034 -->
+<!-- npu="A3" id1035 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1035 -->
+<!-- npu="950" id1036 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1036 -->
+
+</div>
+
+### <code><i>class</i></code> torch.nn.CircularPad3d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.CircularPad3d](https://docs.pytorch.org/docs/2.14/generated/torch.nn.CircularPad3d.html#torch.nn.CircularPad3d)
+
+**Support Status**:
+
+<!-- npu="910b" id1037 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1037 -->
+<!-- npu="A3" id1038 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1038 -->
+<!-- npu="950" id1039 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1039 -->
+
+</div>
+
 ## Non-linear Activations (weighted sum, nonlinearity)
 
 ### <code><i>class</i></code> torch.nn.ELU
@@ -3203,7 +3320,13 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id437 -->
 
-**Constraints & Notes**: `query`, `key`, `value` only support bf16, fp16, fp32
+**Constraints & Notes**:
+
+- `query`, `key`, `value` only support bf16, fp16, fp32
+
+<!-- npu="950" id1016 -->
+- On <term>Ascend 950DT products</term>, when the default high-performance implementation is used, the calculation results of `fp32` or `complex64` inputs may differ in precision from the GPU implementation and <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>. You can set `cube_math_type` to `4` to switch to high-precision mode for aligned precision, but performance will be reduced.
+<!-- end id1016 -->
 
 > <font size="3">forward()</font>
 
@@ -3223,7 +3346,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id440 -->
 
-**Constraints & Notes**: `query`, `key`, `value` only support bf16, fp16, fp32
+**Constraints & Notes**: `query`, `key`, `value` only supports bf16, fp16, fp32
 
 </div>
 
@@ -3295,6 +3418,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1030 -->
 ### <code><i>class</i></code> torch.nn.RReLU
 
 <div style="margin-left: 2em">
@@ -3314,6 +3438,7 @@
 <!-- end id452 -->
 
 </div>
+<!-- end id1030 -->
 
 ### <code><i>class</i></code> torch.nn.SELU
 
@@ -3381,6 +3506,10 @@
 
 - `input` only supports bf16, fp16, fp32
 - The `approximate` parameter only supports being set to `tanh`.
+
+<!-- npu="950" id1020 -->
+- On <term>Ascend 950DT products</term>, the default approximate algorithm is consistent with upstream PyTorch but different from that on <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>, so the returned results may not be completely consistent.
+<!-- end id1020 -->
 
 </div>
 
@@ -3829,6 +3958,20 @@
 
 <div style="margin-left: 2em">
 
+**Native Documentation**: [torch.nn.LazyBatchNorm1d](https://docs.pytorch.org/docs/2.14/generated/torch.nn.LazyBatchNorm1d.html#torch.nn.LazyBatchNorm1d)
+
+**Support Status**:
+
+<!-- npu="910b" id1094 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1094 -->
+<!-- npu="A3" id1095 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1095 -->
+<!-- npu="950" id1096 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1096 -->
+
 > <font size="3">cls_to_become()</font>
 
 <div style="margin-left: 2em">
@@ -3855,6 +3998,20 @@
 
 <div style="margin-left: 2em">
 
+**Native Documentation**: [torch.nn.LazyBatchNorm2d](https://docs.pytorch.org/docs/2.14/generated/torch.nn.LazyBatchNorm2d.html#torch.nn.LazyBatchNorm2d)
+
+**Support Status**:
+
+<!-- npu="910b" id1097 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1097 -->
+<!-- npu="A3" id1098 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1098 -->
+<!-- npu="950" id1099 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1099 -->
+
 > <font size="3">cls_to_become()</font>
 
 <div style="margin-left: 2em">
@@ -3880,6 +4037,20 @@
 ### <code><i>class</i></code> torch.nn.LazyBatchNorm3d
 
 <div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.LazyBatchNorm3d](https://docs.pytorch.org/docs/2.14/generated/torch.nn.LazyBatchNorm3d.html#torch.nn.LazyBatchNorm3d)
+
+**Support Status**:
+
+<!-- npu="910b" id1118 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1118 -->
+<!-- npu="A3" id1119 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1119 -->
+<!-- npu="950" id1120 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1120 -->
 
 > <font size="3">cls_to_become()</font>
 
@@ -3972,9 +4143,83 @@
 
 </div>
 
+### <code><i>class</i></code> torch.nn.InstanceNorm1d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.InstanceNorm1d](https://docs.pytorch.org/docs/2.14/generated/torch.nn.InstanceNorm1d.html#torch.nn.InstanceNorm1d)
+
+**Support Status**:
+
+<!-- npu="910b" id1055 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1055 -->
+<!-- npu="A3" id1056 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1056 -->
+<!-- npu="950" id1057 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1057 -->
+
+</div>
+
+### <code><i>class</i></code> torch.nn.InstanceNorm2d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.InstanceNorm2d](https://docs.pytorch.org/docs/2.14/generated/torch.nn.InstanceNorm2d.html#torch.nn.InstanceNorm2d)
+
+**Support Status**:
+
+<!-- npu="910b" id1058 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1058 -->
+<!-- npu="A3" id1059 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1059 -->
+<!-- npu="950" id1060 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1060 -->
+
+</div>
+
+### <code><i>class</i></code> torch.nn.InstanceNorm3d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.InstanceNorm3d](https://docs.pytorch.org/docs/2.14/generated/torch.nn.InstanceNorm3d.html#torch.nn.InstanceNorm3d)
+
+**Support Status**:
+
+<!-- npu="910b" id1061 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1061 -->
+<!-- npu="A3" id1062 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1062 -->
+<!-- npu="950" id1063 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1063 -->
+
+</div>
+
 ### <code><i>class</i></code> torch.nn.LazyInstanceNorm1d
 
 <div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.LazyInstanceNorm1d](https://docs.pytorch.org/docs/2.14/generated/torch.nn.LazyInstanceNorm1d.html#torch.nn.LazyInstanceNorm1d)
+
+**Support Status**:
+
+<!-- npu="910b" id1100 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1100 -->
+<!-- npu="A3" id1101 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1101 -->
+<!-- npu="950" id1102 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1102 -->
 
 > <font size="3">cls_to_become()</font>
 
@@ -4002,6 +4247,20 @@
 
 <div style="margin-left: 2em">
 
+**Native Documentation**: [torch.nn.LazyInstanceNorm2d](https://docs.pytorch.org/docs/2.14/generated/torch.nn.LazyInstanceNorm2d.html#torch.nn.LazyInstanceNorm2d)
+
+**Support Status**:
+
+<!-- npu="910b" id1121 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1121 -->
+<!-- npu="A3" id1122 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1122 -->
+<!-- npu="950" id1123 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1123 -->
+
 > <font size="3">cls_to_become()</font>
 
 <div style="margin-left: 2em">
@@ -4027,6 +4286,20 @@
 ### <code><i>class</i></code> torch.nn.LazyInstanceNorm3d
 
 <div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.LazyInstanceNorm3d](https://docs.pytorch.org/docs/2.14/generated/torch.nn.LazyInstanceNorm3d.html#torch.nn.LazyInstanceNorm3d)
+
+**Support Status**:
+
+<!-- npu="910b" id1103 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1103 -->
+<!-- npu="A3" id1104 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1104 -->
+<!-- npu="950" id1105 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1105 -->
 
 > <font size="3">cls_to_become()</font>
 
@@ -4077,6 +4350,86 @@
   import torch_npu
   torch_npu.npu.use_compatible_impl(True)
   ```
+
+</div>
+
+### <code><i>class</i></code> torch.nn.LocalResponseNorm
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.LocalResponseNorm](https://docs.pytorch.org/docs/2.14/generated/torch.nn.LocalResponseNorm.html#torch.nn.LocalResponseNorm)
+
+**Support Status**:
+
+<!-- npu="910b" id1127 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1127 -->
+<!-- npu="A3" id1128 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1128 -->
+<!-- npu="950" id1129 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1129 -->
+
+</div>
+
+### <code><i>class</i></code> torch.nn.RMSNorm
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.RMSNorm](https://docs.pytorch.org/docs/2.14/generated/torch.nn.RMSNorm.html#torch.nn.RMSNorm)
+
+**Support Status**:
+
+<!-- npu="910b" id1067 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1067 -->
+<!-- npu="A3" id1068 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1068 -->
+<!-- npu="950" id1069 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1069 -->
+
+> <font size="3">forward()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.RMSNorm.forward](https://docs.pytorch.org/docs/2.14/generated/torch.nn.RMSNorm.html#torch.nn.RMSNorm.forward)
+
+**Support Status**:
+
+<!-- npu="910b" id1070 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1070 -->
+<!-- npu="A3" id1071 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1071 -->
+<!-- npu="950" id1072 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1072 -->
+
+</div>
+
+> <font size="3">reset_parameters()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.RMSNorm.reset_parameters](https://docs.pytorch.org/docs/2.14/generated/torch.nn.RMSNorm.html#torch.nn.RMSNorm.reset_parameters)
+
+**Support Status**:
+
+<!-- npu="910b" id1073 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1073 -->
+<!-- npu="A3" id1074 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1074 -->
+<!-- npu="950" id1075 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1075 -->
+
+</div>
 
 </div>
 
@@ -4214,6 +4567,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1026 -->
 ### <code><i>class</i></code> torch.nn.LSTMCell
 
 <div style="margin-left: 2em">
@@ -4221,6 +4575,7 @@
 **Native Documentation**: [torch.nn.LSTMCell](https://pytorch.org/docs/2.14/generated/torch.nn.LSTMCell.html)
 
 **Support Status**:
+<!-- end id1026 -->
 
 <!-- npu="910b" id570 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -4228,13 +4583,12 @@
 <!-- npu="A3" id571 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id571 -->
-<!-- npu="950" id572 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id572 -->
 
+<!-- npu="910b,A3" id1027 -->
 **Constraints & Notes**: The API does not currently support `jit_compile=False`. To use it in this mode, add "DynamicGRUV2" to the "NPU_FUZZY_COMPILE_BLACKLIST" option. For specific operations, see [Example of Adding a Binary Blocklist](../appendixes/example_of_adding_a_binary_blocklist.md)
 
 </div>
+<!-- end id1027 -->
 
 ### <code><i>class</i></code> torch.nn.GRUCell
 
@@ -4278,7 +4632,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id578 -->
 
-**Constraints & Notes**: `src`, `tgt` only support fp16, fp32
+**Constraints & Notes**: `src`, `tgt` only supports fp16, fp32
 
 > <font size="3">forward()</font>
 
@@ -4297,6 +4651,26 @@
 <!-- npu="950" id581 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id581 -->
+
+</div>
+
+> <font size="3">generate_square_subsequent_mask()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.Transformer.generate_square_subsequent_mask](https://docs.pytorch.org/docs/2.14/generated/torch.nn.Transformer.html#torch.nn.Transformer.generate_square_subsequent_mask)
+
+**Support Status**:
+
+<!-- npu="910b" id1091 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1091 -->
+<!-- npu="A3" id1092 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1092 -->
+<!-- npu="950" id1093 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1093 -->
 
 </div>
 
@@ -4338,7 +4712,13 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id587 -->
 
-**Constraints & Notes**: `src` only supports fp32
+**Constraints & Notes**:
+
+- `src` only supports fp32
+
+<!-- npu="950" id1022 -->
+- On <term>Ascend 950DT products</term>, when the default high-performance implementation is used, the calculation results of `fp32` or `complex64` inputs may differ in precision from the GPU implementation and <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>. You can set `cube_math_type` to `4` to switch to high-precision mode for aligned precision, but performance will be reduced.
+<!-- end id1022 -->
 
 </div>
 
@@ -4362,31 +4742,25 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id590 -->
 
-> <font size="3">forward()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.nn.TransformerDecoder.forward](https://pytorch.org/docs/2.14/generated/torch.nn.TransformerDecoder.html#torch.nn.TransformerDecoder.forward)
-
-**Support Status**:
-
-<!-- npu="910b" id591 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id591 -->
-<!-- npu="A3" id592 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id592 -->
-<!-- npu="950" id593 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id593 -->
-
-</div>
-
 </div>
 
 ### <code><i>class</i></code> torch.nn.TransformerEncoderLayer
 
 <div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.TransformerEncoderLayer](https://docs.pytorch.org/docs/2.14/generated/torch.nn.TransformerEncoderLayer.html#torch.nn.TransformerEncoderLayer)
+
+**Support Status**:
+
+<!-- npu="910b" id1109 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1109 -->
+<!-- npu="A3" id1110 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1110 -->
+<!-- npu="950" id1111 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1111 -->
 
 > <font size="3">forward()</font>
 
@@ -4413,6 +4787,20 @@
 ### <code><i>class</i></code> torch.nn.TransformerDecoderLayer
 
 <div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.TransformerDecoderLayer](https://docs.pytorch.org/docs/2.14/generated/torch.nn.TransformerDecoderLayer.html#torch.nn.TransformerDecoderLayer)
+
+**Support Status**:
+
+<!-- npu="910b" id1106 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1106 -->
+<!-- npu="A3" id1107 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1107 -->
+<!-- npu="950" id1108 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1108 -->
 
 > <font size="3">forward()</font>
 
@@ -4478,7 +4866,13 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id605 -->
 
-**Constraints & Notes**: `input` only supports fp16, fp32
+**Constraints & Notes**:
+
+- `input` only supports fp16, fp32
+
+<!-- npu="950" id1023 -->
+- On <term>Ascend 950DT products</term>, when the default high-performance implementation is used, the calculation results of `fp32` or `complex64` inputs may differ in precision from the GPU implementation and <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>. You can set `cube_math_type` to `4` to switch to high-precision mode for aligned precision, but performance will be reduced.
+<!-- end id1023 -->
 
 </div>
 
@@ -4570,6 +4964,26 @@
 
 </div>
 
+### <code><i>class</i></code> torch.nn.Dropout1d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.Dropout1d](https://docs.pytorch.org/docs/2.14/generated/torch.nn.Dropout1d.html#torch.nn.Dropout1d)
+
+**Support Status**:
+
+<!-- npu="910b" id1043 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1043 -->
+<!-- npu="A3" id1044 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1044 -->
+<!-- npu="950" id1045 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1045 -->
+
+</div>
+
 ### <code><i>class</i></code> torch.nn.Dropout2d
 
 <div style="margin-left: 2em">
@@ -4589,6 +5003,26 @@
 <!-- end id620 -->
 
 **Constraints & Notes**: `input` only supports fp16, fp32, int64, bool
+
+</div>
+
+### <code><i>class</i></code> torch.nn.Dropout3d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.Dropout3d](https://docs.pytorch.org/docs/2.14/generated/torch.nn.Dropout3d.html#torch.nn.Dropout3d)
+
+**Support Status**:
+
+<!-- npu="910b" id1046 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1046 -->
+<!-- npu="A3" id1047 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1047 -->
+<!-- npu="950" id1048 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1048 -->
 
 </div>
 
@@ -4751,6 +5185,48 @@
 **Constraints & Notes**: `embeddings` only supports int64
 
 </div>
+
+</div>
+
+## Distance Functions
+
+### <code><i>class</i></code> torch.nn.CosineSimilarity
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.CosineSimilarity](https://docs.pytorch.org/docs/2.14/generated/torch.nn.CosineSimilarity.html#torch.nn.CosineSimilarity)
+
+**Support Status**:
+
+<!-- npu="910b" id1040 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1040 -->
+<!-- npu="A3" id1041 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1041 -->
+<!-- npu="950" id1042 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1042 -->
+
+</div>
+
+### <code><i>class</i></code> torch.nn.PairwiseDistance
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.PairwiseDistance](https://docs.pytorch.org/docs/2.14/generated/torch.nn.PairwiseDistance.html#torch.nn.PairwiseDistance)
+
+**Support Status**:
+
+<!-- npu="910b" id1064 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1064 -->
+<!-- npu="A3" id1065 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1065 -->
+<!-- npu="950" id1066 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1066 -->
 
 </div>
 
@@ -5100,6 +5576,26 @@
 
 </div>
 
+### <code><i>class</i></code> torch.nn.SoftMarginLoss
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.SoftMarginLoss](https://docs.pytorch.org/docs/2.14/generated/torch.nn.SoftMarginLoss.html#torch.nn.SoftMarginLoss)
+
+**Support Status**:
+
+<!-- npu="910b" id1130 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1130 -->
+<!-- npu="A3" id1131 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1131 -->
+<!-- npu="950" id1132 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1132 -->
+
+</div>
+
 ### <code><i>class</i></code> torch.nn.MultiLabelSoftMarginLoss
 
 <div style="margin-left: 2em">
@@ -5279,7 +5775,13 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id710 -->
 
-**Constraints & Notes**: `input` only supports bf16, fp16, fp32, fp64
+**Constraints & Notes**:
+
+- `input` only supports bf16, fp16, fp32, fp64
+
+<!-- npu="950" id1025 -->
+- For <term>Ascend 950DT products</term>, the `double` data type is not supported.
+<!-- end id1025 -->
 
 </div>
 
@@ -5288,8 +5790,6 @@
 <div style="margin-left: 2em">
 
 **Native Documentation**: [torch.nn.UpsamplingNearest2d](https://pytorch.org/docs/2.14/generated/torch.nn.UpsamplingNearest2d.html)
-
-**Version Notes**: This class has been deprecated; use `torch.nn.functional.interpolate` instead.
 
 **Support Status**:
 
@@ -5486,8 +5986,6 @@
 
 **Native Documentation**: [torch.nn.utils.clip_grad_norm](https://pytorch.org/docs/2.14/generated/torch.nn.utils.clip_grad_norm.html)
 
-**Version Notes**: This API has been deprecated; use `torch.nn.utils.clip_grad_norm_` instead.
-
 **Support Status**:
 
 <!-- npu="910b" id738 -->
@@ -5524,6 +6022,66 @@
 
 </div>
 
+### torch.nn.utils.get_total_norm
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.utils.get_total_norm](https://docs.pytorch.org/docs/2.14/generated/torch.nn.utils.get_total_norm.html#torch.nn.utils.get_total_norm)
+
+**Support Status**:
+
+<!-- npu="910b" id1082 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1082 -->
+<!-- npu="A3" id1083 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1083 -->
+<!-- npu="950" id1084 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1084 -->
+
+</div>
+
+### torch.nn.utils.clip_grads_with_norm_
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.utils.clip_grads_with_norm_](https://docs.pytorch.org/docs/2.14/generated/torch.nn.utils.clip_grads_with_norm_.html#torch.nn.utils.clip_grads_with_norm_)
+
+**Support Status**:
+
+<!-- npu="910b" id1076 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1076 -->
+<!-- npu="A3" id1077 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1077 -->
+<!-- npu="950" id1078 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1078 -->
+
+</div>
+
+### torch.nn.utils.parameters\_to\_vector
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.utils.parameters\_to\_vector](https://docs.pytorch.org/docs/2.14/generated/torch.nn.utils.parameters_to_vector.html#torch.nn.utils.parameters_to_vector)
+
+**Support Status**:
+
+<!-- npu="910b" id1133 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1133 -->
+<!-- npu="A3" id1134 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1134 -->
+<!-- npu="950" id1135 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1135 -->
+
+</div>
+
 ### torch.nn.utils.vector_to_parameters
 
 <div style="margin-left: 2em">
@@ -5546,13 +6104,111 @@
 
 </div>
 
+### torch.nn.utils.fuse\_conv\_bn\_eval
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.utils.fuse\_conv\_bn\_eval](https://docs.pytorch.org/docs/2.14/generated/torch.nn.utils.fuse_conv_bn_eval.html#torch.nn.utils.fuse_conv_bn_eval)
+
+**Support Status**:
+
+<!-- npu="910b" id1136 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1136 -->
+<!-- npu="A3" id1137 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1137 -->
+<!-- npu="950" id1138 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1138 -->
+
+</div>
+
+### torch.nn.utils.fuse_conv_bn_weights
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.utils.fuse_conv_bn_weights](https://docs.pytorch.org/docs/2.14/generated/torch.nn.utils.fuse_conv_bn_weights.html#torch.nn.utils.fuse_conv_bn_weights)
+
+**Support Status**:
+
+<!-- npu="910b" id1079 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1079 -->
+<!-- npu="A3" id1080 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1080 -->
+<!-- npu="950" id1081 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1081 -->
+
+</div>
+
+### torch.nn.utils.fuse\_linear\_bn\_weights
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.utils.fuse\_linear\_bn\_weights](https://docs.pytorch.org/docs/2.14/generated/torch.nn.utils.fuse_linear_bn_weights.html#torch.nn.utils.fuse_linear_bn_weights)
+
+**Support Status**:
+
+<!-- npu="910b" id1139 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1139 -->
+<!-- npu="A3" id1140 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1140 -->
+<!-- npu="950" id1141 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1141 -->
+
+</div>
+
+### torch.nn.utils.convert\_conv2d\_weight\_memory\_format
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.utils.convert\_conv2d\_weight\_memory\_format](https://docs.pytorch.org/docs/2.14/generated/torch.nn.utils.convert_conv2d_weight_memory_format.html#torch.nn.utils.convert_conv2d_weight_memory_format)
+
+**Support Status**:
+
+<!-- npu="910b" id1142 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1142 -->
+<!-- npu="A3" id1143 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1143 -->
+<!-- npu="950" id1144 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1144 -->
+
+</div>
+
+### torch.nn.utils.convert\_conv3d\_weight\_memory\_format
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.utils.convert\_conv3d\_weight\_memory\_format](https://docs.pytorch.org/docs/2.14/generated/torch.nn.utils.convert_conv3d_weight_memory_format.html#torch.nn.utils.convert_conv3d_weight_memory_format)
+
+**Support Status**:
+
+<!-- npu="910b" id1145 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1145 -->
+<!-- npu="A3" id1146 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1146 -->
+<!-- npu="950" id1147 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1147 -->
+
+</div>
+
 ### torch.nn.utils.weight_norm
 
 <div style="margin-left: 2em">
 
 **Native Documentation**: [torch.nn.utils.weight_norm](https://pytorch.org/docs/2.14/generated/torch.nn.utils.weight_norm.html)
-
-**Version Notes**: This API has been deprecated; use `torch.nn.utils.parametrizations.weight_norm` instead. For parameter access and removal methods, see the migration notes in the Native Documentation.
 
 **Support Status**:
 
@@ -5565,6 +6221,26 @@
 <!-- npu="950" id749 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id749 -->
+
+</div>
+
+### torch.nn.utils.remove_weight_norm
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.utils.remove_weight_norm](https://docs.pytorch.org/docs/2.14/generated/torch.nn.utils.remove_weight_norm.html#torch.nn.utils.remove_weight_norm)
+
+**Support Status**:
+
+<!-- npu="910b" id1088 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1088 -->
+<!-- npu="A3" id1089 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1089 -->
+<!-- npu="950" id1090 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1090 -->
 
 </div>
 
@@ -5625,26 +6301,6 @@
 <!-- npu="950" id758 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id758 -->
-
-</div>
-
-### torch.nn.parameter.is_lazy
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.nn.parameter.is_lazy](https://pytorch.org/docs/2.14/generated/torch.nn.parameter.is_lazy.html)
-
-**Support Status**:
-
-<!-- npu="910b" id759 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id759 -->
-<!-- npu="A3" id760 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id760 -->
-<!-- npu="950" id761 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id761 -->
 
 </div>
 
@@ -5925,18 +6581,6 @@
 <div style="margin-left: 2em">
 
 **Native Documentation**: [torch.nn.utils.prune.Identity](https://pytorch.org/docs/2.14/generated/torch.nn.utils.prune.Identity_class.html#torch.nn.utils.prune.Identity)
-
-**Support Status**:
-
-<!-- npu="910b" id801 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id801 -->
-<!-- npu="A3" id802 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id802 -->
-<!-- npu="950" id803 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id803 -->
 
 **Constraints & Notes**: `input` only supports fp32
 
@@ -6612,6 +7256,26 @@
 
 </div>
 
+### torch.nn.utils.prune.identity
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.utils.prune.identity](https://pytorch.org/docs/2.14/generated/torch.nn.utils.prune.identity_function.html)
+
+**Support Status**:
+
+<!-- npu="910b" id912 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id912 -->
+<!-- npu="A3" id913 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id913 -->
+<!-- npu="950" id914 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id914 -->
+
+</div>
+
 ### torch.nn.utils.prune.random_unstructured
 
 <div style="margin-left: 2em">
@@ -6712,26 +7376,6 @@
 
 </div>
 
-### torch.nn.utils.prune.identity
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.nn.utils.prune.identity](https://pytorch.org/docs/2.14/generated/torch.nn.utils.prune.identity_function.html)
-
-**Support Status**:
-
-<!-- npu="910b" id912 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id912 -->
-<!-- npu="A3" id913 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id913 -->
-<!-- npu="950" id914 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id914 -->
-
-</div>
-
 ### torch.nn.utils.prune.custom_from_mask
 
 <div style="margin-left: 2em">
@@ -6794,6 +7438,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1028 -->
 ### torch.nn.utils.parametrizations.orthogonal
 
 <div style="margin-left: 2em">
@@ -6801,6 +7446,7 @@
 **Native Documentation**: [torch.nn.utils.parametrizations.orthogonal](https://pytorch.org/docs/2.14/generated/torch.nn.utils.parametrizations.orthogonal.html)
 
 **Support Status**:
+<!-- end id1028 -->
 
 <!-- npu="910b" id924 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -6808,9 +7454,28 @@
 <!-- npu="A3" id925 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id925 -->
-<!-- npu="950" id926 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id926 -->
+
+<!-- npu="910b,A3" id1029 -->
+</div>
+<!-- end id1029 -->
+
+### torch.nn.utils.parametrizations.weight_norm
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.utils.parametrizations.weight_norm](https://docs.pytorch.org/docs/2.14/generated/torch.nn.utils.parametrizations.weight_norm.html#torch.nn.utils.parametrizations.weight_norm)
+
+**Support Status**:
+
+<!-- npu="910b" id1085 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1085 -->
+<!-- npu="A3" id1086 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1086 -->
+<!-- npu="950" id1087 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1087 -->
 
 </div>
 
@@ -6961,8 +7626,6 @@
 <div style="margin-left: 2em">
 
 **Native Documentation**: [torch.nn.utils.stateless.functional_call](https://pytorch.org/docs/2.14/generated/torch.nn.utils.stateless.functional_call.html)
-
-**Version Notes**: This API has been deprecated; use `torch.func.functional_call` instead.
 
 **Support Status**:
 
@@ -7305,6 +7968,26 @@
 <!-- npu="950" id998 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id998 -->
+
+</div>
+
+### torch.nn.parameter.is_lazy
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.parameter.is_lazy](https://pytorch.org/docs/2.14/generated/torch.nn.parameter.is_lazy.html)
+
+**Support Status**:
+
+<!-- npu="910b" id759 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id759 -->
+<!-- npu="A3" id760 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id760 -->
+<!-- npu="950" id761 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id761 -->
 
 </div>
 

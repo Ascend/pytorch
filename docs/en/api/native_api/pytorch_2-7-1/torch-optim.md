@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.7/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.7/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
 > - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.7/optim.html).
 
@@ -14,11 +14,33 @@
 - [Algorithms](#algorithms)
 - [How to adjust learning rate](#how-to-adjust-learning-rate)
 
+- [Weight Averaging (SWA and EMA)](#weight-averaging-swa-and-ema)
+
 </div>
 
 <div style="display:none;">
 
 ## &#8203;torch.optim
+
+</div>
+
+### <code><i>class</i></code> torch.optim.swa_utils.SWALR
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.swa_utils.SWALR](https://docs.pytorch.org/docs/2.7/generated/torch.optim.swa_utils.SWALR.html#torch.optim.swa_utils.SWALR)
+
+**Support Status**:
+
+<!-- npu="910b" id681 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id681 -->
+<!-- npu="A3" id682 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id682 -->
+<!-- npu="950" id683 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id683 -->
 
 </div>
 
@@ -42,6 +64,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id3 -->
 
+<!-- npu="910b,A3" id653 -->
 > <font size="3">add_param_group()</font>
 
 <div style="margin-left: 2em">
@@ -49,6 +72,7 @@
 **Native Documentation**: [Optimizer.add_param_group](https://pytorch.org/docs/2.7/generated/torch.optim.Optimizer.add_param_group.html)
 
 **Support Status**:
+<!-- end id653 -->
 
 <!-- npu="910b" id4 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -56,12 +80,12 @@
 <!-- npu="A3" id5 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id5 -->
-<!-- npu="950" id6 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id6 -->
 
+<!-- npu="910b,A3" id654 -->
 </div>
+<!-- end id654 -->
 
+<!-- npu="910b,A3" id655 -->
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -69,6 +93,7 @@
 **Native Documentation**: [Optimizer.load_state_dict](https://pytorch.org/docs/2.7/generated/torch.optim.Optimizer.load_state_dict.html)
 
 **Support Status**:
+<!-- end id655 -->
 
 <!-- npu="910b" id7 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -76,12 +101,12 @@
 <!-- npu="A3" id8 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id8 -->
-<!-- npu="950" id9 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id9 -->
 
+<!-- npu="910b,A3" id656 -->
 </div>
+<!-- end id656 -->
 
+<!-- npu="910b,A3" id657 -->
 > <font size="3">state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -89,6 +114,7 @@
 **Native Documentation**: [Optimizer.state_dict](https://pytorch.org/docs/2.7/generated/torch.optim.Optimizer.state_dict.html)
 
 **Support Status**:
+<!-- end id657 -->
 
 <!-- npu="910b" id10 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -96,12 +122,12 @@
 <!-- npu="A3" id11 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id11 -->
-<!-- npu="950" id12 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id12 -->
 
+<!-- npu="910b,A3" id658 -->
 </div>
+<!-- end id658 -->
 
+<!-- npu="910b,A3" id659 -->
 > <font size="3">step()</font>
 
 <div style="margin-left: 2em">
@@ -109,6 +135,7 @@
 **Native Documentation**: [Optimizer.step](https://pytorch.org/docs/2.7/generated/torch.optim.Optimizer.step.html)
 
 **Support Status**:
+<!-- end id659 -->
 
 <!-- npu="910b" id13 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -116,12 +143,12 @@
 <!-- npu="A3" id14 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id14 -->
-<!-- npu="950" id15 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id15 -->
 
+<!-- npu="910b,A3" id660 -->
 </div>
+<!-- end id660 -->
 
+<!-- npu="910b,A3" id661 -->
 > <font size="3">zero_grad()</font>
 
 <div style="margin-left: 2em">
@@ -129,6 +156,7 @@
 **Native Documentation**: [Optimizer.zero_grad](https://pytorch.org/docs/2.7/generated/torch.optim.Optimizer.zero_grad.html)
 
 **Support Status**:
+<!-- end id661 -->
 
 <!-- npu="910b" id16 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -136,11 +164,10 @@
 <!-- npu="A3" id17 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id17 -->
-<!-- npu="950" id18 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id18 -->
 
+<!-- npu="910b,A3" id662 -->
 </div>
+<!-- end id662 -->
 
 </div>
 
@@ -170,7 +197,7 @@
 - When the optimizer runs in `foreach` mode (`foreach=None` or `foreach=True`), performance may degrade if too many parameter groups are optimized, due to the characteristics of the `foreach` operator. In this case, it is recommended to set `foreach=False`, for example:
 
   ```python
-  # When there are many parameter groups, it is recommended to disable foreach to avoid performance degradation.
+  # When there are many parameter groups, disable foreach to avoid performance degradation.
   optimizer = torch.optim.Adadelta(model.parameters(), lr=1e-3, foreach=False)
   ```
 
@@ -396,6 +423,46 @@
 
 </div>
 
+### <code><i>class</i></code> torch.optim.Adafactor
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.Adafactor](https://docs.pytorch.org/docs/2.7/generated/torch.optim.Adafactor.html#torch.optim.Adafactor)
+
+**Support Status**:
+
+<!-- npu="910b" id723 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id723 -->
+<!-- npu="A3" id724 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id724 -->
+<!-- npu="950" id725 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id725 -->
+
+> <font size="3">step()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.Adafactor.step](https://docs.pytorch.org/docs/2.7/generated/torch.optim.Adafactor.html#torch.optim.Adafactor.step)
+
+**Support Status**:
+
+<!-- npu="910b" id663 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id663 -->
+<!-- npu="A3" id664 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id664 -->
+<!-- npu="950" id665 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id665 -->
+
+</div>
+
+</div>
+
 ### <code><i>class</i></code> torch.optim.Adagrad
 
 <div style="margin-left: 2em">
@@ -420,7 +487,7 @@
 - When the optimizer runs in `foreach` mode (`foreach=None` or `foreach=True`), performance may degrade if too many parameter groups are optimized, due to the characteristics of the `foreach` operator. In this case, it is recommended to set `foreach=False`, for example:
 
   ```python
-  # When there are many parameter groups, it is recommended to disable foreach to avoid performance degradation.
+  # When there are many parameter groups, disable foreach to avoid performance degradation.
   optimizer = torch.optim.Adagrad(model.parameters(), lr=1e-3, foreach=False)
   ```
 
@@ -670,7 +737,7 @@
 - When the optimizer runs in `foreach` mode (`foreach=None` or `foreach=True`), performance may degrade if too many parameter groups are optimized, due to the characteristics of the `foreach` operator. In this case, it is recommended to set `foreach=False`, for example:
 
   ```python
-  # When there are many parameter groups, it is recommended to disable foreach to avoid performance degradation.
+  # When there are many parameter groups, disable foreach to avoid performance degradation.
   optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, foreach=False)
   ```
 
@@ -925,11 +992,11 @@
 - When the optimizer runs in `foreach` mode (`foreach=None` or `foreach=True`), performance may degrade if too many parameter groups are optimized, due to the characteristics of the `foreach` operator. In this case, it is recommended to set `foreach=False`, for example:
 
   ```python
-  # When there are many parameter groups, it is recommended to disable foreach to avoid performance degradation.
+  # When there are many parameter groups, disable foreach to avoid performance degradation.
   optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, foreach=False)
   ```
 
-- When the optimizer starts with fused enabled (fused=True), the grad_scale and found_inf parameters are not supported for now. Compared with the _single_tensor_adamw implementation, fp32 is consistent with cpu/cuda, while fp16 and bf16 are implemented with precision promotion, which is inconsistent with cpu/cuda.
+- When the optimizer starts with `fused` enabled (`fused=True`), the `grad_scale` and `found_inf` parameters are not supported for now. Compared with the `_single_tensor_adamw` implementation, fp32 is consistent with cpu/cuda, while fp16 and bf16 are implemented with precision promotion, which is inconsistent with cpu/cuda.
 
 > <font size="3">add_param_group()</font>
 
@@ -1161,6 +1228,20 @@
 
 <div style="margin-left: 2em">
 
+**Native Documentation**: [torch.optim.SparseAdam](https://docs.pytorch.org/docs/2.7/generated/torch.optim.SparseAdam.html#torch.optim.SparseAdam)
+
+**Support Status**:
+
+<!-- npu="910b" id726 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id726 -->
+<!-- npu="A3" id727 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id727 -->
+<!-- npu="950" id728 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id728 -->
+
 > <font size="3">add_param_group()</font>
 
 <div style="margin-left: 2em">
@@ -1387,7 +1468,7 @@
 - When the optimizer runs in `foreach` mode (`foreach=None` or `foreach=True`), performance may degrade if too many parameter groups are optimized, due to the characteristics of the `foreach` operator. In this case, it is recommended to set `foreach=False`, for example:
 
   ```python
-  # When there are many parameter groups, it is recommended to disable foreach to avoid performance degradation.
+  # When there are many parameter groups, disable foreach to avoid performance degradation.
   optimizer = torch.optim.Adamax(model.parameters(), lr=1e-3, foreach=False)
   ```
 
@@ -2139,7 +2220,7 @@
 - When the optimizer runs in `foreach` mode (`foreach=None` or `foreach=True`), performance may degrade if too many parameter groups are optimized, due to the characteristics of the `foreach` operator. In this case, it is recommended to set `foreach=False`, for example:
 
   ```python
-  # When there are many parameter groups, it is recommended to disable foreach to avoid performance degradation.
+  # When there are many parameter groups, disable foreach to avoid performance degradation.
   optimizer = torch.optim.NAdam(model.parameters(), lr=1e-3, foreach=False)
   ```
 
@@ -2399,7 +2480,7 @@
 - When the optimizer runs in `foreach` mode (`foreach=None` or `foreach=True`), performance may degrade if too many parameter groups are optimized, due to the characteristics of the `foreach` operator. In this case, it is recommended to set `foreach=False`, for example:
 
   ```python
-  # When there are many parameter groups, it is recommended to disable foreach to avoid performance degradation.
+  # When there are many parameter groups, disable foreach to avoid performance degradation.
   optimizer = torch.optim.RAdam(model.parameters(), lr=1e-3, foreach=False)
   ```
 
@@ -2659,7 +2740,7 @@
 - When the optimizer runs in `foreach` mode (`foreach=None` or `foreach=True`), performance may degrade if too many parameter groups are optimized, due to the characteristics of the `foreach` operator. In this case, it is recommended to set `foreach=False`, for example:
 
   ```python
-  # When there are many parameter groups, it is recommended to disable foreach to avoid performance degradation.
+  # When there are many parameter groups, disable foreach to avoid performance degradation.
   optimizer = torch.optim.RMSprop(model.parameters(), lr=1e-3, foreach=False)
   ```
 
@@ -3159,7 +3240,7 @@
 - When the optimizer runs in `foreach` mode (`foreach=None` or `foreach=True`), performance may degrade if too many parameter groups are optimized, due to the characteristics of the `foreach` operator. In this case, it is recommended to set `foreach=False`, for example:
 
   ```python
-  # When there are many parameter groups, it is recommended to disable foreach to avoid performance degradation.
+  # When there are many parameter groups, disable foreach to avoid performance degradation.
   optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, foreach=False)
   ```
 
@@ -3399,6 +3480,126 @@
 
 ## How to adjust learning rate
 
+### <code><i>class</i></code> torch.optim.lr_scheduler.LRScheduler
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.lr_scheduler.LRScheduler](https://docs.pytorch.org/docs/2.7/generated/torch.optim.lr_scheduler.LRScheduler.html#torch.optim.lr_scheduler.LRScheduler)
+
+**Support Status**:
+
+<!-- npu="910b" id666 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id666 -->
+<!-- npu="A3" id667 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id667 -->
+<!-- npu="950" id668 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id668 -->
+
+> <font size="3">get_last_lr()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.lr_scheduler.LRScheduler.get_last_lr](https://docs.pytorch.org/docs/2.7/generated/torch.optim.lr_scheduler.LRScheduler.html#torch.optim.lr_scheduler.LRScheduler.get_last_lr)
+
+**Support Status**:
+
+<!-- npu="910b" id669 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id669 -->
+<!-- npu="A3" id670 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id670 -->
+<!-- npu="950" id671 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id671 -->
+
+</div>
+
+> <font size="3">get_lr()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.lr_scheduler.LRScheduler.get_lr](https://docs.pytorch.org/docs/2.7/generated/torch.optim.lr_scheduler.LRScheduler.html#torch.optim.lr_scheduler.LRScheduler.get_lr)
+
+**Support Status**:
+
+<!-- npu="910b" id672 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id672 -->
+<!-- npu="A3" id673 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id673 -->
+<!-- npu="950" id674 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id674 -->
+
+</div>
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.lr_scheduler.LRScheduler.load_state_dict](https://docs.pytorch.org/docs/2.7/generated/torch.optim.lr_scheduler.LRScheduler.html#torch.optim.lr_scheduler.LRScheduler.load_state_dict)
+
+**Support Status**:
+
+<!-- npu="910b" id675 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id675 -->
+<!-- npu="A3" id676 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id676 -->
+<!-- npu="950" id677 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id677 -->
+
+</div>
+
+> <font size="3">state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.lr\_scheduler.LRScheduler.state\_dict](https://docs.pytorch.org/docs/2.7/generated/torch.optim.lr_scheduler.LRScheduler.html#torch.optim.lr_scheduler.LRScheduler.state_dict)
+
+**Support Status**:
+
+<!-- npu="910b" id744 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id744 -->
+<!-- npu="A3" id745 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id745 -->
+<!-- npu="950" id746 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id746 -->
+
+</div>
+
+> <font size="3">step()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.lr_scheduler.LRScheduler.step](https://docs.pytorch.org/docs/2.7/generated/torch.optim.lr_scheduler.LRScheduler.html#torch.optim.lr_scheduler.LRScheduler.step)
+
+**Support Status**:
+
+<!-- npu="910b" id678 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id678 -->
+<!-- npu="A3" id679 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id679 -->
+<!-- npu="950" id680 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id680 -->
+
+</div>
+
+</div>
+
 ### <code><i>class</i></code> torch.optim.lr_scheduler.LambdaLR
 
 <div style="margin-left: 2em">
@@ -3434,6 +3635,26 @@
 <!-- npu="950" id486 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id486 -->
+
+</div>
+
+> <font size="3">get_lr()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.lr_scheduler.LambdaLR.get_lr](https://docs.pytorch.org/docs/2.7/generated/torch.optim.lr_scheduler.LambdaLR.html#torch.optim.lr_scheduler.LambdaLR.get_lr)
+
+**Support Status**:
+
+<!-- npu="910b" id696 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id696 -->
+<!-- npu="A3" id697 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id697 -->
+<!-- npu="950" id698 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id698 -->
 
 </div>
 
@@ -3516,6 +3737,26 @@
 <!-- end id498 -->
 
 **Constraints & Notes**: `lr` only supports fp32
+
+</div>
+
+> <font size="3">get_lr()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.lr_scheduler.MultiplicativeLR.get_lr](https://docs.pytorch.org/docs/2.7/generated/torch.optim.lr_scheduler.MultiplicativeLR.html#torch.optim.lr_scheduler.MultiplicativeLR.get_lr)
+
+**Support Status**:
+
+<!-- npu="910b" id702 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id702 -->
+<!-- npu="A3" id703 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id703 -->
+<!-- npu="950" id704 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id704 -->
 
 </div>
 
@@ -3605,6 +3846,26 @@
 
 </div>
 
+> <font size="3">get_lr()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.lr\_scheduler.StepLR.get\_lr](https://docs.pytorch.org/docs/2.7/generated/torch.optim.lr_scheduler.StepLR.html#torch.optim.lr_scheduler.StepLR.get_lr)
+
+**Support Status**:
+
+<!-- npu="910b" id750 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id750 -->
+<!-- npu="A3" id751 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id751 -->
+<!-- npu="950" id752 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id752 -->
+
+</div>
+
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -3688,6 +3949,26 @@
 <!-- end id522 -->
 
 **Constraints & Notes**: `lr` only supports fp16, fp32
+
+</div>
+
+> <font size="3">get_lr()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.lr_scheduler.MultiStepLR.get_lr](https://docs.pytorch.org/docs/2.7/generated/torch.optim.lr_scheduler.MultiStepLR.html#torch.optim.lr_scheduler.MultiStepLR.get_lr)
+
+**Support Status**:
+
+<!-- npu="910b" id705 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id705 -->
+<!-- npu="A3" id706 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id706 -->
+<!-- npu="950" id707 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id707 -->
 
 </div>
 
@@ -3777,6 +4058,26 @@
 
 </div>
 
+> <font size="3">get_lr()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.lr\_scheduler.ConstantLR.get\_lr](https://docs.pytorch.org/docs/2.7/generated/torch.optim.lr_scheduler.ConstantLR.html#torch.optim.lr_scheduler.ConstantLR.get_lr)
+
+**Support Status**:
+
+<!-- npu="910b" id738 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id738 -->
+<!-- npu="A3" id739 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id739 -->
+<!-- npu="950" id740 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id740 -->
+
+</div>
+
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -3861,6 +4162,26 @@
 
 </div>
 
+> <font size="3">get_lr()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.lr_scheduler.LinearLR.get_lr](https://docs.pytorch.org/docs/2.7/generated/torch.optim.lr_scheduler.LinearLR.html#torch.optim.lr_scheduler.LinearLR.get_lr)
+
+**Support Status**:
+
+<!-- npu="910b" id699 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id699 -->
+<!-- npu="A3" id700 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id700 -->
+<!-- npu="950" id701 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id701 -->
+
+</div>
+
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -3938,6 +4259,26 @@
 <!-- npu="950" id558 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id558 -->
+
+</div>
+
+> <font size="3">get_lr()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.lr_scheduler.ExponentialLR.get_lr](https://docs.pytorch.org/docs/2.7/generated/torch.optim.lr_scheduler.ExponentialLR.html#torch.optim.lr_scheduler.ExponentialLR.get_lr)
+
+**Support Status**:
+
+<!-- npu="910b" id693 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id693 -->
+<!-- npu="A3" id694 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id694 -->
+<!-- npu="950" id695 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id695 -->
 
 </div>
 
@@ -4021,6 +4362,26 @@
 
 </div>
 
+> <font size="3">get_lr()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.lr_scheduler.PolynomialLR.get_lr](https://docs.pytorch.org/docs/2.7/generated/torch.optim.lr_scheduler.PolynomialLR.html#torch.optim.lr_scheduler.PolynomialLR.get_lr)
+
+**Support Status**:
+
+<!-- npu="910b" id711 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id711 -->
+<!-- npu="A3" id712 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id712 -->
+<!-- npu="950" id713 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id713 -->
+
+</div>
+
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -4098,6 +4459,26 @@
 <!-- npu="950" id582 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id582 -->
+
+</div>
+
+> <font size="3">get_lr()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.lr\_scheduler.CosineAnnealingLR.get\_lr](https://docs.pytorch.org/docs/2.7/generated/torch.optim.lr_scheduler.CosineAnnealingLR.html#torch.optim.lr_scheduler.CosineAnnealingLR.get_lr)
+
+**Support Status**:
+
+<!-- npu="910b" id741 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id741 -->
+<!-- npu="A3" id742 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id742 -->
+<!-- npu="950" id743 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id743 -->
 
 </div>
 
@@ -4221,6 +4602,26 @@
 
 </div>
 
+> <font size="3">step()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.lr_scheduler.ChainedScheduler.step](https://docs.pytorch.org/docs/2.7/generated/torch.optim.lr_scheduler.ChainedScheduler.html#torch.optim.lr_scheduler.ChainedScheduler.step)
+
+**Support Status**:
+
+<!-- npu="910b" id684 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id684 -->
+<!-- npu="A3" id685 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id685 -->
+<!-- npu="950" id686 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id686 -->
+
+</div>
+
 </div>
 
 ### <code><i>class</i></code> torch.optim.lr_scheduler.SequentialLR
@@ -4281,6 +4682,26 @@
 
 </div>
 
+> <font size="3">recursive_undo()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.lr_scheduler.SequentialLR.recursive_undo](https://docs.pytorch.org/docs/2.7/generated/torch.optim.lr_scheduler.SequentialLR.html#torch.optim.lr_scheduler.SequentialLR.recursive_undo)
+
+**Support Status**:
+
+<!-- npu="910b" id717 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id717 -->
+<!-- npu="A3" id718 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id718 -->
+<!-- npu="950" id719 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id719 -->
+
+</div>
+
 > <font size="3">state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -4298,6 +4719,26 @@
 <!-- npu="950" id612 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id612 -->
+
+</div>
+
+> <font size="3">step()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.lr_scheduler.SequentialLR.step](https://docs.pytorch.org/docs/2.7/generated/torch.optim.lr_scheduler.SequentialLR.html#torch.optim.lr_scheduler.SequentialLR.step)
+
+**Support Status**:
+
+<!-- npu="910b" id720 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id720 -->
+<!-- npu="A3" id721 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id721 -->
+<!-- npu="950" id722 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id722 -->
 
 </div>
 
@@ -4320,6 +4761,46 @@
 <!-- npu="950" id615 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id615 -->
+
+> <font size="3">load_state_dict()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.lr_scheduler.ReduceLROnPlateau.load_state_dict](https://docs.pytorch.org/docs/2.7/generated/torch.optim.lr_scheduler.ReduceLROnPlateau.html#torch.optim.lr_scheduler.ReduceLROnPlateau.load_state_dict)
+
+**Support Status**:
+
+<!-- npu="910b" id714 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id714 -->
+<!-- npu="A3" id715 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id715 -->
+<!-- npu="950" id716 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id716 -->
+
+</div>
+
+> <font size="3">step()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.lr\_scheduler.ReduceLROnPlateau.step](https://docs.pytorch.org/docs/2.7/generated/torch.optim.lr_scheduler.ReduceLROnPlateau.html#torch.optim.lr_scheduler.ReduceLROnPlateau.step)
+
+**Support Status**:
+
+<!-- npu="910b" id747 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id747 -->
+<!-- npu="A3" id748 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id748 -->
+<!-- npu="950" id749 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id749 -->
+
+</div>
 
 </div>
 
@@ -4381,6 +4862,26 @@
 
 </div>
 
+> <font size="3">scale_fn()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.lr_scheduler.CyclicLR.scale_fn](https://docs.pytorch.org/docs/2.7/generated/torch.optim.lr_scheduler.CyclicLR.html#torch.optim.lr_scheduler.CyclicLR.scale_fn)
+
+**Support Status**:
+
+<!-- npu="910b" id690 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id690 -->
+<!-- npu="A3" id691 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id691 -->
+<!-- npu="950" id692 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id692 -->
+
+</div>
+
 </div>
 
 ### <code><i>class</i></code> torch.optim.lr_scheduler.OneCycleLR
@@ -4418,6 +4919,26 @@
 <!-- npu="950" id630 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id630 -->
+
+</div>
+
+> <font size="3">get_lr()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.lr_scheduler.OneCycleLR.get_lr](https://docs.pytorch.org/docs/2.7/generated/torch.optim.lr_scheduler.OneCycleLR.html#torch.optim.lr_scheduler.OneCycleLR.get_lr)
+
+**Support Status**:
+
+<!-- npu="910b" id708 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id708 -->
+<!-- npu="A3" id709 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id709 -->
+<!-- npu="950" id710 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id710 -->
 
 </div>
 
@@ -4501,6 +5022,26 @@
 
 </div>
 
+> <font size="3">get_lr()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.lr_scheduler.CosineAnnealingWarmRestarts.get_lr](https://docs.pytorch.org/docs/2.7/generated/torch.optim.lr_scheduler.CosineAnnealingWarmRestarts.html#torch.optim.lr_scheduler.CosineAnnealingWarmRestarts.get_lr)
+
+**Support Status**:
+
+<!-- npu="910b" id687 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id687 -->
+<!-- npu="A3" id688 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id688 -->
+<!-- npu="950" id689 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id689 -->
+
+</div>
+
 > <font size="3">load_state_dict()</font>
 
 <div style="margin-left: 2em">
@@ -4560,5 +5101,87 @@
 <!-- end id651 -->
 
 </div>
+
+</div>
+
+## Weight Averaging (SWA and EMA)
+
+### <code><i>class</i></code> torch.optim.swa\_utils.AveragedModel
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.swa\_utils.AveragedModel](https://docs.pytorch.org/docs/2.7/generated/torch.optim.swa_utils.AveragedModel.html#torch.optim.swa_utils.AveragedModel)
+
+**Support Status**:
+
+<!-- npu="910b" id729 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id729 -->
+<!-- npu="A3" id730 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id730 -->
+<!-- npu="950" id731 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id731 -->
+
+> <font size="3">forward()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.swa\_utils.AveragedModel.forward](https://docs.pytorch.org/docs/2.7/generated/torch.optim.swa_utils.AveragedModel.html#torch.optim.swa_utils.AveragedModel.forward)
+
+**Support Status**:
+
+<!-- npu="910b" id753 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id753 -->
+<!-- npu="A3" id754 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id754 -->
+<!-- npu="950" id755 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id755 -->
+
+</div>
+
+</div>
+
+### torch.optim.swa\_utils.get\_ema\_multi\_avg\_fn
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.swa\_utils.get\_ema\_multi\_avg\_fn](https://docs.pytorch.org/docs/2.7/optim.html#torch.optim.swa_utils.get_ema_multi_avg_fn)
+
+**Support Status**:
+
+<!-- npu="910b" id732 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id732 -->
+<!-- npu="A3" id733 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id733 -->
+<!-- npu="950" id734 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id734 -->
+
+</div>
+
+### torch.optim.swa\_utils.update\_bn
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.optim.swa\_utils.update\_bn](https://docs.pytorch.org/docs/2.7/optim.html#torch.optim.swa_utils.update_bn)
+
+**Support Status**:
+
+<!-- npu="910b" id735 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id735 -->
+<!-- npu="A3" id736 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id736 -->
+<!-- npu="950" id737 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id737 -->
 
 </div>

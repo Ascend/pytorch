@@ -3,9 +3,9 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.13/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.13/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
-> - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://docs.pytorch.org/docs/2.13/distributed.elastic.html).
+> - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.13/distributed.elastic.html).
 
 <div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
 <div style="margin: 8px 0"><font size="5"><b>Contents</b></font></div>
@@ -17,7 +17,9 @@
 - [Expiration Timers](#expiration-timers)
 - [Metrics](#metrics)
 - [Events](#events)
+<!-- npu="910b,A3" id431 -->
 - [Control Plane](#control-plane)
+<!-- end id431 -->
 
 </div>
 
@@ -449,6 +451,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id363 -->
 ### torch.distributed.elastic.agent.server.health_check_server.create_healthcheck_server
 
 <div style="margin-left: 2em">
@@ -456,6 +459,7 @@
 **Native Documentation**: [torch.distributed.elastic.agent.server.health_check_server.create_healthcheck_server](https://pytorch.org/docs/2.13/elastic/agent.html#torch.distributed.elastic.agent.server.health_check_server.create_healthcheck_server)
 
 **Support Status**:
+<!-- end id363 -->
 
 <!-- npu="910b" id64 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -463,19 +467,23 @@
 <!-- npu="A3" id65 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id65 -->
-<!-- npu="950" id66 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id66 -->
 
+<!-- npu="910b,A3" id364 -->
 </div>
+<!-- end id364 -->
 
+<!-- npu="910b,A3" id433 -->
+<!-- npu="910b,A3" id365 -->
 ### <code><i>class</i></code> torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer
+<!-- end id365 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id366 -->
 **Native Documentation**: [torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer](https://pytorch.org/docs/2.13/elastic/agent.html#torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer)
 
 **Support Status**:
+<!-- end id366 -->
 
 <!-- npu="910b" id67 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -483,10 +491,8 @@
 <!-- npu="A3" id68 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id68 -->
-<!-- npu="950" id69 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id69 -->
 
+<!-- npu="910b,A3" id367 -->
 > <font size="3">start()</font>
 
 <div style="margin-left: 2em">
@@ -494,6 +500,7 @@
 **Native Documentation**: [torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer.start](https://pytorch.org/docs/2.13/elastic/agent.html#torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer.start)
 
 **Support Status**:
+<!-- end id367 -->
 
 <!-- npu="910b" id70 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -501,12 +508,12 @@
 <!-- npu="A3" id71 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id71 -->
-<!-- npu="950" id72 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id72 -->
 
+<!-- npu="910b,A3" id368 -->
 </div>
+<!-- end id368 -->
 
+<!-- npu="910b,A3" id369 -->
 > <font size="3">stop()</font>
 
 <div style="margin-left: 2em">
@@ -514,6 +521,7 @@
 **Native Documentation**: [torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer.stop](https://pytorch.org/docs/2.13/elastic/agent.html#torch.distributed.elastic.agent.server.health_check_server.HealthCheckServer.stop)
 
 **Support Status**:
+<!-- end id369 -->
 
 <!-- npu="910b" id73 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -521,13 +529,13 @@
 <!-- npu="A3" id74 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id74 -->
-<!-- npu="950" id75 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id75 -->
+
+<!-- npu="910b,A3" id370 -->
+</div>
+<!-- end id370 -->
 
 </div>
-
-</div>
+<!-- end id433 -->
 
 ## Multiprocessing
 
@@ -631,13 +639,18 @@
 
 </div>
 
+<!-- npu="910b,A3" id434 -->
+<!-- npu="910b,A3" id371 -->
 ### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.api.DefaultLogsSpecs
+<!-- end id371 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id372 -->
 **Native Documentation**: [torch.distributed.elastic.multiprocessing.api.DefaultLogsSpecs](https://pytorch.org/docs/2.13/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.api.DefaultLogsSpecs)
 
 **Support Status**:
+<!-- end id372 -->
 
 <!-- npu="910b" id91 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -645,10 +658,8 @@
 <!-- npu="A3" id92 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id92 -->
-<!-- npu="950" id93 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id93 -->
 
+<!-- npu="910b,A3" id373 -->
 > <font size="3">reify()</font>
 
 <div style="margin-left: 2em">
@@ -656,6 +667,7 @@
 **Native Documentation**: [torch.distributed.elastic.multiprocessing.api.DefaultLogsSpecs.reify](https://pytorch.org/docs/2.13/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.api.DefaultLogsSpecs.reify)
 
 **Support Status**:
+<!-- end id373 -->
 
 <!-- npu="910b" id94 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -663,14 +675,15 @@
 <!-- npu="A3" id95 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id95 -->
-<!-- npu="950" id96 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id96 -->
+
+<!-- npu="910b,A3" id374 -->
+</div>
+<!-- end id374 -->
 
 </div>
+<!-- end id434 -->
 
-</div>
-
+<!-- npu="910b,A3" id375 -->
 ### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.api.LogsDest
 
 <div style="margin-left: 2em">
@@ -678,6 +691,7 @@
 **Native Documentation**: [torch.distributed.elastic.multiprocessing.api.LogsDest](https://pytorch.org/docs/2.13/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.api.LogsDest)
 
 **Support Status**:
+<!-- end id375 -->
 
 <!-- npu="910b" id97 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -685,19 +699,23 @@
 <!-- npu="A3" id98 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id98 -->
-<!-- npu="950" id99 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id99 -->
 
+<!-- npu="910b,A3" id376 -->
 </div>
+<!-- end id376 -->
 
+<!-- npu="910b,A3" id435 -->
+<!-- npu="910b,A3" id377 -->
 ### <code><i>class</i></code> torch.distributed.elastic.multiprocessing.api.LogsSpecs
+<!-- end id377 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id378 -->
 **Native Documentation**: [torch.distributed.elastic.multiprocessing.api.LogsSpecs](https://pytorch.org/docs/2.13/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.api.LogsSpecs)
 
 **Support Status**:
+<!-- end id378 -->
 
 <!-- npu="910b" id100 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -705,10 +723,8 @@
 <!-- npu="A3" id101 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id101 -->
-<!-- npu="950" id102 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id102 -->
 
+<!-- npu="910b,A3" id379 -->
 > <font size="3">reify()</font>
 
 <div style="margin-left: 2em">
@@ -716,6 +732,7 @@
 **Native Documentation**: [torch.distributed.elastic.multiprocessing.api.LogsSpecs.reify](https://pytorch.org/docs/2.13/elastic/multiprocessing.html#torch.distributed.elastic.multiprocessing.api.LogsSpecs.reify)
 
 **Support Status**:
+<!-- end id379 -->
 
 <!-- npu="910b" id103 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -723,13 +740,13 @@
 <!-- npu="A3" id104 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id104 -->
-<!-- npu="950" id105 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id105 -->
+
+<!-- npu="910b,A3" id380 -->
+</div>
+<!-- end id380 -->
 
 </div>
-
-</div>
+<!-- end id435 -->
 
 ## Error Propagation
 
@@ -935,6 +952,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id381 -->
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousError
 
 <div style="margin-left: 2em">
@@ -942,6 +960,7 @@
 **Native Documentation**: [torch.distributed.elastic.rendezvous.api.RendezvousError](https://pytorch.org/docs/2.13/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.api.RendezvousError)
 
 **Support Status**:
+<!-- end id381 -->
 
 <!-- npu="910b" id136 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -949,12 +968,12 @@
 <!-- npu="A3" id137 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id137 -->
-<!-- npu="950" id138 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id138 -->
 
+<!-- npu="910b,A3" id382 -->
 </div>
+<!-- end id382 -->
 
+<!-- npu="910b,A3" id383 -->
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousGracefulExitError
 
 <div style="margin-left: 2em">
@@ -962,6 +981,7 @@
 **Native Documentation**: [torch.distributed.elastic.rendezvous.api.RendezvousGracefulExitError](https://pytorch.org/docs/2.13/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.api.RendezvousGracefulExitError)
 
 **Support Status**:
+<!-- end id383 -->
 
 <!-- npu="910b" id139 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -969,11 +989,10 @@
 <!-- npu="A3" id140 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id140 -->
-<!-- npu="950" id141 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id141 -->
 
+<!-- npu="910b,A3" id384 -->
 </div>
+<!-- end id384 -->
 
 ### torch.distributed.elastic.rendezvous.dynamic_rendezvous.create_handler
 
@@ -1015,6 +1034,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id385 -->
 ### torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.create_backend
 
 <div style="margin-left: 2em">
@@ -1022,6 +1042,7 @@
 **Native Documentation**: [torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.create_backend](https://pytorch.org/docs/2.13/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.create_backend)
 
 **Support Status**:
+<!-- end id385 -->
 
 <!-- npu="910b" id148 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1029,12 +1050,12 @@
 <!-- npu="A3" id149 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id149 -->
-<!-- npu="950" id150 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id150 -->
 
+<!-- npu="910b,A3" id386 -->
 </div>
+<!-- end id386 -->
 
+<!-- npu="910b,A3" id387 -->
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.etcd_rendezvous.EtcdRendezvousHandler
 
 <div style="margin-left: 2em">
@@ -1042,6 +1063,7 @@
 **Native Documentation**: [torch.distributed.elastic.rendezvous.etcd_rendezvous.EtcdRendezvousHandler](https://pytorch.org/docs/2.13/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_rendezvous.EtcdRendezvousHandler)
 
 **Support Status**:
+<!-- end id387 -->
 
 <!-- npu="910b" id151 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1049,19 +1071,23 @@
 <!-- npu="A3" id152 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id152 -->
-<!-- npu="950" id153 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id153 -->
 
+<!-- npu="910b,A3" id388 -->
 </div>
+<!-- end id388 -->
 
+<!-- npu="910b,A3" id436 -->
+<!-- npu="910b,A3" id389 -->
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.etcd_store.EtcdStore
+<!-- end id389 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id390 -->
 **Native Documentation**: [torch.distributed.elastic.rendezvous.etcd_store.EtcdStore](https://pytorch.org/docs/2.13/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_store.EtcdStore)
 
 **Support Status**:
+<!-- end id390 -->
 
 <!-- npu="910b" id154 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1069,10 +1095,8 @@
 <!-- npu="A3" id155 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id155 -->
-<!-- npu="950" id156 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id156 -->
 
+<!-- npu="910b,A3" id391 -->
 > <font size="3">add()</font>
 
 <div style="margin-left: 2em">
@@ -1080,6 +1104,7 @@
 **Native Documentation**: [torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.add](https://pytorch.org/docs/2.13/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.add)
 
 **Support Status**:
+<!-- end id391 -->
 
 <!-- npu="910b" id157 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1087,12 +1112,12 @@
 <!-- npu="A3" id158 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id158 -->
-<!-- npu="950" id159 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id159 -->
 
+<!-- npu="910b,A3" id392 -->
 </div>
+<!-- end id392 -->
 
+<!-- npu="910b,A3" id393 -->
 > <font size="3">check()</font>
 
 <div style="margin-left: 2em">
@@ -1100,6 +1125,7 @@
 **Native Documentation**: [torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.check](https://pytorch.org/docs/2.13/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.check)
 
 **Support Status**:
+<!-- end id393 -->
 
 <!-- npu="910b" id160 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1107,12 +1133,12 @@
 <!-- npu="A3" id161 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id161 -->
-<!-- npu="950" id162 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id162 -->
 
+<!-- npu="910b,A3" id394 -->
 </div>
+<!-- end id394 -->
 
+<!-- npu="910b,A3" id395 -->
 > <font size="3">get()</font>
 
 <div style="margin-left: 2em">
@@ -1120,6 +1146,7 @@
 **Native Documentation**: [torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.get](https://pytorch.org/docs/2.13/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.get)
 
 **Support Status**:
+<!-- end id395 -->
 
 <!-- npu="910b" id163 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1127,12 +1154,12 @@
 <!-- npu="A3" id164 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id164 -->
-<!-- npu="950" id165 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id165 -->
 
+<!-- npu="910b,A3" id396 -->
 </div>
+<!-- end id396 -->
 
+<!-- npu="910b,A3" id397 -->
 > <font size="3">set()</font>
 
 <div style="margin-left: 2em">
@@ -1140,6 +1167,7 @@
 **Native Documentation**: [torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.set](https://pytorch.org/docs/2.13/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.set)
 
 **Support Status**:
+<!-- end id397 -->
 
 <!-- npu="910b" id166 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1147,12 +1175,12 @@
 <!-- npu="A3" id167 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id167 -->
-<!-- npu="950" id168 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id168 -->
 
+<!-- npu="910b,A3" id398 -->
 </div>
+<!-- end id398 -->
 
+<!-- npu="910b,A3" id399 -->
 > <font size="3">wait()</font>
 
 <div style="margin-left: 2em">
@@ -1160,6 +1188,7 @@
 **Native Documentation**: [torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.wait](https://pytorch.org/docs/2.13/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_store.EtcdStore.wait)
 
 **Support Status**:
+<!-- end id399 -->
 
 <!-- npu="910b" id169 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1167,33 +1196,13 @@
 <!-- npu="A3" id170 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id170 -->
-<!-- npu="950" id171 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id171 -->
+
+<!-- npu="910b,A3" id400 -->
+</div>
+<!-- end id400 -->
 
 </div>
-
-</div>
-
-### <code><i>class</i></code> torch.distributed.elastic.rendezvous.etcd_server.EtcdServer
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.elastic.rendezvous.etcd_server.EtcdServer](https://pytorch.org/docs/2.13/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_server.EtcdServer)
-
-**Support Status**:
-
-<!-- npu="910b" id172 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id172 -->
-<!-- npu="A3" id173 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id173 -->
-<!-- npu="950" id174 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id174 -->
-
-</div>
+<!-- end id436 -->
 
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.RendezvousHandler
 
@@ -1353,6 +1362,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id401 -->
 > <font size="3">use_agent_store()</font>
 
 <div style="margin-left: 2em">
@@ -1360,6 +1370,7 @@
 **Native Documentation**: [torch.distributed.elastic.rendezvous.RendezvousHandler.use_agent_store](https://pytorch.org/docs/2.13/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.RendezvousHandler.use_agent_store)
 
 **Support Status**:
+<!-- end id401 -->
 
 <!-- npu="910b" id199 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1367,14 +1378,14 @@
 <!-- npu="A3" id200 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id200 -->
-<!-- npu="950" id201 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id201 -->
+
+<!-- npu="910b,A3" id402 -->
+</div>
+<!-- end id402 -->
 
 </div>
 
-</div>
-
+<!-- npu="910b,A3" id403 -->
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.RendezvousInfo
 
 <div style="margin-left: 2em">
@@ -1382,6 +1393,7 @@
 **Native Documentation**: [torch.distributed.elastic.rendezvous.RendezvousInfo](https://pytorch.org/docs/2.13/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.RendezvousInfo)
 
 **Support Status**:
+<!-- end id403 -->
 
 <!-- npu="910b" id202 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1389,12 +1401,12 @@
 <!-- npu="A3" id203 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id203 -->
-<!-- npu="950" id204 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id204 -->
 
+<!-- npu="910b,A3" id404 -->
 </div>
+<!-- end id404 -->
 
+<!-- npu="910b,A3" id405 -->
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousClosedError
 
 <div style="margin-left: 2em">
@@ -1402,6 +1414,7 @@
 **Native Documentation**: [torch.distributed.elastic.rendezvous.api.RendezvousClosedError](https://pytorch.org/docs/2.13/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.api.RendezvousClosedError)
 
 **Support Status**:
+<!-- end id405 -->
 
 <!-- npu="910b" id205 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1409,12 +1422,12 @@
 <!-- npu="A3" id206 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id206 -->
-<!-- npu="950" id207 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id207 -->
 
+<!-- npu="910b,A3" id406 -->
 </div>
+<!-- end id406 -->
 
+<!-- npu="910b,A3" id407 -->
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousTimeoutError
 
 <div style="margin-left: 2em">
@@ -1422,6 +1435,7 @@
 **Native Documentation**: [torch.distributed.elastic.rendezvous.api.RendezvousTimeoutError](https://pytorch.org/docs/2.13/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.api.RendezvousTimeoutError)
 
 **Support Status**:
+<!-- end id407 -->
 
 <!-- npu="910b" id208 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1429,12 +1443,12 @@
 <!-- npu="A3" id209 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id209 -->
-<!-- npu="950" id210 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id210 -->
 
+<!-- npu="910b,A3" id408 -->
 </div>
+<!-- end id408 -->
 
+<!-- npu="910b,A3" id409 -->
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousConnectionError
 
 <div style="margin-left: 2em">
@@ -1442,6 +1456,7 @@
 **Native Documentation**: [torch.distributed.elastic.rendezvous.api.RendezvousConnectionError](https://pytorch.org/docs/2.13/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.api.RendezvousConnectionError)
 
 **Support Status**:
+<!-- end id409 -->
 
 <!-- npu="910b" id211 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1449,12 +1464,12 @@
 <!-- npu="A3" id212 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id212 -->
-<!-- npu="950" id213 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id213 -->
 
+<!-- npu="910b,A3" id410 -->
 </div>
+<!-- end id410 -->
 
+<!-- npu="910b,A3" id411 -->
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousStateError
 
 <div style="margin-left: 2em">
@@ -1462,6 +1477,7 @@
 **Native Documentation**: [torch.distributed.elastic.rendezvous.api.RendezvousStateError](https://pytorch.org/docs/2.13/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.api.RendezvousStateError)
 
 **Support Status**:
+<!-- end id411 -->
 
 <!-- npu="910b" id214 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1469,19 +1485,23 @@
 <!-- npu="A3" id215 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id215 -->
-<!-- npu="950" id216 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id216 -->
 
+<!-- npu="910b,A3" id412 -->
 </div>
+<!-- end id412 -->
 
+<!-- npu="910b,A3" id437 -->
+<!-- npu="910b,A3" id413 -->
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.api.RendezvousStoreInfo
+<!-- end id413 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id414 -->
 **Native Documentation**: [torch.distributed.elastic.rendezvous.api.RendezvousStoreInfo](https://pytorch.org/docs/2.13/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.api.RendezvousStoreInfo)
 
 **Support Status**:
+<!-- end id414 -->
 
 <!-- npu="910b" id217 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1489,10 +1509,8 @@
 <!-- npu="A3" id218 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id218 -->
-<!-- npu="950" id219 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id219 -->
 
+<!-- npu="910b,A3" id415 -->
 > <font size="3">build()</font>
 
 <div style="margin-left: 2em">
@@ -1500,6 +1518,7 @@
 **Native Documentation**: [torch.distributed.elastic.rendezvous.api.RendezvousStoreInfo.build](https://pytorch.org/docs/2.13/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.api.RendezvousStoreInfo.build)
 
 **Support Status**:
+<!-- end id415 -->
 
 <!-- npu="910b" id220 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1507,13 +1526,13 @@
 <!-- npu="A3" id221 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id221 -->
-<!-- npu="950" id222 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id222 -->
+
+<!-- npu="910b,A3" id416 -->
+</div>
+<!-- end id416 -->
 
 </div>
-
-</div>
+<!-- end id437 -->
 
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.dynamic_rendezvous.DynamicRendezvousHandler
 
@@ -1815,13 +1834,18 @@
 
 </div>
 
+<!-- npu="910b,A3" id438 -->
+<!-- npu="910b,A3" id417 -->
 ### <code><i>class</i></code> torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend
+<!-- end id417 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id418 -->
 **Native Documentation**: [torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend](https://pytorch.org/docs/2.13/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend)
 
 **Support Status**:
+<!-- end id418 -->
 
 <!-- npu="910b" id268 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1829,10 +1853,8 @@
 <!-- npu="A3" id269 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id269 -->
-<!-- npu="950" id270 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id270 -->
 
+<!-- npu="910b,A3" id419 -->
 > <font size="3">get_state()</font>
 
 <div style="margin-left: 2em">
@@ -1840,6 +1862,7 @@
 **Native Documentation**: [torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.get_state](https://pytorch.org/docs/2.13/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.get_state)
 
 **Support Status**:
+<!-- end id419 -->
 
 <!-- npu="910b" id271 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1847,12 +1870,12 @@
 <!-- npu="A3" id272 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id272 -->
-<!-- npu="950" id273 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id273 -->
 
+<!-- npu="910b,A3" id420 -->
 </div>
+<!-- end id420 -->
 
+<!-- npu="910b,A3" id421 -->
 > <font size="3">name()</font>
 
 <div style="margin-left: 2em">
@@ -1860,6 +1883,7 @@
 **Native Documentation**: [torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.name](https://pytorch.org/docs/2.13/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.name)
 
 **Support Status**:
+<!-- end id421 -->
 
 <!-- npu="910b" id274 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1867,12 +1891,12 @@
 <!-- npu="A3" id275 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id275 -->
-<!-- npu="950" id276 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id276 -->
 
+<!-- npu="910b,A3" id422 -->
 </div>
+<!-- end id422 -->
 
+<!-- npu="910b,A3" id423 -->
 > <font size="3">set_state()</font>
 
 <div style="margin-left: 2em">
@@ -1880,6 +1904,7 @@
 **Native Documentation**: [torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.set_state](https://pytorch.org/docs/2.13/elastic/rendezvous.html#torch.distributed.elastic.rendezvous.etcd_rendezvous_backend.EtcdRendezvousBackend.set_state)
 
 **Support Status**:
+<!-- end id423 -->
 
 <!-- npu="910b" id277 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1887,13 +1912,13 @@
 <!-- npu="A3" id278 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id278 -->
-<!-- npu="950" id279 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id279 -->
+
+<!-- npu="910b,A3" id424 -->
+</div>
+<!-- end id424 -->
 
 </div>
-
-</div>
+<!-- end id438 -->
 
 ## Expiration Timers
 
@@ -2199,6 +2224,7 @@
 
 ## Metrics
 
+<!-- npu="910b,A3" id425 -->
 ### <code><i>class</i></code> torch.distributed.elastic.metrics.api.MetricHandler
 
 <div style="margin-left: 2em">
@@ -2206,6 +2232,7 @@
 **Native Documentation**: [torch.distributed.elastic.metrics.api.MetricHandler](https://pytorch.org/docs/2.13/elastic/metrics.html#torch.distributed.elastic.metrics.api.MetricHandler)
 
 **Support Status**:
+<!-- end id425 -->
 
 <!-- npu="910b" id325 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -2213,11 +2240,10 @@
 <!-- npu="A3" id326 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id326 -->
-<!-- npu="950" id327 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id327 -->
 
+<!-- npu="910b,A3" id426 -->
 </div>
+<!-- end id426 -->
 
 ### <code><i>class</i></code> torch.distributed.elastic.metrics.api.ConsoleMetricHandler
 
@@ -2421,6 +2447,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id427 -->
 ### torch.distributed.elastic.events.construct_and_record_rdzv_event
 
 <div style="margin-left: 2em">
@@ -2428,6 +2455,7 @@
 **Native Documentation**: [torch.distributed.elastic.events.construct_and_record_rdzv_event](https://pytorch.org/docs/2.13/elastic/events.html#torch.distributed.elastic.events.construct_and_record_rdzv_event)
 
 **Support Status**:
+<!-- end id427 -->
 
 <!-- npu="910b" id358 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -2435,14 +2463,15 @@
 <!-- npu="A3" id359 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id359 -->
-<!-- npu="950" id360 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id360 -->
 
+<!-- npu="910b,A3" id428 -->
 </div>
+<!-- end id428 -->
 
+<!-- npu="910b,A3" id432 -->
 ## Control Plane
 
+<!-- npu="910b,A3" id429 -->
 ### torch.distributed.elastic.control_plane.worker_main
 
 <div style="margin-left: 2em">
@@ -2450,6 +2479,7 @@
 **Native Documentation**: [torch.distributed.elastic.control_plane.worker_main](https://pytorch.org/docs/2.13/elastic/control_plane.html#torch.distributed.elastic.control_plane.worker_main)
 
 **Support Status**:
+<!-- end id429 -->
 
 <!-- npu="910b" id361 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -2457,8 +2487,8 @@
 <!-- npu="A3" id362 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id362 -->
-<!-- npu="950" id363 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id363 -->
 
+<!-- npu="910b,A3" id430 -->
 </div>
+<!-- end id430 -->
+<!-- end id432 -->

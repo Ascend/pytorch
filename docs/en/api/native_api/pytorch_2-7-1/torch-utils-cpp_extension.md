@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.7/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.7/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
 > - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.7/cpp_extension.html).
 
@@ -73,6 +73,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id28 -->
 ### torch.utils.cpp_extension.load
 
 <div style="margin-left: 2em">
@@ -80,6 +81,7 @@
 **Native Documentation**: [torch.utils.cpp_extension.load](https://pytorch.org/docs/2.7/cpp_extension.html#torch.utils.cpp_extension.load)
 
 **Support Status**:
+<!-- end id28 -->
 
 <!-- npu="910b" id10 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -87,11 +89,10 @@
 <!-- npu="A3" id11 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id11 -->
-<!-- npu="950" id12 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id12 -->
 
+<!-- npu="910b,A3" id29 -->
 </div>
+<!-- end id29 -->
 
 ### torch.utils.cpp_extension.load_inline
 

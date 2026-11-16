@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.9/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.9/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
 > - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.9/linalg.html).
 
@@ -13,6 +13,8 @@
 - [Matrix Properties](#matrix-properties)
 - [Decompositions](#decompositions)
 - [Solvers](#solvers)
+
+- [Matrix Functions](#matrix-functions)
 - [Matrix Products](#matrix-products)
 - [Experimental Functions](#experimental-functions)
 
@@ -21,6 +23,26 @@
 <div style="display:none;">
 
 ## &#8203;torch.linalg
+
+</div>
+
+### torch.linalg.ldl_solve
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.ldl_solve](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.ldl_solve.html#torch.linalg.ldl_solve)
+
+**Support Status**:
+
+<!-- npu="910b" id37 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id37 -->
+<!-- npu="A3" id38 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id38 -->
+<!-- npu="950" id39 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id39 -->
 
 </div>
 
@@ -70,7 +92,67 @@
 
 </div>
 
+### torch.linalg.det
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.det](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.det.html#torch.linalg.det)
+
+**Support Status**:
+
+<!-- npu="910b" id70 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id70 -->
+<!-- npu="A3" id71 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id71 -->
+<!-- npu="950" id72 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id72 -->
+
+</div>
+
+### torch.linalg.cond
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.cond](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.cond.html#torch.linalg.cond)
+
+**Support Status**:
+
+<!-- npu="910b" id76 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id76 -->
+<!-- npu="A3" id77 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id77 -->
+<!-- npu="950" id78 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id78 -->
+
+</div>
+
 ## Decompositions
+
+### torch.linalg.matrix_norm
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.matrix_norm](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.matrix_norm.html#torch.linalg.matrix_norm)
+
+**Support Status**:
+
+<!-- npu="910b" id46 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id46 -->
+<!-- npu="A3" id47 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id47 -->
+<!-- npu="950" id48 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id48 -->
+
+</div>
 
 ### torch.linalg.cholesky
 
@@ -116,27 +198,185 @@
 
 </div>
 
-## Solvers
-
-### torch.linalg.lstsq
+### torch.linalg.lu\_factor
 
 <div style="margin-left: 2em">
 
-**Native Documentation**: [torch.linalg.lstsq](https://pytorch.org/docs/2.9/generated/torch.linalg.lstsq.html)
+**Native Documentation**: [torch.linalg.lu\_factor](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.lu_factor.html#torch.linalg.lu_factor)
 
 **Support Status**:
 
-<!-- npu="910b" id13 -->
+<!-- npu="910b" id79 -->
 - <term>Atlas A2 training products</term>: Supported
-<!-- end id13 -->
-<!-- npu="A3" id14 -->
+<!-- end id79 -->
+<!-- npu="A3" id80 -->
 - <term>Atlas A3 training products</term>: Supported
-<!-- end id14 -->
-<!-- npu="950" id15 -->
+<!-- end id80 -->
+<!-- npu="950" id81 -->
 - <term>Ascend 950DT products</term>: Supported
-<!-- end id15 -->
+<!-- end id81 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+</div>
+
+### torch.linalg.eig
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.eig](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.eig.html#torch.linalg.eig)
+
+**Support Status**:
+
+<!-- npu="910b" id82 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id82 -->
+<!-- npu="A3" id83 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id83 -->
+<!-- npu="950" id84 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id84 -->
+
+</div>
+
+### torch.linalg.eigvals
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.eigvals](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.eigvals.html#torch.linalg.eigvals)
+
+**Support Status**:
+
+<!-- npu="910b" id85 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id85 -->
+<!-- npu="A3" id86 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id86 -->
+<!-- npu="950" id87 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id87 -->
+
+</div>
+
+### torch.linalg.eigvalsh
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.eigvalsh](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.eigvalsh.html#torch.linalg.eigvalsh)
+
+**Support Status**:
+
+<!-- npu="910b" id88 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id88 -->
+<!-- npu="A3" id89 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id89 -->
+<!-- npu="950" id90 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id90 -->
+
+</div>
+
+## Solvers
+
+### torch.linalg.lu
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.lu](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.lu.html#torch.linalg.lu)
+
+**Support Status**:
+
+<!-- npu="910b" id40 -->
+- <term>Atlas A2 training products</term>: Not Supported
+<!-- end id40 -->
+<!-- npu="A3" id41 -->
+- <term>Atlas A3 training products</term>: Not Supported
+<!-- end id41 -->
+<!-- npu="950" id42 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id42 -->
+
+</div>
+
+### torch.linalg.eigh
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.eigh](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.eigh.html#torch.linalg.eigh)
+
+**Support Status**:
+
+<!-- npu="910b" id28 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id28 -->
+<!-- npu="A3" id29 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id29 -->
+<!-- npu="950" id30 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id30 -->
+
+</div>
+
+### torch.linalg.svd
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.svd](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.svd.html#torch.linalg.svd)
+
+**Support Status**:
+
+<!-- npu="910b" id67 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id67 -->
+<!-- npu="A3" id68 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id68 -->
+<!-- npu="950" id69 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id69 -->
+
+</div>
+
+### torch.linalg.svdvals
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.svdvals](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.svdvals.html#torch.linalg.svdvals)
+
+**Support Status**:
+
+<!-- npu="910b" id52 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id52 -->
+<!-- npu="A3" id53 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id53 -->
+<!-- npu="950" id54 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id54 -->
+
+</div>
+
+### torch.linalg.solve
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.solve](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.solve.html#torch.linalg.solve)
+
+**Support Status**:
+
+<!-- npu="910b" id91 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id91 -->
+<!-- npu="A3" id92 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id92 -->
+<!-- npu="950" id93 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id93 -->
 
 </div>
 
@@ -162,7 +402,151 @@
 
 </div>
 
+### torch.linalg.lu\_solve
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.lu\_solve](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.lu_solve.html#torch.linalg.lu_solve)
+
+**Support Status**:
+
+<!-- npu="910b" id94 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id94 -->
+<!-- npu="A3" id95 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id95 -->
+<!-- npu="950" id96 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id96 -->
+
+</div>
+
+### torch.linalg.lstsq
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.lstsq](https://pytorch.org/docs/2.9/generated/torch.linalg.lstsq.html)
+
+**Support Status**:
+
+<!-- npu="910b" id13 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id13 -->
+<!-- npu="A3" id14 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id14 -->
+<!-- npu="950" id15 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id15 -->
+
+**Constraints & Notes**: May fall back to CPU execution
+
+</div>
+
+## Matrix Functions
+
+### torch.linalg.matrix\_power
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.matrix\_power](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.matrix_power.html#torch.linalg.matrix_power)
+
+**Support Status**:
+
+<!-- npu="910b" id97 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id97 -->
+<!-- npu="A3" id98 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id98 -->
+<!-- npu="950" id99 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id99 -->
+
+</div>
+
 ## Matrix Products
+
+### torch.linalg.inv
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.inv](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.inv.html#torch.linalg.inv)
+
+**Support Status**:
+
+<!-- npu="910b" id31 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id31 -->
+<!-- npu="A3" id32 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id32 -->
+<!-- npu="950" id33 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id33 -->
+
+</div>
+
+### torch.linalg.pinv
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.pinv](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.pinv.html#torch.linalg.pinv)
+
+**Support Status**:
+
+<!-- npu="910b" id49 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id49 -->
+<!-- npu="A3" id50 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id50 -->
+<!-- npu="950" id51 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id51 -->
+
+</div>
+
+### torch.linalg.matrix_exp
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.matrix_exp](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.matrix_exp.html#torch.linalg.matrix_exp)
+
+**Support Status**:
+
+<!-- npu="910b" id43 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id43 -->
+<!-- npu="A3" id44 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id44 -->
+<!-- npu="950" id45 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id45 -->
+
+</div>
+
+### torch.linalg.cross
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.cross](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.cross.html#torch.linalg.cross)
+
+**Support Status**:
+
+<!-- npu="910b" id25 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id25 -->
+<!-- npu="A3" id26 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id26 -->
+<!-- npu="950" id27 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id27 -->
+
+</div>
 
 ### torch.linalg.matmul
 
@@ -189,7 +573,207 @@
 
 </div>
 
+### torch.linalg.multi\_dot
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.multi\_dot](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.multi_dot.html#torch.linalg.multi_dot)
+
+**Support Status**:
+
+<!-- npu="910b" id100 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id100 -->
+<!-- npu="A3" id101 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id101 -->
+<!-- npu="950" id102 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id102 -->
+
+</div>
+
+### torch.linalg.householder\_product
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.householder\_product](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.householder_product.html#torch.linalg.householder_product)
+
+**Support Status**:
+
+<!-- npu="910b" id103 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id103 -->
+<!-- npu="A3" id104 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id104 -->
+<!-- npu="950" id105 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id105 -->
+
+</div>
+
 ## Experimental Functions
+
+### torch.linalg.vecdot
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.vecdot](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.vecdot.html#torch.linalg.vecdot)
+
+**Support Status**:
+
+<!-- npu="910b" id64 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id64 -->
+<!-- npu="A3" id65 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id65 -->
+<!-- npu="950" id66 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id66 -->
+
+</div>
+
+### torch.linalg.tensorinv
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.tensorinv](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.tensorinv.html#torch.linalg.tensorinv)
+
+**Support Status**:
+
+<!-- npu="910b" id55 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id55 -->
+<!-- npu="A3" id56 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id56 -->
+<!-- npu="950" id57 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id57 -->
+
+</div>
+
+### torch.linalg.tensorsolve
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.tensorsolve](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.tensorsolve.html#torch.linalg.tensorsolve)
+
+**Support Status**:
+
+<!-- npu="910b" id58 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id58 -->
+<!-- npu="A3" id59 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id59 -->
+<!-- npu="950" id60 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id60 -->
+
+</div>
+
+### torch.linalg.vander
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.vander](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.vander.html#torch.linalg.vander)
+
+**Support Status**:
+
+<!-- npu="910b" id61 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id61 -->
+<!-- npu="A3" id62 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id62 -->
+<!-- npu="950" id63 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id63 -->
+
+</div>
+
+### torch.linalg.cholesky\_ex
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.cholesky\_ex](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.cholesky_ex.html#torch.linalg.cholesky_ex)
+
+**Support Status**:
+
+<!-- npu="910b" id106 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id106 -->
+<!-- npu="A3" id107 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id107 -->
+<!-- npu="950" id108 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id108 -->
+
+</div>
+
+### torch.linalg.inv_ex
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.inv_ex](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.inv_ex.html#torch.linalg.inv_ex)
+
+**Support Status**:
+
+<!-- npu="910b" id34 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id34 -->
+<!-- npu="A3" id35 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id35 -->
+<!-- npu="950" id36 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id36 -->
+
+</div>
+
+### torch.linalg.solve\_ex
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.solve\_ex](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.solve_ex.html#torch.linalg.solve_ex)
+
+**Support Status**:
+
+<!-- npu="910b" id109 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id109 -->
+<!-- npu="A3" id110 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id110 -->
+<!-- npu="950" id111 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id111 -->
+
+</div>
+
+### torch.linalg.lu\_factor\_ex
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.lu\_factor\_ex](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.lu_factor_ex.html#torch.linalg.lu_factor_ex)
+
+**Support Status**:
+
+<!-- npu="910b" id112 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id112 -->
+<!-- npu="A3" id113 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id113 -->
+<!-- npu="950" id114 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id114 -->
+
+</div>
 
 ### torch.linalg.ldl_factor
 
@@ -208,5 +792,25 @@
 <!-- npu="950" id24 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id24 -->
+
+</div>
+
+### torch.linalg.ldl\_factor\_ex
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.linalg.ldl\_factor\_ex](https://docs.pytorch.org/docs/2.9/generated/torch.linalg.ldl_factor_ex.html#torch.linalg.ldl_factor_ex)
+
+**Support Status**:
+
+<!-- npu="910b" id115 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id115 -->
+<!-- npu="A3" id116 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id116 -->
+<!-- npu="950" id117 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id117 -->
 
 </div>

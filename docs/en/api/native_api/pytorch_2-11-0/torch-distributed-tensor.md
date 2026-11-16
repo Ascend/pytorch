@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.11/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.11/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
 > - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.11/distributed.tensor.html).
 
@@ -66,6 +66,26 @@
 
 </div>
 
+> <font size="3">full_tensor()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.tensor.DTensor.full_tensor](https://docs.pytorch.org/docs/2.11/distributed.tensor.html#torch.distributed.tensor.DTensor.full_tensor)
+
+**Support Status**:
+
+<!-- npu="910b" id34 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id34 -->
+<!-- npu="A3" id35 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id35 -->
+<!-- npu="950" id36 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id36 -->
+
+</div>
+
 > <font size="3">redistribute()</font>
 
 <div style="margin-left: 2em">
@@ -85,6 +105,26 @@
 <!-- end id9 -->
 
 **Constraints & Notes**: `input` only supports bf16, fp16, fp32, fp64, uint8, int8, int32, int64, bool
+
+</div>
+
+> <font size="3">to_local()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.tensor.DTensor.to_local](https://docs.pytorch.org/docs/2.11/distributed.tensor.html#torch.distributed.tensor.DTensor.to_local)
+
+**Support Status**:
+
+<!-- npu="910b" id37 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id37 -->
+<!-- npu="A3" id38 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id38 -->
+<!-- npu="950" id39 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id39 -->
 
 </div>
 
@@ -134,6 +174,26 @@
 
 </div>
 
+### <code><i>class</i></code> torch.distributed.tensor.placement_types.Replicate
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.tensor.placement_types.Replicate](https://docs.pytorch.org/docs/2.11/distributed.tensor.html#torch.distributed.tensor.placement_types.Replicate)
+
+**Support Status**:
+
+<!-- npu="910b" id31 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id31 -->
+<!-- npu="A3" id32 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id32 -->
+<!-- npu="950" id33 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id33 -->
+
+</div>
+
 ### <code><i>class</i></code> torch.distributed.tensor.placement_types.Placement
 
 <div style="margin-left: 2em">
@@ -176,28 +236,6 @@
 
 ## Different ways to create a DTensor
 
-### torch.distributed.tensor.distribute_module
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.distributed.tensor.distribute_module](https://pytorch.org/docs/2.11/distributed.tensor.html#torch.distributed.tensor.distribute_module)
-
-**Support Status**:
-
-<!-- npu="910b" id22 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id22 -->
-<!-- npu="A3" id23 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id23 -->
-<!-- npu="950" id24 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id24 -->
-
-**Constraints & Notes**: `input` only supports bf16, fp16, fp32
-
-</div>
-
 ### torch.distributed.tensor.distribute_tensor
 
 <div style="margin-left: 2em">
@@ -217,6 +255,28 @@
 <!-- end id27 -->
 
 **Constraints & Notes**: `tensor` only supports bf16, fp16, fp32, fp64, uint8, int8, int32, int64, bool
+
+</div>
+
+### torch.distributed.tensor.distribute_module
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.distributed.tensor.distribute_module](https://pytorch.org/docs/2.11/distributed.tensor.html#torch.distributed.tensor.distribute_module)
+
+**Support Status**:
+
+<!-- npu="910b" id22 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id22 -->
+<!-- npu="A3" id23 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id23 -->
+<!-- npu="950" id24 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id24 -->
+
+**Constraints & Notes**: `input` only supports bf16, fp16, fp32
 
 </div>
 
@@ -240,6 +300,6 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id30 -->
 
-**Constraints & Notes**: Only supports the NPU fused SDPA path; `q`/`k`/`v` only supports the BNSD layout; does not support `pse`, `padding_mask`, `prefix`, `actual_seq_qlen`, `actual_seq_kvlen`, `sink`, or any non-causal attention mask; causal attention is required when load balance is enabled; compiling to a computation graph via torch.compile is not supported.
+**Constraints & Notes**: Only supports the NPU fused SDPA path; `q`/`k`/`v` only supports the BNSD layout; does not support `pse`, `padding_mask`, `prefix`, `actual_seq_qlen`, `actual_seq_kvlen`, `sink`, or any non-causal attention mask; causal attention is required when load balance is enabled; compiling to a computation graph via `torch.compile` is not supported.
 
 </div>

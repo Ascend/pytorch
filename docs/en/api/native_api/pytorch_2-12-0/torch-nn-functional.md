@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.12/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.12/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
 > - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.12/nn.functional.html).
 
@@ -20,7 +20,9 @@
 - [Distance functions](#distance-functions)
 - [Loss functions](#loss-functions)
 - [Vision functions](#vision-functions)
+<!-- npu="910b,A3" id331 -->
 - [Low-Precision functions](#low-precision-functions)
+<!-- end id331 -->
 
 </div>
 
@@ -34,7 +36,7 @@
 
 <div style="margin-left: 2em">
 
-**Native Documentation**: [torch.nn.parallel.data_parallel](https://pytorch.org/docs/2.12/generated/torch.nn.functional.torch.nn.parallel.data_parallel.html#torch.nn.parallel.data_parallel)
+**Native Documentation**: [torch.nn.parallel.data_parallel](https://pytorch.org/docs/2.12/generated/torch.nn.parallel.data_parallel.html#torch.nn.parallel.data_parallel)
 
 **Support Status**:
 
@@ -72,6 +74,10 @@
 
 **Constraints & Notes**: `input` only supports fp16, fp32
 
+<!-- npu="950" id311 -->
+- On <term>Ascend 950DT products</term>, the W dimension of the underlying convolution calculation cannot exceed 1000000, and `torch.ao.nn.intrinsic.ConvBn1d` is also subject to this restriction; <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term> support scenarios where the W dimension is greater than 1000000.
+<!-- end id311 -->
+
 </div>
 
 ### torch.nn.functional.conv2d
@@ -93,6 +99,11 @@
 <!-- end id9 -->
 
 **Constraints & Notes**: `input` only supports bf16, fp16, fp32
+
+<!-- npu="950" id312 -->
+- On <term>Ascend 950DT products</term>, with the default high-performance implementation, in `fp32` or `complex64` input scenarios, the calculation precision may differ from the GPU implementation and <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>. Setting `cube_math_type` to `4` switches to high-precision mode for aligned precision, but performance will be affected.
+- For <term>Ascend 950DT products</term>, the W dimension of the underlying convolution calculation does not support scenarios greater than 1000000. <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term> support such scenarios.
+<!-- end id312 -->
 
 </div>
 
@@ -358,6 +369,10 @@
 
 - When `return_indices` is True, the data type of the returned `argmax` is int32.
 
+<!-- npu="950" id313 -->
+- On <term>Ascend 950DT products</term>, the returned `indices` are aligned with upstream PyTorch and may not be completely consistent with the results on <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>.
+<!-- end id313 -->
+
 </div>
 
 ### torch.nn.functional.max_pool3d
@@ -494,6 +509,26 @@
 <!-- end id60 -->
 
 **Constraints & Notes**: `input` only supports fp16, fp32
+
+</div>
+
+### torch.nn.functional.lp\_pool3d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.functional.lp\_pool3d](https://docs.pytorch.org/docs/2.12/generated/torch.nn.functional.lp_pool3d.html#torch.nn.functional.lp_pool3d)
+
+**Support Status**:
+
+<!-- npu="910b" id360 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id360 -->
+<!-- npu="A3" id361 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id361 -->
+<!-- npu="950" id362 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id362 -->
 
 </div>
 
@@ -690,8 +725,6 @@
 **Constraints & Notes**:
 
 - `query`, `key`, and `value` only support bf16, fp16, and fp32. All parameter inputs must comply with the following constraints:
-- **Constraints:**
-- All parameter inputs must comply with the specifications:
   - N of input `query`, `key`, and `value`: batch size. Currently, only the layout [N, head_num, S(L), E(Ev)] is supported, with a value range of 1 to 2K.
   - The head num of input `query` and the head num of `key`/`value` must be proportional, that is, Nq/Nkv must be a non-zero integer, with a value range of 1 to 256.
   - L of input `query`: Target sequence length, with a value range of 1 to 512K.
@@ -711,8 +744,8 @@
     ```
 
 - Differences from the original interface apart from specification restrictions:
-  - The random algorithm on the NPU is implemented using DSA hardware. The algorithm is solidified in the DSA engine, which differs from the GPU algorithm implementation, causing the dropout function to be inconsistent with GPU results.
-  - The current interface supports different head num values for input `query` and `key`/`value`, while the native PyTorch interface does not support this.
+  - The NPU random algorithm is partially implemented in DSA hardware. The algorithm is fixed in the DSA engine and differs from the GPU algorithm implementation, so the dropout results are inconsistent with those on the GPU.
+  - The current interface supports different head nums for the input `query` and for `key`/`value`, whereas the native PyTorch interface does not.
 
 </div>
 
@@ -969,7 +1002,7 @@
 
 - `input` only supports fp16, fp32
 - In fp16 backward scenarios, compared with GPU, there are accumulated precision errors, which can be avoided in the following way:
-- Replace the forward call torch.nn.functional.selu with torch.ops.aten.elu. For example, replace torch.nn.functional.selu(input_x) with torch.ops.aten.elu(input_x, 1.6732632423543772848170429916717, 1.0507009873554804934193349852946).
+- Replace the forward call `torch.nn.functional.selu` with `torch.ops.aten.elu`. For example, replace `torch.nn.functional.selu(input_x)` with `torch.ops.aten.elu(input_x, 1.6732632423543772848170429916717, 1.0507009873554804934193349852946)`.
 
 </div>
 
@@ -1086,6 +1119,26 @@
 
 </div>
 
+### torch.nn.functional.rrelu\_
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.functional.rrelu\_](https://docs.pytorch.org/docs/2.12/generated/torch.nn.functional.rrelu_.html#torch.nn.functional.rrelu_)
+
+**Support Status**:
+
+<!-- npu="910b" id363 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id363 -->
+<!-- npu="A3" id364 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id364 -->
+<!-- npu="950" id365 -->
+- <term>Ascend 950DT products</term>: Not Supported
+<!-- end id365 -->
+
+</div>
+
 ### torch.nn.functional.glu
 
 <div style="margin-left: 2em">
@@ -1130,6 +1183,10 @@
 
 - `input` only supports bf16, fp16, fp32
 - The `approximate` parameter only supports being set to `tanh`.
+
+<!-- npu="950" id318 -->
+- On <term>Ascend 950DT products</term>, the default approximate algorithm is consistent with upstream PyTorch but different from that on <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>, so the returned results may not be completely consistent.
+<!-- end id318 -->
 
 </div>
 
@@ -1177,6 +1234,26 @@
 
 </div>
 
+### torch.nn.functional.tanhshrink
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.functional.tanhshrink](https://docs.pytorch.org/docs/2.12/generated/torch.nn.functional.tanhshrink.html#torch.nn.functional.tanhshrink)
+
+**Support Status**:
+
+<!-- npu="910b" id357 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id357 -->
+<!-- npu="A3" id358 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id358 -->
+<!-- npu="950" id359 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id359 -->
+
+</div>
+
 ### torch.nn.functional.softsign
 
 <div style="margin-left: 2em">
@@ -1218,6 +1295,26 @@
 <!-- end id153 -->
 
 **Constraints & Notes**: `input` only supports bf16, fp16, fp32
+
+</div>
+
+### torch.nn.functional.softmin
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.functional.softmin](https://docs.pytorch.org/docs/2.12/generated/torch.nn.functional.softmin.html#torch.nn.functional.softmin)
+
+**Support Status**:
+
+<!-- npu="910b" id333 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id333 -->
+<!-- npu="A3" id334 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id334 -->
+<!-- npu="950" id335 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id335 -->
 
 </div>
 
@@ -1469,6 +1566,26 @@
 
 </div>
 
+### torch.nn.functional.instance_norm
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.functional.instance_norm](https://docs.pytorch.org/docs/2.12/generated/torch.nn.functional.instance_norm.html#torch.nn.functional.instance_norm)
+
+**Support Status**:
+
+<!-- npu="910b" id348 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id348 -->
+<!-- npu="A3" id349 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id349 -->
+<!-- npu="950" id350 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id350 -->
+
+</div>
+
 ### torch.nn.functional.layer_norm
 
 <div style="margin-left: 2em">
@@ -1488,6 +1605,46 @@
 <!-- end id189 -->
 
 **Constraints & Notes**: `input` only supports bf16, fp16, fp32
+
+</div>
+
+### torch.nn.functional.local\_response\_norm
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.functional.local\_response\_norm](https://docs.pytorch.org/docs/2.12/generated/torch.nn.functional.local_response_norm.html#torch.nn.functional.local_response_norm)
+
+**Support Status**:
+
+<!-- npu="910b" id366 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id366 -->
+<!-- npu="A3" id367 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id367 -->
+<!-- npu="950" id368 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id368 -->
+
+</div>
+
+### torch.nn.functional.rms_norm
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.functional.rms_norm](https://docs.pytorch.org/docs/2.12/generated/torch.nn.functional.rms_norm.html#torch.nn.functional.rms_norm)
+
+**Support Status**:
+
+<!-- npu="910b" id354 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id354 -->
+<!-- npu="A3" id355 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id355 -->
+<!-- npu="950" id356 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id356 -->
 
 </div>
 
@@ -1535,6 +1692,10 @@
 
 **Constraints & Notes**: `input` only supports bf16, fp16, fp32
 
+<!-- npu="950" id319 -->
+- On <term>Ascend 950DT products</term>, when the default high-performance implementation is used, the calculation results of `fp32` or `complex64` inputs may differ in precision from the GPU implementation and <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>. You can set `cube_math_type` to `4` to switch to high-precision mode for aligned precision, but performance will be reduced.
+<!-- end id319 -->
+
 </div>
 
 ### torch.nn.functional.bilinear
@@ -1555,7 +1716,11 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id198 -->
 
-**Constraints & Notes**: `input1`, `input2`, `weight`, and `bias` only support bf16, fp16, and fp32.
+**Constraints & Notes**: `input1`, `input2`, `weight`, `bias` only supports bf16, fp16, fp32
+
+<!-- npu="950" id320 -->
+- On <term>Ascend 950DT products</term>, when the default high-performance implementation is used, the calculation results of `fp32` or `complex64` inputs may differ in precision from the GPU implementation and <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>. You can set `cube_math_type` to `4` to switch to high-precision mode for aligned precision, but performance will be reduced.
+<!-- end id320 -->
 
 </div>
 
@@ -1627,6 +1792,30 @@
 
 </div>
 
+### torch.nn.functional.dropout1d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.functional.dropout1d](https://pytorch.org/docs/2.12/generated/torch.nn.functional.dropout1d.html)
+
+**Support Status**:
+
+<!-- npu="910b" id324 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id324 -->
+<!-- npu="A3" id325 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id325 -->
+<!-- npu="950" id326 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id326 -->
+
+<!-- npu="950" id323 -->
+**Constraints & Notes**: On <term>Ascend 950DT products</term>, `torch.nn.functional.dropout1d` does not support the `complex` data type.
+<!-- end id323 -->
+
+</div>
+
 ### torch.nn.functional.dropout2d
 
 <div style="margin-left: 2em">
@@ -1652,6 +1841,26 @@
 <!-- npu="950" id211 -->
 - <term>Ascend 950DT products</term>: Not Supported for complex64, complex128
 <!-- end id211 -->
+
+</div>
+
+### torch.nn.functional.dropout3d
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.functional.dropout3d](https://docs.pytorch.org/docs/2.12/generated/torch.nn.functional.dropout3d.html#torch.nn.functional.dropout3d)
+
+**Support Status**:
+
+<!-- npu="910b" id339 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id339 -->
+<!-- npu="A3" id340 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id340 -->
+<!-- npu="950" id341 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id341 -->
 
 </div>
 
@@ -1725,6 +1934,26 @@
 </div>
 
 ## Distance functions
+
+### torch.nn.functional.pairwise_distance
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.functional.pairwise_distance](https://docs.pytorch.org/docs/2.12/generated/torch.nn.functional.pairwise_distance.html#torch.nn.functional.pairwise_distance)
+
+**Support Status**:
+
+<!-- npu="910b" id351 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id351 -->
+<!-- npu="A3" id352 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id352 -->
+<!-- npu="950" id353 -->
+- <term>Ascend 950DT products</term>: Not Supported
+<!-- end id353 -->
+
+</div>
 
 ### torch.nn.functional.cosine_similarity
 
@@ -1839,6 +2068,26 @@
 
 </div>
 
+### torch.nn.functional.cosine_embedding_loss
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.functional.cosine_embedding_loss](https://docs.pytorch.org/docs/2.12/generated/torch.nn.functional.cosine_embedding_loss.html#torch.nn.functional.cosine_embedding_loss)
+
+**Support Status**:
+
+<!-- npu="910b" id336 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id336 -->
+<!-- npu="A3" id337 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id337 -->
+<!-- npu="950" id338 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id338 -->
+
+</div>
+
 ### torch.nn.functional.cross_entropy
 
 <div style="margin-left: 2em">
@@ -1905,6 +2154,26 @@
 <!-- end id244 -->
 
 **Constraints & Notes**: `input` only supports bf16, fp16, fp32, uint8, int8, int16, int32, int64
+
+</div>
+
+### torch.nn.functional.hinge_embedding_loss
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.functional.hinge_embedding_loss](https://docs.pytorch.org/docs/2.12/generated/torch.nn.functional.hinge_embedding_loss.html#torch.nn.functional.hinge_embedding_loss)
+
+**Support Status**:
+
+<!-- npu="910b" id342 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id342 -->
+<!-- npu="A3" id343 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id343 -->
+<!-- npu="950" id344 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id344 -->
 
 </div>
 
@@ -2047,6 +2316,26 @@
 
 </div>
 
+### torch.nn.functional.multi\_margin\_loss
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.functional.multi\_margin\_loss](https://docs.pytorch.org/docs/2.12/generated/torch.nn.functional.multi_margin_loss.html#torch.nn.functional.multi_margin_loss)
+
+**Support Status**:
+
+<!-- npu="910b" id369 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id369 -->
+<!-- npu="A3" id370 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id370 -->
+<!-- npu="950" id371 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id371 -->
+
+</div>
+
 ### torch.nn.functional.nll_loss
 
 <div style="margin-left: 2em">
@@ -2069,6 +2358,26 @@
 
 - `input` only supports fp32
 - Each element value in `target` should be greater than or equal to 0 and less than the number of classes of `input`.
+
+</div>
+
+### torch.nn.functional.huber_loss
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.nn.functional.huber_loss](https://docs.pytorch.org/docs/2.12/generated/torch.nn.functional.huber_loss.html#torch.nn.functional.huber_loss)
+
+**Support Status**:
+
+<!-- npu="910b" id345 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id345 -->
+<!-- npu="A3" id346 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id346 -->
+<!-- npu="950" id347 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id347 -->
 
 </div>
 
@@ -2252,6 +2561,10 @@
 - Supports nearest, linear, bilinear, bicubic, trilinear, and area.
 - Does not support `scale_factor`.
 
+<!-- npu="950" id322 -->
+- For <term>Ascend 950DT products</term>, the `double` data type is not supported.
+<!-- end id322 -->
+
 </div>
 
 ### torch.nn.functional.upsample
@@ -2374,8 +2687,10 @@
 
 </div>
 
+<!-- npu="910b,A3" id332 -->
 ## Low-Precision functions
 
+<!-- npu="910b,A3" id327 -->
 ### torch.nn.functional.scaled_mm
 
 <div style="margin-left: 2em">
@@ -2383,6 +2698,7 @@
 **Native Documentation**: [torch.nn.functional.scaled_mm](https://docs.pytorch.org/docs/2.12/generated/torch.nn.functional.scaled_mm.html)
 
 **Support Status**:
+<!-- end id327 -->
 
 <!-- npu="910b" id305 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -2390,14 +2706,14 @@
 <!-- npu="A3" id306 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id306 -->
-<!-- npu="950" id307 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id307 -->
 
-**Constraints & Notes**: `input` only supports the layout with ScalingType tensorwise, rowwise, and BlockWise1x128 in fp8 mode, and BlockWise1x32 in mxfp8 mode. mxfp8 complies with the [aclnnQuantMatmulV5](https://www.hiascend.com/en-sg/document/detail/en/CANNCommunityEdition/920/API/aolapi/context/ops-nn/aclnnQuantMatmulV5.md) requirements (for `scale_a` and `scale_b`, see the constraint description)
+<!-- npu="910b,A3" id328 -->
+**Constraints & Notes**: `input` only supports layouts with ScalingType of tensorwise, rowwise, and BlockWise1x128 in fp8 mode, and with ScalingType of BlockWise1x32 in mxfp8 mode. mxfp8 follows the requirements of[aclnnQuantMatmulV5](https://gitcode.com/cann/ops-nn/blob/master/matmul/quant_batch_matmul_v4/docs/aclnnQuantMatmulV5.md) (for details about `scale_a` and `scale_b`, see the constraints)
 
 </div>
+<!-- end id328 -->
 
+<!-- npu="910b,A3" id329 -->
 ### torch.nn.functional.scaled_grouped_mm
 
 <div style="margin-left: 2em">
@@ -2405,6 +2721,7 @@
 **Native Documentation**: [torch.nn.functional.scaled_grouped_mm](https://docs.pytorch.org/docs/2.12/generated/torch.nn.functional.scaled_grouped_mm.html)
 
 **Support Status**:
+<!-- end id329 -->
 
 <!-- npu="910b" id308 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -2412,10 +2729,10 @@
 <!-- npu="A3" id309 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id309 -->
-<!-- npu="950" id310 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id310 -->
 
-**Constraints & Notes**: `input` only supports the layout with ScalingType rowwise in fp8 mode and mxfp8 mode. mxfp8 complies with the [aclnnGroupedMatmulV5](https://gitcode.com/cann/ops-transformer/blob/master/gmm/grouped_matmul/docs/aclnnGroupedMatmulV5_en.md) requirements (for `scale_a` and `scale_b`, see the constraint description)
+<!-- npu="910b,A3" id330 -->
+**Constraints & Notes**: `input` only supports layouts with ScalingType of rowwise in fp8 mode and in mxfp8 mode. mxfp8 follows the requirements of[aclnnGroupedMatmulV5](https://gitcode.com/cann/ops-transformer/blob/master/gmm/grouped_matmul/docs/aclnnGroupedMatmulV5.md) (for details about `scale_a` and `scale_b`, see the constraints)
 
 </div>
+<!-- end id330 -->
+<!-- end id332 -->

@@ -1,24 +1,24 @@
-# List of APIs for Deterministic Computation
+# Deterministic Computation API List
 
 ## Introduction
 
-When training with the PyTorch framework, some operators may involve randomness during computation. To eliminate randomness from the output results, you need to set the deterministic computation switch. When deterministic computation is enabled, performing the same operation with the same inputs on the same hardware and software produces the same output results every time.
+When training with the PyTorch framework, some operators may involve randomness during computation. To exclude randomness from the output results, you need to enable the deterministic computation switch. When deterministic computation is enabled, executing the same operation with the same inputs on the same hardware and software always produces the same output results.
 
 > [!NOTE]
 >
->- The deterministic computation setting method must be in the same main process as the network or operators to be set. In some model scripts, main\(\) and the training network are not in the same process.
->- Currently, the deterministic state can only be set once in the same thread. If it is set multiple times, the first valid setting prevails, and subsequent settings will not take effect.<br>
-> Valid setting: After the deterministic state is set, you must actually execute at least one operator to dispatch its task. Merely setting the state without executing any operator only enables the deterministic flag but does not actually affect the operator behavior.<br>
+>- Deterministic computation must be set in the same main process as the network and operators to be configured. In some model scripts, main\(\) and the training network are not in the same process.
+>- Currently, the deterministic status can be set only once in the same thread. If it is set multiple times, the first valid setting prevails, and subsequent settings do not take effect.<br>
+> A valid setting: after setting the deterministic status, you must actually execute at least one operator so that its task is delivered. Merely setting the status without executing any operator only enables the deterministic flag but does not actually affect operator behavior.<br>
 > Solution:
->     1. For the time being, it is not recommended to set deterministic computation multiple times in the same thread.
->     2. This issue exists regardless of whether the deterministic computation switch is enabled or disabled, and will be resolved in a later version.
+>     1. Setting determinism multiple times in the same thread is not recommended for now.
+>     2. This issue exists regardless of whether the deterministic switch is enabled or disabled, and will be resolved in a later version.
 
 ## Usage
 
-For the usage and effects of deterministic computation, refer to the official documentation [torch.use\_deterministic\_algorithms](https://pytorch.org/docs/stable/generated/torch.use_deterministic_algorithms.html#torch.use_deterministic_algorithms). This section only describes how to enable deterministic computation.
+For the usage and effects of deterministic computation, see the official documentation [torch.use\_deterministic\_algorithms](https://pytorch.org/docs/stable/generated/torch.use_deterministic_algorithms.html#torch.use_deterministic_algorithms). This section only describes how to enable deterministic computation.
 
 > [!CAUTION]  
-> Enabling the deterministic computation switch may cause performance degradation.
+> Enabling the deterministic switch may degrade performance.
 
 1. Enable the deterministic computation switch:
 
@@ -34,20 +34,20 @@ For the usage and effects of deterministic computation, refer to the official do
         torch.are_deterministic_algorithms_enabled()
         ```
 
-    2. The following is an example of the command output:
+    2. The returned output is as follows:
 
         ```python
         print(torch.are_deterministic_algorithms_enabled())
         ```
 
-    During training, if the interface returns True, the deterministic computation switch is enabled; if it returns False, the switch is disabled.
+    During training, if the interface returns True, the deterministic computation switch is enabled; if it returns False, the switch is not enabled.
 
 ## API List
 
 <!-- npu="A3,910b" id1 -->
-When using <term>Atlas A2 products</term> or <term>Atlas A3 products</term>, the computation of the APIs listed in [Table 1](#api-list-for-deterministic-computation-1) involves randomness. Enabling the deterministic computation switch can keep the computation results deterministic.
+When using <term>Atlas A2 training products</term> or <term>Atlas A3 training products</term>, the APIs listed in [Table 1](#deterministic-api-list-1) involve randomness during computation. Enabling the deterministic computation switch keeps the computation results deterministic.
 
-**Table 1** API list<a id="api-list-for-deterministic-computation-1"></a>
+**Table 1** API list<a id="deterministic-api-list-1"></a>
 
 | API |
 |-----|
@@ -98,9 +98,9 @@ When using <term>Atlas A2 products</term> or <term>Atlas A3 products</term>, the
 <!-- end id1 -->
 
 <!-- npu="950" id2 -->
-When using <term>Ascend 950DT products</term>, the computation of the APIs listed in [Table 2](#api-list-for-deterministic-computation-2) involves randomness. Enabling the deterministic computation switch can keep the computation results deterministic.
+When using <term>Ascend 950DT products</term>, the APIs listed in [Table 2](#deterministic-api-list-2) involve randomness during computation. Enabling the deterministic computation switch keeps the computation results deterministic.
 
-**Table 2** API list<a id="api-list-for-deterministic-computation-2"></a>
+**Table 2** API list<a id="deterministic-api-list-2"></a>
 
 | API |
 |-----|

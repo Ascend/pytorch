@@ -3,17 +3,14 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.10/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.10/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
 > - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.10/tensors.html).
 
 <div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
 <div style="margin: 8px 0"><font size="5"><b>Contents</b></font></div>
 
-- [torch.Tensor](#torchtensor)
-  - [​torch.Tensor](#torchtensor-1)
-  - [Tensor class reference](#tensor-class-reference)
-    - [class torch.Tensor](#class-torchtensor)
+- [Tensor class reference](#tensor-class-reference)
 
 </div>
 
@@ -25,13 +22,17 @@
 
 ## Tensor class reference
 
+<!-- npu="910b,A3,950" id1416 -->
 ### <code><i>class</i></code> torch.Tensor
+<!-- end id1416 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id1417 -->
 **Native Documentation**: [torch.Tensor](https://pytorch.org/docs/2.10/tensors.html)
 
 **Support Status**:
+<!-- end id1417 -->
 
 <!-- npu="910b" id1 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -39,10 +40,8 @@
 <!-- npu="A3" id2 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id2 -->
-<!-- npu="950" id3 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id3 -->
 
+<!-- npu="910b,A3" id1418 -->
 > <font size="3">T</font>
 
 <div style="margin-left: 2em">
@@ -50,6 +49,7 @@
 **Native Documentation**: [Tensor.T](https://pytorch.org/docs/2.10/tensors.html#torch.Tensor.T)
 
 **Support Status**:
+<!-- end id1418 -->
 
 <!-- npu="910b" id4 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -57,13 +57,12 @@
 <!-- npu="A3" id5 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id5 -->
-<!-- npu="950" id6 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id6 -->
 
+<!-- npu="910b,A3" id1419 -->
 **Constraints & Notes**: `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool, complex64, complex128
 
 </div>
+<!-- end id1419 -->
 
 > <font size="3">H</font>
 
@@ -82,6 +81,346 @@
 <!-- npu="950" id9 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id9 -->
+
+</div>
+
+> <font size="3">bitwise_left_shift_()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.bitwise\_left\_shift\_](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.bitwise_left_shift_.html#torch.Tensor.bitwise_left_shift_)
+
+**Support Status**:
+
+<!-- npu="910b" id1525 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1525 -->
+<!-- npu="A3" id1526 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1526 -->
+<!-- npu="950" id1527 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1527 -->
+
+</div>
+
+> <font size="3">bitwise_right_shift()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.bitwise\_right\_shift](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.bitwise_right_shift.html#torch.Tensor.bitwise_right_shift)
+
+**Support Status**:
+
+<!-- npu="910b" id1528 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1528 -->
+<!-- npu="A3" id1529 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1529 -->
+<!-- npu="950" id1530 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1530 -->
+
+</div>
+
+> <font size="3">bitwise_right_shift_()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.bitwise\_right\_shift\_](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.bitwise_right_shift_.html#torch.Tensor.bitwise_right_shift_)
+
+**Support Status**:
+
+<!-- npu="910b" id1531 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1531 -->
+<!-- npu="A3" id1532 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1532 -->
+<!-- npu="950" id1533 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1533 -->
+
+</div>
+
+> <font size="3">cholesky_solve()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.cholesky\_solve](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.cholesky_solve.html#torch.Tensor.cholesky_solve)
+
+**Support Status**:
+
+<!-- npu="910b" id1534 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1534 -->
+<!-- npu="A3" id1535 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1535 -->
+<!-- npu="950" id1536 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1536 -->
+
+</div>
+
+> <font size="3">conj_physical()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.conj\_physical](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.conj_physical.html#torch.Tensor.conj_physical)
+
+**Support Status**:
+
+<!-- npu="910b" id1537 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1537 -->
+<!-- npu="A3" id1538 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1538 -->
+<!-- npu="950" id1539 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1539 -->
+
+</div>
+
+> <font size="3">conj_physical_()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.conj\_physical\_](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.conj_physical_.html#torch.Tensor.conj_physical_)
+
+**Support Status**:
+
+<!-- npu="910b" id1540 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1540 -->
+<!-- npu="A3" id1541 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1541 -->
+<!-- npu="950" id1542 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1542 -->
+
+</div>
+
+> <font size="3">det()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.det](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.det.html#torch.Tensor.det)
+
+**Support Status**:
+
+<!-- npu="910b" id1543 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1543 -->
+<!-- npu="A3" id1544 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1544 -->
+<!-- npu="950" id1545 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1545 -->
+
+</div>
+
+> <font size="3">digamma()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.digamma](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.digamma.html#torch.Tensor.digamma)
+
+**Support Status**:
+
+<!-- npu="910b" id1546 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1546 -->
+<!-- npu="A3" id1547 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1547 -->
+<!-- npu="950" id1548 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1548 -->
+
+</div>
+
+> <font size="3">frexp()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.frexp](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.frexp.html#torch.Tensor.frexp)
+
+**Support Status**:
+
+<!-- npu="910b" id1549 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1549 -->
+<!-- npu="A3" id1550 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1550 -->
+<!-- npu="950" id1551 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1551 -->
+
+</div>
+
+> <font size="3">gcd()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.gcd](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.gcd.html#torch.Tensor.gcd)
+
+**Support Status**:
+
+<!-- npu="910b" id1552 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1552 -->
+<!-- npu="A3" id1553 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1553 -->
+<!-- npu="950" id1554 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1554 -->
+
+</div>
+
+> <font size="3">gcd_()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.gcd\_](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.gcd_.html#torch.Tensor.gcd_)
+
+**Support Status**:
+
+<!-- npu="910b" id1555 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1555 -->
+<!-- npu="A3" id1556 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1556 -->
+<!-- npu="950" id1557 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1557 -->
+
+</div>
+
+> <font size="3">geqrf()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.geqrf](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.geqrf.html#torch.Tensor.geqrf)
+
+**Support Status**:
+
+<!-- npu="910b" id1558 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1558 -->
+<!-- npu="A3" id1559 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1559 -->
+<!-- npu="950" id1560 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1560 -->
+
+</div>
+
+> <font size="3">histogram()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.histogram](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.histogram.html#torch.Tensor.histogram)
+
+**Support Status**:
+
+<!-- npu="910b" id1561 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1561 -->
+<!-- npu="A3" id1562 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1562 -->
+<!-- npu="950" id1563 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1563 -->
+
+</div>
+
+> <font size="3">hypot()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.hypot](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.hypot.html#torch.Tensor.hypot)
+
+**Support Status**:
+
+<!-- npu="910b" id1564 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1564 -->
+<!-- npu="A3" id1565 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1565 -->
+<!-- npu="950" id1566 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1566 -->
+
+</div>
+
+> <font size="3">lcm_()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.lcm\_](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.lcm_.html#torch.Tensor.lcm_)
+
+**Support Status**:
+
+<!-- npu="910b" id1567 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1567 -->
+<!-- npu="A3" id1568 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1568 -->
+<!-- npu="950" id1569 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1569 -->
+
+</div>
+
+> <font size="3">log_normal_()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.log\_normal\_](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.log_normal_.html#torch.Tensor.log_normal_)
+
+**Support Status**:
+
+<!-- npu="910b" id1570 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1570 -->
+<!-- npu="A3" id1571 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1571 -->
+<!-- npu="950" id1572 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1572 -->
+
+</div>
+
+> <font size="3">logdet()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.logdet](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.logdet.html#torch.Tensor.logdet)
+
+**Support Status**:
+
+<!-- npu="910b" id1573 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1573 -->
+<!-- npu="A3" id1574 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1574 -->
+<!-- npu="950" id1575 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1575 -->
 
 </div>
 
@@ -122,6 +461,86 @@
 <!-- npu="950" id15 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id15 -->
+
+</div>
+
+> <font size="3">matrix_exp()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.matrix\_exp](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.matrix_exp.html#torch.Tensor.matrix_exp)
+
+**Support Status**:
+
+<!-- npu="910b" id1576 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1576 -->
+<!-- npu="A3" id1577 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1577 -->
+<!-- npu="950" id1578 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1578 -->
+
+</div>
+
+> <font size="3">module_load()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.module\_load](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.module_load.html#torch.Tensor.module_load)
+
+**Support Status**:
+
+<!-- npu="910b" id1579 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1579 -->
+<!-- npu="A3" id1580 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1580 -->
+<!-- npu="950" id1581 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1581 -->
+
+</div>
+
+> <font size="3">mvlgamma()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.mvlgamma](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.mvlgamma.html#torch.Tensor.mvlgamma)
+
+**Support Status**:
+
+<!-- npu="910b" id1582 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1582 -->
+<!-- npu="A3" id1583 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1583 -->
+<!-- npu="950" id1584 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1584 -->
+
+</div>
+
+> <font size="3">nanmedian()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.nanmedian](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.nanmedian.html#torch.Tensor.nanmedian)
+
+**Support Status**:
+
+<!-- npu="910b" id1585 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1585 -->
+<!-- npu="A3" id1586 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1586 -->
+<!-- npu="950" id1587 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1587 -->
 
 </div>
 
@@ -253,6 +672,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1420 -->
 > <font size="3">is_quantized()</font>
 
 <div style="margin-left: 2em">
@@ -260,6 +680,7 @@
 **Native Documentation**: [Tensor.is_quantized](https://pytorch.org/docs/2.10/generated/torch.Tensor.is_quantized.html)
 
 **Support Status**:
+<!-- end id1420 -->
 
 <!-- npu="910b" id34 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -267,11 +688,10 @@
 <!-- npu="A3" id35 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id35 -->
-<!-- npu="950" id36 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id36 -->
 
+<!-- npu="910b,A3" id1421 -->
 </div>
+<!-- end id1421 -->
 
 > <font size="3">is_meta()</font>
 
@@ -354,6 +774,166 @@
 <!-- end id48 -->
 
 **Constraints & Notes**: `self` only supports fp32
+
+</div>
+
+> <font size="3">nextafter()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.nextafter](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.nextafter.html#torch.Tensor.nextafter)
+
+**Support Status**:
+
+<!-- npu="910b" id1588 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1588 -->
+<!-- npu="A3" id1589 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1589 -->
+<!-- npu="950" id1590 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1590 -->
+
+</div>
+
+> <font size="3">orgqr()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.orgqr](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.orgqr.html#torch.Tensor.orgqr)
+
+**Support Status**:
+
+<!-- npu="910b" id1591 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1591 -->
+<!-- npu="A3" id1592 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1592 -->
+<!-- npu="950" id1593 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1593 -->
+
+</div>
+
+> <font size="3">ormqr()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.ormqr](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.ormqr.html#torch.Tensor.ormqr)
+
+**Support Status**:
+
+<!-- npu="910b" id1594 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1594 -->
+<!-- npu="A3" id1595 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1595 -->
+<!-- npu="950" id1596 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1596 -->
+
+</div>
+
+> <font size="3">q_per_channel_axis()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.q\_per\_channel\_axis](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.q_per_channel_axis.html#torch.Tensor.q_per_channel_axis)
+
+**Support Status**:
+
+<!-- npu="910b" id1597 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1597 -->
+<!-- npu="A3" id1598 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1598 -->
+<!-- npu="950" id1599 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1599 -->
+
+</div>
+
+> <font size="3">q_per_channel_scales()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.q\_per\_channel\_scales](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.q_per_channel_scales.html#torch.Tensor.q_per_channel_scales)
+
+**Support Status**:
+
+<!-- npu="910b" id1600 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1600 -->
+<!-- npu="A3" id1601 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1601 -->
+<!-- npu="950" id1602 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1602 -->
+
+</div>
+
+> <font size="3">q_per_channel_zero_points()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.q\_per\_channel\_zero\_points](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.q_per_channel_zero_points.html#torch.Tensor.q_per_channel_zero_points)
+
+**Support Status**:
+
+<!-- npu="910b" id1603 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1603 -->
+<!-- npu="A3" id1604 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1604 -->
+<!-- npu="950" id1605 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1605 -->
+
+</div>
+
+> <font size="3">q_scale()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.q\_scale](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.q_scale.html#torch.Tensor.q_scale)
+
+**Support Status**:
+
+<!-- npu="910b" id1606 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1606 -->
+<!-- npu="A3" id1607 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1607 -->
+<!-- npu="950" id1608 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1608 -->
+
+</div>
+
+> <font size="3">q_zero_point()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.q\_zero\_point](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.q_zero_point.html#torch.Tensor.q_zero_point)
+
+**Support Status**:
+
+<!-- npu="910b" id1609 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1609 -->
+<!-- npu="A3" id1610 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1610 -->
+<!-- npu="950" id1611 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1611 -->
 
 </div>
 
@@ -545,8 +1125,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports fp16, fp32, uint8, int8, int16, int32, int64, bool
-- May fall back to CPU execution
+- `self` only supports fp16, fp32, uint8, int8, int16, int32, int64, bool.
+- May fall back to CPU execution.
 
 </div>
 
@@ -570,10 +1150,10 @@
 
 **Constraints & Notes**:
 
-- `self` only supports fp16, fp32, fp64
+- `self` only supports fp16, fp32, fp64.
 
 <!-- npu="A3" id79 -->
-- <term>Atlas A3 training products</term> additionally support bf16
+- <term>Atlas A3 training products</term> additionally supports bf16
 <!-- end id79 -->
 
 </div>
@@ -620,10 +1200,10 @@
 
 **Constraints & Notes**:
 
-- `self` only supports fp16, fp32, fp64
+- `self` only supports fp16, fp32, fp64.
 
 <!-- npu="A3" id86 -->
-- <term>Atlas A3 training products</term> additionally support bf16
+- <term>Atlas A3 training products</term> additionally supports bf16
 <!-- end id86 -->
 
 </div>
@@ -736,8 +1316,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32, int64
-- The int64 type does not support simultaneous broadcasting of three `tensor`s
+- `self` only supports bf16, fp16, fp32, int64.
+- The int64 type does not support simultaneous broadcasting of three `tensor`s.
 
 </div>
 
@@ -764,10 +1344,7 @@
 <!-- npu="A3,910b" id105 -->
 - <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>: `self` only supports bf16, fp16, fp32, fp64
 <!-- end id105 -->
-<!-- npu="910" id106 -->
-- <term>Atlas training products</term>: `self` only supports fp16, fp32, fp64
-<!-- end id106 -->
-- The int64 type does not support simultaneous broadcasting of three `tensor`s
+- The int64 type does not support simultaneous broadcasting of three `tensor`s.
 
 </div>
 
@@ -791,8 +1368,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports fp16, fp32, int64
-- The int64 type does not support simultaneous broadcasting of three `tensor`s
+- `self` only supports fp16, fp32, int64.
+- The int64 type does not support simultaneous broadcasting of three `tensor`s.
 
 </div>
 
@@ -819,10 +1396,7 @@
 <!-- npu="A3,910b" id113 -->
 - <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>: `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int32, int64
 <!-- end id113 -->
-<!-- npu="910" id114 -->
-- <term>Atlas training products</term>: `self` only supports fp16, fp32, fp64, uint8, int8, int32, int64
-<!-- end id114 -->
-- The int64 type does not support simultaneous broadcasting of three `tensor`s
+- The int64 type does not support simultaneous broadcasting of three `tensor`s.
 
 </div>
 
@@ -844,7 +1418,13 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id117 -->
 
-**Constraints & Notes**: `self` only supports bf16, fp16, fp32
+**Constraints & Notes**:
+
+- `self` only supports bf16, fp16, fp32.
+
+<!-- npu="950" id1389 -->
+- On <term>Ascend 950DT products</term>, when the default high-performance implementation is used, the calculation results of `fp32` or `complex64` inputs may differ in precision from the GPU implementation and <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>. You can set `cube_math_type` to `4` to switch to high-precision mode for aligned precision, but performance will be reduced.
+<!-- end id1389 -->
 
 </div>
 
@@ -867,26 +1447,6 @@
 <!-- end id120 -->
 
 **Constraints & Notes**: `self` only supports fp16, fp32
-
-</div>
-
-> <font size="3">sspaddmm()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [Tensor.sspaddmm](https://pytorch.org/docs/2.10/generated/torch.Tensor.sspaddmm.html)
-
-**Support Status**:
-
-<!-- npu="910b" id121 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id121 -->
-<!-- npu="A3" id122 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id122 -->
-<!-- npu="950" id123 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id123 -->
 
 </div>
 
@@ -1126,7 +1686,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id156 -->
 
-**Constraints & Notes**: CPU-only
+**Constraints & Notes**: CPU only
 
 </div>
 
@@ -1194,10 +1754,10 @@
 
 **Constraints & Notes**:
 
-- `self` only supports fp16, fp32, uint8, int8, int16, int32, int64
+- `self` only supports fp16, fp32, uint8, int8, int16, int32, int64.
 
 <!-- npu="950" id166 -->
-- For <term>Ascend 950DT products</term>, due to underlying implementation limitations, `"stable"` only supports True. If it is set to False, it will be automatically modified to True at execution time.
+- On <term>Ascend 950DT products</term>, due to underlying implementation limitations, `"stable"` only supports True. If it is set to False, it is automatically changed to True during execution.
 <!-- end id166 -->
 
 </div>
@@ -1464,8 +2024,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports fp16, fp32
-- May fall back to CPU execution
+- `self` only supports fp16, fp32.
+- May fall back to CPU execution.
 
 </div>
 
@@ -1643,8 +2203,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports fp16, fp32
-- May fall back to CPU execution
+- `self` only supports fp16, fp32.
+- May fall back to CPU execution.
 
 </div>
 
@@ -1666,7 +2226,13 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id229 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**:
+
+- May fall back to CPU execution.
+
+<!-- npu="950" id1391 -->
+- On <term>Ascend 950DT products</term>, the random number generation behavior is consistent with the GPU implementation, but the generated results differ from those on <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>.
+<!-- end id1391 -->
 
 </div>
 
@@ -1712,8 +2278,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports uint8, int8, int16, int32, int64
-- The dimension of `weights` must be the same as that of `input`
+- `self` only supports uint8, int8, int16, int32, int64.
+- The dimensions of `weights` must be the same as those of `input`.
 
 </div>
 
@@ -1893,6 +2459,26 @@
 
 </div>
 
+> <font size="3">bitwise_left_shift()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.bitwise_left_shift](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.bitwise_left_shift.html#torch.Tensor.bitwise_left_shift)
+
+**Support Status**:
+
+<!-- npu="910b" id1438 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1438 -->
+<!-- npu="A3" id1439 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1439 -->
+<!-- npu="950" id1440 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1440 -->
+
+</div>
+
 > <font size="3">bmm()</font>
 
 <div style="margin-left: 2em">
@@ -1911,7 +2497,13 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id262 -->
 
-**Constraints & Notes**: `self` only supports bf16, fp16, fp32
+**Constraints & Notes**:
+
+- `self` only supports bf16, fp16, fp32.
+
+<!-- npu="950" id1392 -->
+- On <term>Ascend 950DT products</term>, when the default high-performance implementation is used, the calculation results of `fp32` or `complex64` inputs may differ in precision from the GPU implementation and <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>. You can set `cube_math_type` to `4` to switch to high-precision mode for aligned precision, but performance will be reduced.
+<!-- end id1392 -->
 
 </div>
 
@@ -1981,6 +2573,26 @@
 
 </div>
 
+> <font size="3">cauchy_()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.cauchy_](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.cauchy_.html#torch.Tensor.cauchy_)
+
+**Support Status**:
+
+<!-- npu="910b" id1441 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1441 -->
+<!-- npu="A3" id1442 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1442 -->
+<!-- npu="950" id1443 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1443 -->
+
+</div>
+
 > <font size="3">ceil()</font>
 
 <div style="margin-left: 2em">
@@ -2044,6 +2656,26 @@
 <!-- end id280 -->
 
 **Constraints & Notes**: `self` only supports fp16, fp32, uint8, int8, int16, int32, int64, bool, complex64, complex128
+
+</div>
+
+> <font size="3">cholesky_inverse()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.cholesky_inverse](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.cholesky_inverse.html#torch.Tensor.cholesky_inverse)
+
+**Support Status**:
+
+<!-- npu="910b" id1444 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1444 -->
+<!-- npu="A3" id1445 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1445 -->
+<!-- npu="950" id1446 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1446 -->
 
 </div>
 
@@ -2221,8 +2853,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool, complex64, complex128
-- int16 does not support inputs with 5 or more dimensions
+- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool, complex64, complex128.
+- int16 does not support inputs with 5 or more dimensions.
 
 </div>
 
@@ -2245,6 +2877,26 @@
 <!-- end id307 -->
 
 **Constraints & Notes**: `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool, complex64, complex128
+
+</div>
+
+> <font size="3">renorm_()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.renorm\_](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.renorm_.html#torch.Tensor.renorm_)
+
+**Support Status**:
+
+<!-- npu="910b" id1612 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1612 -->
+<!-- npu="A3" id1613 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1613 -->
+<!-- npu="950" id1614 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1614 -->
 
 </div>
 
@@ -2312,8 +2964,28 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32, uint8, int8, int16, int32, int64, bool
-- May fall back to CPU execution
+- `self` only supports bf16, fp16, fp32, uint8, int8, int16, int32, int64, bool.
+- May fall back to CPU execution.
+
+</div>
+
+> <font size="3">copysign_()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.copysign_](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.copysign_.html#torch.Tensor.copysign_)
+
+**Support Status**:
+
+<!-- npu="910b" id1447 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1447 -->
+<!-- npu="A3" id1448 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1448 -->
+<!-- npu="950" id1449 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1449 -->
 
 </div>
 
@@ -2405,6 +3077,26 @@
 
 </div>
 
+> <font size="3">corrcoef()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.corrcoef](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.corrcoef.html#torch.Tensor.corrcoef)
+
+**Support Status**:
+
+<!-- npu="910b" id1450 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1450 -->
+<!-- npu="A3" id1451 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1451 -->
+<!-- npu="950" id1452 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1452 -->
+
+</div>
+
 > <font size="3">count_nonzero()</font>
 
 <div style="margin-left: 2em">
@@ -2469,8 +3161,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool, complex64, complex128
-- May fall back to CPU execution
+- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool, complex64, complex128.
+- May fall back to CPU execution.
 
 </div>
 
@@ -2580,8 +3272,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports fp16, fp32, uint8, int8, int16, int32, int64, complex64, complex128
-- The shapes of the two inputs must be consistent
+- `self` only supports fp16, fp32, uint8, int8, int16, int32, int64, complex64, complex128.
+- The shapes of the two inputs must be consistent.
 
 </div>
 
@@ -2603,7 +3295,27 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id355 -->
 
-**Constraints & Notes**: The corresponding NPU interface is `Tensor.npu`, whose `memory_format` parameter only supports passing torch.contiguous_format
+**Constraints & Notes**: The NPU-adapted interface is `Tensor.npu`, and its `memory_format` parameter only supports torch.contiguous_format
+
+</div>
+
+> <font size="3">logcumsumexp()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.logcumsumexp](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.logcumsumexp.html#torch.Tensor.logcumsumexp)
+
+**Support Status**:
+
+<!-- npu="910b" id1498 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1498 -->
+<!-- npu="A3" id1499 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1499 -->
+<!-- npu="950" id1500 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1500 -->
 
 </div>
 
@@ -2627,8 +3339,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports fp16, fp32, uint8, int8, int16, int32, int64, bool
-- May fall back to CPU execution
+- `self` only supports fp16, fp32, uint8, int8, int16, int32, int64, bool.
+- May fall back to CPU execution.
 
 </div>
 
@@ -2654,6 +3366,46 @@
 
 </div>
 
+> <font size="3">cumprod()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.cumprod](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.cumprod.html#torch.Tensor.cumprod)
+
+**Support Status**:
+
+<!-- npu="910b" id1453 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1453 -->
+<!-- npu="A3" id1454 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1454 -->
+<!-- npu="950" id1455 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1455 -->
+
+</div>
+
+> <font size="3">cumprod_()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.cumprod_](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.cumprod_.html#torch.Tensor.cumprod_)
+
+**Support Status**:
+
+<!-- npu="910b" id1456 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1456 -->
+<!-- npu="A3" id1457 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1457 -->
+<!-- npu="950" id1458 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1458 -->
+
+</div>
+
 > <font size="3">cumsum()</font>
 
 <div style="margin-left: 2em">
@@ -2674,8 +3426,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool, complex64, complex128
-- Named Tensor is supported
+- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool, complex64, complex128.
+- Named Tensor is supported.
 
 </div>
 
@@ -2698,26 +3450,6 @@
 <!-- end id367 -->
 
 **Constraints & Notes**: `self` only supports fp16, fp32, int64, bool
-
-</div>
-
-> <font size="3">chalf()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [Tensor.chalf](https://pytorch.org/docs/2.10/generated/torch.Tensor.chalf.html)
-
-**Support Status**:
-
-<!-- npu="910b" id368 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id368 -->
-<!-- npu="A3" id369 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id369 -->
-<!-- npu="950" id370 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id370 -->
 
 </div>
 
@@ -3023,6 +3755,46 @@
 
 </div>
 
+> <font size="3">fmax()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.fmax](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.fmax.html#torch.Tensor.fmax)
+
+**Support Status**:
+
+<!-- npu="910b" id1462 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1462 -->
+<!-- npu="A3" id1463 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1463 -->
+<!-- npu="950" id1464 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1464 -->
+
+</div>
+
+> <font size="3">fmin()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.fmin](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.fmin.html#torch.Tensor.fmin)
+
+**Support Status**:
+
+<!-- npu="910b" id1465 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1465 -->
+<!-- npu="A3" id1466 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1466 -->
+<!-- npu="950" id1467 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1467 -->
+
+</div>
+
 > <font size="3">diff()</font>
 
 <div style="margin-left: 2em">
@@ -3067,6 +3839,26 @@
 
 </div>
 
+> <font size="3">digamma_()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.digamma_](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.digamma_.html#torch.Tensor.digamma_)
+
+**Support Status**:
+
+<!-- npu="910b" id1459 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1459 -->
+<!-- npu="A3" id1460 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1460 -->
+<!-- npu="950" id1461 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1461 -->
+
+</div>
+
 > <font size="3">dim_order()</font>
 
 <div style="margin-left: 2em">
@@ -3106,7 +3898,7 @@
 <!-- end id424 -->
 
 <!-- npu="950" id1387 -->
-**Constraints & Notes**: <term>Ascend 950DT products</term>: do not support fp64, complex64, complex128
+**Constraints & Notes**: On <term>Ascend 950DT products</term>, the `bool`, `uint8`, `int`, `fp64`, `complex64`, and `complex128` data types are not supported.
 <!-- end id1387 -->
 
 </div>
@@ -3241,9 +4033,9 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32, uint8, int8, int16, int32, int64, bool, complex64, complex128
-- Some interfaces on the NPU currently do not support the double type. For compatibility, fp32 is returned by default. After support is completed, fp64 will be returned properly.
-- May fall back to CPU execution
+- `self` only supports bf16, fp16, fp32, uint8, int8, int16, int32, int64, bool, complex64, complex128.
+- Some interfaces on the current NPU do not support the double type yet. For compatibility, fp32 is returned by default; fp64 will be returned normally after support is completed.
+- May fall back to CPU execution.
 
 </div>
 
@@ -3639,7 +4431,13 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id496 -->
 
-**Constraints & Notes**: `self` only supports bf16, fp16, fp32, fp64
+**Constraints & Notes**:
+
+- `self` only supports bf16, fp16, fp32, fp64.
+
+<!-- npu="950" id1394 -->
+- On <term>Ascend 950DT products</term>, the random number generation behavior is consistent with the GPU implementation, but the generated results differ from those on <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>.
+<!-- end id1394 -->
 
 </div>
 
@@ -4059,11 +4857,11 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
-- The dimension of `index` must be the same as that of `input`
+- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool.
+- The dimensions of `index` must be the same as those of `input`.
 
 <!-- npu="950,A3,910b" id554 -->
-- For <term>Ascend 950DT products</term>, due to hardware differences, when indexes are duplicated, precision may differ from that of <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>.
+- On <term>Ascend 950DT products</term>, when the input contains duplicate indices, the calculation results may differ in precision from the GPU implementation and <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>.
 <!-- end id554 -->
 
 </div>
@@ -4414,6 +5212,146 @@
 
 </div>
 
+> <font size="3">hypot_()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.hypot_](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.hypot_.html#torch.Tensor.hypot_)
+
+**Support Status**:
+
+<!-- npu="910b" id1468 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1468 -->
+<!-- npu="A3" id1469 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1469 -->
+<!-- npu="950" id1470 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1470 -->
+
+</div>
+
+> <font size="3">i0()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.i0](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.i0.html#torch.Tensor.i0)
+
+**Support Status**:
+
+<!-- npu="910b" id1471 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1471 -->
+<!-- npu="A3" id1472 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1472 -->
+<!-- npu="950" id1473 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1473 -->
+
+</div>
+
+> <font size="3">i0_()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.i0_](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.i0_.html#torch.Tensor.i0_)
+
+**Support Status**:
+
+<!-- npu="910b" id1474 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1474 -->
+<!-- npu="A3" id1475 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1475 -->
+<!-- npu="950" id1476 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1476 -->
+
+</div>
+
+> <font size="3">igamma()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.igamma](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.igamma.html#torch.Tensor.igamma)
+
+**Support Status**:
+
+<!-- npu="910b" id1477 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1477 -->
+<!-- npu="A3" id1478 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1478 -->
+<!-- npu="950" id1479 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1479 -->
+
+</div>
+
+> <font size="3">igamma_()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.igamma_](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.igamma_.html#torch.Tensor.igamma_)
+
+**Support Status**:
+
+<!-- npu="910b" id1480 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1480 -->
+<!-- npu="A3" id1481 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1481 -->
+<!-- npu="950" id1482 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1482 -->
+
+</div>
+
+> <font size="3">igammac()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.igammac](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.igammac.html#torch.Tensor.igammac)
+
+**Support Status**:
+
+<!-- npu="910b" id1483 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1483 -->
+<!-- npu="A3" id1484 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1484 -->
+<!-- npu="950" id1485 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1485 -->
+
+</div>
+
+> <font size="3">igammac_()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.igammac_](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.igammac_.html#torch.Tensor.igammac_)
+
+**Support Status**:
+
+<!-- npu="910b" id1486 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1486 -->
+<!-- npu="A3" id1487 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1487 -->
+<!-- npu="950" id1488 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1488 -->
+
+</div>
+
 > <font size="3">index_add_()</font>
 
 <div style="margin-left: 2em">
@@ -4566,10 +5504,10 @@
 
 **Constraints & Notes**:
 
-- `self` only supports int64
+- `self` only supports int64.
 
 <!-- npu="950,A3,910b" id624 -->
-- For <term>Ascend 950DT products</term>, due to hardware differences, when indexes are duplicated, precision may differ from that of <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>.
+- On <term>Ascend 950DT products</term>, when the input contains duplicate indices, the calculation results may differ in precision from the GPU implementation and <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>.
 <!-- end id624 -->
 
 </div>
@@ -4594,10 +5532,10 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
+- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool.
 
 <!-- npu="950,A3,910b" id628 -->
-- For <term>Ascend 950DT products</term>, due to hardware differences, when indexes are duplicated, precision may differ from that of <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>.
+- On <term>Ascend 950DT products</term>, when the input contains duplicate indices, the calculation results may differ in precision from the GPU implementation and <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>.
 <!-- end id628 -->
 
 </div>
@@ -4668,6 +5606,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1422 -->
 > <font size="3">indices()</font>
 
 <div style="margin-left: 2em">
@@ -4675,6 +5614,7 @@
 **Native Documentation**: [Tensor.indices](https://pytorch.org/docs/2.10/generated/torch.Tensor.indices.html)
 
 **Support Status**:
+<!-- end id1422 -->
 
 <!-- npu="910b" id638 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -4682,11 +5622,10 @@
 <!-- npu="A3" id639 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id639 -->
-<!-- npu="950" id640 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id640 -->
 
+<!-- npu="910b,A3" id1423 -->
 </div>
+<!-- end id1423 -->
 
 > <font size="3">inner()</font>
 
@@ -4749,6 +5688,26 @@
 <!-- npu="950" id649 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id649 -->
+
+</div>
+
+> <font size="3">inverse()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.inverse](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.inverse.html#torch.Tensor.inverse)
+
+**Support Status**:
+
+<!-- npu="910b" id1432 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1432 -->
+<!-- npu="A3" id1433 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1433 -->
+<!-- npu="950" id1434 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1434 -->
 
 </div>
 
@@ -5100,6 +6059,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1424 -->
 > <font size="3">is_sparse()</font>
 
 <div style="margin-left: 2em">
@@ -5107,6 +6067,7 @@
 **Native Documentation**: [Tensor.is_sparse](https://pytorch.org/docs/2.10/generated/torch.Tensor.is_sparse.html)
 
 **Support Status**:
+<!-- end id1424 -->
 
 <!-- npu="910b" id698 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -5114,13 +6075,12 @@
 <!-- npu="A3" id699 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id699 -->
-<!-- npu="950" id700 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id700 -->
 
+<!-- npu="910b,A3" id1425 -->
 **Constraints & Notes**: `self` only supports fp32
 
 </div>
+<!-- end id1425 -->
 
 > <font size="3">isreal()</font>
 
@@ -5185,6 +6145,26 @@
 <!-- end id709 -->
 
 **Constraints & Notes**: `self` only supports fp16, fp32, int32
+
+</div>
+
+> <font size="3">lcm()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.lcm](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.lcm.html#torch.Tensor.lcm)
+
+**Support Status**:
+
+<!-- npu="910b" id1489 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1489 -->
+<!-- npu="A3" id1490 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1490 -->
+<!-- npu="950" id1491 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1491 -->
 
 </div>
 
@@ -5361,6 +6341,46 @@
 <!-- end id733 -->
 
 **Constraints & Notes**: `self` only supports fp16, fp32
+
+</div>
+
+> <font size="3">lgamma()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.lgamma](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.lgamma.html#torch.Tensor.lgamma)
+
+**Support Status**:
+
+<!-- npu="910b" id1492 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1492 -->
+<!-- npu="A3" id1493 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1493 -->
+<!-- npu="950" id1494 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1494 -->
+
+</div>
+
+> <font size="3">lgamma_()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.lgamma_](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.lgamma_.html#torch.Tensor.lgamma_)
+
+**Support Status**:
+
+<!-- npu="910b" id1495 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1495 -->
+<!-- npu="A3" id1496 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1496 -->
+<!-- npu="950" id1497 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1497 -->
 
 </div>
 
@@ -5758,8 +6778,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports fp16, fp32, uint8, int8, int16, int32, int64, bool, complex64, complex128
-- May fall back to CPU execution
+- `self` only supports fp16, fp32, uint8, int8, int16, int32, int64, bool, complex64, complex128.
+- May fall back to CPU execution.
 
 </div>
 
@@ -5805,8 +6825,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32
-- When the value of `eps` is greater than 1, the output is nan; when the value of `eps` is 1, the output is inf
+- `self` only supports bf16, fp16, fp32.
+- When the value of `eps` is greater than 1, the output is nan; when the value of `eps` is 1, the output is inf.
 
 </div>
 
@@ -5830,8 +6850,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32
-- When the value of `eps` is greater than 1, the output is nan; when the value of `eps` is 1, the output is inf
+- `self` only supports bf16, fp16, fp32.
+- When the value of `eps` is greater than 1, the output is nan; when the value of `eps` is 1, the output is inf.
 
 </div>
 
@@ -5983,7 +7003,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id817 -->
 
-**Constraints & Notes**: CPU-only
+**Constraints & Notes**: CPU only
 
 </div>
 
@@ -6027,7 +7047,13 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id823 -->
 
-**Constraints & Notes**: `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
+**Constraints & Notes**:
+
+- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool.
+
+<!-- npu="950" id1400 -->
+- On <term>Ascend 950DT products</term>, the number of `True` values in `mask` cannot exceed the number of elements in `source`; otherwise, an error is reported, consistent with the GPU implementation.
+<!-- end id1400 -->
 
 </div>
 
@@ -6117,8 +7143,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32
-- Named Tensor is supported
+- `self` only supports bf16, fp16, fp32.
+- Named Tensor is supported.
 
 </div>
 
@@ -6252,8 +7278,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32, uint8, int8, int16, int32, int64
-- When `input` is bf16, `dim` cannot be a dimension whose axis value is 1 in `input`
+- `self` only supports bf16, fp16, fp32, uint8, int8, int16, int32, int64.
+- When `input` is bf16, `dim` does not take dimensions whose axis value of `input` is 1.
 
 </div>
 
@@ -6319,27 +7345,13 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id862 -->
 
-**Constraints & Notes**: `self` only supports bf16, fp16, fp32
+**Constraints & Notes**:
 
-</div>
+- `self` only supports bf16, fp16, fp32.
 
-> <font size="3">smm()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [Tensor.smm](https://pytorch.org/docs/2.10/generated/torch.Tensor.smm.html)
-
-**Support Status**:
-
-<!-- npu="910b" id863 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id863 -->
-<!-- npu="A3" id864 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id864 -->
-<!-- npu="950" id865 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id865 -->
+<!-- npu="950" id1401 -->
+- On <term>Ascend 950DT products</term>, when the default high-performance implementation is used, the calculation results of `fp32` or `complex64` inputs may differ in precision from the GPU implementation and <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>. You can set `cube_math_type` to `4` to switch to high-precision mode for aligned precision, but performance will be reduced.
+<!-- end id1401 -->
 
 </div>
 
@@ -6539,6 +7551,46 @@
 
 </div>
 
+> <font size="3">mv()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.mv](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.mv.html#torch.Tensor.mv)
+
+**Support Status**:
+
+<!-- npu="910b" id1501 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1501 -->
+<!-- npu="A3" id1502 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1502 -->
+<!-- npu="950" id1503 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1503 -->
+
+</div>
+
+> <font size="3">mvlgamma_()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.mvlgamma_](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.mvlgamma_.html#torch.Tensor.mvlgamma_)
+
+**Support Status**:
+
+<!-- npu="910b" id1504 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1504 -->
+<!-- npu="A3" id1505 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1505 -->
+<!-- npu="950" id1506 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1506 -->
+
+</div>
+
 > <font size="3">nansum()</font>
 
 <div style="margin-left: 2em">
@@ -6559,7 +7611,7 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32, uint8, int8, int16, int32, int64, bool
+- `self` only supports bf16, fp16, fp32, uint8, int8, int16, int32, int64, bool.
 
 <!-- npu="950" id896 -->
 - <term>Ascend 950DT products</term>: Not Supported for uint8, int8, int16, int32, int64, bool
@@ -6652,7 +7704,7 @@
 <!-- end id908 -->
 
 <!-- npu="950" id1388 -->
-**Constraints & Notes**: <term>Ascend 950DT products</term>: do not support fp64, complex64, complex128
+**Constraints & Notes**: <term>Ascend 950DT products</term>: Not Supported for fp64, complex64, complex128
 <!-- end id1388 -->
 
 </div>
@@ -6739,7 +7791,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id920 -->
 
-**Constraints & Notes**: Falls back to CPU execution
+**Constraints & Notes**: Falls back to CPU execution.
 
 </div>
 
@@ -6763,8 +7815,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32, uint8, int8, int16, int32, int64, bool, complex64, complex128
-- May fall back to CPU execution
+- `self` only supports bf16, fp16, fp32, uint8, int8, int16, int32, int64, bool, complex64, complex128.
+- May fall back to CPU execution.
 
 </div>
 
@@ -6832,8 +7884,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32, int8, int32, int64, complex64, complex128
-- May fall back to CPU execution
+- `self` only supports bf16, fp16, fp32, int8, int32, int64, complex64, complex128.
+- May fall back to CPU execution.
 
 </div>
 
@@ -6923,8 +7975,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
-- The nan scenario is not supported
+- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool.
+- nan scenarios are not supported.
 
 </div>
 
@@ -6948,7 +8000,7 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32, fp64
+- `self` only supports bf16, fp16, fp32, fp64.
 
 <!-- npu="950" id948 -->
 - <term>Ascend 950DT products</term>: Not Supported for fp64
@@ -6976,8 +8028,12 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32
-- May fall back to CPU execution
+- `self` only supports bf16, fp16, fp32.
+- May fall back to CPU execution.
+
+<!-- npu="950" id1404 -->
+- On <term>Ascend 950DT products</term>, the random number generation behavior is consistent with the GPU implementation, but the generated results differ from those on <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>.
+<!-- end id1404 -->
 
 </div>
 
@@ -7066,6 +8122,86 @@
 <!-- end id963 -->
 
 **Constraints & Notes**: `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool, complex64, complex128
+
+</div>
+
+> <font size="3">pin_memory()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.pin_memory](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.pin_memory.html#torch.Tensor.pin_memory)
+
+**Support Status**:
+
+<!-- npu="910b" id1507 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1507 -->
+<!-- npu="A3" id1508 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1508 -->
+<!-- npu="950" id1509 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1509 -->
+
+</div>
+
+> <font size="3">pinverse()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.pinverse](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.pinverse.html#torch.Tensor.pinverse)
+
+**Support Status**:
+
+<!-- npu="910b" id1510 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1510 -->
+<!-- npu="A3" id1511 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1511 -->
+<!-- npu="950" id1512 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1512 -->
+
+</div>
+
+> <font size="3">polygamma()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.polygamma](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.polygamma.html#torch.Tensor.polygamma)
+
+**Support Status**:
+
+<!-- npu="910b" id1513 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1513 -->
+<!-- npu="A3" id1514 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1514 -->
+<!-- npu="950" id1515 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1515 -->
+
+</div>
+
+> <font size="3">polygamma_()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.polygamma_](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.polygamma_.html#torch.Tensor.polygamma_)
+
+**Support Status**:
+
+<!-- npu="910b" id1516 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1516 -->
+<!-- npu="A3" id1517 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1517 -->
+<!-- npu="950" id1518 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1518 -->
 
 </div>
 
@@ -7259,7 +8395,13 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id990 -->
 
-**Constraints & Notes**: `self` only supports bf16, fp16, fp32, uint8, int8, int16, int32, int64, bool
+**Constraints & Notes**:
+
+- `self` only supports bf16, fp16, fp32, uint8, int8, int16, int32, int64, bool.
+
+<!-- npu="950" id1405 -->
+- On <term>Ascend 950DT products</term>, the random number generation behavior is consistent with the GPU implementation, but the generated results differ from those on <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>.
+<!-- end id1405 -->
 
 </div>
 
@@ -7329,6 +8471,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1426 -->
 > <font size="3">record_stream()</font>
 
 <div style="margin-left: 2em">
@@ -7336,6 +8479,7 @@
 **Native Documentation**: [Tensor.record_stream](https://pytorch.org/docs/2.10/generated/torch.Tensor.record_stream.html)
 
 **Support Status**:
+<!-- end id1426 -->
 
 <!-- npu="910b" id1000 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -7343,13 +8487,12 @@
 <!-- npu="A3" id1001 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id1001 -->
-<!-- npu="950" id1002 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id1002 -->
 
+<!-- npu="910b,A3" id1427 -->
 **Constraints & Notes**: `self` only supports fp32
 
 </div>
+<!-- end id1427 -->
 
 > <font size="3">register_hook()</font>
 
@@ -7437,6 +8580,26 @@
 
 </div>
 
+> <font size="3">renorm()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.renorm](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.renorm.html#torch.Tensor.renorm)
+
+**Support Status**:
+
+<!-- npu="910b" id1519 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1519 -->
+<!-- npu="A3" id1520 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1520 -->
+<!-- npu="950" id1521 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1521 -->
+
+</div>
+
 > <font size="3">repeat()</font>
 
 <div style="margin-left: 2em">
@@ -7479,8 +8642,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32, uint8, int8, int16, int32, int64, bool
-- After the input tensor is repeated to obtain the output, the number of elements in the output must be less than $2^{22}$
+- `self` only supports bf16, fp16, fp32, uint8, int8, int16, int32, int64, bool.
+- After the input tensor is repeated, the number of elements in the output must be less than $2^{22}$.
 
 </div>
 
@@ -7590,8 +8753,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32, uint8, int8, int16, int32, int64, bool, complex64, complex128
-- `memory_format` only supports torch.contiguous_format and torch.preserve_format
+- `self` only supports bf16, fp16, fp32, uint8, int8, int16, int32, int64, bool, complex64, complex128.
+- `memory_format` only supports torch.contiguous_format and torch.preserve_format.
 
 </div>
 
@@ -7615,8 +8778,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports fp16, fp32, uint8, int8, int16, int32, int64, bool, complex64, complex128
-- `memory_format` only supports torch.contiguous_format and torch.preserve_format
+- `self` only supports fp16, fp32, uint8, int8, int16, int32, int64, bool, complex64, complex128.
+- `memory_format` only supports torch.contiguous_format and torch.preserve_format.
 
 </div>
 
@@ -7816,10 +8979,10 @@
 
 **Constraints & Notes**:
 
-- `self` only supports fp16, fp32, fp64, int8, int16, int32, int64, bool
+- `self` only supports fp16, fp32, fp64, int8, int16, int32, int64, bool.
 
 <!-- npu="950,A3,910b" id1066 -->
-- For <term>Ascend 950DT products</term>, due to hardware differences, when indexes are duplicated, precision may differ from that of <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>.
+- On <term>Ascend 950DT products</term>, when the input contains duplicate indices, the calculation results may differ in precision from the GPU implementation and <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>.
 <!-- end id1066 -->
 
 </div>
@@ -7844,11 +9007,11 @@
 
 **Constraints & Notes**:
 
-- The `tensor`, `index`, and `src` parameters cannot be empty or scalars
-- May fall back to CPU execution
+- The `tensor`, `index`, and `src` parameters cannot be empty and cannot be scalar.
+- May fall back to CPU execution.
 
 <!-- npu="950,A3,910b" id1070 -->
-- For <term>Ascend 950DT products</term>, due to hardware differences, when indexes are duplicated, precision may differ from that of <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>.
+- On <term>Ascend 950DT products</term>, when the input contains duplicate indices, the calculation results may differ in precision from the GPU implementation and <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>.
 <!-- end id1070 -->
 
 </div>
@@ -7873,10 +9036,10 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
+- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool.
 
 <!-- npu="950,A3,910b" id1074 -->
-- For <term>Ascend 950DT products</term>, due to hardware differences, when indexes are duplicated, precision may differ from that of <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>.
+- On <term>Ascend 950DT products</term>, when the input contains duplicate indices, the calculation results may differ in precision from the GPU implementation and <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>.
 <!-- end id1074 -->
 
 </div>
@@ -7901,11 +9064,31 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool, complex64, complex128
+- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool, complex64, complex128.
 
 <!-- npu="950,A3,910b" id1078 -->
-- For <term>Ascend 950DT products</term>, due to hardware differences, when indexes are duplicated, precision may differ from that of <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>.
+- On <term>Ascend 950DT products</term>, when the input contains duplicate indices, the calculation results may differ in precision from the GPU implementation and <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>.
 <!-- end id1078 -->
+
+</div>
+
+> <font size="3">scatter_reduce_()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.scatter_reduce_](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.scatter_reduce_.html#torch.Tensor.scatter_reduce_)
+
+**Support Status**:
+
+<!-- npu="910b" id1522 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1522 -->
+<!-- npu="A3" id1523 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1523 -->
+<!-- npu="950" id1524 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1524 -->
 
 </div>
 
@@ -7936,7 +9119,7 @@
   - The input data type is fp32.
 <!-- end id1082 -->
 <!-- npu="950,A3,910b" id1083 -->
-- Other configurations of <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term> beyond the scenarios above, as well as all <term>Ascend 950DT products</term> scenarios, fall back to CPU execution (Fallback).
+- In other configurations on <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>, and in all <term>Ascend 950DT products</term> scenarios, execution falls back to the CPU (Fallback).
 <!-- end id1083 -->
 
 </div>
@@ -7983,8 +9166,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports fp16, fp32, uint8, int8, int16, int32, int64, bool
-- May fall back to CPU execution
+- `self` only supports fp16, fp32, uint8, int8, int16, int32, int64, bool.
+- May fall back to CPU execution.
 
 </div>
 
@@ -8184,6 +9367,26 @@
 
 </div>
 
+> <font size="3">signbit()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.signbit](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.signbit.html#torch.Tensor.signbit)
+
+**Support Status**:
+
+<!-- npu="910b" id1615 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1615 -->
+<!-- npu="A3" id1616 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1616 -->
+<!-- npu="950" id1617 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1617 -->
+
+</div>
+
 > <font size="3">sin()</font>
 
 <div style="margin-left: 2em">
@@ -8225,6 +9428,46 @@
 <!-- end id1122 -->
 
 **Constraints & Notes**: `self` only supports bf16, fp16, fp32, complex64, complex128
+
+</div>
+
+> <font size="3">sinc()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [Tensor.sinc](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.sinc.html#torch.Tensor.sinc)
+
+**Support Status**:
+
+<!-- npu="910b" id1435 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1435 -->
+<!-- npu="A3" id1436 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1436 -->
+<!-- npu="950" id1437 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1437 -->
+
+</div>
+
+> <font size="3">sinc_()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.sinc\_](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.sinc_.html#torch.Tensor.sinc_)
+
+**Support Status**:
+
+<!-- npu="910b" id1618 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1618 -->
+<!-- npu="A3" id1619 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1619 -->
+<!-- npu="950" id1620 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1620 -->
 
 </div>
 
@@ -8488,10 +9731,10 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32, uint8, int8, int16, int32, int64
+- `self` only supports bf16, fp16, fp32, uint8, int8, int16, int32, int64.
 
 <!-- npu="950" id1159 -->
-- For <term>Ascend 950DT products</term>, due to underlying implementation limitations, `"stable"` only supports True. If it is set to False, it will be automatically modified to True at execution time.
+- On <term>Ascend 950DT products</term>, due to underlying implementation limitations, `"stable"` only supports True. If it is set to False, it is automatically changed to True during execution.
 <!-- end id1159 -->
 
 </div>
@@ -8515,26 +9758,6 @@
 <!-- end id1162 -->
 
 **Constraints & Notes**: `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool, complex64, complex128
-
-</div>
-
-> <font size="3">sparse_mask()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [Tensor.sparse_mask](https://pytorch.org/docs/2.10/generated/torch.Tensor.sparse_mask.html)
-
-**Support Status**:
-
-<!-- npu="910b" id1163 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id1163 -->
-<!-- npu="A3" id1164 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id1164 -->
-<!-- npu="950" id1165 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id1165 -->
 
 </div>
 
@@ -8710,9 +9933,29 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32
-- `input` does not support scalar`tensor`
-- The value of the `correction` parameter cannot exceed the maximum value of int32
+- `self` only supports bf16, fp16, fp32.
+- `input` does not support scalar `tensor`.
+- The value of the `correction` parameter cannot exceed the maximum value of int32.
+
+</div>
+
+> <font size="3">stft()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.stft](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.stft.html#torch.Tensor.stft)
+
+**Support Status**:
+
+<!-- npu="910b" id1621 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1621 -->
+<!-- npu="A3" id1622 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1622 -->
+<!-- npu="950" id1623 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1623 -->
 
 </div>
 
@@ -8735,6 +9978,26 @@
 <!-- end id1192 -->
 
 **Constraints & Notes**: `self` only supports fp32
+
+</div>
+
+> <font size="3">trace()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.trace](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.trace.html#torch.Tensor.trace)
+
+**Support Status**:
+
+<!-- npu="910b" id1624 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1624 -->
+<!-- npu="A3" id1625 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1625 -->
+<!-- npu="950" id1626 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1626 -->
 
 </div>
 
@@ -8980,6 +10243,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1428 -->
 > <font size="3">t()</font>
 
 <div style="margin-left: 2em">
@@ -8987,6 +10251,7 @@
 **Native Documentation**: [Tensor.t](https://pytorch.org/docs/2.10/generated/torch.Tensor.t.html)
 
 **Support Status**:
+<!-- end id1428 -->
 
 <!-- npu="910b" id1226 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -8994,13 +10259,12 @@
 <!-- npu="A3" id1227 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id1227 -->
-<!-- npu="950" id1228 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id1228 -->
 
+<!-- npu="910b,A3" id1429 -->
 **Constraints & Notes**: `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, complex64, complex128
 
 </div>
+<!-- end id1429 -->
 
 > <font size="3">t_()</font>
 
@@ -9042,7 +10306,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id1234 -->
 
-**Constraints & Notes**: CPU-only
+**Constraints & Notes**: CPU only
 
 </div>
 
@@ -9066,11 +10330,11 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool, complex64, complex128
+- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool, complex64, complex128.
 - If the length of the `dims` parameter is less than the length of `Tensor.shape`, 1s are automatically prepended to `dims` to align its length with `Tensor.shape`. The padded `dims` must meet the following restrictions:
-  - When the first axis needs to be repeated, a maximum of 4 dimensions can be repeated at the same time (that is, the number of elements greater than 1 in `dims` ≤ 4). For example, `Tensor.tile([2, 3, 4, 5, 6])` is not supported, while `Tensor.tile([2, 3, 1, 5, 6])` is supported.
-  - When the first axis does not need to be repeated, a maximum of 3 dimensions can be repeated at the same time (that is, the number of elements greater than 1 in `dims` ≤ 3). For example, `Tensor.tile([1, 3, 4, 5, 6])` is not supported, while `Tensor.tile([1, 3, 1, 5, 6])` is supported.
-  - In backward computation, the number of dimensions of `Tensor` plus the number of elements greater than 1 in `dims` must not exceed 8.
+  - When the first axis needs to be repeated, at most 4 dimensions can be repeated at the same time (that is, the number of elements greater than 1 in `dims` ≤ 4). For example, `Tensor.tile([2, 3, 4, 5, 6])` is not supported, while `Tensor.tile([2, 3, 1, 5, 6])` is supported.
+  - When the first axis does not need to be repeated, at most 3 dimensions can be repeated at the same time (that is, the number of elements greater than 1 in `dims` ≤ 3). For example, `Tensor.tile([1, 3, 4, 5, 6])` is not supported, while `Tensor.tile([1, 3, 1, 5, 6])` is supported.
+  - If backward computation is performed, the sum of the number of dimensions of `Tensor` and the number of elements greater than 1 in `dims` must not exceed 8.
 
 </div>
 
@@ -9094,12 +10358,12 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32, uint8, int8, int16, int32, int64, bool, complex64, complex128
-- Current NPU devices only support setting `memory_format` to torch.contiguous_format or torch.preserve_format
+- `self` only supports bf16, fp16, fp32, uint8, int8, int16, int32, int64, bool, complex64, complex128.
+- The current NPU device only supports setting `memory_format` to torch.contiguous_format or torch.preserve_format.
 
-<!-- npu="310p" id1241 -->
-- <term>Atlas inference products</term> do not support cross-NPU copy
-<!-- end id1241 -->
+<!-- npu="950" id1411 -->
+- On <term>Ascend 950DT products</term>, conversion to the `double` data type is not supported.
+<!-- end id1411 -->
 
 </div>
 
@@ -9231,7 +10495,7 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64
+- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64.
 
 <!-- npu="950" id1260 -->
 - <term>Ascend 950DT products</term>: Not Supported for fp64
@@ -9391,8 +10655,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64
-- Due to hardware differences, the npu `topk` index results are inconsistent with those of GPU/CPU. Current NPUs only support returning computation results with `sorted` set to true.
+- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64.
+- Due to hardware differences, the `topk` index results on the NPU are inconsistent with those on the GPU/CPU. Currently, the NPU only supports returning calculation results with `sorted` set to true.
 - Scalar `tensor` is not supported.
 
 </div>
@@ -9414,26 +10678,6 @@
 <!-- npu="950" id1284 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id1284 -->
-
-</div>
-
-> <font size="3">to_sparse()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [Tensor.to_sparse](https://pytorch.org/docs/2.10/generated/torch.Tensor.to_sparse.html)
-
-**Support Status**:
-
-<!-- npu="910b" id1285 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id1285 -->
-<!-- npu="A3" id1286 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id1286 -->
-<!-- npu="950" id1287 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id1287 -->
 
 </div>
 
@@ -9867,8 +11111,12 @@
 
 **Constraints & Notes**:
 
-- `self` only supports fp16, fp32, fp64, uint8, int8, int16, int32, int64
-- Following the PyTorch community convention, processing bool-type data is no longer supported. For existing bool-type data, use the following replacement methods: if all True values are required, use Tensor.bernoulli_(p=1.0). If uniformly distributed bool values are required, use Tensor.bernoulli_(p=0.5).
+- `self` only supports fp16, fp32, fp64, uint8, int8, int16, int32, int64.
+- Following PyTorch community conventions, processing of bool-type data is no longer supported. Existing bool-type data can be replaced as follows: if all-True output is required, use `Tensor.bernoulli_(p=1.0)`. If uniformly distributed bool-type output is required, use `Tensor.bernoulli_(p=0.5)`.
+
+<!-- npu="950" id1415 -->
+- On <term>Ascend 950DT products</term>, the random number generation behavior is consistent with the GPU implementation, but the generated results differ from those on <term>Atlas A2 training products</term>/<term>Atlas A3 training products</term>.
+<!-- end id1415 -->
 
 </div>
 
@@ -9892,8 +11140,8 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
-- When the input contains 0, the output may contain positive 0 and negative 0 instead of only one 0
+- `self` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool.
+- When the input contains 0, the output may contain positive 0 and negative 0 instead of only one 0.
 
 </div>
 
@@ -9963,6 +11211,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id1430 -->
 > <font size="3">values()</font>
 
 <div style="margin-left: 2em">
@@ -9970,6 +11219,7 @@
 **Native Documentation**: [Tensor.values](https://pytorch.org/docs/2.10/generated/torch.Tensor.values.html)
 
 **Support Status**:
+<!-- end id1430 -->
 
 <!-- npu="910b" id1360 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -9977,13 +11227,12 @@
 <!-- npu="A3" id1361 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id1361 -->
-<!-- npu="950" id1362 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id1362 -->
 
-**Constraints & Notes**: Depends on sparse `tensor`
+<!-- npu="910b,A3" id1431 -->
+**Constraints & Notes**: Depends on sparse `tensor`.
 
 </div>
+<!-- end id1431 -->
 
 > <font size="3">var()</font>
 
@@ -10005,8 +11254,28 @@
 
 **Constraints & Notes**:
 
-- `self` only supports bf16, fp16, fp32
-- The value of the `correction` parameter cannot exceed the maximum value of int32
+- `self` only supports bf16, fp16, fp32.
+- The value of the `correction` parameter cannot exceed the maximum value of int32.
+
+</div>
+
+> <font size="3">vdot()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.Tensor.vdot](https://docs.pytorch.org/docs/2.10/generated/torch.Tensor.vdot.html#torch.Tensor.vdot)
+
+**Support Status**:
+
+<!-- npu="910b" id1627 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id1627 -->
+<!-- npu="A3" id1628 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id1628 -->
+<!-- npu="950" id1629 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id1629 -->
 
 </div>
 

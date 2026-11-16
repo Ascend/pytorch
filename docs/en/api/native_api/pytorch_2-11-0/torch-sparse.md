@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.11/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.11/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
 > - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.11/sparse.html).
 
@@ -26,6 +26,7 @@
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id45 -->
 > <font size="3">is_sparse_csr()</font>
 
 <div style="margin-left: 2em">
@@ -33,6 +34,7 @@
 **Native Documentation**: [Tensor.is_sparse_csr](https://pytorch.org/docs/2.11/generated/torch.Tensor.is_sparse_csr.html)
 
 **Support Status**:
+<!-- end id45 -->
 
 <!-- npu="910b" id1 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -40,12 +42,12 @@
 <!-- npu="A3" id2 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id2 -->
-<!-- npu="950" id3 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id3 -->
 
+<!-- npu="910b,A3" id46 -->
 </div>
+<!-- end id46 -->
 
+<!-- npu="910b,A3" id47 -->
 > <font size="3">to_sparse_coo()</font>
 
 <div style="margin-left: 2em">
@@ -53,6 +55,7 @@
 **Native Documentation**: [Tensor.to_sparse_coo](https://pytorch.org/docs/2.11/generated/torch.Tensor.to_sparse_coo.html)
 
 **Support Status**:
+<!-- end id47 -->
 
 <!-- npu="910b" id4 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -60,11 +63,10 @@
 <!-- npu="A3" id5 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id5 -->
-<!-- npu="950" id6 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id6 -->
 
+<!-- npu="910b,A3" id48 -->
 </div>
+<!-- end id48 -->
 
 > <font size="3">coalesce()</font>
 
@@ -146,6 +148,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id49 -->
 > <font size="3">crow_indices()</font>
 
 <div style="margin-left: 2em">
@@ -153,6 +156,7 @@
 **Native Documentation**: [Tensor.crow_indices](https://pytorch.org/docs/2.11/generated/torch.Tensor.crow_indices.html)
 
 **Support Status**:
+<!-- end id49 -->
 
 <!-- npu="910b" id19 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -160,12 +164,12 @@
 <!-- npu="A3" id20 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id20 -->
-<!-- npu="950" id21 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id21 -->
 
+<!-- npu="910b,A3" id50 -->
 </div>
+<!-- end id50 -->
 
+<!-- npu="910b,A3" id51 -->
 > <font size="3">col_indices()</font>
 
 <div style="margin-left: 2em">
@@ -173,6 +177,7 @@
 **Native Documentation**: [Tensor.col_indices](https://pytorch.org/docs/2.11/generated/torch.Tensor.col_indices.html)
 
 **Support Status**:
+<!-- end id51 -->
 
 <!-- npu="910b" id22 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -180,12 +185,12 @@
 <!-- npu="A3" id23 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id23 -->
-<!-- npu="950" id24 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id24 -->
 
+<!-- npu="910b,A3" id52 -->
 </div>
+<!-- end id52 -->
 
+<!-- npu="910b,A3" id53 -->
 > <font size="3">row_indices()</font>
 
 <div style="margin-left: 2em">
@@ -193,6 +198,7 @@
 **Native Documentation**: [Tensor.row_indices](https://pytorch.org/docs/2.11/generated/torch.Tensor.row_indices.html)
 
 **Support Status**:
+<!-- end id53 -->
 
 <!-- npu="910b" id25 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -200,12 +206,12 @@
 <!-- npu="A3" id26 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id26 -->
-<!-- npu="950" id27 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id27 -->
 
+<!-- npu="910b,A3" id54 -->
 </div>
+<!-- end id54 -->
 
+<!-- npu="910b,A3" id55 -->
 > <font size="3">ccol_indices()</font>
 
 <div style="margin-left: 2em">
@@ -213,6 +219,7 @@
 **Native Documentation**: [Tensor.ccol_indices](https://pytorch.org/docs/2.11/generated/torch.Tensor.ccol_indices.html)
 
 **Support Status**:
+<!-- end id55 -->
 
 <!-- npu="910b" id28 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -220,94 +227,34 @@
 <!-- npu="A3" id29 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id29 -->
-<!-- npu="950" id30 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id30 -->
+
+<!-- npu="910b,A3" id56 -->
+</div>
+<!-- end id56 -->
 
 </div>
 
-</div>
-
-### <code><i>class</i></code> torch.sparse.check_sparse_tensor_invariants
+### torch.sparse.mm
 
 <div style="margin-left: 2em">
 
-**Native Documentation**: [torch.sparse.check_sparse_tensor_invariants](https://pytorch.org/docs/2.11/generated/torch.sparse.check_sparse_tensor_invariants.html)
+**Native Documentation**: [torch.sparse.mm](https://docs.pytorch.org/docs/2.11/generated/torch.sparse.mm.html#torch.sparse.mm)
 
 **Support Status**:
 
-<!-- npu="910b" id31 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id31 -->
-<!-- npu="A3" id32 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id32 -->
-<!-- npu="950" id33 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id33 -->
-
-> <font size="3">disable()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.sparse.check_sparse_tensor_invariants.disable](https://pytorch.org/docs/2.11/generated/torch.sparse.check_sparse_tensor_invariants.html#torch.sparse.check_sparse_tensor_invariants.disable)
-
-**Support Status**:
-
-<!-- npu="910b" id34 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id34 -->
-<!-- npu="A3" id35 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id35 -->
-<!-- npu="950" id36 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id36 -->
+<!-- npu="910b" id62 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id62 -->
+<!-- npu="A3" id63 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id63 -->
+<!-- npu="950" id64 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id64 -->
 
 </div>
 
-> <font size="3">enable()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.sparse.check_sparse_tensor_invariants.enable](https://pytorch.org/docs/2.11/generated/torch.sparse.check_sparse_tensor_invariants.html#torch.sparse.check_sparse_tensor_invariants.enable)
-
-**Support Status**:
-
-<!-- npu="910b" id37 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id37 -->
-<!-- npu="A3" id38 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id38 -->
-<!-- npu="950" id39 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id39 -->
-
-</div>
-
-> <font size="3">is_enabled()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.sparse.check_sparse_tensor_invariants.is_enabled](https://pytorch.org/docs/2.11/generated/torch.sparse.check_sparse_tensor_invariants.html#torch.sparse.check_sparse_tensor_invariants.is_enabled)
-
-**Support Status**:
-
-<!-- npu="910b" id40 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id40 -->
-<!-- npu="A3" id41 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id41 -->
-<!-- npu="950" id42 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id42 -->
-
-</div>
-
-</div>
-
+<!-- npu="910b,A3" id65 -->
 ### torch.sparse_compressed_tensor
 
 <div style="margin-left: 2em">
@@ -315,6 +262,7 @@
 **Native Documentation**: [torch.sparse_compressed_tensor](https://pytorch.org/docs/2.11/generated/torch.sparse_compressed_tensor.html)
 
 **Support Status**:
+<!-- end id65 -->
 
 <!-- npu="910b" id43 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -322,28 +270,27 @@
 <!-- npu="A3" id44 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id44 -->
-<!-- npu="950" id45 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id45 -->
 
+<!-- npu="910b,A3" id58 -->
 </div>
+<!-- end id58 -->
 
-### torch.sparse.as_sparse_gradcheck
+### torch.sparse.sum
 
 <div style="margin-left: 2em">
 
-**Native Documentation**: [torch.sparse.as_sparse_gradcheck](https://pytorch.org/docs/2.11/generated/torch.sparse.as_sparse_gradcheck.html)
+**Native Documentation**: [torch.sparse.sum](https://docs.pytorch.org/docs/2.11/generated/torch.sparse.sum.html#torch.sparse.sum)
 
 **Support Status**:
 
-<!-- npu="910b" id46 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id46 -->
-<!-- npu="A3" id47 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id47 -->
-<!-- npu="950" id48 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id48 -->
+<!-- npu="910b" id59 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id59 -->
+<!-- npu="A3" id60 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id60 -->
+<!-- npu="950" id61 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id61 -->
 
 </div>

@@ -1,16 +1,16 @@
-# List of APIs That Support Graph Mode
+# Graph-Supported API List
 
-For the list of Ascend APIs that support graph mode, see [Table 1](#list-of-ascend-apis-supporting-graph-mode).
+For the list of APIs supported by Ascend in graph mode, see [Table 1](#ascend-graph-api-list).
 
 > [!NOTE]
 >
-> - APIs marked as "graph supported" can be used normally in the computation graph compiled by `torch.compile`, captured by the graph, and participate in optimization. For details about `torch.compile`, see[torch.compile](../../user_guide/torch_compile/_menu_torch_compile.md)
-> - All APIs listed in this document support graph mode and have been verified. Some unverified APIs may also support graph mode; use them with caution in the Ascend NPU environment. We will continue to verify more APIs and update this document regularly.
+> - An API marked "graph-supported" can be normally used in the computation graph compiled by `torch.compile` and can be captured by the graph to participate in optimization. For instructions on `torch.compile`, see [torch.compile](../../user_guide/torch_compile/_menu_torch_compile.md).
+> - The list presented in this document covers APIs that have been verified as graph-supported. Some unverified APIs may also be capable of graph support; use them with caution in the Ascend NPU environment. We will continue to verify more APIs and update this document regularly.
 > - APIs marked with an asterisk (*) are subject to product or PyTorch version restrictions. For details, see the notes below the table.
 
-**Table 1**  List of Ascend APIs that support graph mode<a id="list-of-ascend-apis-supporting-graph-mode"></a>
+**Table 1**  List of APIs supported by Ascend in graph mode<a id="ascend-graph-api-list"></a>
 
-| API Name                                     |
+| API Name                                               |
 |-----------------------------------------------------|
 | Tensor.abs                                          |
 | Tensor.add                                          |
@@ -194,24 +194,24 @@ For the list of Ascend APIs that support graph mode, see [Table 1](#list-of-asce
 | torch\_npu.npu\_grouped\_matmul                     |
 | torch.\_foreach\_copy\_                             |
 
-Special Notes:
+Special notes:
 
 <!-- npu="910b" id1 -->
-- \* `torch.device`: On <term>Atlas A2 training products</term>, graph mode is not supported when the PyTorch version is 2.7.1.
+- \* `torch.device`: On <term>Atlas A2 training products</term>, it is not graph-supported when the PyTorch version is 2.7.1.
 <!-- end id1 -->
 
 <!-- npu="A3" id2 -->
-- \* `torch.device`: On <term>Atlas A3 training products</term>, graph mode is not supported when the PyTorch version is 2.7.1.
+- \* `torch.device`: On <term>Atlas A3 training products</term>, it is not graph-supported when the PyTorch version is 2.7.1.
 <!-- end id2 -->
 
 <!-- npu="910b" id3 -->
-- \* `torch.nn.functional.cross_entropy`: On <term>Atlas A2 training products</term>, graph mode is not supported when the PyTorch version is 2.7.1.
+- \* `torch.nn.functional.cross_entropy`: On <term>Atlas A2 training products</term>, it is not graph-supported when the PyTorch version is 2.7.1.
 <!-- end id3 -->
 
 <!-- npu="A3" id4 -->
-- \* `torch.nn.functional.cross_entropy`: On <term>Atlas A3 training products</term>, graph mode is not supported when the PyTorch version is 2.7.1.
+- \* `torch.nn.functional.cross_entropy`: On <term>Atlas A3 training products</term>, it is not graph-supported when the PyTorch version is 2.7.1.
 <!-- end id4 -->
 
 <!-- npu="950" id5 -->
-- \* `torch.nn.functional.scaled_dot_product_attention`: On <term>Ascend 950DT products</term>, graph mode is not supported when the PyTorch version is 2.7.1, 2.9.0, 2.10.0, 2.11.0, 2.12.0, 2.13.0, or 2.14.0.
+- \* `torch.nn.functional.scaled_dot_product_attention`: On <term>Ascend 950DT products</term>, it is not graph-supported when the PyTorch version is 2.7.1, 2.9.0, 2.10.0, 2.11.0, 2.12.0, 2.13.0, or 2.14.0.
 <!-- end id5 -->

@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.7/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.7/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
 > - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.7/data.html).
 
@@ -21,6 +21,73 @@
 </div>
 
 ## Memory Pinning
+
+### <code><i>class</i></code> torch.utils.data.DataLoader
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.data.DataLoader](https://pytorch.org/docs/2.7/data.html#torch.utils.data.DataLoader)
+
+**Support Status**:
+
+<!-- npu="910b" id40 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id40 -->
+<!-- npu="A3" id41 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id41 -->
+<!-- npu="950" id42 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id42 -->
+
+**Constraints & Notes**:
+
+- `dataset` only supports fp32
+- Does not support loading NPU data through multiple processes. `num_workers` only supports 0.
+
+</div>
+
+### <code><i>class</i></code> torch.utils.data.Dataset
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.data.Dataset](https://pytorch.org/docs/2.7/data.html#torch.utils.data.Dataset)
+
+**Support Status**:
+
+<!-- npu="910b" id43 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id43 -->
+<!-- npu="A3" id44 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id44 -->
+<!-- npu="950" id45 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id45 -->
+
+**Constraints & Notes**: `input` only supports fp16, fp32, fp64, uint8, int8, int16, int32, int64
+
+</div>
+
+### <code><i>class</i></code> torch.utils.data.IterableDataset
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.data.IterableDataset](https://pytorch.org/docs/2.7/data.html#torch.utils.data.IterableDataset)
+
+**Support Status**:
+
+<!-- npu="910b" id46 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id46 -->
+<!-- npu="A3" id47 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id47 -->
+<!-- npu="950" id48 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id48 -->
+
+</div>
 
 ### <code><i>class</i></code> torch.utils.data.TensorDataset
 
@@ -42,6 +109,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id61 -->
 ### <code><i>class</i></code> torch.utils.data.StackDataset
 
 <div style="margin-left: 2em">
@@ -49,6 +117,7 @@
 **Native Documentation**: [torch.utils.data.StackDataset](https://pytorch.org/docs/2.7/data.html#torch.utils.data.StackDataset)
 
 **Support Status**:
+<!-- end id61 -->
 
 <!-- npu="910b" id4 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -56,11 +125,10 @@
 <!-- npu="A3" id5 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id5 -->
-<!-- npu="950" id6 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id6 -->
 
+<!-- npu="910b,A3" id62 -->
 </div>
+<!-- end id62 -->
 
 ### <code><i>class</i></code> torch.utils.data.ConcatDataset
 
@@ -102,6 +170,28 @@
 
 </div>
 
+### <code><i>class</i></code> torch.utils.data.Subset
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.data.Subset](https://pytorch.org/docs/2.7/data.html#torch.utils.data.Subset)
+
+**Support Status**:
+
+<!-- npu="910b" id49 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id49 -->
+<!-- npu="A3" id50 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id50 -->
+<!-- npu="950" id51 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id51 -->
+
+**Constraints & Notes**: `dataset` only supports int64
+
+</div>
+
 ### torch.utils.data._utils.collate.collate
 
 <div style="margin-left: 2em">
@@ -121,6 +211,28 @@
 <!-- end id15 -->
 
 **Constraints & Notes**: `batch` only supports int64
+
+</div>
+
+### torch.utils.data.default_collate
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.data.default_collate](https://pytorch.org/docs/2.7/data.html#torch.utils.data.default_collate)
+
+**Support Status**:
+
+<!-- npu="910b" id52 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id52 -->
+<!-- npu="A3" id53 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id53 -->
+<!-- npu="950" id54 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id54 -->
+
+**Constraints & Notes**: `batch` only supports fp64, int64, bool
 
 </div>
 
@@ -144,6 +256,48 @@
 
 </div>
 
+### torch.utils.data.get_worker_info
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.data.get_worker_info](https://pytorch.org/docs/2.7/data.html#torch.utils.data.get_worker_info)
+
+**Support Status**:
+
+<!-- npu="910b" id55 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id55 -->
+<!-- npu="A3" id56 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id56 -->
+<!-- npu="950" id57 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id57 -->
+
+</div>
+
+### <code><i>class</i></code> torch.utils.data.distributed.DistributedSampler
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.data.distributed.DistributedSampler](https://pytorch.org/docs/2.7/data.html#torch.utils.data.distributed.DistributedSampler)
+
+**Support Status**:
+
+<!-- npu="910b" id37 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id37 -->
+<!-- npu="A3" id38 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id38 -->
+<!-- npu="950" id39 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id39 -->
+
+**Constraints & Notes**: `dataset` only supports int32
+
+</div>
+
 ### torch.utils.data.random_split
 
 <div style="margin-left: 2em">
@@ -161,6 +315,28 @@
 <!-- npu="950" id21 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id21 -->
+
+</div>
+
+### <code><i>class</i></code> torch.utils.data.Sampler
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.utils.data.Sampler](https://pytorch.org/docs/2.7/data.html#torch.utils.data.Sampler)
+
+**Support Status**:
+
+<!-- npu="910b" id58 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id58 -->
+<!-- npu="A3" id59 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id59 -->
+<!-- npu="950" id60 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id60 -->
+
+**Constraints & Notes**: `data_source` only supports int64
 
 </div>
 
@@ -269,180 +445,5 @@
 <!-- npu="950" id36 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id36 -->
-
-</div>
-
-### <code><i>class</i></code> torch.utils.data.distributed.DistributedSampler
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.utils.data.distributed.DistributedSampler](https://pytorch.org/docs/2.7/data.html#torch.utils.data.distributed.DistributedSampler)
-
-**Support Status**:
-
-<!-- npu="910b" id37 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id37 -->
-<!-- npu="A3" id38 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id38 -->
-<!-- npu="950" id39 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id39 -->
-
-**Constraints & Notes**: `dataset` only supports int32
-
-</div>
-
-### <code><i>class</i></code> torch.utils.data.DataLoader
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.utils.data.DataLoader](https://pytorch.org/docs/2.7/data.html#torch.utils.data.DataLoader)
-
-**Support Status**:
-
-<!-- npu="910b" id40 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id40 -->
-<!-- npu="A3" id41 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id41 -->
-<!-- npu="950" id42 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id42 -->
-
-**Constraints & Notes**:
-
-- `dataset` only supports fp32
-- Does not support loading NPU data through multiple processes. `num_workers` only supports 0.
-
-</div>
-
-### <code><i>class</i></code> torch.utils.data.Dataset
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.utils.data.Dataset](https://pytorch.org/docs/2.7/data.html#torch.utils.data.Dataset)
-
-**Support Status**:
-
-<!-- npu="910b" id43 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id43 -->
-<!-- npu="A3" id44 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id44 -->
-<!-- npu="950" id45 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id45 -->
-
-**Constraints & Notes**: `input` only supports fp16, fp32, fp64, uint8, int8, int16, int32, int64
-
-</div>
-
-### <code><i>class</i></code> torch.utils.data.IterableDataset
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.utils.data.IterableDataset](https://pytorch.org/docs/2.7/data.html#torch.utils.data.IterableDataset)
-
-**Support Status**:
-
-<!-- npu="910b" id46 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id46 -->
-<!-- npu="A3" id47 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id47 -->
-<!-- npu="950" id48 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id48 -->
-
-</div>
-
-### <code><i>class</i></code> torch.utils.data.Subset
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.utils.data.Subset](https://pytorch.org/docs/2.7/data.html#torch.utils.data.Subset)
-
-**Support Status**:
-
-<!-- npu="910b" id49 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id49 -->
-<!-- npu="A3" id50 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id50 -->
-<!-- npu="950" id51 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id51 -->
-
-**Constraints & Notes**: `dataset` only supports int64
-
-</div>
-
-### torch.utils.data.default_collate
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.utils.data.default_collate](https://pytorch.org/docs/2.7/data.html#torch.utils.data.default_collate)
-
-**Support Status**:
-
-<!-- npu="910b" id52 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id52 -->
-<!-- npu="A3" id53 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id53 -->
-<!-- npu="950" id54 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id54 -->
-
-**Constraints & Notes**: `batch` only supports fp64, int64, bool
-
-</div>
-
-### torch.utils.data.get_worker_info
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.utils.data.get_worker_info](https://pytorch.org/docs/2.7/data.html#torch.utils.data.get_worker_info)
-
-**Support Status**:
-
-<!-- npu="910b" id55 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id55 -->
-<!-- npu="A3" id56 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id56 -->
-<!-- npu="950" id57 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id57 -->
-
-</div>
-
-### <code><i>class</i></code> torch.utils.data.Sampler
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.utils.data.Sampler](https://pytorch.org/docs/2.7/data.html#torch.utils.data.Sampler)
-
-**Support Status**:
-
-<!-- npu="910b" id58 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id58 -->
-<!-- npu="A3" id59 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id59 -->
-<!-- npu="950" id60 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id60 -->
-
-**Constraints & Notes**: `data_source` only supports int64
 
 </div>

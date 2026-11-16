@@ -1,6 +1,6 @@
 # PyTorch 2.9.0
 
-- **[Overview](overview.md)**  
+- **[Overview](overview.md)**
 
 - **[torch](torch.md)**
 
@@ -21,6 +21,13 @@
 - **[torch.accelerator](torch-accelerator.md)**
 
 - **[torch.cuda](torch-cuda.md)**
+<!-- npu="910b,A3" id2 -->
+- [torch.\_logging](torch-_logging.md)
+<!-- end id2 -->
+
+- [torch.cuda.memory](torch-cuda-memory.md)
+- [torch.xpu](torch-xpu.md)
+- [torch.mtia](torch-mtia.md)
 
 - **[torch.backends](torch-backends.md)**
 
@@ -59,6 +66,7 @@
 - **[torch.linalg](torch-linalg.md)**
 
 - **[torch.monitor](torch-monitor.md)**
+- [torch.signal](torch-signal.md)
 
 - **[torch.special](torch-special.md)**
 
@@ -88,6 +96,8 @@
 
 - **[torch.random](torch-random.md)**
 
+- **[torch.Size](torch-Size.md)**
+
 - **[torch.sparse](torch-sparse.md)**
 
 - **[torch.Storage](torch-Storage.md)**
@@ -104,11 +114,9 @@
 
 - **[torch.utils.data](torch-utils-data.md)**
 
-- **[torch.utils.dlpack](torch-utils-dlpack.md)**
-
-- **[torch.utils.mobile\_optimizer](torch-utils-mobile_optimizer.md)**
-
+<!-- npu="910b,A3" id1 -->
 - **[torch.utils.model\_zoo](torch-utils-model_zoo.md)**
+<!-- end id1 -->
 
 - **[torch.utils.tensorboard](torch-utils-tensorboard.md)**
 

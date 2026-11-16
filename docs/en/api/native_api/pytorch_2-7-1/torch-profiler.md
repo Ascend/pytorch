@@ -3,16 +3,15 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.7/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.7/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
-> - When using supported profiler interfaces, replace the API name with the **NPU-Adapted Name** before use. The supported NPU-adapted profiler interfaces are listed in the following table.
+> - When using the supported profiler interfaces, replace the API name with the **NPU-adapted name** before use. The supported NPU-adapted profiler interfaces are listed in the following table.
 > - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.7/profiler.html).
 
 <div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
 <div style="margin: 8px 0"><font size="5"><b>Contents</b></font></div>
 
 - [API Reference](#api-reference)
-- [Intel Instrumentation and Tracing Technology APIs](#intel-instrumentation-and-tracing-technology-apis)
 
 </div>
 
@@ -90,26 +89,6 @@
 
 </div>
 
-### torch.profiler._KinetoProfile.events
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.profiler._KinetoProfile.events](https://pytorch.org/docs/2.7/profiler.html#torch.profiler._KinetoProfile.events)
-
-**Support Status**:
-
-<!-- npu="910b" id10 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id10 -->
-<!-- npu="A3" id11 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id11 -->
-<!-- npu="950" id12 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id12 -->
-
-</div>
-
 ### torch.profiler._KinetoProfile.export_chrome_trace
 
 <div style="margin-left: 2em">
@@ -132,6 +111,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id45 -->
 ### torch.profiler._KinetoProfile.export_memory_timeline
 
 <div style="margin-left: 2em">
@@ -141,6 +121,7 @@
 **NPU-Adapted Name**: torch_npu.profiler._KinetoProfile.export_memory_timeline
 
 **Support Status**:
+<!-- end id45 -->
 
 <!-- npu="910b" id16 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -148,11 +129,10 @@
 <!-- npu="A3" id17 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id17 -->
-<!-- npu="950" id18 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id18 -->
 
+<!-- npu="910b,A3" id46 -->
 </div>
+<!-- end id46 -->
 
 ### torch.profiler._KinetoProfile.export_stacks
 
@@ -176,26 +156,7 @@
 
 </div>
 
-### torch.profiler._KinetoProfile.key_averages
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.profiler._KinetoProfile.key_averages](https://pytorch.org/docs/2.7/profiler.html#torch.profiler._KinetoProfile.key_averages)
-
-**Support Status**:
-
-<!-- npu="910b" id22 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id22 -->
-<!-- npu="A3" id23 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id23 -->
-<!-- npu="950" id24 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id24 -->
-
-</div>
-
+<!-- npu="910b,A3" id47 -->
 ### torch.profiler.profile
 
 <div style="margin-left: 2em">
@@ -205,6 +166,7 @@
 **NPU-Adapted Name**: torch_npu.profiler.profile
 
 **Support Status**:
+<!-- end id47 -->
 
 <!-- npu="910b" id25 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -212,12 +174,12 @@
 <!-- npu="A3" id26 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id26 -->
-<!-- npu="950" id27 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id27 -->
 
+<!-- npu="910b,A3" id48 -->
 </div>
+<!-- end id48 -->
 
+<!-- npu="910b,A3" id49 -->
 ### torch.profiler.profile.step
 
 <div style="margin-left: 2em">
@@ -227,6 +189,7 @@
 **NPU-Adapted Name**: torch_npu.profiler.profile.step
 
 **Support Status**:
+<!-- end id49 -->
 
 <!-- npu="910b" id28 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -234,12 +197,12 @@
 <!-- npu="A3" id29 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id29 -->
-<!-- npu="950" id30 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id30 -->
 
+<!-- npu="910b,A3" id50 -->
 </div>
+<!-- end id50 -->
 
+<!-- npu="910b,A3" id51 -->
 ### <code><i>class</i></code> torch.profiler.ProfilerAction
 
 <div style="margin-left: 2em">
@@ -249,6 +212,7 @@
 **NPU-Adapted Name**: torch_npu.profiler.ProfilerAction
 
 **Support Status**:
+<!-- end id51 -->
 
 <!-- npu="910b" id31 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -256,21 +220,25 @@
 <!-- npu="A3" id32 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id32 -->
-<!-- npu="950" id33 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id33 -->
 
+<!-- npu="910b,A3" id52 -->
 </div>
+<!-- end id52 -->
 
+<!-- npu="910b,A3" id59 -->
+<!-- npu="910b,A3" id53 -->
 ### <code><i>class</i></code> torch.profiler.ProfilerActivity
+<!-- end id53 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id54 -->
 **Native Documentation**: [torch.profiler.ProfilerActivity](https://pytorch.org/docs/2.7/profiler.html#torch.profiler.ProfilerActivity)
 
 **NPU-Adapted Name**: torch_npu.profiler.ProfilerActivity
 
 **Support Status**:
+<!-- end id54 -->
 
 <!-- npu="910b" id34 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -278,32 +246,11 @@
 <!-- npu="A3" id35 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id35 -->
-<!-- npu="950" id36 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id36 -->
-
-> <font size="3">name()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.profiler.ProfilerActivity.name](https://pytorch.org/docs/2.7/profiler.html#torch.profiler.ProfilerActivity.name)
-
-**Support Status**:
-
-<!-- npu="910b" id37 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id37 -->
-<!-- npu="A3" id38 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id38 -->
-<!-- npu="950" id39 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id39 -->
 
 </div>
+<!-- end id59 -->
 
-</div>
-
+<!-- npu="910b,A3" id55 -->
 ### torch.profiler.schedule
 
 <div style="margin-left: 2em">
@@ -313,6 +260,7 @@
 **NPU-Adapted Name**: torch_npu.profiler.schedule
 
 **Support Status**:
+<!-- end id55 -->
 
 <!-- npu="910b" id40 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -320,12 +268,12 @@
 <!-- npu="A3" id41 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id41 -->
-<!-- npu="950" id42 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id42 -->
 
+<!-- npu="910b,A3" id56 -->
 </div>
+<!-- end id56 -->
 
+<!-- npu="910b,A3" id57 -->
 ### torch.profiler.tensorboard_trace_handler
 
 <div style="margin-left: 2em">
@@ -335,6 +283,7 @@
 **NPU-Adapted Name**: torch_npu.profiler.tensorboard_trace_handler
 
 **Support Status**:
+<!-- end id57 -->
 
 <!-- npu="910b" id43 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -342,90 +291,7 @@
 <!-- npu="A3" id44 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id44 -->
-<!-- npu="950" id45 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id45 -->
 
+<!-- npu="910b,A3" id58 -->
 </div>
-
-## Intel Instrumentation and Tracing Technology APIs
-
-### torch.profiler.itt.is_available
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.profiler.itt.is_available](https://pytorch.org/docs/2.7/profiler.html#torch.profiler.itt.is_available)
-
-**Support Status**:
-
-<!-- npu="910b" id46 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id46 -->
-<!-- npu="A3" id47 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id47 -->
-<!-- npu="950" id48 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id48 -->
-
-</div>
-
-### torch.profiler.itt.mark
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.profiler.itt.mark](https://pytorch.org/docs/2.7/profiler.html#torch.profiler.itt.mark)
-
-**Support Status**:
-
-<!-- npu="910b" id49 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id49 -->
-<!-- npu="A3" id50 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id50 -->
-<!-- npu="950" id51 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id51 -->
-
-</div>
-
-### torch.profiler.itt.range_push
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.profiler.itt.range_push](https://pytorch.org/docs/2.7/profiler.html#torch.profiler.itt.range_push)
-
-**Support Status**:
-
-<!-- npu="910b" id52 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id52 -->
-<!-- npu="A3" id53 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id53 -->
-<!-- npu="950" id54 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id54 -->
-
-</div>
-
-### torch.profiler.itt.range_pop
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.profiler.itt.range_pop](https://pytorch.org/docs/2.7/profiler.html#torch.profiler.itt.range_pop)
-
-**Support Status**:
-
-<!-- npu="910b" id55 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id55 -->
-<!-- npu="A3" id56 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id56 -->
-<!-- npu="950" id57 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id57 -->
-
-</div>
+<!-- end id58 -->

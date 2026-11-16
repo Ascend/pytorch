@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.11/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.11/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
 > - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.11/autograd.html).
 
@@ -140,278 +140,6 @@
 
 ## Functional higher level API
 
-### <code><i>class</i></code> torch.autograd.function.FunctionCtx
-
-<div style="margin-left: 2em">
-
-> <font size="3">mark_dirty()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.autograd.function.FunctionCtx.mark_dirty](https://pytorch.org/docs/2.11/generated/torch.autograd.function.FunctionCtx.mark_dirty.html)
-
-**Support Status**:
-
-<!-- npu="910b" id16 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id16 -->
-<!-- npu="A3" id17 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id17 -->
-<!-- npu="950" id18 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id18 -->
-
-</div>
-
-> <font size="3">mark_non_differentiable()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.autograd.function.FunctionCtx.mark_non_differentiable](https://pytorch.org/docs/2.11/generated/torch.autograd.function.FunctionCtx.mark_non_differentiable.html)
-
-**Support Status**:
-
-<!-- npu="910b" id19 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id19 -->
-<!-- npu="A3" id20 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id20 -->
-<!-- npu="950" id21 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id21 -->
-
-</div>
-
-> <font size="3">save_for_backward()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.autograd.function.FunctionCtx.save_for_backward](https://pytorch.org/docs/2.11/generated/torch.autograd.function.FunctionCtx.save_for_backward.html)
-
-**Support Status**:
-
-<!-- npu="910b" id22 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id22 -->
-<!-- npu="A3" id23 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id23 -->
-<!-- npu="950" id24 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id24 -->
-
-</div>
-
-> <font size="3">set_materialize_grads()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.autograd.function.FunctionCtx.set_materialize_grads](https://pytorch.org/docs/2.11/generated/torch.autograd.function.FunctionCtx.set_materialize_grads.html)
-
-**Support Status**:
-
-<!-- npu="910b" id25 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id25 -->
-<!-- npu="A3" id26 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id26 -->
-<!-- npu="950" id27 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id27 -->
-
-</div>
-
-</div>
-
-### <code><i>class</i></code> torch.autograd.graph.Node
-
-<div style="margin-left: 2em">
-
-> <font size="3">name()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.autograd.graph.Node.name](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.name.html)
-
-**Support Status**:
-
-<!-- npu="910b" id28 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id28 -->
-<!-- npu="A3" id29 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id29 -->
-<!-- npu="950" id30 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id30 -->
-
-</div>
-
-> <font size="3">metadata()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.autograd.graph.Node.metadata](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.metadata.html)
-
-**Support Status**:
-
-<!-- npu="910b" id31 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id31 -->
-<!-- npu="A3" id32 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id32 -->
-<!-- npu="950" id33 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id33 -->
-
-</div>
-
-> <font size="3">next_functions()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.autograd.graph.Node.next_functions](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.next_functions.html)
-
-**Support Status**:
-
-<!-- npu="910b" id34 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id34 -->
-<!-- npu="A3" id35 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id35 -->
-<!-- npu="950" id36 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id36 -->
-
-</div>
-
-> <font size="3">register_hook()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.autograd.graph.Node.register_hook](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.register_hook.html)
-
-**Support Status**:
-
-<!-- npu="910b" id37 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id37 -->
-<!-- npu="A3" id38 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id38 -->
-<!-- npu="950" id39 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id39 -->
-
-</div>
-
-> <font size="3">register_prehook()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.autograd.graph.Node.register_prehook](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.register_prehook.html)
-
-**Support Status**:
-
-<!-- npu="910b" id40 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id40 -->
-<!-- npu="A3" id41 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id41 -->
-<!-- npu="950" id42 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id42 -->
-
-</div>
-
-</div>
-
-### profile.export_chrome_trace
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [profile.export_chrome_trace](https://pytorch.org/docs/2.11/generated/torch.autograd.profiler.profile.export_chrome_trace.html)
-
-**Support Status**:
-
-<!-- npu="910b" id43 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id43 -->
-<!-- npu="A3" id44 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id44 -->
-<!-- npu="950" id45 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id45 -->
-
-</div>
-
-### profile.key_averages
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [profile.key_averages](https://pytorch.org/docs/2.11/generated/torch.autograd.profiler.profile.key_averages.html)
-
-**Support Status**:
-
-<!-- npu="910b" id46 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id46 -->
-<!-- npu="A3" id47 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id47 -->
-<!-- npu="950" id48 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id48 -->
-
-</div>
-
-### profile.self_cpu_time_total
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [profile.self_cpu_time_total](https://pytorch.org/docs/2.11/generated/torch.autograd.profiler.profile.self_cpu_time_total.html)
-
-**Support Status**:
-
-<!-- npu="910b" id49 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id49 -->
-<!-- npu="A3" id50 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id50 -->
-<!-- npu="950" id51 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id51 -->
-
-</div>
-
-### profile.total_average
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [profile.total_average](https://pytorch.org/docs/2.11/generated/torch.autograd.profiler.profile.total_average.html)
-
-**Support Status**:
-
-<!-- npu="910b" id52 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id52 -->
-<!-- npu="A3" id53 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id53 -->
-<!-- npu="950" id54 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id54 -->
-
-</div>
-
 ### torch.autograd.functional.jacobian
 
 <div style="margin-left: 2em">
@@ -478,6 +206,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id206 -->
 ### torch.autograd.functional.jvp
 
 <div style="margin-left: 2em">
@@ -485,6 +214,7 @@
 **Native Documentation**: [torch.autograd.functional.jvp](https://pytorch.org/docs/2.11/generated/torch.autograd.functional.jvp.html)
 
 **Support Status**:
+<!-- end id206 -->
 
 <!-- npu="910b" id64 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -492,14 +222,14 @@
 <!-- npu="A3" id65 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id65 -->
-<!-- npu="950" id66 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id66 -->
 
+<!-- npu="910b,A3" id207 -->
 **Constraints & Notes**: `inputs` only supports fp32
 
 </div>
+<!-- end id207 -->
 
+<!-- npu="910b,A3" id208 -->
 ### torch.autograd.functional.vhp
 
 <div style="margin-left: 2em">
@@ -507,6 +237,7 @@
 **Native Documentation**: [torch.autograd.functional.vhp](https://pytorch.org/docs/2.11/generated/torch.autograd.functional.vhp.html)
 
 **Support Status**:
+<!-- end id208 -->
 
 <!-- npu="910b" id67 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -514,13 +245,12 @@
 <!-- npu="A3" id68 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id68 -->
-<!-- npu="950" id69 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id69 -->
 
+<!-- npu="910b,A3" id209 -->
 **Constraints & Notes**: `inputs` only supports fp32
 
 </div>
+<!-- end id209 -->
 
 ### torch.autograd.functional.hvp
 
@@ -604,6 +334,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id210 -->
 > <font size="3">jvp()</font>
 
 <div style="margin-left: 2em">
@@ -611,6 +342,7 @@
 **Native Documentation**: [torch.autograd.Function.jvp](https://pytorch.org/docs/2.11/generated/torch.autograd.Function.jvp.html)
 
 **Support Status**:
+<!-- end id210 -->
 
 <!-- npu="910b" id82 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -618,11 +350,10 @@
 <!-- npu="A3" id83 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id83 -->
-<!-- npu="950" id84 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id84 -->
 
+<!-- npu="910b,A3" id211 -->
 </div>
+<!-- end id211 -->
 
 > <font size="3">vmap()</font>
 
@@ -736,46 +467,6 @@
 
 ## Numerical gradient checking
 
-### torch.autograd.gradcheck.gradcheck
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.autograd.gradcheck.gradcheck](https://pytorch.org/docs/2.11/generated/torch.autograd.gradcheck.gradcheck.html)
-
-**Support Status**:
-
-<!-- npu="910b" id100 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id100 -->
-<!-- npu="A3" id101 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id101 -->
-<!-- npu="950" id102 -->
-- <term>Ascend 950DT products</term>: Supported
-<!-- end id102 -->
-
-</div>
-
-### torch.autograd.gradcheck.gradgradcheck
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.autograd.gradcheck.gradgradcheck](https://pytorch.org/docs/2.11/generated/torch.autograd.gradcheck.gradgradcheck.html)
-
-**Support Status**:
-
-<!-- npu="910b" id103 -->
-- <term>Atlas A2 training products</term>: Supported
-<!-- end id103 -->
-<!-- npu="A3" id104 -->
-- <term>Atlas A3 training products</term>: Supported
-<!-- end id104 -->
-<!-- npu="950" id105 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id105 -->
-
-</div>
-
 ### <code><i>class</i></code> torch.autograd.function.NestedIOFunction
 
 <div style="margin-left: 2em">
@@ -834,6 +525,26 @@
 
 </div>
 
+> <font size="3">mark_dirty()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.autograd.function.NestedIOFunction.mark\_dirty](https://docs.pytorch.org/docs/2.11/generated/torch.autograd.function.NestedIOFunction.html#torch.autograd.function.NestedIOFunction.mark_dirty)
+
+**Support Status**:
+
+<!-- npu="910b" id230 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id230 -->
+<!-- npu="A3" id231 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id231 -->
+<!-- npu="950" id232 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id232 -->
+
+</div>
+
 > <font size="3">vmap()</font>
 
 <div style="margin-left: 2em">
@@ -855,6 +566,47 @@
 </div>
 
 </div>
+
+### torch.autograd.gradcheck.gradcheck
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.autograd.gradcheck.gradcheck](https://pytorch.org/docs/2.11/generated/torch.autograd.gradcheck.gradcheck.html)
+
+**Support Status**:
+
+<!-- npu="910b" id100 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id100 -->
+<!-- npu="A3" id101 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id101 -->
+<!-- npu="950" id102 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id102 -->
+
+</div>
+
+<!-- npu="910b,A3" id212 -->
+### torch.autograd.gradcheck.gradgradcheck
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.autograd.gradcheck.gradgradcheck](https://pytorch.org/docs/2.11/generated/torch.autograd.gradcheck.gradgradcheck.html)
+
+**Support Status**:
+<!-- end id212 -->
+
+<!-- npu="910b" id103 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id103 -->
+<!-- npu="A3" id104 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id104 -->
+
+<!-- npu="910b,A3" id213 -->
+</div>
+<!-- end id213 -->
 
 ## Profiler
 
@@ -962,66 +714,6 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 <!-- npu="950" id132 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id132 -->
-
-</div>
-
-### torch.autograd.profiler.emit_nvtx
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.autograd.profiler.emit_nvtx](https://pytorch.org/docs/2.11/autograd.html#torch.autograd.profiler.emit_nvtx)
-
-**Support Status**:
-
-<!-- npu="910b" id133 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id133 -->
-<!-- npu="A3" id134 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id134 -->
-<!-- npu="950" id135 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id135 -->
-
-</div>
-
-### torch.autograd.profiler.emit_itt
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.autograd.profiler.emit_itt](https://pytorch.org/docs/2.11/autograd.html#torch.autograd.profiler.emit_itt)
-
-**Support Status**:
-
-<!-- npu="910b" id136 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id136 -->
-<!-- npu="A3" id137 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id137 -->
-<!-- npu="950" id138 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id138 -->
-
-</div>
-
-### torch.autograd.profiler.load_nvprof
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.autograd.profiler.load_nvprof](https://pytorch.org/docs/2.11/generated/torch.autograd.profiler.load_nvprof.html)
-
-**Support Status**:
-
-<!-- npu="910b" id139 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id139 -->
-<!-- npu="A3" id140 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id140 -->
-<!-- npu="950" id141 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id141 -->
 
 </div>
 
@@ -1173,6 +865,7 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 
 </div>
 
+<!-- npu="910b,A3" id214 -->
 ### torch.autograd.grad_mode.set_multithreading_enabled
 
 <div style="margin-left: 2em">
@@ -1180,6 +873,7 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 **Native Documentation**: [torch.autograd.grad_mode.set_multithreading_enabled](https://pytorch.org/docs/2.11/generated/torch.autograd.grad_mode.set_multithreading_enabled.html)
 
 **Support Status**:
+<!-- end id214 -->
 
 <!-- npu="910b" id163 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1187,18 +881,19 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 <!-- npu="A3" id164 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id164 -->
-<!-- npu="950" id165 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id165 -->
 
+<!-- npu="910b,A3" id215 -->
 </div>
+<!-- end id215 -->
 
 ## Autograd graph
 
+<!-- npu="910b,A3" id226 -->
 ### <code><i>class</i></code> torch.autograd.graph.Node
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id216 -->
 > <font size="3">name()</font>
 
 <div style="margin-left: 2em">
@@ -1206,6 +901,7 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 **Native Documentation**: [Node.name](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.name.html)
 
 **Support Status**:
+<!-- end id216 -->
 
 <!-- npu="910b" id166 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1213,12 +909,12 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 <!-- npu="A3" id167 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id167 -->
-<!-- npu="950" id168 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id168 -->
 
+<!-- npu="910b,A3" id217 -->
 </div>
+<!-- end id217 -->
 
+<!-- npu="910b,A3" id218 -->
 > <font size="3">metadata()</font>
 
 <div style="margin-left: 2em">
@@ -1226,6 +922,7 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 **Native Documentation**: [Node.metadata](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.metadata.html)
 
 **Support Status**:
+<!-- end id218 -->
 
 <!-- npu="910b" id169 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1233,12 +930,12 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 <!-- npu="A3" id170 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id170 -->
-<!-- npu="950" id171 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id171 -->
 
+<!-- npu="910b,A3" id219 -->
 </div>
+<!-- end id219 -->
 
+<!-- npu="910b,A3" id220 -->
 > <font size="3">next_functions()</font>
 
 <div style="margin-left: 2em">
@@ -1246,6 +943,7 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 **Native Documentation**: [Node.next_functions](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.next_functions.html)
 
 **Support Status**:
+<!-- end id220 -->
 
 <!-- npu="910b" id172 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1253,12 +951,12 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 <!-- npu="A3" id173 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id173 -->
-<!-- npu="950" id174 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id174 -->
 
+<!-- npu="910b,A3" id221 -->
 </div>
+<!-- end id221 -->
 
+<!-- npu="910b,A3" id222 -->
 > <font size="3">register_hook()</font>
 
 <div style="margin-left: 2em">
@@ -1266,6 +964,7 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 **Native Documentation**: [Node.register_hook](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.register_hook.html)
 
 **Support Status**:
+<!-- end id222 -->
 
 <!-- npu="910b" id175 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1273,12 +972,12 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 <!-- npu="A3" id176 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id176 -->
-<!-- npu="950" id177 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id177 -->
 
+<!-- npu="910b,A3" id223 -->
 </div>
+<!-- end id223 -->
 
+<!-- npu="910b,A3" id224 -->
 > <font size="3">register_prehook()</font>
 
 <div style="margin-left: 2em">
@@ -1286,6 +985,7 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 **Native Documentation**: [Node.register_prehook](https://pytorch.org/docs/2.11/generated/torch.autograd.graph.Node.register_prehook.html)
 
 **Support Status**:
+<!-- end id224 -->
 
 <!-- npu="910b" id178 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -1293,11 +993,31 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 <!-- npu="A3" id179 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id179 -->
-<!-- npu="950" id180 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id180 -->
+
+<!-- npu="910b,A3" id225 -->
+</div>
+<!-- end id225 -->
 
 </div>
+<!-- end id226 -->
+
+### torch.autograd.graph.increment\_version
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.autograd.graph.increment\_version](https://docs.pytorch.org/docs/2.11/generated/torch.autograd.graph.increment_version.html#torch.autograd.graph.increment_version)
+
+**Support Status**:
+
+<!-- npu="910b" id227 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id227 -->
+<!-- npu="A3" id228 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id228 -->
+<!-- npu="950" id229 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id229 -->
 
 </div>
 

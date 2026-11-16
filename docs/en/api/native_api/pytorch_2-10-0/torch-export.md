@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.10/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.10/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
 > - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.10/export.html).
 
@@ -22,46 +22,6 @@
 
 ## API Reference
 
-### <code><i>class</i></code> torch.export.ExportBackwardSignature
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.export.ExportBackwardSignature](https://docs.pytorch.org/docs/2.10/user_guide/torch_compiler/export/api_reference.html#torch.export.graph_signature.ExportBackwardSignature)
-
-**Support Status**:
-
-<!-- npu="910b" id1 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id1 -->
-<!-- npu="A3" id2 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id2 -->
-<!-- npu="950" id3 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id3 -->
-
-</div>
-
-### <code><i>class</i></code> torch.export.ModuleCallEntry
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.export.ModuleCallEntry](https://docs.pytorch.org/docs/2.10/user_guide/torch_compiler/export/api_reference.html#torch.export.exported_program.ModuleCallEntry)
-
-**Support Status**:
-
-<!-- npu="910b" id4 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id4 -->
-<!-- npu="A3" id5 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id5 -->
-<!-- npu="950" id6 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id6 -->
-
-</div>
-
 ### torch.export.export
 
 <div style="margin-left: 2em">
@@ -79,125 +39,5 @@
 <!-- npu="950" id9 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id9 -->
-
-</div>
-
-### torch.export.save
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.export.save](https://docs.pytorch.org/docs/2.10/user_guide/torch_compiler/export/api_reference.html#torch.export.save)
-
-**Support Status**:
-
-<!-- npu="910b" id10 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id10 -->
-<!-- npu="A3" id11 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id11 -->
-<!-- npu="950" id12 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id12 -->
-
-</div>
-
-### torch.export.load
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.export.load](https://docs.pytorch.org/docs/2.10/user_guide/torch_compiler/export/api_reference.html#torch.export.load)
-
-**Support Status**:
-
-<!-- npu="910b" id13 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id13 -->
-<!-- npu="A3" id14 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id14 -->
-<!-- npu="950" id15 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id15 -->
-
-</div>
-
-### <code><i>class</i></code> torch.export.ExportedProgram
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.export.ExportedProgram](https://docs.pytorch.org/docs/2.10/user_guide/torch_compiler/export/api_reference.html#torch.export.ExportedProgram)
-
-**Support Status**:
-
-<!-- npu="910b" id16 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id16 -->
-<!-- npu="A3" id17 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id17 -->
-<!-- npu="950" id18 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id18 -->
-
-> <font size="3">module()</font>
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.export.ExportedProgram.module](https://docs.pytorch.org/docs/2.10/user_guide/torch_compiler/export/api_reference.html#torch.export.ExportedProgram.module)
-
-**Support Status**:
-
-<!-- npu="910b" id19 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id19 -->
-<!-- npu="A3" id20 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id20 -->
-<!-- npu="950" id21 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id21 -->
-
-</div>
-
-</div>
-
-### <code><i>class</i></code> torch.export.ExportGraphSignature
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.export.ExportGraphSignature](https://docs.pytorch.org/docs/2.10/user_guide/torch_compiler/export/api_reference.html#torch.export.graph_signature.ExportGraphSignature)
-
-**Support Status**:
-
-<!-- npu="910b" id22 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id22 -->
-<!-- npu="A3" id23 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id23 -->
-<!-- npu="950" id24 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id24 -->
-
-</div>
-
-### <code><i>class</i></code> torch.export.ModuleCallSignature
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.export.ModuleCallSignature](https://docs.pytorch.org/docs/2.10/user_guide/torch_compiler/export/api_reference.html#torch.export.exported_program.ModuleCallSignature)
-
-**Support Status**:
-
-<!-- npu="910b" id25 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id25 -->
-<!-- npu="A3" id26 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id26 -->
-<!-- npu="950" id27 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id27 -->
 
 </div>

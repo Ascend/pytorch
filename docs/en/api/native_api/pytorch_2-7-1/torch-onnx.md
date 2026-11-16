@@ -3,10 +3,10 @@
 > [!NOTE]
 >
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
-> - Some APIs exist in the [PyTorch Community Documentation](https://pytorch.org/docs/2.7/) but are not included in this support list. These APIs have not been verified yet. Use them with caution. We will continue the verification work and update the document upon completion.
+> - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.7/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
-> - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://docs.pytorch.org/docs/2.7/onnx.html).
-> - Note: The modules and some APIs covered in this document are located on independent pages. For related descriptions, see the documentation:
+> - The modules listed in this directory are consistent with the native documentation. For module-related notes, refer to the native documentation [LINK](https://pytorch.org/docs/2.7/onnx.html).
+> - Note: The modules and some APIs covered in this document are located on separate pages. For related descriptions, see:
 >    - [ONNX Backend for TorchDynamo](https://docs.pytorch.org/docs/2.7/onnx_dynamo_onnxruntime_backend.html)
 >    - [torch.onnx.verification](https://docs.pytorch.org/docs/2.7/onnx_verification.html)
 >    - [TorchDynamo-based ONNX Exporter](https://docs.pytorch.org/docs/2.7/onnx_dynamo.html)
@@ -26,6 +26,7 @@
 
 </div>
 
+<!-- npu="910b,A3" id106 -->
 ### torch.onnx.is_onnxrt_backend_supported
 
 <div style="margin-left: 2em">
@@ -33,6 +34,7 @@
 **Native Documentation**: [torch.onnx.is_onnxrt_backend_supported](https://pytorch.org/docs/2.7/onnx_dynamo_onnxruntime_backend.html#torch.onnx.is_onnxrt_backend_supported)
 
 **Support Status**:
+<!-- end id106 -->
 
 <!-- npu="910b" id1 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -40,11 +42,10 @@
 <!-- npu="A3" id2 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id2 -->
-<!-- npu="950" id3 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id3 -->
 
+<!-- npu="910b,A3" id107 -->
 </div>
+<!-- end id107 -->
 
 ### torch.onnx.verification.find_mismatch
 
@@ -170,13 +171,17 @@
 
 </div>
 
+<!-- npu="910b,A3,950" id108 -->
 ### <code><i>class</i></code> torch.onnx.ONNXProgram
+<!-- end id108 -->
 
 <div style="margin-left: 2em">
 
+<!-- npu="910b,A3" id109 -->
 **Native Documentation**: [torch.onnx.ONNXProgram](https://pytorch.org/docs/2.7/onnx_dynamo.html#torch.onnx.ONNXProgram)
 
 **Support Status**:
+<!-- end id109 -->
 
 <!-- npu="910b" id22 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -184,10 +189,8 @@
 <!-- npu="A3" id23 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id23 -->
-<!-- npu="950" id24 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id24 -->
 
+<!-- npu="910b,A3" id110 -->
 > <font size="3">model_proto()</font>
 
 <div style="margin-left: 2em">
@@ -195,6 +198,7 @@
 **Native Documentation**: [torch.onnx.ONNXProgram.model_proto](https://pytorch.org/docs/2.7/onnx_dynamo.html#torch.onnx.ONNXProgram.model_proto)
 
 **Support Status**:
+<!-- end id110 -->
 
 <!-- npu="910b" id25 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -202,12 +206,12 @@
 <!-- npu="A3" id26 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id26 -->
-<!-- npu="950" id27 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id27 -->
 
+<!-- npu="910b,A3" id111 -->
 </div>
+<!-- end id111 -->
 
+<!-- npu="910b,A3" id112 -->
 > <font size="3">save()</font>
 
 <div style="margin-left: 2em">
@@ -215,6 +219,7 @@
 **Native Documentation**: [torch.onnx.ONNXProgram.save](https://pytorch.org/docs/2.7/onnx_dynamo.html#torch.onnx.ONNXProgram.save)
 
 **Support Status**:
+<!-- end id112 -->
 
 <!-- npu="910b" id28 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -222,11 +227,10 @@
 <!-- npu="A3" id29 -->
 - <term>Atlas A3 training products</term>: Supported
 <!-- end id29 -->
-<!-- npu="950" id30 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id30 -->
 
+<!-- npu="910b,A3" id113 -->
 </div>
+<!-- end id113 -->
 
 > <font size="3">initialize_inference_session()</font>
 
@@ -270,26 +274,6 @@
 
 </div>
 
-### torch.onnx.enable_fake_mode
-
-<div style="margin-left: 2em">
-
-**Native Documentation**: [torch.onnx.enable_fake_mode](https://pytorch.org/docs/2.7/onnx_dynamo.html#torch.onnx.enable_fake_mode)
-
-**Support Status**:
-
-<!-- npu="910b" id37 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id37 -->
-<!-- npu="A3" id38 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id38 -->
-<!-- npu="950" id39 -->
-- <term>Ascend 950DT products</term>: Not Supported
-<!-- end id39 -->
-
-</div>
-
 ### <code><i>class</i></code> torch.onnx.OnnxExporterError
 
 <div style="margin-left: 2em">
@@ -297,13 +281,6 @@
 **Native Documentation**: [torch.onnx.OnnxExporterError](https://pytorch.org/docs/2.7/onnx_dynamo.html#torch.onnx.OnnxExporterError)
 
 **Support Status**:
-
-<!-- npu="910b" id40 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id40 -->
-<!-- npu="A3" id41 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id41 -->
 <!-- npu="950" id42 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id42 -->
@@ -417,13 +394,6 @@
 **Native Documentation**: [torch.onnx.DiagnosticOptions](https://pytorch.org/docs/2.7/onnx_dynamo.html#torch.onnx.DiagnosticOptions)
 
 **Support Status**:
-
-<!-- npu="910b" id58 -->
-- <term>Atlas A2 training products</term>: Not Supported
-<!-- end id58 -->
-<!-- npu="A3" id59 -->
-- <term>Atlas A3 training products</term>: Not Supported
-<!-- end id59 -->
 <!-- npu="950" id60 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id60 -->
@@ -739,5 +709,31 @@
 <!-- npu="950" id105 -->
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id105 -->
+
+</div>
+
+### <code><i>class</i></code> torch.onnx.verification.VerificationInfo
+
+<div style="margin-left: 2em">
+
+> <font size="3">from_tensors()</font>
+
+<div style="margin-left: 2em">
+
+**Native Documentation**: [torch.onnx.verification.VerificationInfo.from\_tensors](https://docs.pytorch.org/docs/2.7/onnx_verification.html#torch.onnx.verification.VerificationInfo.from_tensors)
+
+**Support Status**:
+
+<!-- npu="910b" id114 -->
+- <term>Atlas A2 training products</term>: Supported
+<!-- end id114 -->
+<!-- npu="A3" id115 -->
+- <term>Atlas A3 training products</term>: Supported
+<!-- end id115 -->
+<!-- npu="950" id116 -->
+- <term>Ascend 950DT products</term>: Supported
+<!-- end id116 -->
+
+</div>
 
 </div>
