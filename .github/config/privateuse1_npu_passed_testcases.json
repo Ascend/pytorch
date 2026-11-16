@@ -82687,7 +82687,6 @@
   "test/test_reductions.py::TestReductionsDevicePRIVATEUSE1::test_result_dtype_var_unbiased_npu_float16",
   "test/test_reductions.py::TestReductionsDevicePRIVATEUSE1::test_result_dtype_var_unbiased_npu_float32",
   "test/test_reductions.py::TestReductionsDevicePRIVATEUSE1::test_scalar_tensor_as_dim_argument_npu",
-  "test/test_reductions.py::TestReductionsDevicePRIVATEUSE1::test_scalar_tensor_dim_compiled_mode_npu",
   "test/test_reductions.py::TestReductionsDevicePRIVATEUSE1::test_std_correction_vs_numpy_npu_float32",
   "test/test_reductions.py::TestReductionsDevicePRIVATEUSE1::test_std_mean_all_dims_npu",
   "test/test_reductions.py::TestReductionsDevicePRIVATEUSE1::test_std_mean_correction_npu_float32",
