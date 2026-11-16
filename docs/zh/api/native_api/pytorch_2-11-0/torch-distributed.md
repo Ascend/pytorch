@@ -581,7 +581,10 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id81 -->
 
-**限制与说明**： `tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**：
+
+- 针对<term>Atlas A2训练系列产品</term>和<term>Atlas A3训练系列产品</term>，`tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool。
+- 针对<term>Ascend 950DT系列产品</term>，`tensor`支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，`float8_e8m0fnu`。
 
 </div>
 
@@ -603,7 +606,10 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id84 -->
 
-**限制与说明**： `tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**：
+
+- 针对<term>Atlas A2训练系列产品</term>和<term>Atlas A3训练系列产品</term>，`tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool。
+- 针对<term>Ascend 950DT系列产品</term>，`tensor`支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，`float8_e8m0fnu`。
 
 </div>
 
@@ -625,7 +631,10 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id87 -->
 
-**限制与说明**： `tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**：
+
+- 针对<term>Atlas A2训练系列产品</term>和<term>Atlas A3训练系列产品</term>，`tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool。
+- 针对<term>Ascend 950DT系列产品</term>，`tensor`支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，`float8_e8m0fnu`。
 
 </div>
 
@@ -647,7 +656,10 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id90 -->
 
-**限制与说明**： `tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**：
+
+- 针对<term>Atlas A2训练系列产品</term>和<term>Atlas A3训练系列产品</term>，`tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool。
+- 针对<term>Ascend 950DT系列产品</term>，`tensor`支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，`float8_e8m0fnu`。
 
 </div>
 
@@ -689,7 +701,10 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id75 -->
 
-**限制与说明**： `p2p_op_list`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**：
+
+- 针对<term>Atlas A2训练系列产品</term>和<term>Atlas A3训练系列产品</term>，`p2p_op_list`中的通信张量仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool。
+- 针对<term>Ascend 950DT系列产品</term>，`p2p_op_list`中的通信张量支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，`float8_e8m0fnu`。
 
 </div>
 
@@ -711,7 +726,10 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id78 -->
 
-**限制与说明**： `tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**：
+
+- 针对<term>Atlas A2训练系列产品</term>和<term>Atlas A3训练系列产品</term>，`tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool。
+- 针对<term>Ascend 950DT系列产品</term>，`tensor`支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，`float8_e8m0fnu`。
 
 </div>
 
@@ -735,7 +753,10 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id112 -->
 
-**限制与说明**： `tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**：
+
+- 针对<term>Atlas A2训练系列产品</term>和<term>Atlas A3训练系列产品</term>，`tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool。
+- 针对<term>Ascend 950DT系列产品</term>，`tensor`支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，`float8_e8m0fnu`。
 
 </div>
 
@@ -821,7 +842,10 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id121 -->
 
-**限制与说明**： `tensor`仅支持bf16，fp16，fp32，int8，int32，bool
+**限制与说明**：
+
+- 针对<term>Atlas A2训练系列产品</term>和<term>Atlas A3训练系列产品</term>，`tensor`仅支持bf16，fp16，fp32，int8，int32，bool。
+- 针对<term>Ascend 950DT系列产品</term>，`tensor`支持bf16，fp16，fp32，int8，int32，bool，`float8_e8m0fnu`。
 
 </div>
 
@@ -845,7 +869,8 @@
 
 **限制与说明**：
 
-- `output_tensor`仅支持bf16，fp16，fp32，int8，int32，bool
+- 针对<term>Atlas A2训练系列产品</term>和<term>Atlas A3训练系列产品</term>，`output_tensor`仅支持bf16，fp16，fp32，int8，int32，bool。
+- 针对<term>Ascend 950DT系列产品</term>，`output_tensor`支持bf16，fp16，fp32，int8，int32，bool，`float8_e8m0fnu`。
 - `world_size`不支持3，5，6，7
 
 </div>
@@ -890,7 +915,8 @@
 
 **限制与说明**：
 
-- `tensor`仅支持bf16，fp16，fp32，int8，int32，bool
+- 针对<term>Atlas A2训练系列产品</term>和<term>Atlas A3训练系列产品</term>，`tensor`仅支持bf16，fp16，fp32，int8，int32，bool。
+- 针对<term>Ascend 950DT系列产品</term>，`tensor`支持bf16，fp16，fp32，int8，int32，bool，`float8_e8m0fnu`。
 - 通过设置`torch_npu.npu.use_compatible_impl(True)`，`torch.distributed.gather`切换为与原生实现保持一致，例如：
 
   ```python
@@ -942,7 +968,8 @@
 
 **限制与说明**：
 
-- `tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+- 针对<term>Atlas A2训练系列产品</term>和<term>Atlas A3训练系列产品</term>，`tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool。
+- 针对<term>Ascend 950DT系列产品</term>，`tensor`支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，`float8_e8m0fnu`。
 - 通过设置`torch_npu.npu.use_compatible_impl(True)`，`torch.distributed.scatter`切换为与原生实现保持一致，例如：
 
   ```python
@@ -1043,7 +1070,10 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id103 -->
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：
+
+- 针对<term>Atlas A2训练系列产品</term>和<term>Atlas A3训练系列产品</term>，`input`仅支持fp32。
+- 针对<term>Ascend 950DT系列产品</term>，`input`支持fp32，`float8_e8m0fnu`。
 
 </div>
 
@@ -1067,7 +1097,8 @@
 
 **限制与说明**：
 
-- `input_tensor_list`仅支持fp32
+- 针对<term>Atlas A2训练系列产品</term>和<term>Atlas A3训练系列产品</term>，`input_tensor_list`中的张量仅支持fp32。
+- 针对<term>Ascend 950DT系列产品</term>，`input_tensor_list`中的张量支持fp32，`float8_e8m0fnu`。
 - 通过设置`torch_npu.npu.use_compatible_impl(True)`，`torch.distributed.all_to_all`切换为与原生实现保持一致，例如：
 
   ```python
