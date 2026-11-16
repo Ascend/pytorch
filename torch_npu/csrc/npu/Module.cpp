@@ -1317,14 +1317,30 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* arg) {
   HANDLE_TH_ERRORS
 
   c10_npu::MempoolId_t mempool_id = {0, 0};
+  bool include_traces = true;
+
   if (arg && !Py_IsNone(arg)) {
     TORCH_CHECK(PyTuple_Check(arg), "Expected tuple or None");
     Py_ssize_t size = PyTuple_Size(arg);
-    TORCH_CHECK(size == 2, "Expected tuple of size 2 (mempool_id_first, mempool_id_second)");
-    auto id1 = THPObjectPtr(PyTuple_GetItem(arg, 0));
-    auto id2 = THPObjectPtr(PyTuple_GetItem(arg, 1));
-    TORCH_CHECK(THPUtils_checkLong(id1) && THPUtils_checkLong(id2), "mempool_id elements must be integers");
-    mempool_id = c10_npu::MempoolId_t(THPUtils_unpackLong(id1), THPUtils_unpackLong(id2));
+
+    if (size == 2) {
+      // (int, int) - mempool_id only
+      PyObject* id1 = PyTuple_GET_ITEM(arg, 0);
+      PyObject* id2 = PyTuple_GET_ITEM(arg, 1);
+      TORCH_CHECK(THPUtils_checkLong(id1) && THPUtils_checkLong(id2), "mempool_id elements must be integers");
+      mempool_id = c10_npu::MempoolId_t(THPUtils_unpackLong(id1), THPUtils_unpackLong(id2));
+    } else if (size == 3) {
+      // (int, int, bool) - mempool_id + include_traces
+      PyObject* id1 = PyTuple_GET_ITEM(arg, 0);
+      PyObject* id2 = PyTuple_GET_ITEM(arg, 1);
+      PyObject* traces = PyTuple_GET_ITEM(arg, 2);
+      TORCH_CHECK(THPUtils_checkLong(id1) && THPUtils_checkLong(id2), "mempool_id elements must be integers");
+      TORCH_CHECK(PyBool_Check(traces), "include_traces must be a boolean");
+      mempool_id = c10_npu::MempoolId_t(THPUtils_unpackLong(id1), THPUtils_unpackLong(id2));
+      include_traces = Py_IsTrue(traces);
+    } else {
+      TORCH_CHECK(false, "Expected tuple of size 2 or 3");
+    }
   }
 
   using c10_npu::NPUCachingAllocator::BlockInfo;
@@ -1402,7 +1418,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* arg) {
     return segmentDict;
   };
 
-  auto snapshot = c10_npu::NPUCachingAllocator::snapshot(mempool_id);
+  auto snapshot = c10_npu::NPUCachingAllocator::snapshot(mempool_id, include_traces);
   py::list segments;
 
   for (const auto& segmentInfo : snapshot.segments) {
@@ -1410,7 +1426,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* arg) {
   }
 
   if (mempool_id.first == 0 && mempool_id.second == 0) {
-    auto workspace_snapshot = c10_npu::NPUWorkspaceAllocator::snapshot();
+    auto workspace_snapshot = c10_npu::NPUWorkspaceAllocator::snapshot(include_traces);
 
     for (size_t i = 0; i < workspace_snapshot.segments.size(); i++) {
       segments.append(segmentInfoToDict(workspace_snapshot.segments[i]));
@@ -1551,8 +1567,10 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* arg) {
       segment[blocks_s] = blocks;
       host_segments.append(segment);
     }
-    for (const auto& te : host_allocator->get_traces()) {
-      host_traces.append(traceEntryToDict(te));
+    if (include_traces) {
+      for (const auto& te : host_allocator->get_traces()) {
+        host_traces.append(traceEntryToDict(te));
+      }
     }
   }
 #endif

@@ -541,25 +541,30 @@ def max_memory_cached(device=None):
     return max_memory_reserved(device=device)
 
 
-def memory_snapshot(mempool_id=None):
-    r"""Returns a snapshot of the NPU memory allocator state across all devices.
+def memory_snapshot(mempool_id=None, include_traces=True):
+    r"""Return a snapshot of the NPU memory allocator state across all devices.
 
     Interpreting the output of this function requires familiarity with the
     memory allocator internals.
 
     Args:
-        mempool_id (Tuple[int, int], optional): the id of the memory pool to
-            filter the snapshot. If ``None`` (default), the snapshot of all
-            memory pools is returned.
+        mempool_id: Optional memory pool ID to get snapshot for a specific pool
+        include_traces: Whether to include trace entries in the snapshot.
+            If True (default), all trace entries are included.
+            If False, no trace entries are included (lightweight/fast snapshot).
 
     .. note::
         See :ref:`npu-memory-management` for more details about NPU memory
         management.
     """
     if mempool_id is None:
-        return torch_npu._C._npu_memorySnapshot(None)["segments"]
+        # pyrefly: ignore [bad-argument-type]
+        return torch_npu._C._npu_memorySnapshot((0, 0, include_traces))["segments"]
     else:
-        return torch_npu._C._npu_memorySnapshot((mempool_id[0], mempool_id[1]))["segments"]
+        return torch_npu._C._npu_memorySnapshot(
+            # pyrefly: ignore [bad-argument-type]
+            (mempool_id[0], mempool_id[1], include_traces)
+        )["segments"]
 
 
 def _format_size(sz, pref_sz):
@@ -809,14 +814,24 @@ class MemPool(torch_npu._C._MemPool):
         r"""Returns the reference count of this pool."""
         return super().use_count()
 
-    def snapshot(self):
+    def snapshot(self, include_traces=True):
         r"""Return a snapshot of the NPU memory allocator pool state across all
         devices.
 
         Interpreting the output of this function requires familiarity with the
         memory allocator internals.
+
+        Args:
+            include_traces: Whether to include trace entries in the snapshot.
+                If True (default), all trace entries are included.
+                If False, no trace entries are included (lightweight/fast snapshot).
+
+        .. note::
+            See :ref:`npu-memory-management` for more details about NPU memory
+            management.
         """
-        return memory_snapshot(self.id)
+        snapshot = torch_npu.npu.memory_snapshot(self.id, include_traces=include_traces)
+        return snapshot
 
 @contextlib.contextmanager
 def use_mem_pool(pool: MemPool, device=None):

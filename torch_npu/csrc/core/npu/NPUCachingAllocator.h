@@ -298,7 +298,7 @@ class NPUAllocator : public c10::DeviceAllocator {
     NPU_CHECK_ERROR(aclrtGetMemInfo(ACL_HBM_MEM, &free, &total));
     return {free, total};
   }
-  virtual SnapshotInfo snapshot(MempoolId_t mempool_id = {0, 0}) = 0;
+  virtual SnapshotInfo snapshot(MempoolId_t mempool_id = {0, 0}, bool include_traces = true) = 0;
 
   virtual void beginAllocateToPool(
       c10::DeviceIndex device,
@@ -505,8 +505,8 @@ inline void resetPeakStats(c10::DeviceIndex device) {
   return get()->resetPeakStats(device);
 }
 
-inline SnapshotInfo snapshot(MempoolId_t mempool_id = {0, 0}) {
-  return get()->snapshot(mempool_id);
+inline SnapshotInfo snapshot(MempoolId_t mempool_id = {0, 0}, bool include_traces = true) {
+  return get()->snapshot(mempool_id, include_traces);
 }
 
 inline std::shared_ptr<AllocatorState> getCheckpointState(c10::DeviceIndex device, MempoolId_t id) {

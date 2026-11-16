@@ -31,7 +31,7 @@ void recordHistory(
     CreateContextFn context_recorder,
     RecordContext when,
     const std::vector<std::string>& skip_actions);
-SnapshotInfo snapshot();
+SnapshotInfo snapshot(bool include_traces = true);
 DeviceStats getDeviceStats(int device);
 
 } // namespace NPUWorkspaceAllocator

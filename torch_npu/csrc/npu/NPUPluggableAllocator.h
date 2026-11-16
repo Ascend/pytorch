@@ -75,7 +75,9 @@ struct NPUPluggableAllocator : public c10_npu::NPUCachingAllocator::NPUAllocator
   c10_npu::NPUCachingAllocator::DeviceStats getDeviceStats(c10::DeviceIndex device) override;
   void resetAccumulatedStats(c10::DeviceIndex device) override;
   void resetPeakStats(c10::DeviceIndex device) override;
-  c10_npu::NPUCachingAllocator::SnapshotInfo snapshot(c10_npu::MempoolId_t mempool_id = {0, 0}) override;
+  c10_npu::NPUCachingAllocator::SnapshotInfo snapshot(
+      c10_npu::MempoolId_t mempool_id = {0, 0},
+      bool include_traces = true) override;
 
   // NPUGraph interactions
   void beginAllocateToPool(c10::DeviceIndex device, c10_npu::MempoolId_t mempool_id, std::function<bool(aclrtStream)>)

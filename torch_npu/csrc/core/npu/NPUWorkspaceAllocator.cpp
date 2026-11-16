@@ -483,20 +483,24 @@ class NpuWorkspaceAllocator : public c10::Allocator {
     }
   }
 
-  SnapshotInfo snapshot() {
+  SnapshotInfo snapshot(bool include_traces) {
     SnapshotInfo result;
     int count = static_cast<int>(device_allocator.size());
     for (int i = 0; i < count; i++) {
-      result.device_traces.emplace_back(device_allocator[i]->get_trace());
+      if (include_traces) {
+        result.device_traces.emplace_back(device_allocator[i]->get_trace());
+      }
       auto snap = device_allocator[i]->get_segm();
       result.segments.insert(result.segments.end(), snap.begin(), snap.end());
     }
     // Convert workspace trace timestamps from raw approximate-clock ticks to
     // epoch microseconds.
-    auto tsc_to_ns = clock_converter.makeConverter();
-    for (auto& trace : result.device_traces) {
-      for (auto& te : trace) {
-        te.time_.t_ = tsc_to_ns(te.time_.approx_t_) / 1000;
+    if (include_traces) {
+      auto tsc_to_ns = clock_converter.makeConverter();
+      for (auto& trace : result.device_traces) {
+        for (auto& te : trace) {
+          te.time_.t_ = tsc_to_ns(te.time_.approx_t_) / 1000;
+        }
       }
     }
     return result;
@@ -623,8 +627,8 @@ void recordHistory(
     const std::vector<std::string>& skip_actions) {
   workspace_allocator.record_history(enabled, context_recorder, when, skip_actions);
 }
-SnapshotInfo snapshot() {
-  return workspace_allocator.snapshot();
+SnapshotInfo snapshot(bool include_traces) {
+  return workspace_allocator.snapshot(include_traces);
 }
 
 DeviceStats getDeviceStats(int device) {
