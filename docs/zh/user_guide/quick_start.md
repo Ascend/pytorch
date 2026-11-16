@@ -31,7 +31,7 @@
 > - 请先完成步骤1～3中的适用修改，再执行步骤4。是否开启混合精度，请根据步骤3中的硬件适用说明选择。
 > - 下文`diff`代码块中的`+`表示新增行，`-`表示删除行，`...`表示省略的原有代码。这些标记用于说明修改位置，不应写入`train.py`。普通`python`代码块可直接复制，请保留代码缩进。
 
-1. 新建脚本train.py，写入以下原GPU脚本代码。<a id="脚本"></a>
+1. 新建脚本`train.py`，写入以下原GPU脚本代码：<a id="脚本"></a>
 
     ```python
     # 引入模块
@@ -120,7 +120,7 @@
 
     导入`transfer_to_npu`即开启自动迁移，将本示例中的相关CUDA调用映射到NPU。因此，脚本中的`cuda:0`可以保留，模型和数据实际在NPU上运行。若未开启自动迁移，用户可参考[手工迁移](https://www.hiascend.com/document/detail/zh/ModelZoo/traditional_model_train/PyTorch/docs/zh/model_migration/manual_migration.md)文档完成迁移。
 
-3. 在train.py中添加以下代码开启AMP（Automatic Mixed Precision，自动混合精度）。
+3. 在`train.py`中添加以下代码开启AMP（Automatic Mixed Precision，自动混合精度）。
 
     > [!NOTE]
     >
