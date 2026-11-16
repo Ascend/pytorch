@@ -1360,11 +1360,22 @@ def main():
     # Global validation
     # ========================================
     if hw_classification and total_cases == 0:
-        print(f"\nERROR: --hw-classification {hw_classification} was specified but "
-              f"0 cases collected from {total_files} files.")
-        print("This likely means the conftest.py hw_classification plugin is not "
-              "active or no test classes are annotated with the requested classification.")
-        sys.exit(1)
+        if args.full_scan:
+            # Full scan: zero total cases means the collection mechanism itself
+            # is broken (plugin not active / nothing annotated); fail closed
+            # instead of letting the pipeline green-run on nothing.
+            print(f"\nERROR: --hw-classification {hw_classification} was specified but "
+                  f"0 cases collected from {total_files} files.")
+            print("This likely means the conftest.py hw_classification plugin is not "
+                  "active or no test classes are annotated with the requested classification.")
+            sys.exit(1)
+        # Precise/selected-file mode: a selected file can legitimately collect
+        # nothing (e.g. an upstream file not yet migrated to hw_classification).
+        # Do not fail the pipeline: the test stage is gated on
+        # total_cases != '0' downstream and will be skipped.
+        print(f"\nWARNING: --hw-classification {hw_classification} collected 0 cases "
+              f"from {total_files} selected file(s); no runnable cases in the "
+              f"selected file set, the test stage will be skipped.")
 
     print("\n" + "=" * 80)
     print("Collection Complete")
