@@ -76,4 +76,9 @@ jobs:
       # 39538533016: npu_utils failures -> 0, no side effects.
       # See the Patch triton cxx20 step in _nightly_test-category.yml.
       patch_triton_cxx20: true
+      # flaky 用例重试：只重试 flaky_testcases 名单里的失败用例，
+      # 每轮并发按机器 NPU 卡数（auto），不用固定线程数。
+      retry_failed_cases: true
+      retry_only_list: .github/config/flaky_testcases
+      retry_max_workers: auto
 

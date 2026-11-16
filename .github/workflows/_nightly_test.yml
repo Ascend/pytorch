@@ -155,6 +155,22 @@ on:
           A case that passes any round is recovered; only a case failing
           all rounds keeps its failed status. Only used when
           retry_failed_cases is true.
+      retry_only_list:
+        required: false
+        type: string
+        default: ''
+        description: >-
+          Forwarded to every test-category shard job: optional path to a
+          nodeid list file; when set, only failed cases whose nodeid is
+          listed are retried. Empty retries every failed case.
+      retry_max_workers:
+        required: false
+        type: string
+        default: '1'
+        description: >-
+          Forwarded to every test-category shard job: per-round retry
+          concurrency, comma-separated; 'auto' resolves to the NPU device
+          count. Default '1' = strictly serial.
       wheels_obs_endpoint:
         required: false
         type: string
@@ -236,6 +252,8 @@ jobs:
       retry_failed_cases: ${{ inputs.retry_failed_cases }}
       retry_max_cases: ${{ inputs.retry_max_cases }}
       retry_attempts: ${{ inputs.retry_attempts }}
+      retry_only_list: ${{ inputs.retry_only_list }}
+      retry_max_workers: ${{ inputs.retry_max_workers }}
       wheels_obs_endpoint: ${{ inputs.wheels_obs_endpoint }}
       wheels_obs_bucket: ${{ inputs.wheels_obs_bucket }}
 

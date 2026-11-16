@@ -114,6 +114,23 @@ on:
           only a case failing all rounds keeps its failed/error/timeout
           status. Rounds after the first only re-run the still-failing
           residue.
+      retry_only_list:
+        required: false
+        type: string
+        default: ''
+        description: >-
+          Optional path to a nodeid list file (one nodeid per line). When
+          set, only failed/error/timeout cases whose nodeid is listed are
+          retried; other failed cases keep their original results. Empty
+          keeps the current behavior (retry every failed case).
+      retry_max_workers:
+        required: false
+        type: string
+        default: '1'
+        description: >-
+          Per-round retry concurrency, comma-separated (e.g. '8,1' = round 1
+          with 8 workers, round 2 serial); 'auto' resolves to the NPU device
+          count. Default '1' = strictly serial (the historical behavior).
       wheels_obs_endpoint:
         required: false
         type: string
@@ -484,6 +501,8 @@ jobs:
             --device-env "${{ inputs.device_env }}" \
             --max-retry-cases ${{ inputs.retry_max_cases || '0' }} \
             --max-attempts ${{ inputs.retry_attempts || '3' }} \
+            --only-list "${{ inputs.retry_only_list || '' }}" \
+            --max-workers "${{ inputs.retry_max_workers || '1' }}" \
             --verbose \
             2>&1 | tee /tmp/retry_${{ inputs.category }}_${{ matrix.shard }}.log
 

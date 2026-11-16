@@ -62,7 +62,7 @@ import shutil
 import sys
 import traceback
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 import run_npu_test_shard as runner
 import parse_test_results
@@ -105,6 +105,11 @@ def parse_args():
                              "longer lists ignore the extra values. '1' = "
                              "strictly serial, the historical behavior "
                              "(default: 1)")
+    parser.add_argument("--only-list", type=str, default="",
+                        help="Optional file of nodeids (one per line, '#' "
+                             "comments ignored). When set, only failed cases "
+                             "whose nodeid appears in this list are retried; "
+                             "other failed cases keep their original results.")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     args = parser.parse_args()
 
@@ -112,6 +117,15 @@ def parse_args():
         parser.error("--max-retry-cases must be >= 0 (0 = unlimited)")
     if args.max_attempts < 1:
         parser.error("--max-attempts must be >= 1")
+    # Resolve 'auto' workers to the live NPU device count before expanding
+    # the per-round plan, so a malformed value still fails fast.
+    if "auto" in {part.strip().lower() for part in str(args.max_workers).split(",")}:
+        detected = detect_npu_count()
+        parts = [part.strip() for part in str(args.max_workers).split(",")]
+        args.max_workers = ",".join(
+            str(detected) if part.lower() == "auto" else part for part in parts
+        )
+        print(f"RETRY: --max-workers auto -> NPU device count {detected}")
     # Expand the per-round worker plan here so a malformed value fails fast
     # (parse_worker_plan is defined below; it resolves at call time).
     args.worker_plan = parse_worker_plan(args.max_workers, args.max_attempts, parser)
@@ -134,6 +148,40 @@ def parse_worker_plan(raw: str, attempts: int, parser) -> List[int]:
         values[index] if index < len(values) else values[-1]
         for index in range(attempts)
     ]
+
+
+def detect_npu_count() -> int:
+    """Best-effort NPU device count for 'auto' retry concurrency.
+
+    Uses the same torch/torch_npu probe as the workflow's verify-NPU step;
+    falls back to 1 (strictly serial) if the environment cannot be queried.
+    """
+    try:
+        import torch
+        import torch_npu  # noqa: F401  (registers the npu backend on torch.npu)
+        count = int(torch.npu.device_count())
+        if count >= 1:
+            return count
+    except Exception:
+        pass
+    return 1
+
+
+def load_nodeid_list(path: Path) -> Set[str]:
+    """Read a nodeid list file (one per line, '#' comments ignored).
+
+    Returns an empty set (so nothing matches) when the file is missing.
+    """
+    if not path.exists():
+        print(f"Only-list file not found: {path}; no case selected for retry")
+        return set()
+    nodeids: Set[str] = set()
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        nodeids.add(line)
+    return nodeids
 
 
 def write_github_outputs(pairs) -> None:
@@ -300,6 +348,17 @@ def main() -> int:
         for idx, case in enumerate(original_cases)
         if case.get("status") in RETRY_STATUSES
     ]
+    if args.only_list:
+        allowed = load_nodeid_list(Path(args.only_list))
+        before = len(failed)
+        failed = [
+            (idx, case) for idx, case in failed
+            if case.get("nodeid") in allowed
+        ]
+        print(
+            f"Only-list filter ({args.only_list}): {len(failed)}/{before} "
+            "failed case(s) are listed and will be retried"
+        )
     print("=" * 80)
     print(f"Retry pass for shard {prefix}-{shard} ({shard_type})")
     print(f"Cases file: {cases_file}")
