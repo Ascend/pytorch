@@ -8664,8 +8664,6 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id941 -->
 
-**限制与说明**： `self`仅支持fp32
-
 </div>
 
 <a class="method_anchor" id="torch_Tensor_nonzero"></a>

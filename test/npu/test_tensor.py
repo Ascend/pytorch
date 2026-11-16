@@ -306,6 +306,29 @@ class TestTensor(TestCase):
         res1 = torch.zeros_like(expected)
         self.assertEqual(res1.to('cpu'), expected.to('cpu'))
 
+    def test_nelement(self):
+        shapes = ((), (0,), (2, 0, 3), (2, 3, 4))
+        dtypes = (torch.bool, torch.uint8, torch.int32, torch.int64,
+                  torch.float16, torch.float32)
+
+        for dtype in dtypes:
+            for shape in shapes:
+                with self.subTest(dtype=dtype, shape=shape):
+                    cpu_tensor = torch.empty(shape, dtype=dtype)
+                    npu_tensor = cpu_tensor.to(device="npu")
+                    self.assertEqual(npu_tensor.nelement(), cpu_tensor.nelement())
+                    self.assertEqual(npu_tensor.nelement(), npu_tensor.numel())
+
+            with self.subTest(dtype=dtype, layout="non_contiguous"):
+                cpu_base = torch.empty((2, 3), dtype=dtype)
+                npu_base = cpu_base.to(device="npu")
+                cpu_tensor = cpu_base.transpose(0, 1)
+                npu_tensor = npu_base.transpose(0, 1)
+                self.assertFalse(cpu_tensor.is_contiguous())
+                self.assertFalse(npu_tensor.is_contiguous())
+                self.assertEqual(npu_tensor.nelement(), cpu_tensor.nelement())
+                self.assertEqual(npu_tensor.nelement(), npu_tensor.numel())
+
     def test_scalar_tensortype(self):
         import numpy as np
         np.random.seed(1024)
