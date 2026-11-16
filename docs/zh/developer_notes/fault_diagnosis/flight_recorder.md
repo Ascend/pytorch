@@ -61,7 +61,7 @@ FR配置按“记录与输出”和“触发转储”两类划分。记录与输
 
 记录保存在内存中，需要通过下列入口触发写盘。自动故障转储依赖WatchDog与心跳监控线程，相关环境变量属于WatchDog/心跳监控范围，本文仅说明配合关系，监控相关说明请参见[WatchDog](watchdog.md)。
 
-- **常规自动转储**：WatchDog检测到Work异常或通信超时，或监控线程检测到WatchDog心跳长期无进展时触发。将`TORCH_HCCL_ENABLE_MONITORING`和`TORCH_HCCL_DUMP_ON_TIMEOUT`均设为1，同时将FR缓冲区设为正整数。心跳无进展阈值由`TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC`控制，默认600秒。
+- **常规自动转储**：WatchDog检测到Work异常或通信超时，或监控线程检测到WatchDog心跳长期无进展时触发。将`TORCH_HCCL_ENABLE_MONITORING`和`TORCH_HCCL_DUMP_ON_TIMEOUT`均设为1，同时将FR缓冲区设为正整数。心跳超时由`TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC`控制，默认600秒。
 - **WatchDog异常出口额外采集**：由[TORCH_HCCL_EXTRA_DUMP_ON_EXEC](../../api/environment_variable/collective_communication/TORCH_HCCL_EXTRA_DUMP_ON_EXEC.md)=1开启。WatchDog捕获标准异常后额外尝试广播诊断请求并在当前rank采集快照，可覆盖communicator预检查发现异步错误、异步错误查询接口本身失败等可能未经过常规转储请求的情况。本地调用不依赖监控或常规转储开关；远端是否响应仍由各rank的监控配置和执行时序决定。
 - **命名管道手动触发**：设置[TORCH_HCCL_DEBUG_INFO_PIPE_FILE](../../api/environment_variable/collective_communication/TORCH_HCCL_DEBUG_INFO_PIPE_FILE.md)为管道前缀后，向`<prefix><rank>.pipe`写入非空内容可请求当前rank异步采集。需开启监控且FR缓冲区大于0。
 
@@ -224,7 +224,8 @@ TorchFT参数仅用于对应转储数据的离线转换，不是普通HCCL训练
 ## 约束说明
 
 - 采集功能面向HCCL后端。自动监控转储、管道转储和Python线程调用栈采集需要相应Python运行环境。
-- 依赖WatchDog的诊断需相应错误检查路径运行。建议使用异步错误处理并保持非阻塞等待配置；关于WatchDog和通信超时的配置关系，请参见[WatchDog](watchdog.md)。心跳超时、通信执行超时、进程组超时和FR转储等待时间不能混为同一配置。
+- 使用常规自动转储时，按“触发转储”一节开启FR记录、心跳监控和常规转储，并建议设置`TORCH_HCCL_ASYNC_ERROR_HANDLING=1`和`TORCH_HCCL_BLOCKING_WAIT=0`。如果还希望WatchDog捕获标准异常时尝试额外转储，可单独设置`TORCH_HCCL_EXTRA_DUMP_ON_EXEC=1`。
+- 关于WatchDog和通信超时的配置关系，请参见[WatchDog](watchdog.md)。心跳超时、通信执行超时、进程组超时和FR转储等待时间不能混为同一配置。
 - 同步通信提交失败后，或在`TORCH_HCCL_ASYNC_ERROR_HANDLING=0`（NoHandling）模式下，主动采集可能受通信事件生命周期限制并导致进程异常退出。
 - 部分communicator错误或异步错误查询失败，未开启异常出口额外转储时，可能在生成文件前终止；开启后仍受诊断请求竞争、采集和写盘条件影响，不保证所有rank都有文件。
 - Store故障、进程在HCCL错误路径之外退出、获取GIL失败或底层I/O阻塞，均可能导致数据缺失。转储属于尽力采集，不能承诺固定退出时限或文件生成结果。
