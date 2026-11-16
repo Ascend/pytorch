@@ -107,6 +107,8 @@ def num_splits(
         not in (
             "argmax",
             "argmin",
+            "welford_reduce",
+            "welford_combine",
         )
         and config.split_reductions
     )
