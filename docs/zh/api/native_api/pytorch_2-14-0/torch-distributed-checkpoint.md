@@ -1647,6 +1647,66 @@
 </div>
 <!-- end id312 -->
 
+### <code><i>class</i></code> torch.distributed.checkpoint.hf_storage.HuggingFaceStorageReader
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.checkpoint.hf_storage.HuggingFaceStorageReader](https://github.com/pytorch/pytorch/blob/v2.14.0/torch/distributed/checkpoint/hf_storage.py)
+
+**产品支持情况**：
+
+<!-- npu="910b" id327 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id327 -->
+<!-- npu="A3" id328 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id328 -->
+<!-- npu="950" id329 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id329 -->
+
+</div>
+
+### <code><i>class</i></code> torch.distributed.checkpoint.hf_storage.HuggingFaceStorageWriter
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.checkpoint.hf_storage.HuggingFaceStorageWriter](https://github.com/pytorch/pytorch/blob/v2.14.0/torch/distributed/checkpoint/hf_storage.py)
+
+**产品支持情况**：
+
+<!-- npu="910b" id330 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id330 -->
+<!-- npu="A3" id331 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id331 -->
+<!-- npu="950" id332 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id332 -->
+
+</div>
+
+### <code><i>class</i></code> torch.distributed.checkpoint.quantized_hf_storage.QuantizedHuggingFaceStorageReader
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.checkpoint.quantized_hf_storage.QuantizedHuggingFaceStorageReader](https://github.com/pytorch/pytorch/blob/v2.14.0/torch/distributed/checkpoint/quantized_hf_storage.py)
+
+**产品支持情况**：
+
+<!-- npu="910b" id333 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id333 -->
+<!-- npu="A3" id334 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id334 -->
+<!-- npu="950" id335 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id335 -->
+
+</div>
+
 <!-- npu="910b,A3" id313 -->
 <!-- npu="910b,A3" id300 -->
 ### <code><i>class</i></code> torch.distributed.checkpoint.staging.AsyncStager
