@@ -1065,6 +1065,64 @@ class TestRegistrationCounter(TestCase):
             torch_npu.npu.empty_cache()
 
 
+class TestRecordStreamSameStream(TestCase):
+    """recordStream must ignore uses on the allocation stream.
+
+    allocated_bytes is decremented in free() but active_bytes only in
+    free_block(); when free() takes the insert_events() branch instead, the block
+    stays counted as active. Recording the allocation stream buys no protection
+    (the free pools are partitioned by stream), so it must not defer the block --
+    but recording a different stream still must.
+    c10/cuda/CUDACachingAllocator.cpp short-circuits the same-stream case; this
+    guards the same behaviour on NPU.
+    """
+
+    NBYTES = 64 * 1024 * 1024
+
+    def _deferred_bytes(self, record_fn):
+        """Return (bytes still counted active after free, bytes charged for the block)."""
+        torch_npu.npu.synchronize()
+        torch_npu.npu.empty_cache()
+        torch_npu.npu.synchronize()
+
+        def gap():
+            stats = torch.npu.memory_stats()
+            return stats["active_bytes.all.current"] - stats["allocated_bytes.all.current"]
+
+        def allocated():
+            return torch.npu.memory_stats()["allocated_bytes.all.current"]
+
+        base_alloc, base_gap = allocated(), gap()
+
+        t = torch.empty(self.NBYTES, dtype=torch.uint8, device="npu")
+        block_bytes = allocated() - base_alloc
+        record_fn(t)
+        del t
+        # Read before any further allocation: process_events() only runs inside
+        # malloc(), so nothing can have reclaimed the block yet.
+        deferred = gap() - base_gap
+        torch_npu.npu.synchronize()
+        return deferred, block_bytes
+
+    @serialTest()
+    def test_same_stream_record_does_not_defer(self):
+        deferred, block_bytes = self._deferred_bytes(
+            lambda t: t.record_stream(torch.npu.current_stream()))
+        self.assertGreater(block_bytes, 0)
+        self.assertEqual(
+            deferred, 0,
+            f"same-stream record_stream deferred {deferred} of {block_bytes} bytes; "
+            "recordStream should ignore uses on the allocation stream")
+
+        # The short-circuit must not weaken real cross-stream protection.
+        side = torch.npu.Stream()
+        deferred, block_bytes = self._deferred_bytes(lambda t: t.record_stream(side))
+        self.assertEqual(
+            deferred, block_bytes,
+            f"cross-stream record_stream deferred {deferred} of {block_bytes} bytes; "
+            "a different stream must still defer the block")
+
+
 instantiate_parametrized_tests(TestPluggableAllocator)
 
 if __name__ == '__main__':
