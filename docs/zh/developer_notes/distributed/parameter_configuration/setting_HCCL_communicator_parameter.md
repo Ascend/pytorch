@@ -2,11 +2,11 @@
 
 ## 简介
 
-本特性可以针对不同的通信域配置不同的HCCL参数。通过pg\_options添加hccl\_config配置，将HCCL配置参数从Python层通过TorchNPU传递到HCCL供使用。
+本特性可以针对不同的通信域配置不同的HCCL参数。通过`pg_options`添加`hccl_config`配置，将HCCL配置参数从Python层通过TorchNPU传递到HCCL供使用。
 
 ## 使用场景
 
-当模型使用多个通信域，且不同通信域对buffer大小、通信算法或执行超时时间有不同需求时，可以在模型脚本中通过本特性分别配置。
+当模型使用多个通信域，且不同通信域对缓冲区大小、通信算法或执行超时时间有不同需求时，可以在模型脚本中通过本特性分别配置。
 
 ## 使用指导
 
@@ -69,9 +69,9 @@ torch.npu.set_device(int(os.environ["LOCAL_RANK"]))
 
 options = torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()
 options.hccl_config = {
-    "hccl_buffer_size": 200,  # 单位：MB
+    "hccl_buffer_size": 200,  # 单位:MB
     "group_name": "default_comm",  # 对应hcclUdi
-    "hccl_exec_timeout": 500,  # 单位：秒
+    "hccl_exec_timeout": 500,  # 单位:s
     "hccl_algo": "allreduce=level0:NA;level1:ring",
 }
 dist.init_process_group(backend="hccl", pg_options=options)

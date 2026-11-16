@@ -10,7 +10,7 @@ DDP的核心机制依靠`torch.distributed`提供的集合通信能力，通过`
 
 此外，DDP支持通过分布式checkpoint实现训练状态保存与恢复，并且可以灵活与张量并行（TP）、流水线并行（PP）等并行策略进行组合。
 
-如需系统了解DDP的设计与用法，建议从[PyTorch 官方DDP示例教程](https://docs.pytorch.org/tutorials/intermediate/ddp_tutorial.html)入手掌握标准实践，接口细节可通过[API 文档](https://docs.pytorch.org/docs/2.14/generated/torch.nn.parallel.DistributedDataParallel.html)查阅，若深入了解底层同步机制，可进一步阅读[开发者笔记](https://docs.pytorch.org/docs/2.14/notes/ddp.html)。
+如需系统了解DDP的设计与用法，建议从[PyTorch 官方DDP示例教程](https://docs.pytorch.org/tutorials/intermediate/ddp_tutorial.html)入手掌握标准实践，接口细节可通过[API 文档](https://docs.pytorch.org/docs/2.14/generated/torch.nn.parallel.DistributedDataParallel.html)查阅，若需深入了解底层同步机制，可进一步阅读[开发者笔记](https://docs.pytorch.org/docs/2.14/notes/ddp.html)。
 
 ## 使用场景
 
@@ -36,28 +36,28 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 
 
 def example(rank, world_size):
-    # 改动：后端从 "nccl" 改为 "hccl"
+    # 改动:后端从 "nccl" 改为 "hccl"
     dist.init_process_group("hccl", rank=rank, world_size=world_size)
-    torch.npu.set_device(rank)                      # 改动：cuda → npu
-    model = nn.Linear(10, 10).npu()                 # 改动：cuda() → npu()
+    torch.npu.set_device(rank)                      # 改动:cuda → npu
+    model = nn.Linear(10, 10).npu()                 # 改动:cuda() → npu()
     ddp_model = DDP(model, device_ids=[rank])
     loss_fn = nn.MSELoss()
     optimizer = optim.SGD(ddp_model.parameters(), lr=0.001)
 
-    outputs = ddp_model(torch.randn(20, 10).npu())  # 改动：cuda() → npu()
+    outputs = ddp_model(torch.randn(20, 10).npu())  # 改动:cuda() → npu()
     labels = torch.randn(20, 10).npu()
     loss_fn(outputs, labels).backward()
     optimizer.step()
 
 
 def main():
-    world_size = torch.npu.device_count()            # 改动：cuda → npu
+    world_size = torch.npu.device_count()            # 改动:cuda → npu
     mp.spawn(example, args=(world_size,), nprocs=world_size, join=True)
 
 
 if __name__ == "__main__":
     os.environ["MASTER_ADDR"] = "127.0.0.1"
-    os.environ["MASTER_PORT"] = "29501"            # 可替换为未被占用的其余端口
+    os.environ["MASTER_PORT"] = "29501"            # 可替换为其他未被占用的端口
     main()
 ```
 

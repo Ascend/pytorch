@@ -2,7 +2,7 @@
 
 ## 简介
 
-torch\_npu\_run是torchrun在大集群场景的改进版，提升集群建链性能。
+torch\_npu\_run是torchrun在大集群场景下的改进版，提升集群建链性能。
 
 torch\_npu\_run相对torchrun有以下改进：
 
@@ -15,7 +15,7 @@ torch\_npu\_run相对torchrun有以下改进：
     
     ![](../../../figures/link_setup_in_torchrun_mode.png)
 
-    torch\_npu\_run是在torchrun的基础上引入了TCPStore分层架构方案，即在每一个节点上由agent启动一个新角色proxy，管理worker的通信。节点上的worker与proxy建立UnixSocket连接，所有的proxy与node0的proxy建立TCP连接。实现通信的分层，打破建链时间线性瓶颈，使得建链时间复杂度从$O(n)$降低到$O(\sqrt{n})$，如[图2](#建链方式)所示。
+    torch\_npu\_run在torchrun的基础上引入了TCPStore分层架构方案，即在每一个节点上由agent启动一个新角色proxy，管理worker的通信。节点上的worker与proxy建立UnixSocket连接，所有的proxy与node0的proxy建立TCP连接。实现通信的分层，打破建链时间线性瓶颈，使得建链时间复杂度从$O(n)$降低到$O(\sqrt{n})$，如[图2](#建链方式)所示。
 
     **图 2**  torch\_npu\_run的建链方式   <a id="建链方式"></a>  
     ![](../../../figures/link_setup_in_torch_npu_run_mode.png)
@@ -32,13 +32,13 @@ torch\_npu\_run和torchrun的使用方式类似。torch\_npu\_run的部分可选
 - nproc\_per\_node：每个节点的工作进程数，支持的值有auto、cpu、gpu或整数。
 - node\_rank：多节点分布式训练中节点的排名。
 - rdzv\_backend：建立集合通信连接的后端机制。
-- rdzv\_endpoint：用于集合的后端服务地址，格式为 <主机名\>:<端口号\>。
+- rdzv\_endpoint：用于集合点的后端服务地址，格式为 <主机名\>:<端口号\>。
 - rdzv\_id：用户定义的ID，用于唯一标识作业的工作组。每个节点都使用此ID加入特定工作组。
 - standalone：表示在单机上运行分布式训练任务，适用于单节点多进程作业。
 - master\_addr：主节点（排名为0）的网络地址，仅用于静态集合点。
 - master\_port：主节点（排名为0）的端口，仅用于静态集合点。
 - local\_addr：当前节点的IP地址。
-- enable\_tiered\_parallel\_tcpstore：是否开启分层建链进一步提升建链性能，即是否分节点内和节点间建链。推荐在大规模集群场景下使用。支持的值有true和false，默认为false（不开启）。
+- enable\_tiered\_parallel\_tcpstore：是否开启分层建链进一步提升建链性能，即是否区分节点内和节点间建链。推荐在大规模集群场景下使用。支持的值有true和false，默认为false（不开启）。
 
 ## 使用样例
 
