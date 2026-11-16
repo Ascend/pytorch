@@ -1,5 +1,6 @@
 # 自定义内存分配器
 
+
 ## 简介
 
 支持从so文件中加载自定义NPU内存分配器。
@@ -19,15 +20,15 @@ torch_npu.npu.NPUPluggableAllocator(path_to_so_file, alloc_fn_name, free_fn_name
 
 参数说明：
 
-- path\_to\_so\_file：\(str\) so文件路径。
-- alloc\_fn\_name：\(str\)内存申请函数名（与C/C++文件中函数名一致）。
-- free\_fn\_name：\(str\)内存释放函数名（与C/C++文件中函数名一致）。
+- path\_to\_so\_file：（str） so文件路径。
+- alloc\_fn\_name：（str）内存申请函数名（与C/C++文件中函数名一致）。
+- free\_fn\_name：（str）内存释放函数名（与C/C++文件中函数名一致）。
 
 此接口详情请参考《自定义API》中的“[torch_npu.npu.NPUPluggableAllocator](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/torch-npu-npu-NPUPluggableAllocator.md)”章节。
 
 ## 使用样例
 
-```Python
+```python
 import torch 
 import torch_npu 
 # Load the allocator 

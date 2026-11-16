@@ -7,11 +7,11 @@
 如[图1](#虚拟地址与物理内存映射)所示，通过底层提供的接口，可以预先预留大块的虚拟地址空间作为一个内存块。用户不断申请内存时，可以得到在连续地址上的内存块，分别与不同地址的物理内存映射，释放内存时，连续地址的内存块可以合并成为一个内存块。
 
 **图 1** 虚拟地址与物理内存映射  <a id="虚拟地址与物理内存映射"></a>  
-![](../../figures/mapping_between_virtual_addresses_and_physical_memory.png)
+![虚拟地址与物理内存映射示意图：预留的大块连续虚拟地址分别映射到不同物理内存块，释放后可合并](../../figures/mapping_between_virtual_addresses_and_physical_memory.png)
 
 ## 使用场景
 
-训练过程中出现内存溢出（Out Of Memory，OOM）时，或想降低模型内存占用率的情况下，可以考虑使用该特性。
+训练过程中出现内存溢出（Out Of Memory, OOM）时，或想降低模型内存占用率的情况下，可以考虑使用该特性。
 
 ## 使用指导
 
@@ -59,5 +59,5 @@
 ## 约束说明
 
 - expandable\_segments特性需在Ascend HDK 23.0.0及以上版本上使用。
-- torch.npu.memory.\_set\_allocator\_settings仅支持在PyTorch2.6.0及以上版本使用。
+- torch.npu.memory.\_set\_allocator\_settings仅支持在PyTorch 2.6.0及以上版本使用。
 - torch.npu.memory.\_set\_allocator\_settings当前仅支持修改expandable\_segments属性。

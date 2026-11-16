@@ -14,7 +14,7 @@ TorchNPU的内存管理体系从层次上可分为以下三层：
 
 TorchNPU自身提供的内存管理功能如下表所示，涵盖内存分配、内存优化、内存监控和进程间共享等场景。
 
-**表 1**  TorchNPU内存管理功能
+**表 1** TorchNPU内存管理功能
 
 <table style="undefined;table-layout: fixed; width: 100%">
 <colgroup>
@@ -67,7 +67,7 @@ TorchNPU自身提供的内存管理功能如下表所示，涵盖内存分配、
 
 由于TorchNPU继承了PyTorch的编程模型和API体系，PyTorch原生的内存相关基础功能可直接在NPU上使用，无需修改代码。下表列出了常用的原生PyTorch内存功能及其在NPU上的使用说明。
 
-**表 2**  可在NPU上直接复用的原生PyTorch内存功能
+**表 2** 可在NPU上直接复用的原生PyTorch内存功能
 
 <table style="undefined;table-layout: fixed; width: 100%">
 <colgroup>
@@ -110,7 +110,7 @@ TorchNPU自身提供的内存管理功能如下表所示，涵盖内存分配、
     <td rowspan="7">内存优化</td>
     <td>视图操作</td>
     <td><code>tensor.view()</code>、<code>tensor.reshape()</code>、<code>tensor.permute()</code>、<code>tensor.transpose()</code> 等</td>
-    <td>视图操作不分配新内存，与原张量共享存储，可直接在NPU上使用。</td>
+    <td>视图操作（如 view、permute、transpose 等）不分配新内存，与原张量共享存储，可直接在NPU上使用；reshape 在无法视图时可能复制数据并分配新内存。</td>
     <td><a href="https://docs.pytorch.org/docs/stable/generated/torch.Tensor.view.html">torch.Tensor.view</a><br><a href="https://docs.pytorch.org/docs/stable/generated/torch.Tensor.reshape.html">torch.Tensor.reshape</a><br><a href="https://docs.pytorch.org/docs/stable/generated/torch.Tensor.permute.html">torch.Tensor.permute</a><br><a href="https://docs.pytorch.org/docs/stable/generated/torch.Tensor.transpose.html">torch.Tensor.transpose</a></td>
   </tr>
   <tr>
