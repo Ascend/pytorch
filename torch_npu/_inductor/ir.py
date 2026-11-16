@@ -108,6 +108,8 @@ def num_splits(
         not in (
             "argmax",
             "argmin",
+            "welford_reduce",
+            "welford_combine",
             "argmax_value",
             "argmin_value",
             "argmax_with_value",
