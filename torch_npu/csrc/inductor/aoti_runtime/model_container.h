@@ -622,7 +622,8 @@ class AOTInductorModelContainer {
         uint8_t* internal_constants_ptr = constants_blob_ptr + constants_internal_offset_[this_main_idx];
 
 #ifdef USE_NPU
-        aclrtMemcpy(internal_constants_ptr, constant_size, user_constant_ptr, constant_size, ACL_MEMCPY_DEFAULT);
+        AOTI_RUNTIME_DEVICE_CHECK(
+            aclrtMemcpy(internal_constants_ptr, constant_size, user_constant_ptr, constant_size, ACL_MEMCPY_DEFAULT));
 #else
         memcpy(internal_constants_ptr, user_constant_ptr, constant_size);
 #endif
