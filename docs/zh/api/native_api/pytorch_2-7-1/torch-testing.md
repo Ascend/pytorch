@@ -57,7 +57,6 @@
 
 </div>
 
-<!-- npu="910b,A3" id9 -->
 ### torch.testing.assert_allclose
 
 <div style="margin-left: 2em">
@@ -65,7 +64,6 @@
 **原生文档**：[torch.testing.assert_allclose](https://pytorch.org/docs/2.7/testing.html#torch.testing.assert_allclose)
 
 **产品支持情况**：
-<!-- end id9 -->
 
 <!-- npu="910b" id7 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -73,9 +71,10 @@
 <!-- npu="A3" id8 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id8 -->
+<!-- npu="950" id9 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id9 -->
 
-<!-- npu="910b,A3" id10 -->
-**限制与说明**：`input`仅支持fp32
+**限制与说明**：已验证`actual`和`expected`的NPU Tensor输入支持float16、float32、bfloat16、int32、int64和bool；float64在不相等比较场景下暂不支持。
 
 </div>
-<!-- end id10 -->
