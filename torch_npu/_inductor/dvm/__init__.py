@@ -1,3 +1,10 @@
+"""DVM runtime API and namespace for reusable Inductor implementations.
+
+Legacy MLIR imports the inductor_patch subpackage. Do not initialize devices
+or install process-wide Inductor patches at module scope. Adapting DVM's own
+BF16 bindings here is intentional and does not activate the DVM backend.
+"""
+
 import sys
 from functools import partial, wraps
 
@@ -13,7 +20,6 @@ from torch_npu._C.dvm import (
     TorchKernel as Kernel,
 )
 from torch_npu._inductor.npu_compare import check_accuracy_dvm
-from torch_npu.npu._backends import get_soc_version
 
 from . import config as dvm_config
 
@@ -29,7 +35,7 @@ Ascend910B1 = 220
 Ascend310B1 = 240
 Ascend910_9391 = 250
 Ascend950 = 260
-is_ascend950 = get_soc_version() >= Ascend950
+is_ascend950 = dvm_config.is_ascend950
 
 KERNEL_FACTORY = {
     ("mix", True): partial(DynKernel, Kernel.K_MIX, Kernel.F_DYN),
@@ -73,6 +79,8 @@ def kernel(
     """
 
     def decorate(builder):
+        # Native kernel registration requires a current NPU context.
+        torch_npu.npu.current_stream()
         Kernel.set_vf_fusion(dvm_config.vf_fusion)
         kobj = KERNEL_FACTORY[(ktype, dyn_shape)]()
         kernel_name = getattr(builder, "__name__", "<unknown>")
@@ -126,12 +134,16 @@ def kernel(
             return outputs
 
         def run(*args, **kwargs):
-            kobj.run(*args)
+            if fn._acc_meta is not None:
+                check_accuracy_dvm(kobj, fn._acc_meta, kernel_name, args)
+            else:
+                kobj.run(*args)
             if dvm_config.debug_mode:
                 _post_run(args)
 
         fn.run = run
         fn.kobj = kobj
+        fn._acc_meta = None
 
         return fn
 
@@ -139,6 +151,7 @@ def kernel(
 
 
 def _install_bf16_promote():
+    """Adapt non-A5 BF16 operations on the exported DVM bindings."""
     unsupported_bf16_ops = (
         "sqrt",
         "abs",

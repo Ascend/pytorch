@@ -1,4 +1,10 @@
 # mypy: allow-untyped-defs
+"""Shared traced-graph lowering for NPU backends.
+
+Backend loaders install this module through lowering_patch. Backend-specific
+policies are supplied by those loaders; this module must not import a backend
+package, including through lazy imports, because that can install global patches.
+"""
 from __future__ import annotations
 
 import contextlib
@@ -83,10 +89,9 @@ from torch._inductor.utils import (
 )
 from torch._inductor.virtualized import ops, V
 
-from ... import config as anir_config
 
 if TYPE_CHECKING:
-    from .ops_handler import ReductionType
+    from torch._inductor.ops_handler import ReductionType
 
 
 _T = TypeVar("_T")
@@ -133,6 +138,10 @@ from torch_npu._inductor.lowering_common import (
     register_fn_to_aten_fn as _register_fn_to_aten_fn,
     register_to_aten as _register_to_aten,
 )
+
+# Backend loaders may supply a sum-fallback predicate without importing their
+# private configuration here.
+sum_fallback_predicate: Callable[[TensorBox, Any], bool] | None = None
 
 fn_to_aten_fn = {}
 node_id = itertools.count(0)
@@ -818,7 +827,7 @@ def _foreach_map(subgraph, *args, **kwargs):
     The graph outputs represent the vertically fused sequence of ops, and then register_operation_list
     below registers the buffers as horizontally fuseable in the scheduler.
     """
-    from .subgraph_lowering import PointwiseSubgraphLowering
+    from torch._inductor.subgraph_lowering import PointwiseSubgraphLowering
 
     inputs = args
 
@@ -6405,10 +6414,8 @@ def sum_(x, axis=None, keepdims=False, *, dtype=None):
     ) and dtype is None:
         dtype = torch.int64
 
-    if anir_config.disable_any_pbr and axis and len(x.get_size()) > 1 and axis[0] < len(x.get_size()) - len(axis):
-        fn = fallback_handler(
-            aten.sum.dim_IntList, add_to_fallback_set=False
-        )
+    if sum_fallback_predicate is not None and sum_fallback_predicate(x, axis):
+        fn = fallback_handler(aten.sum.dim_IntList, add_to_fallback_set=False)
     else:
         fn = make_reduction("sum", override_return_dtype=dtype)
     r = fn(x, axis, keepdims, dtype=dtype)
@@ -7158,7 +7165,7 @@ def invoke_quant_tracer(subgraph_fn: ir.Subgraph, *operands, scheme=None):
 def associative_scan(
     combine_fn: ir.Subgraph, xs, additional_inputs: tuple[torch.Tensor]
 ):
-    from .subgraph_lowering import InputDescriptor, lower_pointwise_subgraph
+    from torch._inductor.subgraph_lowering import InputDescriptor, lower_pointwise_subgraph
 
     if len(additional_inputs) > 0:
         raise RuntimeError(

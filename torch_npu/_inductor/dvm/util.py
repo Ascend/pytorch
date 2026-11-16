@@ -1,4 +1,4 @@
-"""DVM load/view_load selection based on real tensor strides."""
+"""DVM graph helpers and load/view_load selection based on tensor strides."""
 
 from __future__ import annotations
 

@@ -151,12 +151,9 @@ def _load_dvm_backend():
     # in the main process so the hybrid path observes one consistent state.
     _configure_dvm_compile_threads()
 
-    from .lowering_patch import apply_mlir_inductor_patch
-    from .ascend_npu_ir.ascend_npu_ir.npu.npu_inductor_plugin import (
-        register_mlir_codegen_backend,
-    )
-    apply_mlir_inductor_patch()
-    register_mlir_codegen_backend()
+    from .dvm.initialization import _initialize_dvm
+
+    _initialize_dvm()
     from .dvm import mlir_fusion
     has_triton = torch_npu.utils._dynamo.has_triton()
     if has_triton:

@@ -36,30 +36,6 @@ def str2bool(v: str) -> bool:
         return False
     raise argparse.ArgumentTypeError(f"Unable to parse '{v}' as a boolean value")
 
-def patch_remove_ops_from_generate_list(op_names=None):
-    try:
-        import torch
-        from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import config as anir_config
-
-        if not op_names:
-            print("[patch] No op names provided, nothing to do.")
-            return
-
-        for name in op_names:
-            parts = name.split(".")
-            op = torch.ops
-            for p in parts:
-                op = getattr(op, p)
-
-            if op in anir_config.GENERATE_LIST:
-                anir_config.GENERATE_LIST.remove(op)
-                print(f"[patch] Successfully removed {name} from GENERATE_LIST.")
-            else:
-                print(f"[patch] {name} not found in GENERATE_LIST (maybe already removed).")
-
-    except Exception as e:
-        print(f"[patch] Failed to modify GENERATE_LIST: {e}")
-
 def parse_args():
     p = argparse.ArgumentParser(description="Qwen2-VL 2B Single GPU Training")
     p.add_argument("--model_name_or_path", type=str, required=True)
@@ -231,7 +207,6 @@ def main():
         os.environ['TORCHINDUCTOR_USE_AKG'] = '1'
     if args.mfusion:
         os.environ['TORCHINDUCTOR_ENABLE_MFUSION'] = '1'
-    patch_remove_ops_from_generate_list(["aten.clone", "aten.permute"])
 
     print("\nLoading Processor...")
     t0 = time.time()

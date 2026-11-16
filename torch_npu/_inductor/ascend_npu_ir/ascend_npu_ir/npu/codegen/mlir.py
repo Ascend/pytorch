@@ -14,6 +14,7 @@ from torch_npu._inductor.lowering_common import (
     MLIR_OPERATOR_MAPPING,
     map_strings_to_operators as _map_strings_to_operators,
 )
+from torch_npu._inductor.dvm.inductor_patch.fx_graph import to_folder
 from ...npu.utils import (
     MLIRProcessor,
     fold_expand,
@@ -22,7 +23,6 @@ from ...npu.utils import (
     npu_cast_to_prim_cast,
     parse_fx_example_inputs,
     scalarize_tensor_ops_on_scalars,
-    to_folder,
 )
 from ...npu.codegen.meta_kernel import NpuMetaKernel, NpuMetaScheduling
 

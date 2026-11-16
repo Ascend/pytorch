@@ -25,30 +25,6 @@ logger = logging.getLogger(__name__)
 MODEL_NAME = "Mamba2"
 TARGET_MODULES = ["x_proj", "in_proj"]
 
-def patch_remove_ops_from_generate_list(op_names=None):
-    try:
-        import torch
-        from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import config as anir_config
-
-        if not op_names:
-            print("[patch] No op names provided, nothing to do.")
-            return
-
-        for name in op_names:
-            parts = name.split(".")
-            op = torch.ops
-            for p in parts:
-                op = getattr(op, p)
-
-            if op in anir_config.GENERATE_LIST:
-                anir_config.GENERATE_LIST.remove(op)
-                print(f"[patch] Successfully removed {name} from GENERATE_LIST.")
-            else:
-                print(f"[patch] {name} not found in GENERATE_LIST (maybe already removed).")
-
-    except Exception as e:
-        print(f"[patch] Failed to modify GENERATE_LIST: {e}")
-
 def setup_environment():
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
@@ -95,7 +71,6 @@ def main():
         os.environ['TORCHINDUCTOR_USE_AKG'] = '1'
     if args.mfusion:
         os.environ['TORCHINDUCTOR_ENABLE_MFUSION'] = '1'
-    patch_remove_ops_from_generate_list(["aten.permute"])
     seed = 2
     torch.manual_seed(seed)
 

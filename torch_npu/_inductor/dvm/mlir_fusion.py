@@ -1,34 +1,34 @@
-from typing import List
+import os
+from typing import List, Optional, Union
+
+import sympy
 import torch
-from torch._higher_order_ops.triton_kernel_wrap import triton_kernel_wrapper_mutation
-from torch._inductor import config, ir
-from torch._inductor.fx_passes.control_dependencies import control_deps
+from torch._dynamo.utils import counters
+from torch._inductor import config, ir, scheduler
 from torch._inductor.codegen.common import IndentedBuffer, Kernel
-from torch._inductor.codegen.simd import code_hash, SIMDKernel
+from torch._inductor.codegen.simd import (
+    code_hash, log, MultiKernel, SIMDKernel, SIMDKernelFeatures,
+)
+from torch._inductor.codegen.triton import SIMDScheduling, TritonKernel
 from torch._inductor.scheduler import SchedulerNode, WhyNoFuse
 from torch._inductor.utils import aggregate_origins, get_fused_kernel_name
 from torch._inductor.virtualized import V
-from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import config as anir_config
-from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.codegen.mlir import (
-    NpuMlirKernel,
-)
-from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.codegen.meta_kernel import (
-    NpuMetaScheduling,
-    NpuTritonKernel,
-    create_fx_from_snodes_by_traced_graph,
+from torch.fx.experimental.proxy_tensor import make_fx
+from torch_npu._inductor.lowering_common import (
+    MLIR_OPERATOR_MAPPING,
+    map_strings_to_operators as _map_strings_to_operators,
+    merge_fx_graphs,
 )
 from .wrapper import NpuDvmWrapperCodeGen
-from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch import (
-    lowering as npu_lowering,
-)
-from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.utils import (
-    get_num_call_functions,
-)
+from torch_npu._inductor.dvm.inductor_patch import lowering as npu_lowering
 
 from . import config as dvm_config, is_ascend950
 from .decomp import patch_decomp
 from .fx_test import generate_dvm_fx_case
 from .graph_build import DvmCodegenInterpreter
+from .inductor_patch.fx_graph import (
+    get_num_call_functions, modify_gm_for_acc_comp, to_folder, view_to_reshape,
+)
 from .op_emitter import (
     common_rule,
     DVM_OP_REGISTRY,
@@ -46,70 +46,6 @@ from .util import can_use_view_load
 aten = torch.ops.aten
 prims = torch.ops.prims
 
-anir_config.GENERATE_LIST = [
-    control_deps,
-    aten._assert_scalar,
-    aten.mul,
-    aten.add,
-    aten.sub,
-    aten.div,
-    aten.clamp_min,
-    aten.clamp_max,
-    aten.maximum,
-    aten.minimum,
-    aten.abs,
-    aten.reciprocal,
-    aten.log,
-    aten.exp,
-    aten.pow,
-    aten.sqrt,
-    aten.rsqrt,
-    aten.neg,
-    aten.lt,
-    aten.le,
-    aten.gt,
-    aten.ge,
-    aten.eq,
-    aten.ne,
-    aten.bitwise_and,
-    aten.bitwise_or,
-    aten.bitwise_not,
-    aten.where,
-    prims.convert_element_type,
-    torch.ops.npu.npu_dtype_cast,
-    torch.ops.npu.npu_dtype_cast_backward,
-    torch.ops.npu._npu_dtype_cast,
-    torch.ops.npu._npu_dtype_cast_backward,
-    aten.expand,
-    aten.var_mean,
-    aten.sum,
-    aten.mean,
-    aten.amax,
-    aten.amin,
-    aten.full,
-    aten.relu,
-    aten.where,
-    aten.scalar_tensor,
-    aten.unsqueeze,
-    aten.squeeze,
-    aten.reshape,
-    aten.permute,
-    torch.ops.higher_order.while_loop,
-    torch.ops.higher_order.while_loop_stack_output,
-    aten.copy,
-    aten.copy_,
-    aten.lift_fresh_copy,
-    aten.lift_fresh_copy.default,
-    aten.cat,
-    aten.clone,
-    aten.mm,
-    aten.bmm,
-    aten.addmm,
-    aten.baddbmm,
-    triton_kernel_wrapper_mutation,
-    torch.ops.higher_order.flex_attention,
-    torch.ops.higher_order.flex_attention_backward,
-]
 
 
 def _is_clone_supported_by_view_level(node):
@@ -142,7 +78,136 @@ def _is_node_supported_by_dvm_rule(node, allow_common_rule=False):
     return allow_common_rule and common_rule(node)
 
 
-class NpuDvmKernel(NpuMlirKernel):
+def map_strings_to_operators(expr_str: str):
+    return _map_strings_to_operators(expr_str, MLIR_OPERATOR_MAPPING)
+
+
+class NpuTritonKernel(TritonKernel):
+    @staticmethod
+    def inductor_meta_common():
+        return {}
+
+    def call_kernel(self, call_args, name: str):
+        wrapper = V.graph.wrapper_code
+        for call_arg in call_args:
+            if call_arg.startswith('_uwu_'):
+                expression = map_strings_to_operators(call_arg)
+                wrapper.writeline(f'{call_arg} = {expression}')
+        if len(call_args) > 0:
+            wrapper.generate_kernel_call(
+                name,
+                call_args,
+            )
+
+
+def refresh_input_meta_with_buffer_layout(node):
+    val = node.meta.get('val')
+    try:
+        layout = getattr(V.graph.try_get_buffer(node.target), "layout", None)
+    except Exception:
+        layout = None
+    if not torch.is_tensor(val) or layout is None:
+        return val
+
+    size, stride = tuple(layout.size), tuple(layout.stride)
+    if any(not isinstance(x, (int, sympy.Integer)) for x in (*size, *stride)):
+        return val
+
+    if tuple(val.size()) != size or tuple(val.stride()) != stride:
+        with V.graph.fake_mode:
+            val = torch.empty_strided(
+                size,
+                stride,
+                dtype=val.dtype,
+                device=val.device,
+                requires_grad=val.requires_grad,
+            )
+        node.meta['val'] = val
+    return val
+
+
+def create_fx_from_snodes_by_traced_graph(snodes: List[scheduler.SchedulerNode]):
+    call_inputs = []
+    for snode in snodes:
+        snode.node.data.traced_graph.last_node.name = snode.node.get_name()
+    if len(snodes) == 1:
+        traced_graph = snodes[0].node.data.traced_graph
+    else:
+        traced_graph = merge_fx_graphs([snode.node.data.traced_graph for snode in snodes])
+    inputs = []
+    for node in traced_graph.graph.nodes:
+        if node.op == 'placeholder':
+            call_inputs.append(node.target)
+            inputs.append(refresh_input_meta_with_buffer_layout(node))
+    non_contiguous_indices = {}
+    non_contiguous_indices["inputs"] = [i for i, inp in enumerate(inputs) if torch.is_tensor(inp) and not inp.is_contiguous()]
+    num_inputs = len(call_inputs)
+    call_outputs = []
+    for snode in snodes:
+        if snode.has_aliasing_or_mutation():
+            for buf in snode.get_outputs():
+                if len(buf.get_mutations()):
+                    call_outputs.extend(buf.get_mutations())
+                elif len(buf.get_aliases()):
+                    call_outputs.append(buf.get_name())
+        elif snode.node.get_name() not in (V.graph.removed_buffers | V.graph.inplaced_to_remove):
+            call_outputs.append(snode.node.get_name())
+    num_outputs = len(call_outputs)
+    call_args = call_inputs + call_outputs
+    outputs = traced_graph.last_node if isinstance(traced_graph.last_node, List) \
+        else [traced_graph.last_node]
+    outputs = [output for output in outputs if output.name not in (V.graph.removed_buffers | V.graph.inplaced_to_remove)]
+    traced_graph.graph.output(tuple(outputs))
+    traced_graph.graph.lint()
+    orig_module = torch.nn.Module()
+    gm = torch.fx.GraphModule(orig_module, traced_graph.graph)
+    gm.recompile()
+
+    def runnable_gm(*args):
+        return torch.fx.Interpreter(gm).run(*args)
+    with V.graph.fake_mode:
+        gm = make_fx(runnable_gm)(*inputs)
+    view_to_reshape(gm)
+    non_contiguous_indices["outputs"] = [i + num_inputs
+                                         for i, call_output in enumerate(call_outputs)
+                                         if not V.graph.try_get_buffer(call_output).layout.is_contiguous()]
+    return (gm, call_args, {"num_outputs": num_outputs,
+                            "non_contiguous_indices": non_contiguous_indices, })
+
+
+class NpuDvmKernel(Kernel):
+    def __init__(
+            self,
+            gm: torch.fx.GraphModule,
+            snodes: list[scheduler.SchedulerNode],
+            call_args: list[str],
+            non_contiguous_indices: list[int],
+            num_outputs: list[int] = None,
+    ):
+        super().__init__()
+        self._gm = gm
+
+        if dvm_config.online_acc_comp:
+            modify_gm_for_acc_comp(self._gm)
+
+        self._snodes = snodes
+        self._call_args = call_args
+        self.non_contiguous_indices = non_contiguous_indices
+        self.num_outputs = num_outputs
+
+    def get_call_args(self):
+        return self._call_args
+
+    def call_kernel(self, name: str, node: Optional[torch.fx.Node] = None):
+        wrapper = V.graph.wrapper_code
+        call_args = self.get_call_args()
+        for call_arg in call_args:
+            if call_arg.startswith('_uwu_'):
+                expression = map_strings_to_operators(call_arg)
+                wrapper.writeline(f'{call_arg} = {expression}')
+        if len(call_args) > 0:
+            wrapper.generate_kernel_call(name, call_args)
+
     def codegen_kernel(self, name=None):
         def is_node_dvm_supported(node):
             if node.op == "placeholder":
@@ -178,9 +243,108 @@ class NpuDvmSchedulingKernel(NpuTritonKernel):
         super().remove_kernel_local_buffers()
 
 
-class NpuDvmScheduling(NpuMetaScheduling):
+class NpuDvmScheduling(SIMDScheduling):
     kernel_type = NpuDvmSchedulingKernel
     meta_kernel_type = NpuDvmKernel
+
+    def _handle_complete_fallback_mode(
+        self, compile_wrapper, name, meta, wrapper, metadata_comment, mlir_kernel,
+        *, gpu=True,
+    ):
+        compile_wrapper.writeline(f"async_compile.import_fx({name!r}, kernel_meta={meta})")
+        metadata_comment = f'"""\n{mlir_kernel._gm.print_readable(print_output=False)}\n"""'
+        wrapper.define_kernel(name, compile_wrapper.getvalue(), metadata_comment, gpu=gpu)
+
+    def _dump_fx_graph_for_fallback(self, mlir_kernel, device, graph_hash):
+        """Cache the FX model for fallback execution and online accuracy checks."""
+        cache_root = os.getenv("TORCHINDUCTOR_CACHE_DIR")
+        dump_path = os.path.join(
+            cache_root,
+            "traced_graph_cache",
+            str(device.index),
+            graph_hash
+        )
+
+        if not os.path.exists(dump_path):
+            os.makedirs(dump_path, exist_ok=True)
+            to_folder(mlir_kernel._gm, dump_path, graph_hash=graph_hash, module_name=graph_hash)
+
+    def codegen_node_schedule(self, kernel_features: SIMDKernelFeatures, nodes):
+        node_schedule = kernel_features.node_schedule
+
+        tiling = self.select_tiling(
+            node_schedule, kernel_features.numel, kernel_features.reduction_numel
+        )
+
+        kernels = self.create_kernel_choices(
+            kernel_features, [tiling], {"features": kernel_features}
+        )
+        for kernel in kernels:
+            super().codegen_node_schedule_with_kernel(node_schedule, kernel)
+        MultiKernel.merge_workspaces_inplace(kernels)
+        for kernel in kernels:
+            V.graph.removed_buffers |= kernel.removed_buffers
+            V.graph.inplaced_to_remove |= kernel.inplaced_to_remove
+            traced_graph, call_args, compile_kwargs = create_fx_from_snodes_by_traced_graph(
+                nodes
+            )
+            mlir_kernel = self.meta_kernel_type(traced_graph, nodes, call_args, **compile_kwargs)
+            with V.set_kernel_handler(mlir_kernel):
+                src_code = mlir_kernel.codegen_kernel()
+            kernel_name = self.define_kernel(src_code, mlir_kernel, traced_graph)
+            log.debug("Generating kernel code with kernel_name: %s", kernel_name)
+            kernel.kernel_name = kernel_name
+            kernel.code_hash = code_hash(src_code)
+        del kernel
+
+        final_kernel: Union[SIMDKernel, MultiKernel]
+        if len(kernels) > 1:
+            raise RuntimeError("MultiKernel not Implemented for this backend!")
+        else:
+            (final_kernel,) = kernels
+
+        with V.set_kernel_handler(final_kernel):
+            for node in kernel_features.scheduler_nodes():
+                node.mark_run()
+
+        self.codegen_comment(node_schedule)
+        final_kernel.call_kernel(call_args, final_kernel.kernel_name)
+
+        if config.nan_asserts:
+            final_kernel.codegen_nan_check()
+        if config.warn_mix_layout:
+            final_kernel.warn_mix_layout(kernels[0].kernel_name)
+
+        if (
+            V.graph.wrapper_code.supports_intermediate_hooks
+            and config.generate_intermediate_hooks
+        ):
+            live_outs = kernels[0].args.live_output_buffers()
+            for node in kernel_features.scheduler_nodes():
+                name = node.get_name()
+                if name not in live_outs:
+                    continue
+                if node.node is None:
+                    raise RuntimeError("assert node.node is not None")
+
+                origin_node = node.node.get_origin_node()
+                if origin_node is not None:
+                    counters["inductor"]["intermediate_hooks"] += 1
+                    V.graph.wrapper_code.writeline(
+                        f"run_intermediate_hooks({origin_node.name!r}, {name})"
+                    )
+
+        self.scheduler.free_buffers()
+
+    def codegen_node(self, node: Union[scheduler.SchedulerNode, object]):
+        nodes: List[scheduler.SchedulerNode] = node.get_nodes()
+
+        _, (numel, rnumel) = max(nodes, key=lambda x: int(x.is_reduction())).group
+
+        node_schedule = self.generate_node_schedule(nodes, numel, rnumel)
+        kernel_features = SIMDKernelFeatures(node_schedule, numel, rnumel)
+
+        return self.codegen_node_schedule(kernel_features, nodes)
 
     def _get_npu_triton_scheduling(self):
         scheduling = getattr(self, "_npu_triton_scheduling", None)
@@ -191,7 +355,7 @@ class NpuDvmScheduling(NpuMetaScheduling):
             self._npu_triton_scheduling = scheduling
         return scheduling
 
-    def define_kernel(self, src_code, mlir_kernel, traced_graph, mode=None):
+    def define_kernel(self, src_code, mlir_kernel, traced_graph):
         kernel_key = (src_code, _kernel_layout_key(mlir_kernel))
         wrapper = V.graph.wrapper_code
 
@@ -214,16 +378,13 @@ class NpuDvmScheduling(NpuMetaScheduling):
             compile_wrapper = IndentedBuffer()
             if (
                 mlir_kernel.dvm_codegen is None
-                or kernel_name in anir_config.force_fallback_kernel_names
+                or kernel_name in dvm_config.force_fallback_kernel_names
             ):
                 kernel_meta = {
                     "device_str": current_device.type,
                     "device_index": current_device.index,
                     "num_outputs": mlir_kernel.num_outputs,
-                    "non_contiguous_indices": mlir_kernel.non_contiguous_indices,
-                    "dynamic": mlir_kernel._is_dynamic,
-                    "mutated_indices": mlir_kernel.mutated_indices,
-                    "traced_graph_cache": anir_config.traced_graph_cache,
+                    "traced_graph_cache": "traced_graph_cache",
                     "traced_graph_hash": traced_graph_hash,
                     "num_call_functions": get_num_call_functions(mlir_kernel._gm),
                 }
@@ -242,8 +403,6 @@ class NpuDvmScheduling(NpuMetaScheduling):
                     mlir_kernel,
                     current_device,
                     traced_graph_hash,
-                    kernel_name,
-                    compile_wrapper.getvalue(),
                 )
             else:
                 wrapper.add_import_once("from torch_npu._inductor import dvm")
@@ -265,11 +424,11 @@ class NpuDvmScheduling(NpuMetaScheduling):
                 )
                 compile_wrapper.writeline(func_name)
 
-                if anir_config.online_acc_comp:
+                if dvm_config.online_acc_comp:
                     compile_wrapper.writeline(
                         f"{kernel_name}._acc_meta = {{"
                         f"'traced_graph_hash': {traced_graph_hash!r}, "
-                        f"'traced_graph_cache': {anir_config.traced_graph_cache!r}, "
+                        "'traced_graph_cache': 'traced_graph_cache', "
                         f"'device_index': {current_device.index}, "
                         f"'num_outputs': {mlir_kernel.num_outputs}}}"
                     )
@@ -277,8 +436,6 @@ class NpuDvmScheduling(NpuMetaScheduling):
                         mlir_kernel,
                         current_device,
                         traced_graph_hash,
-                        kernel_name,
-                        compile_wrapper.getvalue(),
                     )
 
                 # DVM kernels do not need autotuning. gpu=False keeps their definitions
@@ -405,7 +562,7 @@ class NpuDvmScheduling(NpuMetaScheduling):
         V.graph.removed_buffers |= removed_buffers
 
         traced_graph, call_args, compile_kwargs = (
-            create_fx_from_snodes_by_traced_graph(snodes, None)
+            create_fx_from_snodes_by_traced_graph(snodes)
         )
         mlir_kernel = self.meta_kernel_type(
             traced_graph, snodes, call_args, **compile_kwargs
@@ -437,7 +594,7 @@ class NpuDvmScheduling(NpuMetaScheduling):
 def _patch_lowering_type_checks():
     import torch._inductor.graph as inductor_graph
     import torch._inductor.lowering as inductor_lowering
-    import torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.lowering as npu_lowering_mod
+    from torch_npu._inductor.dvm.inductor_patch import lowering as npu_lowering_mod
     import torch_npu._inductor.graph as npu_graph_mod
 
     fallback_node_due_to_unsupported_type = (
@@ -481,7 +638,7 @@ def _patch_lowering_type_checks():
 
 
 def _patch_lowering():
-    from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.lowering import (
+    from torch_npu._inductor.dvm.inductor_patch.lowering import (
         _make_reduction_inner as original_make_reduction_inner,
         make_reduction as original_make_reduction,
         to_dtype,
@@ -554,7 +711,6 @@ class DvmMlirFusionPatch:
         inductor_config.size_asserts = False
         inductor_config.allow_buffer_reuse = False
         inductor_config.comprehensive_padding = False
-        anir_config.disable_any_pbr = False
         patch_decomp()
         _patch_lowering_type_checks()
         _patch_lowering()

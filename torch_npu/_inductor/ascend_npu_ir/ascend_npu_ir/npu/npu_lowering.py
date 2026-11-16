@@ -120,3 +120,12 @@ def _register_npu_inductor_fallbacks():
         fallback_via_fallback_set(fallback_set=fallback_set_exclude)
     elif config.fallback_to_aten_mode == "all":
         enable_full_lowering_fallback()
+
+
+def use_sum_fallback(x, axis):
+    return (
+        config.disable_any_pbr
+        and bool(axis)
+        and len(x.get_size()) > 1
+        and axis[0] < len(x.get_size()) - len(axis)
+    )

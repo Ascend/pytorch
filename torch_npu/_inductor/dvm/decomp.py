@@ -1,4 +1,8 @@
+from typing import Optional
+
 import torch
+from torch import Tensor
+from torch._C import DispatchKey
 from torch._decomp import get_decompositions, remove_decompositions
 from torch._decomp.decompositions import compute_only_pw_cast_for_opmath
 from torch._inductor import decomposition as inductor_decomp
@@ -19,11 +23,14 @@ decomps_to_exclude_npu = [
     aten._native_batch_norm_legit,
     aten._native_batch_norm_legit_functional,
     aten._native_batch_norm_legit_no_training,
+    aten._softmax_backward_data.default,
     aten.batch_norm_backward,
     aten.convolution_backward,
     aten.embedding,
     aten.embedding_backward,
     aten.embedding_dense_backward,
+    aten.erf.default,
+    aten.expm1,
     aten.index_select,
     aten.gelu.default,
     aten.gelu_backward.default,
@@ -266,7 +273,47 @@ def gelu_backward(grad: torch.Tensor, self: torch.Tensor, approximate: str = "no
     return out
 
 
+def npu__softmax_backward_data(
+    grad_output: torch.Tensor,
+    output: torch.Tensor,
+    dim: int,
+    input_dtype: torch.dtype,
+) -> torch.Tensor:
+    new_grad_output = grad_output * output
+    sum_new_grad = torch.sum(new_grad_output, dim=dim, keepdim=True)
+    grad_input = new_grad_output - output * sum_new_grad
+    # grad_input = inductor_prims.fma(-output, sum_new_grad, new_grad_output)
+
+    # CPU kernel doesn't respect input_dtype, but following check doesn't work for meta tensor
+    # if grad_output.device == torch.device("cpu"):
+    #     return grad_input.contiguous()
+
+    if grad_output.dtype != input_dtype:
+        grad_input = grad_input.to(input_dtype)
+    return grad_input.contiguous()
+
+
+def erf(a: Tensor) -> Tensor:
+    """Match AscendC ErfImpl; fp16: cast up CAST_NONE, compute in fp32, cast down."""
+    orig_dtype = a.dtype
+    if orig_dtype != torch.float32:
+        a = a.to(torch.float32)
+    out = _erf_pade_fp32(a)
+    if orig_dtype != torch.float32:
+        out = out.to(orig_dtype)
+    return out
+
+
+def expm1(x):
+    tensor = torch.exp(x) - torch.ones_like(x)
+    return tensor
+
+
 dvm_decompositions = {
+    aten.expm1.default: expm1,
+    aten.expm1.out: expm1,
+    aten._softmax_backward_data.default: npu__softmax_backward_data,
+    aten.erf.default: erf,
     aten.sigmoid.default: sigmoid,
     aten.silu.default: silu,
     aten.silu_backward.default: silu_backward,
@@ -335,3 +382,42 @@ def patch_decomp():
         remove_decompositions(table, dvm_config.disable_decomp_list)
     _remove_extra_random_decomps()
     _dvm_inductor_decomp_patched = True
+
+
+def _register_dvm_decompositions():
+    """Install prerequisite exclusions and batch-norm dispatcher hooks."""
+    exclude_list = dvm_config.decomps_to_exclude_npu
+    remove_decompositions(inductor_decomp.decompositions, exclude_list)
+
+    # Batch_norm_decomposition function registered to fix dynamic shape dynamo tracing issue.
+    @aten.batch_norm.default.py_impl(DispatchKey.Autograd)
+    @aten.batch_norm.default.py_impl(DispatchKey.AutogradPrivateUse1)
+    def batch_norm_decomposition(
+        input: Tensor,
+        weight: Optional[Tensor],
+        bias: Optional[Tensor],
+        running_mean: Optional[Tensor],
+        running_var: Optional[Tensor],
+        training: bool,
+        momentum: float,
+        eps: float,
+        cudnn_enabled: bool,
+    ) -> Tensor:
+        if input.numel() == 0:
+            out = input.clone()
+            if weight is not None:
+                out *= weight[0]
+            if bias is not None:
+                out += bias[0]
+            return out
+        return aten._batch_norm_impl_index.default(
+            input,
+            weight,
+            bias,
+            running_mean,
+            running_var,
+            training,
+            momentum,
+            eps,
+            cudnn_enabled,
+        )[0]

@@ -333,7 +333,7 @@ def _load_fx_model(acc_meta):
 
 def check_accuracy_dvm(kobj, acc_meta, kernel_name, args):
     """Run DVM kernel then compare outputs against FX graph reference."""
-    from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir import config as anir_config
+    from torch_npu._inductor import config as npu_config
 
     fx_model = _load_fx_model(acc_meta)
 
@@ -351,5 +351,5 @@ def check_accuracy_dvm(kobj, acc_meta, kernel_name, args):
         args[num_inputs:],
         fx_outputs,
         kernel_name=kernel_name,
-        tolerances=anir_config.acc_comp_tol,
+        tolerances=npu_config.acc_comp_tol,
     )

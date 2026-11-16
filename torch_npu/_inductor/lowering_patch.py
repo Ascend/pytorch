@@ -313,8 +313,10 @@ def merge_missing_lowerings(
         target_lowerings.update({k: source_lowerings[k] for k in extra_keys})
 
 
-def apply_mlir_lowering_patch(npu_lowering_module: Any) -> None:
-    """Replace torch._inductor.lowering with the MLIR/DVM fork."""
+def apply_lowering_patch(npu_lowering_module: Any) -> None:
+    """Install the supplied backend's lowering functions and registries."""
+    # Both traced-graph backends install the same shared implementation; backend
+    # policies and IR/scheduler hooks are configured by their respective loaders.
     from torch._inductor import graph, lowering as inductor_lowering
 
     npu_functions = _module_functions(npu_lowering_module)
@@ -335,14 +337,20 @@ def apply_mlir_lowering_patch(npu_lowering_module: Any) -> None:
 
 
 def apply_mlir_inductor_patch() -> None:
-    """MLIR/DVM: patch lowering + scheduler (called from _load_backend)."""
-    from .ascend_npu_ir.ascend_npu_ir.npu.inductor_patch import lowering as npu_lowering
-    from .ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.scheduler import (
-        _patch_scheduler,
+    """MLIR: patch lowering, traced-graph IR hooks, and scheduler."""
+    from .dvm.inductor_patch import ir as shared_ir
+    from .dvm.inductor_patch import lowering as shared_lowering
+    from .dvm.inductor_patch.scheduler import _patch_scheduler
+    from .lowering_common import subtract_graph
+    from .ascend_npu_ir.ascend_npu_ir.npu.npu_lowering import (
+        use_sum_fallback,
     )
 
-    # Ensure IR patches (TracedGraph hooks) are registered.
-    import torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.ir  # noqa: F401
+    # MLIR uses the default graph subtraction policy. DVM matmul templates
+    # provide their own policy after the DVM loader installs these hooks.
+    shared_ir.subtract_graph = subtract_graph
+    shared_ir.apply_ir_patch()
 
-    apply_mlir_lowering_patch(npu_lowering)
+    shared_lowering.sum_fallback_predicate = use_sum_fallback
+    apply_lowering_patch(shared_lowering)
     _patch_scheduler()

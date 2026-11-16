@@ -4,21 +4,22 @@ from torch._inductor.dependencies import MemoryDep
 from torch._inductor.kernel.mm_common import mm_args
 from torch._inductor.utils import sympy_product
 from torch._inductor.virtualized import V
-from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch import (
-    ir as npu_ir,
-    lowering as npu_lowering,
-)
-from torch_npu._inductor.ascend_npu_ir.ascend_npu_ir.npu.inductor_patch.lowering import (
+from torch_npu._inductor.dvm.inductor_patch import lowering as npu_lowering
+from torch_npu._inductor.dvm.inductor_patch import ir as npu_ir
+from torch_npu._inductor.dvm.inductor_patch.lowering import (
     fetch_graphs,
     merge_traced_graphs,
 )
-from torch_npu._inductor.lowering_common import TracedGraph, create_fake_input
+from torch_npu._inductor.lowering_common import (
+    TracedGraph,
+    create_fake_input,
+    subtract_graph as _orig_npu_subtract_graph,
+)
 
 from . import config as dvm_config
 from .op_emitter import mm_rule
 
 aten = torch.ops.aten
-_orig_npu_subtract_graph = npu_ir.subtract_graph
 
 
 def _make_template_input_graph(inp, name=None):
@@ -64,7 +65,7 @@ class DvmTemplateBuffer(ir.TemplateBuffer):
         self.op = op
         self.kwargs = kwargs or {}
         super().__init__(layout, inputs, make_kernel_render=None)
-        # Reuse NPU meta_kernel's snode.node.data.traced_graph rebuild path.
+        # Reuse DVM scheduling's snode.node.data.traced_graph rebuild path.
         self.data = self
 
     def get_traced_graph(self):

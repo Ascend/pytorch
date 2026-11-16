@@ -43,17 +43,19 @@ from torch_npu._inductor.lowering_common import (
     map_strings_to_operators as _map_strings_to_operators,
     merge_fx_graphs,
 )
+from torch_npu._inductor.dvm.inductor_patch.fx_graph import (
+    get_num_call_functions,
+    modify_gm_for_acc_comp,
+    to_folder,
+    view_to_reshape,
+)
 from ...npu.utils import (
     MLIRProcessor,
     parse_fx_example_inputs,
     npu_cast_to_prim_cast,
     get_fx_graph_code,
     scalarize_tensor_ops_on_scalars,
-    to_folder,
-    modify_gm_for_acc_comp,
-    get_num_call_functions,
     is_fx_dynamic,
-    view_to_reshape
 )
 from ... import config as anir_config
 

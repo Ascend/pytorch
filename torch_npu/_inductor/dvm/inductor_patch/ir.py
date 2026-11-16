@@ -51,9 +51,6 @@ def _patch_loops_create(cls, *args, **kwargs):
     return ir.TensorBox.create(r)
 
 
-ir.Loops.get_name = _patch_loops_get_name
-ir.Loops.get_traced_graph = _patch_loops_get_traced_graph
-ir.Loops.create = _patch_loops_create
 
 
 def _patch_pointwise_constant_to_device(
@@ -69,7 +66,6 @@ def _patch_pointwise_constant_to_device(
     return r
 
 
-ir.Pointwise.constant_to_device = _patch_pointwise_constant_to_device
 
 
 @classmethod
@@ -178,7 +174,6 @@ def _patch_reduction_create(  # type: ignore[override]
     return ir.TensorBox.create(r)
 
 
-ir.Reduction.create = _patch_reduction_create
 
 
 def _patch_baseview_get_traced_graph(self):
@@ -187,7 +182,6 @@ def _patch_baseview_get_traced_graph(self):
     return self.data.get_traced_graph()
 
 
-ir.BaseView.get_traced_graph = _patch_baseview_get_traced_graph
 
 
 def _patch_base_view_get_reads(self):
@@ -210,7 +204,6 @@ def _patch_base_view_get_reads(self):
     return r
 
 
-ir.BaseView.get_reads = _patch_base_view_get_reads
 
 
 def try_get_buffer(inp):
@@ -308,9 +301,6 @@ def _patch_mark_reuse(self, users, **kwargs):
         return self.data.mark_reuse(users, **kwargs)
 
 
-ir.BaseView.realize = _patch_baseview_realize
-ir.BaseView.realize_hint = _patch_baseview_realize_hint
-ir.BaseView.mark_reuse = _patch_mark_reuse
 
 
 @classmethod
@@ -350,7 +340,6 @@ def _patch_expandview_create(cls, x, new_size, traced_graph=None, node_name=None
     return r
 
 
-ir.ExpandView.create = _patch_expandview_create
 
 
 @classmethod
@@ -378,7 +367,6 @@ def _patch_permuteview_create(cls, x, dims, traced_graph=None, node_name=None):
     return r
 
 
-ir.PermuteView.create = _patch_permuteview_create
 
 
 @classmethod
@@ -436,7 +424,6 @@ def _patch_view_create(cls, x, new_size, traced_graph=None, node_name=None):
     return r
 
 
-ir.View.create = _patch_view_create
 
 
 @classmethod
@@ -488,15 +475,12 @@ def _patch_sliceview_create(
     return r
 
 
-ir.SliceView.create = _patch_sliceview_create
 
 
 def _patch_buffer_get_traced_graph(self):
     return self.traced_graph
 
 
-ir.Buffer.traced_graph = None
-ir.Buffer.get_traced_graph = _patch_buffer_get_traced_graph
 
 
 def _patch_concatkernel_get_traced_graph(self):
@@ -541,8 +525,6 @@ def _patch_concatkernel_realize_into(cls, src, dst):
     return cls.realize_into(pw, dst)
 
 
-ir.ConcatKernel.get_traced_graph = _patch_concatkernel_get_traced_graph
-ir.ConcatKernel.realize_into = _patch_concatkernel_realize_into
 
 
 def _patch_externkernel_copy_input(x):
@@ -565,7 +547,6 @@ def _patch_externkernel_copy_input(x):
     return pw
 
 
-ir.ExternKernel.copy_input = _patch_externkernel_copy_input
 
 
 @classmethod
@@ -640,9 +621,6 @@ def _patch_externkernel_convert_to_reinterpret_view(cls, x):
     return r
 
 
-ir.ExternKernel.convert_to_reinterpret_view = (
-    _patch_externkernel_convert_to_reinterpret_view
-)
 
 
 @classmethod
@@ -680,15 +658,12 @@ def _patch_devicecopy_get_traced_graph(self):
     return self.traced_graph
 
 
-ir.DeviceCopy.create = _patch_devicecopy_create
-ir.DeviceCopy.get_traced_graph = _patch_devicecopy_get_traced_graph
 
 
 def _patch_multioutput_get_traced_graph(self):
     return None
 
 
-ir.MultiOutput.get_traced_graph = _patch_multioutput_get_traced_graph
 
 
 def _patch_mutablebox_get_name(self):
@@ -699,8 +674,6 @@ def _patch_mutablebox_get_traced_graph(self):
     return self.data.get_traced_graph()
 
 
-ir.MutableBox.get_name = _patch_mutablebox_get_name
-ir.MutableBox.get_traced_graph = _patch_mutablebox_get_traced_graph
 
 
 @classmethod
@@ -746,4 +719,33 @@ def _patch_mutationlayout_realize_into(cls, src, dst, unsafe_alias=False):
     return src.data
 
 
-ir.MutationLayoutSHOULDREMOVE.realize_into = _patch_mutationlayout_realize_into
+def apply_ir_patch() -> None:
+    """Install traced-graph IR hooks for the backend selected by the loader."""
+    ir.Loops.get_name = _patch_loops_get_name
+    ir.Loops.get_traced_graph = _patch_loops_get_traced_graph
+    ir.Loops.create = _patch_loops_create
+    ir.Pointwise.constant_to_device = _patch_pointwise_constant_to_device
+    ir.Reduction.create = _patch_reduction_create
+    ir.BaseView.get_traced_graph = _patch_baseview_get_traced_graph
+    ir.BaseView.get_reads = _patch_base_view_get_reads
+    ir.BaseView.realize = _patch_baseview_realize
+    ir.BaseView.realize_hint = _patch_baseview_realize_hint
+    ir.BaseView.mark_reuse = _patch_mark_reuse
+    ir.ExpandView.create = _patch_expandview_create
+    ir.PermuteView.create = _patch_permuteview_create
+    ir.View.create = _patch_view_create
+    ir.SliceView.create = _patch_sliceview_create
+    ir.Buffer.traced_graph = None
+    ir.Buffer.get_traced_graph = _patch_buffer_get_traced_graph
+    ir.ConcatKernel.get_traced_graph = _patch_concatkernel_get_traced_graph
+    ir.ConcatKernel.realize_into = _patch_concatkernel_realize_into
+    ir.ExternKernel.copy_input = _patch_externkernel_copy_input
+    ir.ExternKernel.convert_to_reinterpret_view = (
+        _patch_externkernel_convert_to_reinterpret_view
+    )
+    ir.DeviceCopy.create = _patch_devicecopy_create
+    ir.DeviceCopy.get_traced_graph = _patch_devicecopy_get_traced_graph
+    ir.MultiOutput.get_traced_graph = _patch_multioutput_get_traced_graph
+    ir.MutableBox.get_name = _patch_mutablebox_get_name
+    ir.MutableBox.get_traced_graph = _patch_mutablebox_get_traced_graph
+    ir.MutationLayoutSHOULDREMOVE.realize_into = _patch_mutationlayout_realize_into

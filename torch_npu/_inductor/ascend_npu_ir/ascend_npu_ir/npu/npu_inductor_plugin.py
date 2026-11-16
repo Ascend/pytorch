@@ -1,39 +1,24 @@
 import atexit
-import collections
-from collections import Counter
 import functools
-import itertools
 import os
-from torch.utils._ordered_set import OrderedSet
 
 import torch
 import torch.nn.functional as F
 
 from torch._dynamo.utils import set_current_node, UnsupportedFakeTensorException
 
-from typing import (
-    Set,
-    Dict,
-    List
-)
 from torch._inductor.async_compile import shutdown_compile_workers
 from torch_npu._inductor.compile_options import register_npu_backend
-from torch._inductor.virtualized import V
-from torch._inductor.custom_graph_pass import (
-    CustomGraphPass,
-    get_hash_for_files,
-)
 
 from ..npu.codegen.akg import AkgScheduling
 from ..npu.codegen.mlir import NpuMlirScheduling
 from ..npu.codegen.wrapper import NpuMlirWrapperCodeGen
 from ..npu.npu_lowering import _register_npu_inductor_fallbacks
-from ..npu import utils as npu_utils
-from ..npu.utils import (
-    fold_sum_cast_to_dtype,
+from torch_npu._inductor.dvm.inductor_patch.fx_graph import (
     npu_optimize_fx_graph,
-    logger,
+    patch_dvm_mlir_post_grad_pass,
 )
+from ..npu.utils import logger
 
 from .. import config as anir_config
 
@@ -199,266 +184,21 @@ def wrap_aot_autograd(fn):
 
 AotAutograd.__call__ = wrap_aot_autograd(AotAutograd.__call__)
 
-def _iter_custom_graph_passes(custom_pass):
-    if custom_pass is None:
-        return ()
-    if isinstance(custom_pass, (list, tuple)):
-        return tuple(custom_pass)
-    return (custom_pass,)
-
-
-class DvmMlirPostGradPass(CustomGraphPass):
-    def __init__(self, previous_pass=None) -> None:
-        self.previous_pass = previous_pass
-
-    def __call__(self, graph: torch.fx.Graph) -> None:
-        for pass_ in _iter_custom_graph_passes(self.previous_pass):
-            pass_(graph)
-        fold_sum_cast_to_dtype(graph.owning_module)
-
-    def uuid(self):
-        previous_uuids = []
-        for pass_ in _iter_custom_graph_passes(self.previous_pass):
-            if not isinstance(pass_, CustomGraphPass):
-                return None
-            uuid = pass_.uuid()
-            if uuid is None:
-                return None
-            previous_uuids.append(uuid)
-        return get_hash_for_files(
-            (__file__, npu_utils.__file__),
-            extra=f"DvmMlirPostGradPass:{previous_uuids!r}",
-        )
-
-
-def patch_dvm_mlir_post_grad_pass(inductor_config=None) -> None:
-    if inductor_config is None:
-        from torch._inductor import config as inductor_config
-
-    post_grad_custom_post_pass = inductor_config.post_grad_custom_post_pass
-    if isinstance(post_grad_custom_post_pass, DvmMlirPostGradPass):
-        return
-    if any(
-        isinstance(pass_, DvmMlirPostGradPass)
-        for pass_ in _iter_custom_graph_passes(post_grad_custom_post_pass)
-    ):
-        return
-    inductor_config.post_grad_custom_post_pass = DvmMlirPostGradPass(
-        post_grad_custom_post_pass
-    )
-
 patch_dvm_mlir_post_grad_pass(config)
 
 # recompute last usage for inductor scheduler
-from torch._inductor import scheduler
-from torch._inductor.scheduler import (
-    Dep,
-    WeakDep,
-    Scheduler,
-    SchedulerNode,
-    SchedulerBuffer,
-    FusedSchedulerNode,
-    BaseSchedulerNode,
-    ForeachKernelSchedulerNode,
-    ExternKernelSchedulerNode,
-    NopKernelSchedulerNode,
-    WhyNoFuse,
-    MemoryDep,
-)
-
-def used_or_aliased_buffer_names(node) -> Set[str]:
-    used_names: OrderedSet[str] = OrderedSet()
-    if isinstance(node, (SchedulerNode, FusedSchedulerNode)) and not isinstance(
-        node, ForeachKernelSchedulerNode
-    ):
-        snodes = [node] if isinstance(node, SchedulerNode) else node.snodes
-        traced_graphs = [
-            getattr(getattr(snode.node, "data", None), "traced_graph", None)
-            for snode in snodes
-        ]
-        if all(traced_graph is not None for traced_graph in traced_graphs):
-            for snode, traced_graph in zip(snodes, traced_graphs):
-                used_names = used_names.union(traced_graph.get_placeholder_names())
-                used_names.add(snode.node.get_name())
-            return used_names
-
-    # TritonTemplateBuffer and other non-MLIR scheduler nodes do not carry a
-    # TracedGraph.  Their scheduler dependencies are the source of truth.
-    deps = [
-        dep.name
-        for dep in itertools.chain(node.read_writes.reads, node.read_writes.writes)
-    ]
-    while len(deps) > 0:
-        dep = deps.pop()
-        used_names.add(dep)
-        if V.graph.name_to_buffer.get(dep):
-            aliases = V.graph.name_to_buffer[dep].get_inputs_that_alias_output()
-            for alias in aliases:
-                if alias not in used_names:
-                    deps.append(alias)
-    return used_names
-
-def set_last_usage(
-    node: BaseSchedulerNode, future_used_buffers: Set[str], mutation_real_name: Dict[str, str]
-):
-    used_buffers = used_or_aliased_buffer_names(node)
-    used_buffers = OrderedSet(mutation_real_name.get(k, k) for k in used_buffers)
-    node.last_usage = used_buffers - future_used_buffers
-
-def wrap_scheduler_codegen(fn):
-    @functools.wraps(fn)
-    def npu_sheduler_codegen(self, *args, **kwargs):
-        future_used_buffers = set()
-        for node_name in V.graph.get_output_names():
-            future_used_buffers.add(node_name)
-        for node in reversed(self.nodes):
-            set_last_usage(node, future_used_buffers, self.mutation_real_name)
-            future_used_buffers.update(node.last_usage)
-        return fn(self, *args, **kwargs)
-    return npu_sheduler_codegen
-
-def npu_compute_ancestors(self) -> None:
-    """
-    Populate each node.ancestors
-    """
-    # note self.nodes is topologically sorted
-    name_to_ancestors: Dict[str, OrderedSet[str]] = {}
-    for node in self.nodes:
-        ancestors: OrderedSet[str] = OrderedSet()
-        for dep in node.unmet_dependencies:
-            if dep.name not in self.name_to_buf:
-                continue
-            dep_node_name = self.name_to_buf[dep.name].defining_op.get_name()
-            ancestors.add(dep_node_name)
-            ancestors |= name_to_ancestors[dep_node_name]
-        name_to_ancestors[node.get_name()] = ancestors
-        node.ancestors = ancestors
-
-    for order, node in enumerate(self.nodes):
-        node.min_order = order
-        node.max_order = order
-
-def _npu_prune_redundant_deps(
-    node: BaseSchedulerNode,
-    name_to_fused_node: Dict[str, BaseSchedulerNode],
-    name_to_buf: Dict[str, SchedulerBuffer],
-) -> None:
-    """
-    Prunes weakdeps intended for mutation ordering
-    on an upstream fused node if after fusion there is another dependency
-    on the fused upstream node, making the weakdep redundant
-
-    In essence this enforces an ordering on fusions. As fusions occur, weakdeps will
-    be incrementally removed, enabling other fusions, ensuring they are fused in order.
-    """
-    name_to_dep_count: Counter[str] = collections.Counter()
-
-    for dep in node.unmet_dependencies:
-        if not isinstance(dep, WeakDep) and dep.name in name_to_buf:
-            op = name_to_buf[dep.name].defining_op
-            name_to_dep_count[name_to_fused_node[op.get_name()].get_name()] += 1
-
-    def should_prune(dep: Dep) -> bool:
-        if isinstance(dep, WeakDep) and dep.name in name_to_buf:
-            op_name = name_to_buf[dep.name].defining_op.get_name()
-            is_redundant = name_to_dep_count[name_to_fused_node[op_name].get_name()] > 0
-            # These can occur because fused nodes always gather deps from their snodes
-            # If B has a weakdep on A
-            # B gets fused with C, then any time BC is fused, the weakdep will reappear
-            is_self_dep = name_to_fused_node[op_name] == node
-            return is_redundant or is_self_dep
-        else:
-            return False
-
-    deps_to_prune = OrderedSet(
-        dep for dep in node.unmet_dependencies if should_prune(dep)
-    )
-
-    if deps_to_prune:
-        node.unmet_dependencies = node.unmet_dependencies - deps_to_prune
-        node.set_read_writes(node.read_writes.remove_reads(deps_to_prune))
-
-def npu_can_fuse_vertical(
-    self,
-    node1: BaseSchedulerNode,
-    node2: BaseSchedulerNode,
-    *,
-    index_equivalent_dep_names: OrderedSet[str] | None = None,
-) -> bool:
-    """
-    Check if it is legal to fuse a consumer (node2) into a producer (node1).
-
-    We can fuse them if all the reads of node2 either match
-    corresponding writes in node1, or are written by nodes that can
-    be scheduled before the fusion of node1 and node2.
-
-    ``index_equivalent_dep_names`` relaxes write/read matching only for
-    named producer outputs; the remaining intermediate-dependency checks
-    still run normally.
-    """
-    node1_buf_names = node1.get_buffer_names()
-    node1_op_names = node1.get_operation_names()
-    computed_deps: OrderedSet[Dep] = OrderedSet()
-    why = WhyNoFuse(node1, node2)
-
-    for cd in node1.read_writes.writes:
-        if not isinstance(cd, MemoryDep):
-            continue
-        write_name = self.mutation_renames.get(cd.name, cd.name)
-        fusable_kwargs = (
-            {"allow_index_equivalence": write_name in index_equivalent_dep_names}
-            if index_equivalent_dep_names is not None
-            else {}
-        )
-        for rd in node2.unmet_dependencies:
-            if self.fusable_read_and_write(rd, cd, **fusable_kwargs):
-                computed_deps.add(rd)
-
-    for dep in node2.unmet_dependencies:
-        if isinstance(dep, WeakDep) and self.fusable_weak_dep(dep, node1, node2):
-            computed_deps.add(dep)
-
-    remaining_deps = OrderedSet(
-        dep.name for dep in node2.unmet_dependencies - computed_deps
-    )
-    if remaining_deps & node1_buf_names:
-        # MemoryDeps didn't match and read different locations of the same buffer.
-        # Examples here include:
-        #   - MemoryDep("foo", x) != MemoryDep("foo", x + 1)
-        #   - MemoryDep("foo", x) != StarDep("foo")
-        why("memory deps did not match")
-        return False
-    for name in remaining_deps:
-        if name not in self.name_to_buf:
-            continue
-        op_name = self.name_to_buf[name].defining_op_name()
-        if node1_op_names & self.name_to_fused_node[op_name].ancestors:
-            why("intermediate nodes between node1 & node2")
-            return False
-
-    return True
-
-def _npu_get_unmet_dep_nodes(self, snode: BaseSchedulerNode) -> List[BaseSchedulerNode]:
-    unmet_deps = set()
-    if isinstance(
-        snode,
-        (
-            SchedulerNode,
-            ExternKernelSchedulerNode,
-            NopKernelSchedulerNode,
-            FusedSchedulerNode,
-        ),
-    ):
-        for dep in snode.unmet_dependencies:
-            unmet_deps.add(dep.name)
-    else:
-        raise RuntimeError(
-            f"get_unmet_dep_nodes is not implemented for {type(snode)}."
-        )
-    unmet_dep_ops = (self.name_to_buf[dep].defining_op for dep in unmet_deps if dep in self.name_to_buf)
-    return list({self.name_to_fused_node[n.get_name()] for n in unmet_dep_ops})
 
 if anir_config.enable_graph_trace:
+    from torch._inductor import scheduler
+    from torch._inductor.scheduler import Scheduler
+    from torch_npu._inductor.dvm.inductor_patch.scheduler import (
+        wrap_scheduler_codegen,
+        npu_compute_ancestors,
+        _npu_prune_redundant_deps,
+        npu_can_fuse_vertical,
+        _npu_get_unmet_dep_nodes,
+    )
+
     Scheduler._codegen = wrap_scheduler_codegen(Scheduler._codegen)
     Scheduler.compute_ancestors = npu_compute_ancestors
     scheduler._prune_redundant_deps = _npu_prune_redundant_deps
