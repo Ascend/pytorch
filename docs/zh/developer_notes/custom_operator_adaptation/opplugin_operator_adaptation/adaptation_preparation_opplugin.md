@@ -1,14 +1,16 @@
 # 适配前准备
 
+本文档介绍适配前准备，涵盖明确算子名称、入参/返回值与语义，选择aclnn算子或aclop算子的适配方式并完成环境准备，适用于进行OpPlugin算子适配的开发者。
+
 - 参考PyTorch原生[ATen IR定义](https://github.com/pytorch/pytorch/tree/main/aten/src/ATen/native#readme)，明确算子名称、入参/返回值、语义等信息。
 
 - 选择算子适配方式：优先选择aclnn算子（存于op_plugin/ops/opapi），兼容需求可选aclop算子（存于op_plugin/ops/aclops）。
 
-- OpPlugin算子适配前，需确保已完成如下环境准备。
+- OpPlugin算子适配前，需确保已完成如下环境准备：
   
    1. 安装PyTorch和TorchNPU，具体请参见[源码编译](../../../installation_guide/building_from_source.md)。
 
-   2. 适配前需执行如下命令拉取TorchNPU仓对应分支的代码并进入OpPlugin目录。
+   2. 适配前需执行如下命令拉取TorchNPU仓对应分支的代码并进入OpPlugin目录：
 
       ```bash
       git clone https://gitcode.com/ascend/pytorch.git -b master --recursive

@@ -1,5 +1,7 @@
 # 适配开发
 
+本文档介绍OpPlugin算子适配开发，涵盖适配文件结构、算子yaml适配、算子代码适配与算子辅助适配的配置方法和开发步骤，适用于需要新增自定义算子适配的算子开发者。
+
 ## 适配文件结构
 
 ```text
@@ -70,9 +72,9 @@ symint:
 
 参数说明：
 
-- all\_version：表示当前PyTorch支持的所有版本，版本列表会根据TorchNPU演进调整，具体以代码为准。可通过[]设置算子支持的版本范围，例如[v2.1, newest]代表该算子支持从v2.1到最新版本。
+- all\_version：表示当前PyTorch支持的所有版本，版本列表会根据TorchNPU演进调整，具体以代码为准，可通过[]设置算子支持的版本范围，例如[v2.1, newest]代表该算子支持从v2.1到最新版本。
 - official和custom：分别表示该字段下的算子为PyTorch原生和自定义算子；symint字段表明该算子支持symint类型的入参，该种算子请参考[symint算子适配](#symint算子适配)。
-- func：表示定义算子的schema(算子描述规范)，其内容完全遵循PyTorch原生Aten IR算子schema的定义规则，通过“算子名称+入参列表+返回参数”的结构化形式，完整描述算子的调用接口与语义约束。具体规则可参考[PyTorch schema规则](reference.md#section001)。
+- func：表示定义算子的schema（算子描述规范），其内容完全遵循PyTorch原生Aten IR算子schema的定义规则，通过“算子名称+入参列表+返回参数”的结构化形式，完整描述算子的调用接口与语义约束。具体规则可参考[PyTorch schema规则](reference.md#section001)。
 - acl\_op：表示在该版本支持acl\_op调用，如果支持的版本与all\_version表示的版本一致，则可以用"all\_version"表示，可选字段。
 - op\_api：表示在该版本支持op\_api调用，如果支持的版本与all\_version表示的版本一致，则可以用"all\_version"表示，可选字段。
 - gen\_opapi：对于支持op\_api调用的算子，如果适配代码简单，可以直接调用底层算子，不需要额外的适配，则可以考虑用结构化适配的方式自动生成适配代码，详见章节[结构化适配介绍(可选)](#结构化适配介绍可选)。
@@ -126,7 +128,7 @@ backward:
 参数说明：
 
 - name：需要前反向绑定的算子接口，同op\_plugin\_functions.yaml中函数声明。
-- self和算子接口输入参数：定义入参的梯度计算方法，对于简单的可以直接用数据公式说明，对于复杂的通过底层实现的反向函数声明。
+- self和算子接口输入参数：定义入参的梯度计算方法，对于简单的可以直接用数学公式说明，对于复杂的通过底层实现的反向函数声明。
 - output_differentiability：定义输出的可微性，通过列表的方式定义多个输出中哪些是可微的。
 - result：算子接口的返回结果。
 
@@ -140,10 +142,10 @@ backward:
 > - symint类型算子需参考此部分进行适配。
 > - 以下yaml配置和适配文件为已有配置和文件，此处仅为示例，用户需根据实际场景更改。
 
-symint为PyTorch在v2.0及以上版本新增的数据类型，op\_plugin/config/op\_plugin\_functions.yaml配置中对应添加了symint类型。配置在symint字段下的函数表示底层函数实现支持了symint类型入参。对于底层不支持symint的函数，则无需在symint字段配置。当需要在symint字段配置时，用户进行如下操作进行算子适配:
+symint为PyTorch在v2.0及以上版本新增的数据类型，op\_plugin/config/op\_plugin\_functions.yaml配置中对应添加了symint类型。配置在symint字段下的函数表示底层函数实现支持了symint类型入参。对于底层不支持symint的函数，则无需在symint字段配置。当需要在symint字段配置时，用户进行如下操作进行算子适配：
 
 1. 算子在配置yaml中除了在official或custom下声明函数外，还需要同时在symint下配置该算子。
-2. 算子名称在原有名称上添加\_symint后缀，如配置支持入参为symint类型的zeros算子，yaml配置如下所示：
+2. 算子实现函数名称在原有名称上添加_symint后缀，yaml配置中的func名称保持不变，如配置支持入参为symint类型的zeros算子，yaml配置如下所示：
 
     ```yaml
     # 官方算子
@@ -156,7 +158,7 @@ symint为PyTorch在v2.0及以上版本新增的数据类型，op\_plugin/config/
        acl_op: all_version
     ```
 
-3. 算子实现在同算子文件下，新增算子名称为zeros\_symint，且入参中第一个参数的类型为symint相关的类型c10::SymIntArrayRef。由于symint特性只在PyTorch 2.0以上支持，symint相关适配代码需要根据实际版本支持情况添加版本编译宏VERSION\_BETWEEN来控制编译。
+3. 算子实现在同一算子文件下，新增算子名称为zeros\_symint，且入参中第一个参数的类型为symint相关的类型c10::SymIntArrayRef。由于symint特性只在PyTorch 2.0以上支持，symint相关适配代码需要根据实际版本支持情况添加版本编译宏VERSION\_BETWEEN来控制编译。
 
     ```cpp
     #include "op_plugin/AclOpsInterface.h"
@@ -225,7 +227,7 @@ aclnn算子适配文件路径为：op\_plugin/ops/opapi/AbsKernelNpuOpApi.cpp，
     ```
 
     > [!NOTE]  
-    > 更多算子适配常见API接口可参见[LINK](reference.md#section002)，更多常见宏定义可参见[LINK](reference.md#section003)。
+    > 更多算子适配常见API接口可参见[算子适配常见API](reference.md#section002)，更多常见宏定义可参见[算子适配常见宏定义](reference.md#section003)。
 
 3. 若接口包含多种变体，比如入参带out、原地操作(inplace)变体，需增加相应的适配代码，适配参考如下：
 
@@ -305,7 +307,7 @@ aclnn算子适配文件路径为：op\_plugin/ops/opapi/AbsKernelNpuOpApi.cpp，
 结构化适配指通过在op\_plugin\_functions.yaml中进行配置，自动完成算子适配实现，自动生成的适配文件位于op\_plugin/ops/opapi/StructKernelNpuOpApi.cpp。
 判断是否可结构化依据：opapi对应的aclnn算子与Aten IR的语义对齐，适配层除申请output tensor，无其他适配逻辑。
 
-YAML配置有以下两种方式，可根据实际情况进行选择。每个结构化适配的函数必须在op\_plugin\_functions.yaml中配置，具体实现如下：
+yaml配置有以下两种方式，可根据实际情况进行选择。每个结构化适配的函数必须在op\_plugin\_functions.yaml中配置，具体实现如下：
 
 - 常规场景
 
@@ -338,7 +340,7 @@ YAML配置有以下两种方式，可根据实际情况进行选择。每个结�
         # 方式三：条件表达式
           size: 'arg1 == 1? arg0.sizes(): at::ArrayRef<int64_t>()'
 
-        # 方式四：在KernelNpuOutputSize.h中自定义infershape函数, 例如broadcast_ops_npu_output_size
+        # 方式四：在KernelNpuOutputSize.h中自定义infershape函数，例如broadcast_ops_npu_output_size
           size: broadcast_ops_npu_output_size(arg0, arg1)
         ```
 
@@ -361,7 +363,7 @@ YAML配置有以下两种方式，可根据实际情况进行选择。每个结�
         ```
 
     - name：输出结果涉及named tensor逻辑，可配置此字段，当前仅支持name和输入参数相同的配置，不涉及可忽略。
-    - exec：配置EXEC\_NPU\_CMD对应的参数，如果除aclnnname，其它参数顺序和Aten IR的顺序相同，可只配置aclnnname，如_aclnnAbs_。以abs为例，exec字段可以配置成下面两种方式。
+    - exec：配置EXEC\_NPU\_CMD对应的参数，如果除aclnnname，其它参数顺序和Aten IR的顺序相同，可只配置aclnnname，如_aclnnAbs_。以abs为例，exec字段可以配置成下面两种方式：
 
         ```yaml
         - func: abs.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)
@@ -452,7 +454,7 @@ aclop算子是早期的算子实现方式，不推荐使用。适配文件路径
     - 入参带out变体：
 
       ```cpp
-      // abs_out api实现函数，名称唯一，参数与torch api
+      // abs_out api实现函数，名称唯一，参数与torch api一致
       at::Tensor& abs_out(const at::Tensor& self, at::Tensor& result)
       { 
           // CheckOut作用：校验result的size、dtype等是否符合预期。若dtype不符合预期，则抛错。若size不符合则进行resize操作
@@ -568,7 +570,7 @@ aclop算子是早期的算子实现方式，不推荐使用。适配文件路径
 
   - test/core\_tests/torch\_npu\_OpApi\_schema\_all.json
     > [!NOTE]  
-    > 以"op-api:"开头的表示Python接口，以"func:"开头的接口表示C++接口。
+    > 以"op_api:"开头的表示Python接口，以"func:"开头的接口表示C++接口。
     
       ```json
       {
