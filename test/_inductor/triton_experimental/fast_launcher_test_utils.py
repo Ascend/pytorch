@@ -27,7 +27,6 @@ def isolated_fast_config(enabled=True):
             "TRITON_FAST_PTR": "false",
         }))
         stack.enter_context(config.patch({
-            "compile_threads": 1,
             "cpp_wrapper": False,
             "triton.cudagraphs": False,
             "triton.store_cubin": False,
@@ -81,6 +80,31 @@ def require_fast_runner(launcher):
     return runner
 
 
+def require_fast_implementation(launcher):
+    """Verify that the selected fast path really reaches its claimed binding."""
+    inner = unwrap_launcher(launcher)
+    owner = getattr(inner, "_static_kernel_owner", None)
+    if owner is None:
+        raise AssertionError("fast launcher did not retain its static kernel owner")
+    kind = getattr(inner, "_npu_fast_launcher_kind", None)
+    if kind == "cpp_vectorcall":
+        if "fast_runner" in inner.__globals__:
+            if not isinstance(inner.__globals__["fast_runner"], require_fast_type()):
+                raise AssertionError("regenerated fast launcher does not call C++ vectorcall")
+        elif "runner" in inner.__globals__:
+            require_fast_runner(inner)
+        else:
+            raise AssertionError("fast launcher does not call C++ vectorcall")
+    elif kind == "python_inline_static":
+        if inner.__globals__.get("loaded_kernel") is not owner.loaded_kernel:
+            raise AssertionError("inline launcher does not own its loaded kernel")
+        if inner.__globals__.get("launch_kernel") is not owner._C_impl()._launch_kernel:
+            raise AssertionError("inline launcher does not call the static binding")
+    else:
+        raise AssertionError(f"unexpected fast launcher kind: {kind!r}")
+    return kind
+
+
 @contextmanager
 def observe_fast_builds():
     """Retain actual build results and count calls, without faking the runner."""
@@ -97,7 +121,7 @@ def observe_fast_builds():
         records.append(record)
         if optimized is None:
             return None
-        require_fast_runner(optimized)
+        record["kind"] = require_fast_implementation(optimized)
 
         def counted(*args, **kwargs):
             record["calls"] += 1

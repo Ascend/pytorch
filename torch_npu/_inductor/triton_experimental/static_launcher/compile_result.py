@@ -186,6 +186,11 @@ class NPUStaticTritonCompileResult(
         )
         launcher.store_cubin = False
         launcher._is_static = True
+        launcher._static_kernel_owner = kernel
+        # Retain argument and grid mappings to regenerate fast launchers with bound runners.
+        launcher._npu_fast_static_codegen = (
+            tuple(def_args), tuple(kernel.runtime_arg_names), tuple(grid_lines)
+        )
         return launcher
 
 

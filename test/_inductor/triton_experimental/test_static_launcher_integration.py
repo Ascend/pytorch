@@ -374,6 +374,14 @@ class TestTritonExperimentalStaticLauncherUnit(TestCase):
     @config.patch("use_static_triton_launcher", False)
     def test_disabled_static_launcher_does_not_probe_runtime(self):
         probe = mock.Mock(side_effect=AssertionError("unexpected runtime probe"))
+
+        def compile_config(candidate):
+            self.assertIsNone(NPUStaticTritonCompileResult.can_statically_launch(
+                object(), compile_meta={}, inductor_meta={},
+                heuristic_type=HeuristicType.POINTWISE,
+            ))
+            return candidate
+
         with mock.patch.object(static_compile_result, "_C", SimpleNamespace(
             _StaticNpuLauncher=SimpleNamespace(_is_supported=probe),
         )):
@@ -381,6 +389,16 @@ class TestTritonExperimentalStaticLauncherUnit(TestCase):
                 object(), compile_meta={}, inductor_meta={},
                 heuristic_type=HeuristicType.POINTWISE,
             ))
+            tuner = object.__new__(NPUCachingAutotuner)
+            tuner.fn = SimpleNamespace(__name__="test_launcher_policy")
+            tuner.inductor_meta = {}
+            tuner._precompile_config = compile_config
+            candidates = [triton.Config({"XBLOCK": size}) for size in (64, 128)]
+            with config.patch("compile_threads", 2):
+                results, failures, error = tuner._compile_configs_batch(candidates)
+            self.assertCountEqual(results, candidates)
+            self.assertEqual(failures, [])
+            self.assertIsNone(error)
         probe.assert_not_called()
 
     @config.patch("use_static_triton_launcher", True)
@@ -1249,7 +1267,6 @@ class TestTritonExperimentalStaticLauncherIntegration(TestCase):
             "TRITON_FAST_PTR": "false",
         }))
         stack.enter_context(config.patch({
-            "compile_threads": 1,
             "cpp_wrapper": False,
             "triton.store_cubin": False,
             "use_static_triton_launcher": True,
@@ -1286,7 +1303,16 @@ class TestTritonExperimentalStaticLauncherIntegration(TestCase):
     def _observe_launch(self, *, static=True, restore=False):
         original_init = CompiledKernel._init_handles
         original_triton = AsyncCompile.triton
+        original_make_launchers = NPUCachingAutotuner._make_launchers
         experimental_kernels = []
+        compile_results = []
+
+        def make_launchers(tuner):
+            # Inspect worker results in the parent instead of counting worker-local mocks.
+            compile_results.extend(tuner.compile_results)
+            for result in tuner.compile_results:
+                self.assertEqual(isinstance(result, NPUStaticTritonCompileResult), static)
+            return original_make_launchers(tuner)
 
         def initialize(kernel, *args, **kwargs):
             if static:
@@ -1307,6 +1333,7 @@ class TestTritonExperimentalStaticLauncherIntegration(TestCase):
                 driver.active, "launcher_cls", wraps=driver.active.launcher_cls,
             ) as launcher_mock,
             mock.patch.object(AsyncCompile, "triton", autospec=True, side_effect=compile_triton),
+            mock.patch.object(NPUCachingAutotuner, "_make_launchers", make_launchers),
         ):
             if static:
                 launcher_mock.side_effect = AssertionError(
@@ -1320,6 +1347,7 @@ class TestTritonExperimentalStaticLauncherIntegration(TestCase):
 
         # Positive evidence that compilation did not only select external ops.
         self.assertTrue(experimental_kernels)
+        self.assertTrue(compile_results)
         if static:
             init_mock.assert_not_called()
             launcher_mock.assert_not_called()
@@ -1329,7 +1357,7 @@ class TestTritonExperimentalStaticLauncherIntegration(TestCase):
         if restore:
             compile_mock.assert_not_called()
         else:
-            self.assertGreater(compile_mock.call_count, 0)
+            self.assertTrue(list((self.cache_root / "triton").rglob("*.npubin")))
 
     def _check(self, fn, inputs, *, dynamic=False, static=True, restore=False):
         with self._observe_launch(static=static, restore=restore):
@@ -1594,6 +1622,8 @@ class TestTritonExperimentalStaticLauncherIntegration(TestCase):
     def test_static_ineligible_falls_back_to_ordinary_launcher(self):
         # Force the eligibility failure without enabling GPU-specific save_cubin.
         with (
+            # Eligibility fault injection must run where the adapter mock is installed.
+            mock.patch.object(AsyncCompile, "use_process_pool", return_value=False),
             config.patch("strict_static_triton_launcher", False),
             mock.patch.object(
                 NPUStaticArtifactAdapter, "from_compiled_kernel",
@@ -1602,6 +1632,12 @@ class TestTritonExperimentalStaticLauncherIntegration(TestCase):
         ):
             self._check(self._pointwise, [self._inputs()], static=False)
         self.assertGreater(adapt.call_count, 0)
+
+    @SupportedDevices(["Ascend910_95", "Ascend950"])
+    def test_a5_group_dispatch_uses_static_launcher(self):
+        # Exercise more logical tiles than physical cores to catch incomplete static dispatch.
+        self._check(self._pointwise, [self._inputs(shape=(1 << 22,))])
+
 
     @parametrize("strict", [False, True])
     @SupportedDevices(["Ascend910B", "Ascend910_93", "Ascend950"])

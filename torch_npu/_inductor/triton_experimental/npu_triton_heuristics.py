@@ -21,6 +21,7 @@
 # disable_pointwise_autotuning need new params; GPUTarget takes 3 args; device is DeviceProperties.
 
 import copy
+import contextvars
 import functools
 import hashlib
 import logging
@@ -884,7 +885,11 @@ class NPUCachingAutotuner(CachingAutotuner):
 
         max_workers = min(compile_threads, len(configs))
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_cfg = {executor.submit(_compile_one, c): c for c in configs}
+            # Each candidate needs its own copy of the caller's config context.
+            future_to_cfg = {
+                executor.submit(contextvars.copy_context().run, _compile_one, c): c
+                for c in configs
+            }
             for future in as_completed(future_to_cfg):
                 cfg = future_to_cfg[future]
                 try:
@@ -1932,6 +1937,55 @@ def _memoized_downcast(src, dst_dtype):
     return tmp
 
 
+def _copy_downcast_output(dst, src, dtype):
+    """Copy each physical output element once, including expanded views."""
+    dst_view, src_view = _collapse_expanded_output(dst, src)
+    dst_view.copy_(src_view.to(dtype))
+
+
+def _collapse_expanded_output(dst, src=None):
+    sizes = tuple(
+        1 if size > 1 and stride == 0 else size
+        for size, stride in zip(dst.size(), dst.stride())
+    )
+    dst_view = dst.as_strided(sizes, dst.stride())
+    # Prove sparse outputs do not overlap after collapsing expanded singleton axes.
+    dimensions = sorted(
+        (abs(int(stride)), int(size))
+        for size, stride in zip(sizes, dst.stride())
+        if size > 1
+    )
+    covered = 1
+    for stride, size in dimensions:
+        if stride < covered:
+            raise RuntimeError(
+                "cannot downcast an output with non-expanded overlapping strides"
+            )
+        covered = stride * size
+    if torch._debug_has_internal_overlap(dst_view) == 1:
+        raise RuntimeError(
+            "cannot downcast an output with non-expanded overlapping strides"
+        )
+    if src is None:
+        return dst_view, None
+    return dst_view, src.as_strided(sizes, src.stride())
+
+
+def _empty_downcast_like(tensor, dtype):
+    collapsed, _ = _collapse_expanded_output(tensor)
+    # Preserve gapped strides so kernel writes stay within the temporary allocation.
+    storage = torch.empty_strided(
+        collapsed.size(), collapsed.stride(), dtype=dtype, device=tensor.device
+    )
+    return storage.as_strided(tensor.size(), tensor.stride())
+
+
+def _downcast_preserving_layout(tensor, dtype):
+    result = _empty_downcast_like(tensor, dtype)
+    _copy_downcast_output(result, tensor, dtype)
+    return result
+
+
 def _wrap_launcher_with_downcast(launcher, downcast_args, mutated_arg_names):
     """Wrap a launcher to cast i64/fp64 tensor args to i32/fp32 at the boundary.
 
@@ -1994,11 +2048,9 @@ def _wrap_launcher_with_downcast(launcher, downcast_args, mutated_arg_names):
                 continue
             if is_output:
                 tmp = (
-                    _to_dtype_preserving_layout(a, dst_dtype)
+                    _downcast_preserving_layout(a, dst_dtype)
                     if preserve_input
-                    else torch.empty_strided(
-                        a.shape, a.stride(), dtype=dst_dtype, device=a.device
-                    )
+                    else _empty_downcast_like(a, dst_dtype)
                 )
                 writebacks.append((a, tmp, src_dtype))
             else:
@@ -2011,32 +2063,14 @@ def _wrap_launcher_with_downcast(launcher, downcast_args, mutated_arg_names):
 
         ret = launcher(*new_args, stream=stream, **kwargs)
         for orig, tmp, src_dt in writebacks:
-            # copy_ casts dtypes natively; casting tmp first (tmp.to(src_dt))
-            # would materialize a full src-dtype intermediate for layouts
-            # where the fast path isn't dense. A logical copy is required for
-            # gapped layouts (a flat copy would clobber unrelated storage
-            # cells). The flat cell-for-cell copy (exact and order-independent
-            # for aliased cells) is reserved for expanded destinations, the
-            # one class copy_ refuses. Select it by testing the SAME condition
-            # the ATen guard uses -- copy_ raises iff
-            # _debug_has_internal_overlap(t) == 1, while "too hard" (2) cases
-            # such as overlapping as_strided go through the logical copy --
-            # so an OOM or device error propagates instead of diverting into
-            # a flat copy that would scribble tmp's gap cells over
-            # neighbouring storage.
-            if torch._debug_has_internal_overlap(orig) == 1:
-                span = _reachable_span(orig)
-                torch.as_strided(orig, (span,), (1,)).copy_(
-                    torch.as_strided(tmp, (span,), (1,))
-                )
-            else:
-                orig.copy_(tmp)
+            _copy_downcast_output(orig, tmp, src_dt)
+
         return ret
 
     for attr in (
         "config", "runnable", "n_regs", "n_spills", "shared", "store_cubin",
         "fn", "bin", "def_args", "call_args", "_npu_def_args", "cache_hash",
-        "_is_static", "_is_fast_static", "_static_kernel_owner",
+        "_is_static", "_is_fast_static", "_npu_fast_launcher_kind", "_static_kernel_owner",
         "_expected_positional_count",
     ):
         if hasattr(launcher, attr):

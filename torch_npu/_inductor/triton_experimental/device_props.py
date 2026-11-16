@@ -70,10 +70,7 @@ def get_npu_ub_size_bytes() -> int:
 
 @_functools.lru_cache(maxsize=None)
 def is_a5() -> bool:
-    """True on Ascend A5 (910_95, soc >= 250). A5 schedules programs across cores
-    itself, so it uses one-program-per-tile instead of the intra-core group-dispatch
-    loop (see group_dispatch). Auto-detected by soc; override with
-    ``config.force_is_a5``."""
+    """Detect Ascend A5, with force_is_a5 override and core-sized grids for static launches."""
     from . import config as ncfg
     if ncfg.force_is_a5 is not None:
         return ncfg.force_is_a5

@@ -124,6 +124,30 @@ class TestLauncherCodegen(unittest.TestCase):
         self.assertEqual(fast_calls, [(64, 1, 1, 19)])
         self.assertEqual(len(calls), len(counts))
 
+    def test_fallback_grid_stride_uses_physical_cores(self):
+        for cores in (40, 48):
+            for bindings in ((), ("runner", "max", "min")):
+                with self.subTest(cores=cores, bindings=bindings):
+                    launcher, calls = self.make_launcher(
+                        ["xnumel"],
+                        {"npu_linearize": False, "npu_num_x_nodes": 0,
+                         "npu_grid_stride": True},
+                        blocks={"XBLOCK": 3032}, num_cores=cores,
+                        bound_names=bindings,
+                    )
+                    for count in (0, 1, 1038336):
+                        launcher(count, stream=17)
+                    self.assertEqual([call[0] for call in calls], [cores] * 3)
+                    self.assertNotIn("_grid_cache", launcher.__globals__)
+
+    def test_non_linearize_pointwise_does_not_clamp_tiles(self):
+        launcher, calls = self.make_launcher(
+            ["xnumel"], {"npu_linearize": False, "npu_num_x_nodes": 0},
+            blocks={"XBLOCK": 3032}, num_cores=40,
+        )
+        launcher(1038336, stream=17)
+        self.assertEqual(calls, [(343, 1, 1, 17)])
+
     def test_exact_grid_does_not_change_other_dispatch_modes(self):
         cases = [
             # Missing flag keeps the legacy linearize behavior.

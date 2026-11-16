@@ -18,6 +18,7 @@ def _can_clamp_1d_grid(inductor_meta, def_args, arg_names):
     npu_num_x_nodes = inductor_meta.get("npu_num_x_nodes")
     return (
         npu_num_x_nodes in (0, 1)
+        and inductor_meta.get("npu_linearize", True)
         and inductor_meta.get("grid_type", "Grid1D") == "Grid1D"
         and "xnumel" in def_args
         and "R0_BLOCK" not in set(arg_names)
@@ -50,11 +51,7 @@ def _gen_grid_code(scope, def_args, arg_names, cfg, inductor_meta, *, num_cores,
         and not npu_rsplit_partial
     )
 
-    # A5 (910_95) one-program-per-tile: kernel emits group_size=1/group_base=program_id
-    # per free-x shape, so the launcher must launch EXACTLY total_blocks (over/under
-    # aliases or drops tiles — odometer periodic modulo total_blocks). Codegen injects a
-    # recipe reproducing it host-side (references XBLOCK literal + <x>numel args); over
-    # 65535 coreDim folds logical→physical. Falls through to group-dispatch when absent.
+    # Direct A5 dispatch uses logical tile counts; static dispatch uses physical core counts.
     is_te_combo = inductor_meta.get("te_combo_meta") is not None
     _recipe = inductor_meta.get("npu_dispatch_recipe")
     _grid_recipe_lines = None
@@ -85,11 +82,7 @@ def _gen_grid_code(scope, def_args, arg_names, cfg, inductor_meta, *, num_cores,
         grid_0_expr = "1"
         grid_0_is_memoized = False
     elif is_simple_1d:
-        # Clamp to num_cores: below it, the full count wastes overhead on idle cores;
-        # the group-dispatch body is well-defined for grid < total_thread (excess lanes
-        # get group_size=0). Lower-bound at 1: an unbacked size can be 0 (speech_transformer
-        # empty slice → xnumel==0) and CANN rejects coreDim==0 (EE1003); one program is a
-        # correct no-op (mask all False). A5 with a free x-axis takes the recipe path.
+        # Clamp grouped grids to available cores and keep one masked program for empty inputs.
         grid_0_expr = (
             f"max(1, min((xnumel + {xblock_val} - 1) // {xblock_val}, {num_cores}))"
         )
@@ -99,6 +92,14 @@ def _gen_grid_code(scope, def_args, arg_names, cfg, inductor_meta, *, num_cores,
         # max/min run only when xnumel changes, still correct for any value.
         # The caller decides whether the cache is a global or a bound default.
         grid_0_is_memoized = True
+    elif (
+        inductor_meta.get("npu_grid_stride")
+        and grid_type == "Grid1D"
+        and "xnumel" in def_args
+    ):
+        # Grid-stride kernels launch physical cores instead of one program per logical tile.
+        grid_0_expr = str(num_cores)
+        grid_0_is_memoized = False
     elif (
         not inductor_meta.get("npu_linearize", True)
         and grid_type == "Grid1D"

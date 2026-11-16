@@ -128,6 +128,34 @@ class BoundFastLaunch:
         self._negative_launcher = None
         self._negative_callable = None
 
+    def _delegate_static_run(self) -> bool:
+        """Replace this shim with the autotuner's cached static entry after its first launch."""
+        if self._call_slot is None:
+            return False
+        checker = getattr(self.autotuner, "is_statically_launchable", None)
+        if not callable(checker):
+            return False
+        try:
+            static = bool(checker())
+        except Exception:
+            return False
+        if not static:
+            return False
+        run = getattr(self.autotuner, "run", None)
+        if not callable(run):
+            return False
+        cached = getattr(self.autotuner, "_cached_launcher", None)
+        launchers = getattr(self.autotuner, "launchers", None)
+        if not callable(cached) or launchers is None:
+            return False
+        self._call_slot[0] = FinalizedStaticLaunch(
+            self,
+            self.autotuner,
+            cached,
+            launchers,
+        )
+        return True
+
     def _install_negative(self, launcher: Any) -> None:
         self._direct = None
         self._negative_launcher = launcher
@@ -291,18 +319,43 @@ class BoundFastLaunch:
         # Promotion is deliberately after the original call: autotune,
         # coordinate descent, store-cubin, and debug semantics must complete
         # before the planned path may observe a launcher as stable.
-        self._try_promote(args)
+        if not self._try_promote(args):
+            self._delegate_static_run()
         return result
 
 
 class FinalizedFastLaunch:
     """Steady-state entry installed directly into a generated call slot."""
 
-    __slots__ = ("bound", "direct")
+    __slots__ = (
+        "bound",
+        "direct",
+        "_enter_callbacks",
+        "_exit_callbacks",
+        "_legacy_hooks_active",
+    )
 
     def __init__(self, bound: BoundFastLaunch, direct: PlannedFastLaunch) -> None:
         self.bound = bound
         self.direct = direct
+        launcher = direct.launcher
+        enter = getattr(launcher, "_npu_fast_launch_enter_hook_callbacks", None)
+        exit = getattr(launcher, "_npu_fast_launch_exit_hook_callbacks", None)
+        self._enter_callbacks = enter if enter is not None else ()
+        self._exit_callbacks = exit if exit is not None else ()
+        self._legacy_hooks_active = bool(
+            enter is None
+            and exit is None
+            and getattr(launcher, "_npu_fast_launch_has_launch_hooks", False)
+        )
+
+    def _hooks_active(self) -> bool:
+        # Retain Triton's mutable hook list so profiler start/stop changes remain visible.
+        return bool(
+            self._legacy_hooks_active
+            or self._enter_callbacks
+            or self._exit_callbacks
+        )
 
     def __call__(
         self,
@@ -324,7 +377,7 @@ class FinalizedFastLaunch:
                 benchmark_run=benchmark_run,
                 **kwargs,
             )
-        if _launcher_has_active_launch_hooks(self.direct.launcher):
+        if self._hooks_active():
             return self.bound._hook_fallback(
                 self.direct.launcher,
                 args,
@@ -346,6 +399,45 @@ class FinalizedFastLaunch:
         return None
 
 
+class FinalizedStaticLaunch:
+    """Dispatch cached static launches directly unless the call needs the full wrapper."""
+
+    __slots__ = ("bound", "autotuner", "cached", "launchers")
+
+    def __init__(
+        self,
+        bound: BoundFastLaunch,
+        autotuner: Any,
+        cached: Any,
+        launchers: Any,
+    ) -> None:
+        self.bound = bound
+        self.autotuner = autotuner
+        self.cached = cached
+        self.launchers = launchers
+
+    def __call__(
+        self,
+        *args: Any,
+        stream: Any,
+        benchmark_run: bool = False,
+        **kwargs: Any,
+    ) -> Any:
+        if (
+            benchmark_run
+            or kwargs
+            or autograd_profiler._is_profiler_enabled
+            or self.autotuner.launchers is not self.launchers
+        ):
+            return self.bound(
+                *args,
+                stream=stream,
+                benchmark_run=benchmark_run,
+                **kwargs,
+            )
+        return self.cached(*args, stream=stream)
+
+
 def bind_python_wrapper_kernel_fast(
     metadata: dict[str, Any],
     autotuner: Any,
@@ -365,5 +457,6 @@ def bind_python_wrapper_kernel_fast(
 __all__ = [
     "BoundFastLaunch",
     "FinalizedFastLaunch",
+    "FinalizedStaticLaunch",
     "bind_python_wrapper_kernel_fast",
 ]

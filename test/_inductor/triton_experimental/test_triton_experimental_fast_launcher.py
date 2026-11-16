@@ -126,6 +126,7 @@ class TestFastLauncherPython(TestCase):
         self.assertIs(baseline.__globals__["runner"].__self__, kernel)
         self.assertIs(optimized.__globals__["runner"], fast_runner)
         self.assertIs(optimized._static_kernel_owner, kernel)
+        self.assertEqual(optimized._npu_fast_launcher_kind, "cpp_vectorcall")
         for attr in (
             "config", "cache_hash", "n_regs", "n_spills", "shared",
             "store_cubin", "_is_static", "_npu_def_args", "_expected_positional_count",
@@ -143,6 +144,69 @@ class TestFastLauncherPython(TestCase):
         del optimized
         gc.collect()
         self.assertIsNone(owner_ref())
+
+    def test_missing_cpp_binding_uses_inline_static_call(self):
+        kernel = FakeKernel()
+        baseline = make_launcher(kernel)
+        baseline._npu_fast_static_codegen = (
+            ("in_ptr0", "out_ptr0", "xnumel"),
+            ("in_ptr0", "out_ptr0", "xnumel"),
+            ("    grid_0 = 1",),
+        )
+        tuner = make_autotuner(baseline)
+        calls = []
+
+        def launch(loaded, grid_0, grid_1, grid_2, stream, args):
+            calls.append((loaded, grid_0, grid_1, grid_2, stream, args))
+        kernel._C_impl = lambda: SimpleNamespace(_launch_kernel=launch)
+
+        with (
+            mock.patch.object(torch_npu._C, "_FastNpuLauncher", None, create=True),
+        ):
+            tuner.run("first", "out", 3, stream=11)
+            tuner.run("second", "out", 5, stream=13)
+            optimized = tuner._cached_launcher
+        self.assertEqual(optimized._npu_fast_launcher_kind, "python_inline_static")
+        self.assertIs(optimized._static_kernel_owner, kernel)
+        self.assertEqual(kernel.calls, [(1, 1, 1, 11, "first", "out", 3)])
+        self.assertEqual(calls, [(kernel.loaded_kernel, 1, 1, 1, 13, ("second", "out", 5))])
+        self.assertIs(tuner.launchers[0], baseline)
+        owner_ref = weakref.ref(kernel)
+        del baseline, tuner, kernel
+        gc.collect()
+        self.assertIsNotNone(owner_ref())
+        del optimized
+        gc.collect()
+        self.assertIsNone(owner_ref())
+
+
+    def test_inline_static_preserves_downcast_writeback(self):
+        kernel = FakeKernel()
+
+        def launch(loaded, grid_0, grid_1, grid_2, stream, args):
+            self.assertEqual(args[1].dtype, torch.int32)
+            args[1].fill_(9)
+
+        kernel._C_impl = lambda: SimpleNamespace(_launch_kernel=launch)
+        baseline = make_launcher(kernel)
+        baseline._npu_fast_static_codegen = (
+            ("in_ptr0", "out_ptr0", "xnumel"),
+            ("in_ptr0", "out_ptr0", "xnumel"),
+            ("    grid_0 = 1",),
+        )
+        wrapped = heuristics._wrap_launcher_with_downcast(
+            baseline, {"out_ptr0": "*i64"}, {"out_ptr0"},
+        )
+        tuner = make_autotuner(wrapped)
+        tuner.triton_meta["downcast_args"] = {"out_ptr0": "*i64"}
+        tuner.mutated_arg_names = ["out_ptr0"]
+        with mock.patch.object(torch_npu._C, "_FastNpuLauncher", None, create=True):
+            optimized = tuner._build_fast_launcher(wrapped)
+        self.assertIsNotNone(optimized)
+        self.assertEqual(optimized._npu_fast_launcher_kind, "python_inline_static")
+        output = torch.tensor([7, 8], dtype=torch.int64)
+        optimized(torch.tensor([1, 2], dtype=torch.int32), output, 2, stream=0)
+        self.assertEqual(output, torch.tensor([9, 9], dtype=torch.int64))
 
     @parametrize("enabled", [False, True])
     def test_unavailable_fast_uses_static_fallback(self, enabled):
@@ -174,6 +238,54 @@ class TestFastLauncherPython(TestCase):
         with mock.patch.object(torch_npu._C, "_FastNpuLauncher", create=True) as ctor:
             self.assertIsNone(make_autotuner(old)._build_fast_launcher(old))
         ctor.assert_not_called()
+
+
+    @parametrize("native", [False, True])
+    def test_bound_runner_with_recipe_regenerates_fast_launcher(self, native):
+        kernel = FakeKernel()
+        scope = {"runner": kernel.run}
+        exec(
+            "def launcher(in_ptr0, out_ptr0, xnumel, stream, runner=runner):\n"
+            "    grid_0 = 1\n"
+            "    runner(grid_0, 1, 1, stream, in_ptr0, out_ptr0, xnumel)\n",
+            scope,
+        )
+        baseline = scope["launcher"]
+        del scope["runner"]
+        baseline.__dict__.update(make_launcher(kernel).__dict__)
+        baseline._static_kernel_owner = kernel
+        baseline._npu_fast_static_codegen = (
+            ("in_ptr0", "out_ptr0", "xnumel"),
+            ("in_ptr0", "out_ptr0", "xnumel"),
+            ("    grid_0 = 1",),
+        )
+        native_runner = mock.Mock()
+        inline_calls = []
+
+        def launch(*args):
+            inline_calls.append(args)
+
+        kernel._C_impl = lambda: SimpleNamespace(_launch_kernel=launch)
+        with mock.patch.object(
+            torch_npu._C, "_FastNpuLauncher",
+            (lambda loaded: native_runner) if native else None, create=True,
+        ):
+            optimized = make_autotuner(baseline)._build_fast_launcher(baseline)
+        self.assertIsNotNone(optimized)
+        self.assertEqual(
+            optimized._npu_fast_launcher_kind,
+            "cpp_vectorcall" if native else "python_inline_static",
+        )
+        baseline("old", "out", 3, stream=11)
+        optimized("new", "out", 5, stream=13)
+        self.assertEqual(kernel.calls, [(1, 1, 1, 11, "old", "out", 3)])
+        if native:
+            native_runner.assert_called_once_with(1, 1, 1, 13, "new", "out", 5)
+        else:
+            self.assertEqual(
+                inline_calls,
+                [(kernel.loaded_kernel, 1, 1, 1, 13, ("new", "out", 5))],
+            )
 
     def test_cache_created_after_success_and_reused(self):
         baseline = make_launcher(FakeKernel())
@@ -331,6 +443,67 @@ class TestFastLauncherPython(TestCase):
         expected = [8, 10] if mode == "input_output" else [3, 5]
         self.assertEqual(output, torch.tensor(expected, dtype=output.dtype))
 
+@instantiate_parametrized_tests
+class TestFastLauncherCompile(TestCase):
+    def setUp(self):
+        super().setUp()
+        if not torch.npu.is_available():
+            self.skipTest("requires an available NPU")
+        stack = ExitStack()
+        self.addCleanup(stack.close)
+        stack.enter_context(isolated_fast_config(True))
+
+    @parametrize("enabled", [False, True])
+    def test_compile_positive_hit_and_disable(self, enabled):
+        with config.patch("use_fast_triton_launcher", enabled), observe_fast_builds() as records:
+            compiled = torch.compile(
+                lambda x, y: x + y, fullgraph=True,
+                options={"npu_backend": "triton_experimental"},
+            )
+            x, y = torch.randn(1024, device="npu"), torch.randn(1024, device="npu")
+            for _ in range(3):
+                self.assertEqual(compiled(x, y), x + y)
+        if enabled:
+            self.assertTrue(any(record["fast"] is not None for record in records))
+            self.assertGreater(sum(record["calls"] for record in records), 0)
+        else:
+            self.assertFalse(any(record["fast"] is not None for record in records))
+
+    def test_dynamic_shapes_hit_fast(self):
+        with observe_fast_builds() as records:
+            compiled = torch.compile(
+                lambda x: torch.relu(x + 1), dynamic=True, fullgraph=True,
+                options={"npu_backend": "triton_experimental"},
+            )
+            for size in (257, 8193, 513, 257):
+                x = torch.randn(size, device="npu")
+                for _ in range(2):
+                    self.assertEqual(compiled(x), torch.relu(x + 1))
+        self.assertGreater(sum(record["calls"] for record in records), 0)
+
+    def test_nondefault_stream_and_graph_replay(self):
+        stream = torch.npu.Stream()
+        stream.wait_stream(torch.npu.current_stream())
+        with torch.npu.stream(stream), observe_fast_builds() as records:
+            compiled = torch.compile(
+                lambda x: x + 1, fullgraph=True,
+                options={"npu_backend": "triton_experimental"},
+            )
+            x = torch.zeros(1024, device="npu")
+            for _ in range(3):
+                compiled(x)
+            stream.synchronize()
+            calls_before_capture = sum(record["calls"] for record in records)
+            graph = torch.npu.NPUGraph()
+            with torch.npu.graph(graph, stream=stream):
+                out = compiled(x)
+            self.assertGreater(sum(record["calls"] for record in records), calls_before_capture)
+            for value in (0.5, 1.0, -2.0):
+                x.fill_(value)
+                graph.replay()
+                stream.synchronize()
+                self.assertEqual(out.cpu(), torch.full((1024,), value + 1))
+
 
 @instantiate_parametrized_tests
 class TestFastLauncherDevice(TestCase):
@@ -338,6 +511,8 @@ class TestFastLauncherDevice(TestCase):
         super().setUp()
         if not torch.npu.is_available():
             self.skipTest("requires an available NPU")
+        if getattr(torch_npu._C, "_FastNpuLauncher", None) is None:
+            self.skipTest("installed torch_npu binary has no C++ vectorcall binding")
         self.fast_type = require_fast_type()
         stack = ExitStack()
         self.addCleanup(stack.close)
@@ -462,59 +637,6 @@ class TestFastLauncherDevice(TestCase):
                     fast(*args)
                 torch.npu.synchronize()
                 self.assertEqual(output.cpu(), torch.tensor([23], dtype=torch.int32))
-
-    @parametrize("enabled", [False, True])
-    def test_compile_positive_hit_and_disable(self, enabled):
-        with config.patch("use_fast_triton_launcher", enabled), observe_fast_builds() as records:
-            compiled = torch.compile(
-                lambda x, y: x + y, fullgraph=True,
-                options={"npu_backend": "triton_experimental"},
-            )
-            x, y = torch.randn(1024, device="npu"), torch.randn(1024, device="npu")
-            for _ in range(3):
-                self.assertEqual(compiled(x, y), x + y)
-        if enabled:
-            self.assertTrue(any(record["fast"] is not None for record in records))
-            self.assertGreater(sum(record["calls"] for record in records), 0)
-        else:
-            self.assertFalse(any(record["fast"] is not None for record in records))
-
-    def test_dynamic_shapes_hit_fast(self):
-        with observe_fast_builds() as records:
-            compiled = torch.compile(
-                lambda x: torch.relu(x + 1), dynamic=True, fullgraph=True,
-                options={"npu_backend": "triton_experimental"},
-            )
-            for size in (257, 8193, 513, 257):
-                x = torch.randn(size, device="npu")
-                # A repeated call also exercises a newly specialized fast runner.
-                for _ in range(2):
-                    self.assertEqual(compiled(x), torch.relu(x + 1))
-        self.assertGreater(sum(record["calls"] for record in records), 0)
-
-    def test_nondefault_stream_and_graph_replay(self):
-        stream = torch.npu.Stream()
-        stream.wait_stream(torch.npu.current_stream())
-        with torch.npu.stream(stream), observe_fast_builds() as records:
-            compiled = torch.compile(
-                lambda x: x + 1, fullgraph=True,
-                options={"npu_backend": "triton_experimental"},
-            )
-            x = torch.zeros(1024, device="npu")
-            for _ in range(3):
-                compiled(x)
-            stream.synchronize()
-            calls_before_capture = sum(record["calls"] for record in records)
-            graph = torch.npu.NPUGraph()
-            with torch.npu.graph(graph, stream=stream):
-                out = compiled(x)
-            self.assertGreater(sum(record["calls"] for record in records), calls_before_capture)
-            for value in (0.5, 1.0, -2.0):
-                x.fill_(value)
-                graph.replay()
-                stream.synchronize()
-                self.assertEqual(out.cpu(), torch.full((1024,), value + 1))
-
 
 if __name__ == "__main__":
     run_tests()

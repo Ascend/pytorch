@@ -24,6 +24,29 @@ from torch._inductor import config
 from torch_npu._inductor.triton_experimental import config as ncfg, npu_triton_heuristics
 
 
+class TestDowncastOutputLayouts(unittest.TestCase):
+    def test_gapped_output_keeps_kernel_strides_and_writeback(self):
+        shape = (4, 4, 1, 10)
+        strides = (96, 24, 384, 1)
+        for original_dtype, signature in (
+            (torch.int64, "*i64"), (torch.float64, "*fp64")
+        ):
+            with self.subTest(dtype=original_dtype):
+                output = torch.empty_strided(shape, strides, dtype=original_dtype)
+                expected = torch.arange(160).view(shape).to(original_dtype)
+
+                def launch(out_ptr0, stream=None):
+                    # Keep the strides recorded by the compiled kernel during boundary conversion.
+                    out_ptr0.as_strided(shape, strides).copy_(expected)
+
+                launch._npu_def_args = ("out_ptr0",)
+                wrapped = npu_triton_heuristics._wrap_launcher_with_downcast(
+                    launch, {"out_ptr0": signature}, set()
+                )
+                wrapped(output)
+                torch.testing.assert_close(output, expected, atol=0, rtol=0)
+
+
 class TestDowncastMemoWindows(unittest.TestCase):
     def setUp(self):
         super().setUp()
