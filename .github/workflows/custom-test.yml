@@ -447,13 +447,12 @@ jobs:
       device_env: 'privateuse1,cpu'
       patch_triton_cxx20: true
       cases_artifact_name: custom_test_cases-a3
-      # 失败用例分级重试：分片首轮 8 并发跑完后，失败用例先 8 并发重试一轮，
-      # 再 8 并发重试一轮，仍失败再单并发重试一轮；最终仍失败才算真失败，
-      # 首轮失败后续成功的记为不稳定用例。
+      # 失败用例重试：分片首轮 8 并发跑完后，失败用例按 8 并发重试 3 轮；
+      # 最终仍失败才算真失败，首轮失败后续成功的记为不稳定用例。
       retry_failed_cases: true
       retry_max_cases: '0'
       retry_attempts: '3'
-      retry_max_workers: '8,8,1'
+      retry_max_workers: '8'
 
   test-a5:
     name: custom a5
@@ -482,7 +481,7 @@ jobs:
       retry_failed_cases: true
       retry_max_cases: '0'
       retry_attempts: '3'
-      retry_max_workers: '8,8,1'
+      retry_max_workers: '8'
 
   # ==========================================================================
   # 4. 报告: 每个平台各生成一份，格式与 a3/a5 nightly 一致
