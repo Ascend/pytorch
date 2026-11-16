@@ -14,7 +14,7 @@
 | [算子执行与兼容性](op_execution/_menu_op_execution.md) | 控制算子下发、同步执行、数值模式、溢出检测、实现切换及CPU回退行为。 |
 | [单算子编译与缓存](op_compilation/_menu_op_compilation.md) | 配置单算子模式的编译缓存；torch.compile配置见图编译分类。 |
 | [内存管理](memory_management/_menu_memory_management.md) | 配置缓存分配器、内存复用、OOM快照和对称内存。 |
-| [分布式通信与诊断](collective_communication/_menu_collective_communication.md) | 配置HCCL进程组、通信同步、超时诊断和状态采集。 |
+| [分布式通信与诊断](collective_communication/_menu_collective_communication.md) | 配置HCCL进程组、通信同步、超时诊断、Flight Recorder故障记录和状态采集。 |
 | [日志与告警](alarm_message_printing/_menu_alarm_message_printing.md) | 配置TorchNPU通用日志、告警和错误输出；通信及图编译专用诊断配置保留在对应分类。 |
 | [特征值检测](eigenvalue_detection/_menu_eigenvalue_detection.md) | 配置特征值检测功能及其检测阈值。 |
 | [性能优化与采集](performance_tuning/_menu_performance_tuning.md) | 配置CPU绑核、Eager算子融合和Profiler动态采集。 |
@@ -77,7 +77,7 @@
 
 ## 分布式通信与诊断
 
-配置HCCL进程组、通信同步、超时诊断和状态采集。
+配置HCCL进程组、通信同步、超时诊断、Flight Recorder故障记录和状态采集。
 
 ### 通信执行与同步
 
@@ -96,6 +96,15 @@
 | 环境变量名称 | 简介 |
 | --- | --- |
 |[TORCH_HCCL_DESYNC_DEBUG](collective_communication/TORCH_HCCL_DESYNC_DEBUG.md)|当使用HCCL作为通信后端时，通过此环境变量可控制是否进行通信超时分析。|
+|[TORCH_FR_BUFFER_SIZE](collective_communication/TORCH_FR_BUFFER_SIZE.md)|当使用HCCL作为通信后端时，通过此环境变量可配置飞行记录器（Flight Recorder，简称FR）环形缓冲区最多保存的通信记录条数。|
+|[TORCH_FR_CPP_STACK](collective_communication/TORCH_FR_CPP_STACK.md)|当使用HCCL作为通信后端时，通过此环境变量可控制Flight Recorder是否采集通信操作的C++调用栈。|
+|[TORCH_HCCL_ENABLE_TIMING](collective_communication/TORCH_HCCL_ENABLE_TIMING.md)|当使用HCCL作为通信后端时，通过此环境变量可控制是否为通信操作启用计算设备执行时长的NPU计时事件。|
+|[TORCH_FR_DUMP_TEMP_FILE](collective_communication/TORCH_FR_DUMP_TEMP_FILE.md)|当使用HCCL作为通信后端时，通过此环境变量可配置Flight Recorder诊断数据的输出路径及文件名。|
+|[TORCH_FR_DUMP_DYNAMIC_FILE_NAME](collective_communication/TORCH_FR_DUMP_DYNAMIC_FILE_NAME.md)|当使用HCCL作为通信后端时，通过此环境变量可控制Flight Recorder是否使用动态文件名写入诊断数据。|
+|[TORCH_HCCL_EXTRA_DUMP_ON_EXEC](collective_communication/TORCH_HCCL_EXTRA_DUMP_ON_EXEC.md)|当使用HCCL作为通信后端时，通过此环境变量可控制WatchDog在标准异常出口额外尝试采集一次诊断快照。该路径可覆盖communicator预检查发现异步错误、异步错误查询接口本身失败等可能未经过常规Work转储请求的情况。|
+|[TORCH_HCCL_DEBUG_INFO_PIPE_FILE](collective_communication/TORCH_HCCL_DEBUG_INFO_PIPE_FILE.md)|当使用HCCL作为通信后端时，通过此环境变量可指定手动触发FR转储的命名管道前缀。监控线程为默认进程组创建`<prefix><rank>.pipe`，向管道写入任意非空内容可请求当前rank异步采集诊断信息。|
+|[TORCH_INCLUDE_STACK_TRACE](collective_communication/TORCH_INCLUDE_STACK_TRACE.md)|当使用HCCL作为通信后端时，通过此环境变量可控制监控线程执行常规故障转储或管道转储时，是否输出FR条目的调用栈。|
+|[TORCH_INCLUDE_ONLY_ACTIVE](collective_communication/TORCH_INCLUDE_ONLY_ACTIVE.md)|当使用HCCL作为通信后端时，通过此环境变量可控制监控、管道和WatchDog异常出口额外转储是否仅包含尚未观测到完成的FR通信条目。|
 
 ### 状态采集
 

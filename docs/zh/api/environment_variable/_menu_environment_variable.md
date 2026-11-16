@@ -116,6 +116,33 @@
   <!-- npu="950,A3,910b,910,310p" id37 -->
   - [TORCH_HCCL_DESYNC_DEBUG](collective_communication/TORCH_HCCL_DESYNC_DEBUG.md)
   <!-- end id37 -->
+  <!-- npu="950,A3,910b,910" id79 -->
+  - [TORCH_FR_BUFFER_SIZE](collective_communication/TORCH_FR_BUFFER_SIZE.md)
+  <!-- end id79 -->
+  <!-- npu="950,A3,910b,910" id81 -->
+  - [TORCH_FR_CPP_STACK](collective_communication/TORCH_FR_CPP_STACK.md)
+  <!-- end id81 -->
+  <!-- npu="950,A3,910b,910" id83 -->
+  - [TORCH_HCCL_ENABLE_TIMING](collective_communication/TORCH_HCCL_ENABLE_TIMING.md)
+  <!-- end id83 -->
+  <!-- npu="950,A3,910b,910" id84 -->
+  - [TORCH_FR_DUMP_TEMP_FILE](collective_communication/TORCH_FR_DUMP_TEMP_FILE.md)
+  <!-- end id84 -->
+  <!-- npu="950,A3,910b,910" id86 -->
+  - [TORCH_FR_DUMP_DYNAMIC_FILE_NAME](collective_communication/TORCH_FR_DUMP_DYNAMIC_FILE_NAME.md)
+  <!-- end id86 -->
+  <!-- npu="950,A3,910b,910" id89 -->
+  - [TORCH_HCCL_EXTRA_DUMP_ON_EXEC](collective_communication/TORCH_HCCL_EXTRA_DUMP_ON_EXEC.md)
+  <!-- end id89 -->
+  <!-- npu="950,A3,910b,910" id93 -->
+  - [TORCH_HCCL_DEBUG_INFO_PIPE_FILE](collective_communication/TORCH_HCCL_DEBUG_INFO_PIPE_FILE.md)
+  <!-- end id93 -->
+  <!-- npu="950,A3,910b,910" id94 -->
+  - [TORCH_INCLUDE_STACK_TRACE](collective_communication/TORCH_INCLUDE_STACK_TRACE.md)
+  <!-- end id94 -->
+  <!-- npu="950,A3,910b,910" id95 -->
+  - [TORCH_INCLUDE_ONLY_ACTIVE](collective_communication/TORCH_INCLUDE_ONLY_ACTIVE.md)
+  <!-- end id95 -->
   <!-- npu="950,A3,910b,910" id38 -->
   - [TORCH_HCCL_STATUS_SAVE_ENABLE](collective_communication/TORCH_HCCL_STATUS_SAVE_ENABLE.md)
   <!-- end id38 -->
