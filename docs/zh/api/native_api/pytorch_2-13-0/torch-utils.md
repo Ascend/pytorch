@@ -11,6 +11,7 @@
 <div style="margin: 8px 0"><font size="5"><b>目录</b></font></div>
 
 - [torch.utils.backend_registration](#torchutilsbackend_registration)
+- [torch.utils.hipify.hipify_python](#torchutilshipifyhipify_python)
 
 </div>
 
@@ -79,5 +80,27 @@
 <!-- npu="950" id15 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id15 -->
+
+</div>
+
+## torch.utils.hipify.hipify_python
+
+### torch.utils.hipify.hipify_python.hipify
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.utils.hipify.hipify_python.hipify](https://pytorch.org/docs/2.13/generated/torch.utils.hipify.hipify_python.hipify.html#torch.utils.hipify.hipify_python.hipify)
+
+**产品支持情况**：
+
+<!-- npu="910b" id16 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id16 -->
+<!-- npu="A3" id17 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id17 -->
+<!-- npu="950" id18 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id18 -->
 
 </div>
