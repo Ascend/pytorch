@@ -7,6 +7,17 @@ on:
         required: true
         type: string
         description: Short SHA of upstream PyTorch (from _build.yml outputs)
+      resolved_sha:
+        required: true
+        type: string
+        description: >-
+          Full 40-char SHA of upstream PyTorch the shards check out from the
+          in-cluster git-cdn. A short SHA cannot be fetched directly.
+      upstream_repo:
+        required: false
+        type: string
+        default: 'pytorch/pytorch'
+        description: The upstream repository full name (owner/repo) the source is cloned from.
       torch_npu_short:
         required: false
         type: string
@@ -133,9 +144,8 @@ on:
         default: 'obs.ap-southeast-1.myhuaweicloud.com'
         description: >-
           OBS endpoint for the wheels cache objects (wheel downloads in
-          the collect and shard jobs). The PyTorch source tarball always
-          stays on the legacy ap-southeast-1 endpoint regardless of this
-          input. Must match the endpoint the build phase uploaded to.
+          the collect and shard jobs). The PyTorch source itself comes from
+          the in-cluster git-cdn, not from OBS.
       wheels_obs_bucket:
         required: false
         type: string
@@ -161,6 +171,8 @@ jobs:
     secrets: inherit
     with:
       resolved_short: ${{ inputs.resolved_short }}
+      resolved_sha: ${{ inputs.resolved_sha }}
+      upstream_repo: ${{ inputs.upstream_repo }}
       pytorch_wheels_tarball: ${{ inputs.pytorch_wheels_tarball }}
       torchnpu_wheels_tarball: ${{ inputs.torchnpu_wheels_tarball }}
       case_paths_config: ${{ inputs.case_paths_config }}
@@ -191,6 +203,8 @@ jobs:
     secrets: inherit
     with:
       resolved_short: ${{ inputs.resolved_short }}
+      resolved_sha: ${{ inputs.resolved_sha }}
+      upstream_repo: ${{ inputs.upstream_repo }}
       pytorch_wheels_tarball: ${{ inputs.pytorch_wheels_tarball }}
       torchnpu_wheels_tarball: ${{ inputs.torchnpu_wheels_tarball }}
       category: ${{ matrix.category }}
