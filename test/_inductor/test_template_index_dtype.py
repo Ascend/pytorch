@@ -27,6 +27,7 @@ class TestTemplateIndexDtype(unittest.TestCase):
         template.grid = lambda *args: (1, 1, 1)
         template.template = object()
         template.debug = False
+        template.prologue_loads_all_inputs = False
         return template
 
     @runIfVersion(max="2.13")
@@ -84,6 +85,7 @@ class TestTemplateIndexDtype(unittest.TestCase):
             for dtype in ("tl.int32", "tl.int64"):
                 with self.subTest(manual=manual, dtype=dtype):
                     template = self.make_template(manual_output_buffer=manual)
+                    template.prologue_loads_all_inputs = True
                     graph = mock.Mock()
                     graph.set_current_device.return_value = contextlib.nullcontext()
                     graph.sizevars.optimization_hints.return_value = []
@@ -110,6 +112,7 @@ class TestTemplateIndexDtype(unittest.TestCase):
                     self.assertEqual(ctor.call_count, 2)
                     for call in ctor.call_args_list:
                         self.assertEqual(call.kwargs["index_dtype_override"], dtype)
+                        self.assertTrue(call.kwargs["prologue_loads_all_inputs"])
                         self.assertIn(f"INDEX_DTYPE : tl.constexpr = {dtype}", call.kwargs["defines"])
                         self.assertNotIn("index_dtype_override", call.kwargs["meta"])
 
