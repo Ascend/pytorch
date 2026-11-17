@@ -23,22 +23,30 @@ env:
   pr_id: ${{ atomgit.event.pull_request.number }}
   target_branch: ${{ atomgit.event.pull_request.base.ref }}
   org_name: "Ascend"
-  img_master_arm: "pytorch_2.15.0_aarch64_test:cann-9.2.0-20261112"
-  img_2_7_1_arm: "pytorch_2.7.1_a2_aarch64_builder:20260804"
-  img_2_9_0_arm: "pytorch_2.9.0_a2_aarch64_builder:20260901"
-  img_2_10_0_arm: "pytorch_2.10.0_a2_aarch64_builder:20260804"
-  img_2_11_0_arm: "pytorch_2.11.0_a2_aarch64_builder:20260804"
-  img_2_12_0_arm: "pytorch_2.12.0_a2_aarch64_builder:20260804"
-  img_2_13_0_arm: "pytorch_2.13.0_a2_aarch64_builder:20260922"
-  img_2_14_0_arm: "pytorch_2.14.0_a2_aarch64_builder:20260922"
-  img_master_x86: "pytorch_master_a1_x86_64_builder:20260922"
-  img_2_7_1_x86: "pytorch_2.7.1_a1_x86_64_builder:20260804"
-  img_2_9_0_x86: "pytorch_2.9.0_a1_x86_64_builder:20260901"
-  img_2_10_0_x86: "pytorch_2.10.0_a1_x86_64_builder:20260704"
-  img_2_11_0_x86: "pytorch_2.11.0_a1_x86_64_builder:20260704"
-  img_2_12_0_x86: "pytorch_2.12.0_a1_x86_64_builder:20260704"
-  img_2_13_0_x86: "pytorch_2.13.0_a1_x86_64_builder:20260922"
-  img_2_14_0_x86: "pytorch_2.14.0_a1_x86_64_builder:20260922"
+  img_master_arm_build: "pytorch_2.15.0_aarch64_builder:20261110"
+  img_2_7_1_arm_build: "pytorch_2.7.1_a2_aarch64_builder:20260804"
+  img_2_9_0_arm_build: "pytorch_2.9.0_a2_aarch64_builder:20260901"
+  img_2_10_0_arm_build: "pytorch_2.10.0_aarch64_builder:20261110"
+  img_2_11_0_arm_build: "pytorch_2.11.0_aarch64_builder:20261110"
+  img_2_12_0_arm_build: "pytorch_2.12.0_aarch64_builder:20261110"
+  img_2_13_0_arm_build: "pytorch_2.13.0_aarch64_builder:20261110"
+  img_2_14_0_arm_build: "pytorch_2.14.0_aarch64_builder:20261110"
+  img_master_x86_build: "pytorch_2.15.0_x86_64_builder:20261110"
+  img_2_7_1_x86_build: "pytorch_2.7.1_a1_x86_64_builder:20260804"
+  img_2_9_0_x86_build: "pytorch_2.9.0_a1_x86_64_builder:20260901"
+  img_2_10_0_x86_build: "pytorch_2.10.0_x86_64_builder:20261110"
+  img_2_11_0_x86_build: "pytorch_2.11.0_x86_64_builder:20261110"
+  img_2_12_0_x86_build: "pytorch_2.12.0_x86_64_builder:20261110"
+  img_2_13_0_x86_build: "pytorch_2.13.0_x86_64_builder:20261110"
+  img_2_14_0_x86_build: "pytorch_2.14.0_x86_64_builder:20261110"
+  img_master_arm_test: "pytorch_2.15.0_aarch64_test:cann-9.2.0-20261112"
+  img_2_7_1_arm_test: "pytorch_2.7.1_a2_aarch64_builder:20260804"
+  img_2_9_0_arm_test: "pytorch_2.9.0_a2_aarch64_builder:20260901"
+  img_2_10_0_arm_test: "pytorch_2.10.0_a2_aarch64_builder:20260804"
+  img_2_11_0_arm_test: "pytorch_2.11.0_a2_aarch64_builder:20260804"
+  img_2_12_0_arm_test: "pytorch_2.12.0_a2_aarch64_builder:20260804"
+  img_2_13_0_arm_test: "pytorch_2.13.0_a2_aarch64_builder:20260922"
+  img_2_14_0_arm_test: "pytorch_2.14.0_a2_aarch64_builder:20260922"
 
 permissions:
   project: read
@@ -212,8 +220,9 @@ stages:
         container:
           image: swr.cn-north-4.myhuaweicloud.com/pytorch_images_x86/pytorchx86:v_03
         outputs:
-          img_arm: ${{ steps.set-img.outputs.img_arm }}
-          img_x86: ${{ steps.set-img.outputs.img_x86 }}
+          img_arm_build: ${{ steps.set-img.outputs.img_arm_build }}
+          img_x86_build: ${{ steps.set-img.outputs.img_x86_build }}
+          img_arm_test: ${{ steps.set-img.outputs.img_arm_test }}
           target_branch: ${{ steps.set-img.outputs.target_branch }}
         steps:
           - name: set img
@@ -224,13 +233,17 @@ stages:
               img_branch=${img_branch//v/}
               img_branch=${img_branch%%-*}
               echo "img_branch=${img_branch}"
-              img_arm_var="img_${img_branch}_arm"
-              img_x86_var="img_${img_branch}_x86"
-              echo "img_arm=${!img_arm_var}" >> "$ATOMGIT_OUTPUT"
-              echo "img_x86=${!img_x86_var}" >> "$ATOMGIT_OUTPUT"
+              img_arm_var="img_${img_branch}_arm_build"
+              img_x86_var="img_${img_branch}_x86_build"
+              img_arm_var2="img_${img_branch}_arm_test"
+              echo "img_arm_build=${!img_arm_var}" >> "$ATOMGIT_OUTPUT"
+              echo "img_x86_build=${!img_x86_var}" >> "$ATOMGIT_OUTPUT"
+              echo "img_arm_test=${!img_arm_var2}" >> "$ATOMGIT_OUTPUT"
               echo "target_branch=${{ env.target_branch }}" >> "$ATOMGIT_OUTPUT"
-              echo "img_arm=${!img_arm_var}"
-              echo "img_x86=${!img_x86_var}"
+              echo "img_arm_build=${!img_arm_var}"
+              echo "img_x86_build=${!img_x86_var}"
+              echo "img_arm_test=${!img_arm_var2}"
+
 
       check_inductor:
         name: check_inductor
@@ -267,7 +280,7 @@ stages:
         uses: .gitcode/workflows/build_job.yml
         with:
           torch_branch: ${{ atomgit.event.pull_request.base.ref }}
-          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_x86 }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_x86_build }}
           runs_on_arch: "x86"
 
       Build_arm:
@@ -276,7 +289,7 @@ stages:
         uses: .gitcode/workflows/build_job.yml
         with:
           torch_branch: ${{ jobs.img_select.outputs.target_branch }}
-          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm_build }}
           runs_on_arch: "arm"
 
       Build_x86_onetrack:
@@ -285,7 +298,7 @@ stages:
         uses: .gitcode/workflows/build_job.yml
         with:
           torch_branch: '2.13.0'
-          CP_DOCKER_IMG: ${{ env.img_2_13_0_x86 }}
+          CP_DOCKER_IMG: ${{ env.img_2_13_0_x86_build }}
           runs_on_arch: "x86"
 
       Build_arm_onetrack:
@@ -294,7 +307,7 @@ stages:
         uses: .gitcode/workflows/build_job.yml
         with:
           torch_branch: '2.13.0'
-          CP_DOCKER_IMG: ${{ env.img_2_13_0_arm }}
+          CP_DOCKER_IMG: ${{ env.img_2_13_0_arm_build }}
           runs_on_arch: "arm"
 
       Build_x86_torchair:
@@ -303,7 +316,7 @@ stages:
         uses: .gitcode/workflows/build_torchair_job.yml
         with:
           torch_branch: ${{ atomgit.event.pull_request.base.ref }}
-          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_x86 }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_x86_build }}
           runs_on_arch: "x86"
 
       Build_arm_torchair:
@@ -312,7 +325,7 @@ stages:
         uses: .gitcode/workflows/build_torchair_job.yml
         with:
           torch_branch: ${{ jobs.img_select.outputs.target_branch }}
-          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm_build }}
           runs_on_arch: "arm"
 
       test_patch:
@@ -321,7 +334,7 @@ stages:
         uses: .gitcode/workflows/test_patch_job.yml
         with:
           torch_branch: ${{ jobs.img_select.outputs.target_branch }}
-          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_x86 }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_x86_build }}
           runs_on_arch: "x86"
 
   stage_4:
@@ -356,7 +369,7 @@ stages:
         uses: .gitcode/workflows/ut_job.yml
         with:
           torch_branch: ${{ atomgit.event.pull_request.base.ref }}
-          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm_test }}
           TEST_RANK: "1"
           TEST_WORLD_SIZE: "3"
           NPU_CORE: "yes"
@@ -367,7 +380,7 @@ stages:
         uses: .gitcode/workflows/ut_job.yml
         with:
           torch_branch: ${{ atomgit.event.pull_request.base.ref }}
-          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm_test }}
           TEST_RANK: "2"
           TEST_WORLD_SIZE: "3"
           NPU_CORE: "yes"
@@ -378,7 +391,7 @@ stages:
         uses: .gitcode/workflows/ut_job.yml
         with:
           torch_branch: ${{ atomgit.event.pull_request.base.ref }}
-          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm_test }}
           TEST_RANK: "3"
           TEST_WORLD_SIZE: "3"
           NPU_CORE: "yes"
@@ -389,7 +402,7 @@ stages:
         uses: .gitcode/workflows/ut_job.yml
         with:
           torch_branch: ${{ atomgit.event.pull_request.base.ref }}
-          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm_test }}
           NPU_CORE: "no"
           TEST_RANK: "1"
           TEST_WORLD_SIZE: "2"
@@ -400,7 +413,7 @@ stages:
         uses: .gitcode/workflows/ut_job.yml
         with:
           torch_branch: ${{ atomgit.event.pull_request.base.ref }}
-          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm_test }}
           NPU_CORE: "no"
           TEST_RANK: "2"
           TEST_WORLD_SIZE: "2"
@@ -411,7 +424,7 @@ stages:
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
           torch_branch: ${{ atomgit.event.pull_request.base.ref }}
-          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm_test }}
           TEST_RANK: "1"
           TEST_WORLD_SIZE: "4"
 
@@ -421,7 +434,7 @@ stages:
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
           torch_branch: ${{ atomgit.event.pull_request.base.ref }}
-          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm_test }}
           TEST_RANK: "2"
           TEST_WORLD_SIZE: "4"
 
@@ -431,7 +444,7 @@ stages:
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
           torch_branch: ${{ atomgit.event.pull_request.base.ref }}
-          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm_test }}
           TEST_RANK: "3"
           TEST_WORLD_SIZE: "4"
 
@@ -441,7 +454,7 @@ stages:
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
           torch_branch: ${{ atomgit.event.pull_request.base.ref }}
-          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm_test }}
           TEST_RANK: "4"
           TEST_WORLD_SIZE: "4"
 
@@ -451,7 +464,7 @@ stages:
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
           torch_branch: '2.13.0'
-          CP_DOCKER_IMG: ${{ env.img_2_13_0_arm }}
+          CP_DOCKER_IMG: ${{ env.img_2_13_0_arm_test }}
           TEST_RANK: "1"
           TEST_WORLD_SIZE: "4"
 
@@ -461,7 +474,7 @@ stages:
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
           torch_branch: '2.13.0'
-          CP_DOCKER_IMG: ${{ env.img_2_13_0_arm }}
+          CP_DOCKER_IMG: ${{ env.img_2_13_0_arm_test }}
           TEST_RANK: "2"
           TEST_WORLD_SIZE: "4"
 
@@ -471,7 +484,7 @@ stages:
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
           torch_branch: '2.13.0'
-          CP_DOCKER_IMG: ${{ env.img_2_13_0_arm }}
+          CP_DOCKER_IMG: ${{ env.img_2_13_0_arm_test }}
           TEST_RANK: "3"
           TEST_WORLD_SIZE: "4"
 
@@ -481,7 +494,7 @@ stages:
         uses: .gitcode/workflows/ut_job_inductor.yml
         with:
           torch_branch: '2.13.0'
-          CP_DOCKER_IMG: ${{ env.img_2_13_0_arm }}
+          CP_DOCKER_IMG: ${{ env.img_2_13_0_arm_test }}
           TEST_RANK: "4"
           TEST_WORLD_SIZE: "4"
 
@@ -491,7 +504,7 @@ stages:
         uses: .gitcode/workflows/ut_job_distributed.yml
         with:
           torch_branch: ${{ atomgit.event.pull_request.base.ref }}
-          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm_test }}
           TEST_RANK: "1"
           TEST_WORLD_SIZE: "4"
 
@@ -501,7 +514,7 @@ stages:
         uses: .gitcode/workflows/ut_job_distributed.yml
         with:
           torch_branch: ${{ atomgit.event.pull_request.base.ref }}
-          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm_test }}
           TEST_RANK: "2"
           TEST_WORLD_SIZE: "4"
 
@@ -511,7 +524,7 @@ stages:
         uses: .gitcode/workflows/ut_job_distributed.yml
         with:
           torch_branch: ${{ atomgit.event.pull_request.base.ref }}
-          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm_test }}
           TEST_RANK: "3"
           TEST_WORLD_SIZE: "4"
 
@@ -521,7 +534,7 @@ stages:
         uses: .gitcode/workflows/ut_job_distributed.yml
         with:
           torch_branch: ${{ atomgit.event.pull_request.base.ref }}
-          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm_test }}
           TEST_RANK: "4"
           TEST_WORLD_SIZE: "4"
 
@@ -531,7 +544,7 @@ stages:
         uses: .gitcode/workflows/ut_job_distributed.yml
         with:
           torch_branch: '2.13.0'
-          CP_DOCKER_IMG: ${{ env.img_2_13_0_arm }}
+          CP_DOCKER_IMG: ${{ env.img_2_13_0_arm_test }}
           TEST_RANK: "1"
           TEST_WORLD_SIZE: "1"
 
