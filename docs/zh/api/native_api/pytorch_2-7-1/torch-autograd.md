@@ -254,7 +254,6 @@
 
 </div>
 
-<!-- npu="910b,A3" id250 -->
 ### torch.autograd.functional.jvp
 
 <div style="margin-left: 2em">
@@ -262,7 +261,6 @@
 **原生文档**：[torch.autograd.functional.jvp](https://pytorch.org/docs/2.7/generated/torch.autograd.functional.jvp.html)
 
 **产品支持情况**：
-<!-- end id250 -->
 
 <!-- npu="910b" id64 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -270,12 +268,13 @@
 <!-- npu="A3" id65 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id65 -->
+<!-- npu="950" id66 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id66 -->
 
-<!-- npu="910b,A3" id251 -->
 **限制与说明**： `inputs`仅支持fp32
 
 </div>
-<!-- end id251 -->
 
 <!-- npu="910b,A3" id252 -->
 ### torch.autograd.functional.vhp
