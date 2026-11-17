@@ -1,5 +1,6 @@
 # 软件安装
 
+- [快速安装](quick_install.md)
 - [卸载与升级](upgrading_and_uninstalling.md)
 - [参考信息](references/_menu_references.md)
   - [源码编译](references/building_from_source.md)
