@@ -1336,6 +1336,46 @@ with torch.autograd.profiler.profile(use_device="npu", use_kineto=False) as prof
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id213 -->
 
+> <font size="3">items()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler_util.StringTable.items](https://pytorch.org/docs/2.12/generated/torch.autograd.profiler_util.StringTable.html#torch.autograd.profiler_util.StringTable.items)
+
+**产品支持情况**：
+
+<!-- npu="910b" id250 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id250 -->
+<!-- npu="A3" id251 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id251 -->
+<!-- npu="950" id252 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id252 -->
+
+</div>
+
+> <font size="3">copy()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler_util.StringTable.copy](https://pytorch.org/docs/2.12/generated/torch.autograd.profiler_util.StringTable.html#torch.autograd.profiler_util.StringTable.copy)
+
+**产品支持情况**：
+
+<!-- npu="910b" id253 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id253 -->
+<!-- npu="A3" id254 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id254 -->
+<!-- npu="950" id255 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id255 -->
+
+</div>
+
 </div>
 
 </div>
