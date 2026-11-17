@@ -88,6 +88,26 @@
 
 </div>
 
+> <font size="3">register_step_pre_hook()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[Optimizer.register_step_pre_hook](https://pytorch.org/docs/2.12/generated/torch.optim.Optimizer.register_step_pre_hook.html)
+
+**产品支持情况**：
+
+<!-- npu="910b" id717 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id717 -->
+<!-- npu="A3" id718 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id718 -->
+<!-- npu="950" id719 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id719 -->
+
+</div>
+
 <!-- npu="910b,A3" id655 -->
 <a class="method_anchor" id="torch_optim_Optimizer_state_dict"></a>
 
