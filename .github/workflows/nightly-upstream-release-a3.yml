@@ -1,4 +1,4 @@
-name: Nightly Build and Test A3 (torch 2.15 upstream release)
+name: Nightly Build and Test A3 (upstream torch release)
 
 # Nightly A3 pipeline that validates torch_npu against the UPSTREAM torch
 # 2.15.0 release wheels (linux aarch64 cpu) instead of a source-built
@@ -28,7 +28,7 @@ on:
     branches:
       - ci-test
     paths:
-      - '.github/workflows/nightly-torch215-a3.yml'
+      - '.github/workflows/nightly-upstream-release-a3.yml'
   workflow_dispatch:
 
 permissions:

@@ -1,6 +1,6 @@
-name: Nightly Build and Test A5 (torch 2.15 upstream release)
+name: Nightly Build and Test A5 (upstream torch release)
 
-# A5 (x86_64) counterpart of nightly-torch215-a3.yml: validates torch_npu
+# A5 (x86_64) counterpart of nightly-upstream-release-a3.yml: validates torch_npu
 # against the UPSTREAM torch 2.15.0 release wheels for linux x86_64
 # instead of a source-built PyTorch, complementing nightly-a5.yml (which
 # tracks pytorch main). The test suite comes from the commit the torch
@@ -29,7 +29,7 @@ on:
     branches:
       - ci-test
     paths:
-      - '.github/workflows/nightly-torch215-a5.yml'
+      - '.github/workflows/nightly-upstream-release-a5.yml'
   workflow_dispatch:
 
 permissions:
