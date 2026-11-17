@@ -1,13 +1,18 @@
 import ctypes
 from unittest import skipIf
 
+import numpy as np
 import torch
 import torch.distributed as dist
 import torch.distributed._symmetric_memory as symm_mem
 from torch.testing._internal.common_distributed import MultiProcContinuousTest
-from torch.testing._internal.common_utils import instantiate_parametrized_tests, run_tests
+from torch.testing._internal.common_utils import instantiate_parametrized_tests, parametrize, run_tests
 from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 
+# acl binding for device->host readback of buffers_dev_/signal_pads_dev_
+import acl
+
+ACL_MEMCPY_DEVICE_TO_HOST = 2
 
 # So that tests are written in device-agnostic way
 device_type = "npu"
@@ -66,6 +71,19 @@ class NPUSHMEMSymmetricMemoryTest(MultiProcContinuousTest):
         handle = symm_mem.rendezvous(tensor, group=group_name)
         dist.barrier(device_ids=[rank])
         return rank, peer, tensor, handle
+
+    def _read_dev_ptr_array(self, dev_ptr: int, n: int) -> list:
+        """Read back a device array (void** of len n) to a host list of ints via
+        acl.rt.memcpy. Used to verify buffer_ptrs_dev / signal_pad_ptrs_dev point
+        to a real, initialized device buffer whose content matches the host arrays."""
+        self.assertNotEqual(dev_ptr, 0, "device pointer must not be null/0x0")
+        arr = np.zeros(n, dtype=np.uint64)
+        nbytes = arr.nbytes
+        dst = arr.ctypes.data
+        ret = acl.rt.memcpy(dst, nbytes, dev_ptr, nbytes, ACL_MEMCPY_DEVICE_TO_HOST)
+        assert ret == 0, f"acl.rt.memcpy failed ret={ret}"
+        torch.npu.current_stream().synchronize()
+        return [int(v) for v in arr]
 
     @skipIfUnsupportMultiNPU(2)
     def test_alloc(self) -> None:
@@ -274,6 +292,101 @@ class NPUSHMEMSymmetricMemoryTest(MultiProcContinuousTest):
             remote, torch.arange(16, dtype=torch.int32, device=self.device) + peer * 100
         )
         dist.barrier(device_ids=[rank])
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_dev_ptr_arrays_valid(self) -> None:
+        self._init_device()
+
+        group_name = dist.group.WORLD.group_name
+        symm_mem.enable_symm_mem_for_group(group_name)
+        dtype = torch.float
+        numel = 1024
+
+        t = symm_mem.empty(numel, dtype=dtype, device=self.device)
+        hdl = symm_mem.rendezvous(t, group=group_name)
+
+        host_buf_ptrs = [int(x) for x in hdl.buffer_ptrs]
+        host_sp_ptrs = [int(x) for x in hdl.signal_pad_ptrs]
+        self.assertEqual(len(host_buf_ptrs), self.world_size)
+        self.assertEqual(len(host_sp_ptrs), self.world_size)
+
+        dev_buf_ptrs = self._read_dev_ptr_array(int(hdl.buffer_ptrs_dev), self.world_size)
+        dev_sp_ptrs = self._read_dev_ptr_array(int(hdl.signal_pad_ptrs_dev), self.world_size)
+
+        self.assertEqual(dev_buf_ptrs, host_buf_ptrs, "buffers_dev_ content must match host buffers_")
+        self.assertEqual(dev_sp_ptrs, host_sp_ptrs, "signal_pads_dev_ content must match host signal_pads_")
+
+    @skipIfUnsupportMultiNPU(2)
+    @parametrize("numel", [1, 17, 129, 4096])
+    def test_signal_pad_offset_consistency(self, numel: int) -> None:
+        self._init_device()
+
+        group_name = dist.group.WORLD.group_name
+        symm_mem.enable_symm_mem_for_group(group_name)
+        # Byte-sized buffers cover allocations not aligned to 16 or 128 bytes.
+        dtype = torch.uint8
+        signal_pad_size = symm_mem.get_signal_pad_size()
+        buffer_offset = (signal_pad_size + 127) // 128 * 128
+
+        t = symm_mem.empty(numel, dtype=dtype, device=self.device)
+        hdl = symm_mem.rendezvous(t, group=group_name)
+
+        buf_ptrs = [int(x) for x in hdl.buffer_ptrs]
+        sp_ptrs = [int(x) for x in hdl.signal_pad_ptrs]
+        self.assertEqual(len(buf_ptrs), self.world_size)
+        self.assertEqual(len(sp_ptrs), self.world_size)
+
+        # The pad occupies a fixed prefix, independent of the requested buffer size.
+        offsets = {buf_ptrs[r] - sp_ptrs[r] for r in range(self.world_size)}
+        self.assertEqual(offsets, {buffer_offset})
+        self.assertGreater(buffer_offset, 0, "signal pad must sit before the data region")
+        self.assertEqual(buffer_offset % 128, 0, "buffer_offset must be 128-byte aligned")
+        self.assertEqual(buf_ptrs[hdl.rank], t.data_ptr())
+        for buffer_ptr in buf_ptrs:
+            self.assertEqual(buffer_ptr % 16, 0, "data buffers must remain 16-byte aligned")
+
+        signal_pad = hdl.get_signal_pad(hdl.rank, dtype=torch.uint8)
+        self.assertEqual(signal_pad.data_ptr(), sp_ptrs[hdl.rank])
+        self.assertEqual(signal_pad.numel(), signal_pad_size)
+        torch.testing.assert_close(signal_pad, torch.zeros_like(signal_pad))
+
+        # Buffer views expose only the user data, not the prefix or allocation padding.
+        self.assertEqual(hdl.buffer_size, t.numel() * t.element_size())
+        self.assertEqual(hdl.offset, 0)
+        local = hdl.get_buffer(hdl.rank, (numel,), dtype)
+        self.assertEqual(local.data_ptr(), t.data_ptr())
+        self.assertEqual(local.untyped_storage().size(), numel)
+        with self.assertRaisesRegex(RuntimeError, "exceeds the allocated size"):
+            hdl.get_buffer(hdl.rank, (numel + 1,), dtype)
+
+        # Writing the full data buffer must leave the preceding signal pad untouched.
+        t.fill_(self.rank + 1)
+        torch.testing.assert_close(local, torch.full_like(t, self.rank + 1))
+        torch.testing.assert_close(signal_pad, torch.zeros_like(signal_pad))
+        dist.barrier(device_ids=[self.rank])
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_signal_pad_zeroed_after_free_and_realloc(self) -> None:
+        self._init_device()
+        group_name = dist.group.WORLD.group_name
+        symm_mem.enable_symm_mem_for_group(group_name)
+
+        numel, dtype = 1024, torch.float
+        t1 = symm_mem.empty(numel, dtype=dtype, device=self.device)
+        hdl1 = symm_mem.rendezvous(t1, group=group_name)
+        pad1 = hdl1.get_signal_pad(hdl1.rank, dtype=torch.uint8)
+        pad1.fill_(0xFF)
+        torch.npu.synchronize()
+        del pad1, hdl1, t1
+        dist.barrier(device_ids=[self.rank])
+
+        t2 = symm_mem.empty(numel, dtype=dtype, device=self.device)
+        hdl2 = symm_mem.rendezvous(t2, group=group_name)
+        pad2 = hdl2.get_signal_pad(hdl2.rank, dtype=torch.uint8)
+        self.assertEqual(pad2.numel(), symm_mem.get_signal_pad_size())
+        torch.testing.assert_close(pad2, torch.zeros_like(pad2))
+        dist.barrier(device_ids=[self.rank])
+
 
 if __name__ == "__main__":
     run_tests()

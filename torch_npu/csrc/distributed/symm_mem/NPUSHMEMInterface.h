@@ -38,6 +38,8 @@ void* Aclshmem_malloc(size_t size);
 
 void Aclshmem_free(void* ptr);
 
+void Aclshmem_barrier_all();
+
 void* Aclshmem_ptr(void* ptr, int pe);
 
 void Shmem_putmem_on_stream(void* dst, void* src, size_t elem_size, int32_t pe, aclrtStream stream);

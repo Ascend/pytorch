@@ -23,12 +23,15 @@ inline std::shared_ptr<npu_logging::Logger>& GetSymmMemLogger() {
   } while (0);
 
 struct NPUSHMEMAllocation {
-  void* ptr;
+  // The signal pad starts at alloc_base; the user buffer starts at
+  // alloc_base + buffer_offset. Only alloc_base may be passed to Aclshmem_free.
+  void* alloc_base;
   size_t buffer_size;
+  size_t buffer_offset;
   int device_idx;
 
-  NPUSHMEMAllocation(void* ptr, size_t buffer_size, int device_idx)
-      : ptr(ptr), buffer_size(buffer_size), device_idx(device_idx) {}
+  NPUSHMEMAllocation(void* alloc_base, size_t buffer_size, size_t buffer_offset, int device_idx)
+      : alloc_base(alloc_base), buffer_size(buffer_size), buffer_offset(buffer_offset), device_idx(device_idx) {}
 
   ~NPUSHMEMAllocation();
 };
@@ -67,8 +70,8 @@ class NPUSHMEMSymmetricMemory : public SymmetricMemory {
   int device_idx_;
   int rank_;
   int world_size_;
-  void** buffers_dev_;
-  void** signal_pads_dev_;
+  void** buffers_dev_ = nullptr;
+  void** signal_pads_dev_ = nullptr;
   std::string group_name_;
 };
 
