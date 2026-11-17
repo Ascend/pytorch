@@ -5359,7 +5359,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id638 -->
 
-**限制与说明**： `input`、`offsets`仅支持int64
+**限制与说明**： `input`、`offsets`仅支持int32，int64
 
 </div>
 
