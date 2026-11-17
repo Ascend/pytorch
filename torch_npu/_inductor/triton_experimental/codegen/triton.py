@@ -8849,9 +8849,19 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
         # this module imports. Identity match is stable under alias/rename.
         rng_i64_exempt_ops = (torch.ops.prims.inductor_randint.default,)
         for node in node_schedule:
-            data = getattr(getattr(node, "node", None), "data", None)
-            fx_node = getattr(data, "origin_node", None)
-            if fx_node is not None and fx_node.target in rng_i64_exempt_ops:
+            if node is DisableReduction or node is EnableReduction:
+                continue
+            if any(
+                fx_node.target in rng_i64_exempt_ops
+                or (
+                    fx_node.target in (
+                        torch.ops.aten.div.Tensor_mode,
+                        torch.ops.aten.div.Scalar_mode,
+                    )
+                    and fx_node.meta["val"].dtype == torch.int64
+                )
+                for fx_node in node.node.get_origins()
+            ):
                 kernel._npu_int64_exempt = True
                 break
         if kernel._npu_linearize:
