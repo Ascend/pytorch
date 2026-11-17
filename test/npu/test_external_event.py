@@ -342,6 +342,11 @@ class TestExternalEvent(TestCase):
         s = torch.npu.Stream()
         ev = torch.npu.Event(external=True)
         x = torch.zeros(1024, device="npu")
+        # The fill above runs on the default stream while add_ below runs on
+        # the side stream: without a barrier the two kernels race on x (no
+        # implicit ordering between streams) and zeros can overwrite the
+        # incremented values. The external event only orders add_ -> consumer.
+        torch.npu.synchronize()
         with torch.npu.stream(s):
             x.add_(1.0)
             ev.record()
@@ -470,6 +475,11 @@ class TestExternalEvent(TestCase):
                 buf2.copy_(buf1)
         with torch.npu.stream(s2):
             g2.replay()  # consumer first: the wait does not hold
+        # The two replays land on different streams (s2 vs default) and are
+        # device-side unordered: without a barrier the producer's record node
+        # could execute before the consumer's wait node - the wait would then
+        # hold and the copy would observe 1024 instead of the stale value.
+        torch.npu.synchronize()
         g1.replay()
         torch.npu.synchronize()
         self.assertEqual(buf2.sum().item(), 0.0)
