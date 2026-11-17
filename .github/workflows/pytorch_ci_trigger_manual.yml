@@ -104,6 +104,10 @@ jobs:
     secrets: inherit
     with:
       resolved_short: ${{ needs.build.outputs.resolved_short }}
+      # Full SHA + repo for the direct git source fetch in the
+      # collect/test jobs (depth 1, no submodules).
+      resolved_sha: ${{ needs.build.outputs.resolved_sha }}
+      upstream_repo: pytorch/pytorch
       torch_npu_short: ${{ needs.build.outputs.torch_npu_short }}
       pytorch_wheels_tarball: ${{ needs.build.outputs.pytorch_wheels_tarball }}
       torchnpu_wheels_tarball: ${{ needs.build.outputs.torchnpu_wheels_tarball }}

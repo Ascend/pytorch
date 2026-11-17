@@ -93,6 +93,10 @@ jobs:
     secrets: inherit
     with:
       resolved_short: ${{ needs.resolve.outputs.short }}
+      # Full SHA + repo for the direct git source fetch in the collect
+      # job (depth 1, no submodules).
+      resolved_sha: ${{ needs.resolve.outputs.sha }}
+      upstream_repo: pytorch/pytorch
       pytorch_wheels_tarball: ${{ needs.build.outputs.pytorch_wheels_tarball }}
       torchnpu_wheels_tarball: ${{ needs.build.outputs.torchnpu_wheels_tarball }}
       case_paths_config: .github/config/nightly_test_categories.yml
@@ -125,6 +129,10 @@ jobs:
       runner_label: ${{ matrix.runner_label }}
       categories_filter: ${{ inputs.categories }}
       resolved_short: ${{ needs.resolve.outputs.short }}
+      # Full SHA + repo for the direct git source fetch in the shard
+      # jobs (depth 1, no submodules).
+      resolved_sha: ${{ needs.resolve.outputs.sha }}
+      upstream_repo: pytorch/pytorch
       pytorch_wheels_tarball: ${{ needs.build.outputs.pytorch_wheels_tarball }}
       torchnpu_wheels_tarball: ${{ needs.build.outputs.torchnpu_wheels_tarball }}
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17
@@ -154,32 +162,33 @@ jobs:
           path: ci-scripts
           ref: ci-test
 
+      # The merge only needs the torch/ and test/ trees for the coverage
+      # path mapping, so the source is fetched directly with git at the
+      # resolved commit (depth 1, no submodules; fetch by ref works for
+      # branch names and SHAs alike). Best-effort: on fetch failure the
+      # merge continues without a source map.
       - name: Prepare sources for the merge
         if: always()
         continue-on-error: true
+        env:
+          UPSTREAM_SHA: ${{ needs.resolve.outputs.sha || needs.resolve.outputs.short }}
         run: |
-          obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${{ env.OBS_ENDPOINT }}
-
-          TARBALL="pytorch-source-${{ needs.resolve.outputs.short }}.tar.gz"
-          mkdir -p "${GITHUB_WORKSPACE}/source"
-          for attempt in 1 2; do
-            echo "=== Download attempt ${attempt} ==="
-            if obsutil cp "obs://pytorch-ci-cache/7day-cache/${TARBALL}" "${GITHUB_WORKSPACE}/source/${TARBALL}" -vlength; then
-              break
-            fi
-            sleep 10
-          done
-          if [ ! -f "${GITHUB_WORKSPACE}/source/${TARBALL}" ]; then
-            echo "WARNING: ${TARBALL} not available in OBS cache, merging without a source map" >&2
+          git init pytorch
+          if ! (cd pytorch \
+              && git remote add origin "https://github.com/pytorch/pytorch.git" \
+              && git fetch --depth 1 origin "${UPSTREAM_SHA}" \
+              && git checkout FETCH_HEAD); then
+            echo "WARNING: failed to fetch ${UPSTREAM_SHA}, merging without a source map" >&2
+            rm -rf pytorch
             exit 0
           fi
-          echo "Source snapshot saved: ${GITHUB_WORKSPACE}/source/${TARBALL}"
+          echo "Source fetched at $(git -C pytorch rev-parse HEAD): $(du -sh pytorch | cut -f1)"
 
           rm -rf "${COV_ARTIFACTS}/covstub"
           mkdir -p "${COV_ARTIFACTS}/covstub"
-          tar -xzf "${GITHUB_WORKSPACE}/source/${TARBALL}" -C "${COV_ARTIFACTS}/covstub" \
-            --strip-components=1 pytorch/torch pytorch/test
-          rm -f "${GITHUB_WORKSPACE}/source/${TARBALL}"
+          cp -a pytorch/torch "${COV_ARTIFACTS}/covstub/torch"
+          cp -a pytorch/test "${COV_ARTIFACTS}/covstub/test"
+          rm -rf pytorch
           echo "=== covstub unpacked ==="
           du -sh "${COV_ARTIFACTS}/covstub"/* || true
 
