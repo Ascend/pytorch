@@ -15,6 +15,8 @@ naming the concrete ``OpOverload``: the registrar records each entry in
 
 import torch
 
+from . import device_props
+
 aten = torch.ops.aten
 npu = torch.ops.npu
 
@@ -48,6 +50,16 @@ EXPLICIT_FALLBACK_LIST = [
     aten.grid_sampler_3d.out,
     aten.grid_sampler_3d_backward.default,
     aten.grid_sampler_3d_backward.out,
+    # histogram/histogramdd: upstream makes only the bin-count overloads
+    # (histogram.bin_ct, _histogramdd_bin_edges, _histogramdd_from_bin_cts)
+    # fallbacks; the bins-as-tensor overloads the opinfo samples use have
+    # neither a lowering nor a decomposition.
+    aten.histogram.bins_tensor,
+    aten._histogramdd_from_bin_tensors.default,
+    # pad(mode="replicate") on a 5D input: upstream decomposes the forward and
+    # makes replication_pad1d/2d_backward fallbacks, but leaves the 3d backward
+    # with neither.
+    aten.replication_pad3d_backward.default,
     # Group 3: torch_npu-private op, a bare node in the gather-family backward graphs;
     # non-contiguous access -- triton codegen must not lower it, native fallback only.
     npu.npu_gather_backward.default,
@@ -58,6 +70,13 @@ EXPLICIT_FALLBACK_LIST = [
     # eager.
     npu._npu_dropout.default,
     npu.npu_dropout_backward.default,
+    # repeat_interleave's eager autograd formula produces this private backward op,
+    # so no upstream lowering or decomposition can ever cover it.
+    npu.repeat_interleave_backward_int.default,
     # KLDiv's private backward ops are decomposed instead (decomposition.py,
     # _override_kl_div_backward_decomp); also listing them here breaks backend init.
 ]
+
+# A5 keeps the upstream decomposition; only other devices need a native fallback.
+if not device_props.is_a5():
+    EXPLICIT_FALLBACK_LIST.append(aten.embedding_dense_backward.default)
