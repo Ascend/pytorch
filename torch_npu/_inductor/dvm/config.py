@@ -24,7 +24,7 @@ enable_fusion_permute = False
 disable_decomp_list = []
 enable_decomp_list = []
 # C310 VF fusion: 0 off, 1 validates shapes, 2 assumes equal shapes.
-vf_fusion = 0
+vf_fusion = 2
 # View-load fusion: 0 off, 1 requires a unit trailing stride,
 # 2 allows arbitrary strides for vector kernels; mix uses 0, spec/split/concat at most 1.
 view_fusion_level = 1
