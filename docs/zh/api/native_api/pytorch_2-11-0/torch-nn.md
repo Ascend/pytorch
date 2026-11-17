@@ -5327,8 +5327,6 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id632 -->
 
-**限制与说明**： `embeddings`仅支持fp64
-
 </div>
 
 </div>
