@@ -8,6 +8,7 @@ FXRT 是面向推理阶段的轻量、高性能运行时。它将 PyTorch 计算
 
 - [构建与安装](#构建与安装)
 - [跑通第一个例子](#跑通第一个例子)
+- [在 Inductor 中启用 FXRT](#在-inductor-中启用-fxrt)
 - [常用环境变量](#常用环境变量)
 
 ## 构建与安装
@@ -56,6 +57,74 @@ print(out.shape)
 - 安装的 wheel 将 `"fxrt"` 注册为编译后端，使用时按需加载 FXRT
 - `torch.compile(fn, backend="fxrt")` 之后照常调用即可
 - view / reshape / permute / slice 等算子默认走 FXRT 的零拷贝 view 实现
+
+## 在 Inductor 中启用 FXRT
+
+Inductor 的 `fxrt` 配置默认为 `False`。开启后，Inductor 对所有图启用 FX wrapper，其中 NPU 图使用 FXRT wrapper。
+
+PyTorch 2.15 引入了设备命名空间编译选项。尚未支持设备命名空间的早期 2.15 nightly 使用 2.15 之前的示例。
+
+### 为单个编译对象开启
+
+```python
+# PyTorch 2.15+（支持设备命名空间）
+compiled = torch.compile(model, backend="inductor", options={"npu.fxrt": True})
+out = compiled(x, y)
+```
+
+```python
+# PyTorch 2.15 之前（新版 TorchNPU 也兼容此写法）
+compiled = torch.compile(model, backend="inductor", options={"fxrt": True})
+out = compiled(x, y)
+```
+
+### 在指定作用域内开启
+
+用 `config.patch()` 为作用域内创建的编译对象开启 FXRT。退出作用域时配置恢复，已创建的对象可以在作用域外执行。
+
+```python
+# PyTorch 2.15+（支持设备命名空间）
+from torch_npu._inductor import compile_options as config
+
+with config.patch({"fxrt": True}):
+    compiled = torch.compile(model, backend="inductor")
+
+out = compiled(x, y)
+```
+
+```python
+# PyTorch 2.15 之前
+import torch_npu._inductor  # 注册 FXRT 配置项
+from torch._inductor import config
+
+with config.patch({"fxrt": True}):
+    compiled = torch.compile(model, backend="inductor")
+
+out = compiled(x, y)
+```
+
+### 为后续编译设置默认值
+
+直接设置 `config.fxrt`。当前上下文中后续创建的 Inductor 编译对象会读取该值，直到再次修改配置。
+
+```python
+# PyTorch 2.15+（支持设备命名空间）
+from torch_npu._inductor import compile_options as config
+
+config.fxrt = True
+compiled = torch.compile(model, backend="inductor")
+out = compiled(x, y)
+```
+
+```python
+# PyTorch 2.15 之前
+import torch_npu._inductor  # 注册 FXRT 配置项
+from torch._inductor import config
+
+config.fxrt = True
+compiled = torch.compile(model, backend="inductor")
+out = compiled(x, y)
+```
 
 ## 常用环境变量
 

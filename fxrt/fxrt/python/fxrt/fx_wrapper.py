@@ -35,9 +35,8 @@
 
 """Inductor fx_wrapper integration for fxrt.
 
-Importing this module registers nothing. :func:`register_fx_wrapper` installs
-the fx_wrapper codegen for torch-npu and switches inductor to the fx form; the
-installed wrapper then routes the generated host FX GraphModule to fxrt by
+The Inductor ``fxrt`` option installs the NPU FX wrapper for the duration of
+compilation. The wrapper routes the generated host FX GraphModule to FXRT by
 default. :func:`set_fx_wrapper_backend` and :func:`fx_wrapper_backend` select
 another backend for that graph.
 
@@ -55,9 +54,9 @@ from __future__ import annotations
 
 import abc
 import contextlib
+import copy
 import dataclasses
 import inspect
-import os
 from collections.abc import Callable
 from typing import Any
 
@@ -87,7 +86,6 @@ launch_compiled_kernel_mutation = _compiled_kernel_hop.launch_compiled_kernel_mu
 
 
 _active_fx_backend: "Callable | None" = None
-_installed_devices: set[str] = set()
 
 # Debug switch: run the generated host FX graph in python eager (gm.forward)
 # instead of handing it to the fxrt runtime. Off by default.
@@ -436,57 +434,6 @@ def _replace_fx_wrapper_codegen(device_codegen, wrapper_cls):
         return device_codegen
 
 
-def _install_fx_wrapper_codegen(device: str = "npu") -> bool:
-    """Install the fxrt fx_wrapper codegen for torch-npu.
-
-    This is idempotent. It imports ``torch_npu._inductor`` when the device has no
-    codegen registered yet, so the torch-npu backend has registered one before we
-    patch it. Returns ``True`` when the wrapper is installed, otherwise ``False``
-    when torch-npu/inductor is not available in the current environment.
-    """
-
-    try:
-        import torch_npu  # pylint: disable=unused-import,import-outside-toplevel
-        from torch._inductor.codegen.common import (
-            device_codegens,
-            init_backend_registration,
-        )
-    except Exception as exc:  # pylint: disable=broad-exception-caught
-        if os.environ.get("FXRT_FX_WRAPPER_DEBUG") == "1":
-            print(f"fxrt fx_wrapper install skipped: {exc}")
-        return False
-
-    device = torch.device(device).type
-    if device not in device_codegens:
-        # Only torch-npu's own inductor backend needs this import. Another backend
-        # (e.g. AutoFuse) may already own the device codegen, and importing
-        # torch_npu._inductor then does more harm than good: it appends the device
-        # to inductor's GPU_TYPES, after which the scheduler demands a working
-        # triton for every graph on it -- one the fused backend never needed.
-        try:
-            import torch_npu._inductor  # noqa: F401  # pylint: disable=import-outside-toplevel
-        except Exception as exc:  # pylint: disable=broad-exception-caught
-            if os.environ.get("FXRT_FX_WRAPPER_DEBUG") == "1":
-                print(f"fxrt fx_wrapper install skipped: {exc}")
-            return False
-    init_backend_registration()
-    device_codegen = device_codegens.get(device)
-    if device_codegen is None:
-        if os.environ.get("FXRT_FX_WRAPPER_DEBUG") == "1":
-            print(f"fxrt fx_wrapper install skipped: no backend for {device}")
-        return False
-
-    if getattr(device_codegen, "fx_wrapper_codegen", None) is FxrtFxWrapper:
-        _installed_devices.add(device)
-        return True
-
-    device_codegens[device] = _replace_fx_wrapper_codegen(
-        device_codegen, FxrtFxWrapper
-    )
-    _installed_devices.add(device)
-    return True
-
-
 # Inductor settings the fx form needs: fx_wrapper selects it, and the two assert
 # switches would otherwise write raw assert lines into the wrapper, which the fx
 # form cannot lower.
@@ -497,35 +444,30 @@ _FX_WRAPPER_CONFIG = {
 }
 
 
-def register_fx_wrapper(device: str = "npu", *, patch_config: bool = True) -> bool:
-    """Register the fxrt fx_wrapper codegen and switch inductor to the fx form.
+def _compile_inductor_with_fxrt(compile_fn, wrapper, gm, inputs):
+    """Compile with FX wrappers and use FXRT for the NPU wrapper."""
+    from torch._inductor.codegen.common import device_codegens
 
-    This is the entry point for callers who want the fxrt runtime to execute what
-    inductor produces. Importing fxrt registers nothing on its own, so the takeover
-    is always an explicit call. On success the inductor settings the fx form needs
-    are applied process-wide: ``fx_wrapper`` is turned on and ``size_asserts`` and
-    ``alignment_asserts`` are turned off. Callers can still override them per
-    compilation via ``torch._inductor.config.patch``. Pass ``patch_config=False``
-    to register the codegen only and apply those settings yourself, for example
-    within a ``torch._inductor.config.patch`` scope.
+    # Get current codegen for npu.
+    if "npu" not in device_codegens:
+        from torch_npu.utils._dynamo import register_inductor_npu
 
-    The backend that runs the generated graph is chosen separately, with
-    :func:`set_fx_wrapper_backend` or :func:`fx_wrapper_backend`; by default it
-    is the fxrt runtime.
+        register_inductor_npu()
+    codegen = device_codegens.get("npu")
+    if codegen is None:
+        raise RuntimeError("FXRT requires an Inductor codegen registered for NPU.")
+    previous_wrapper = codegen.fx_wrapper_codegen
 
-    Returns ``True`` when the codegen is registered, otherwise ``False`` when
-    torch-npu/inductor is not available in the current environment.
-    """
-
-    if not _install_fx_wrapper_codegen(device):
-        return False
-
-    if patch_config:
-        import torch._inductor.config as inductor_config
-
-        for name, value in _FX_WRAPPER_CONFIG.items():
-            setattr(inductor_config, name, value)
-    return True
+    try:
+        device_codegens["npu"] = _replace_fx_wrapper_codegen(codegen, FxrtFxWrapper)
+        fxrt_wrapper = copy.copy(wrapper)
+        fxrt_wrapper.config = {**wrapper.config, **_FX_WRAPPER_CONFIG, "cpp_wrapper": False}
+        return compile_fn(fxrt_wrapper, gm, inputs)
+    finally:
+        # The fallback in _replace_fx_wrapper_codegen can update the object in place.
+        if codegen.fx_wrapper_codegen is not previous_wrapper:
+            codegen.fx_wrapper_codegen = previous_wrapper
+        device_codegens["npu"] = codegen
 
 
 _EXPORTED_NAMES = (
@@ -543,7 +485,6 @@ _EXPORTED_NAMES = (
     "compiled_kernel_wrapper_mutation",
     "fx_wrapper_backend",
     "get_fx_wrapper_backend",
-    "register_fx_wrapper",
     "register_compiled_kernel_backend",
     "set_eager_debug",
     "set_fx_wrapper_backend",

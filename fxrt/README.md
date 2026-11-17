@@ -8,6 +8,7 @@ FXRT is a lightweight, high-performance runtime for the inference phase. It lowe
 
 - [Build and Install](#build-and-install)
 - [Run Your First Example](#run-your-first-example)
+- [Enable FXRT in Inductor](#enable-fxrt-in-inductor)
 - [Environment Variables](#environment-variables)
 
 ## Build and Install
@@ -58,6 +59,74 @@ Key points:
 - The installed wheel registers `"fxrt"` as a compile backend and loads FXRT on demand.
 - Call the function as usual after `torch.compile(fn, backend="fxrt")`.
 - `view` / `reshape` / `permute` / `slice` and similar operators take the zero-copy view path by default.
+
+## Enable FXRT in Inductor
+
+The Inductor `fxrt` option defaults to `False`. When enabled, Inductor uses FX wrappers for all graphs, including the FXRT wrapper for NPU graphs.
+
+PyTorch 2.15 introduced device-namespaced compile options. Follow the pre-2.15 examples for early 2.15 nightly builds without device namespace support.
+
+### Enable FXRT for one compiled model
+
+```python
+# PyTorch 2.15+ with device namespace support
+compiled = torch.compile(model, backend="inductor", options={"npu.fxrt": True})
+out = compiled(x, y)
+```
+
+```python
+# PyTorch before 2.15 (also accepted by TorchNPU on newer versions)
+compiled = torch.compile(model, backend="inductor", options={"fxrt": True})
+out = compiled(x, y)
+```
+
+### Enable FXRT within a scope
+
+Call `torch.compile` within the `config.patch()` scope. The config is restored on exit. The compiled model can run outside the scope.
+
+```python
+# PyTorch 2.15+ with device namespace support
+from torch_npu._inductor import compile_options as config
+
+with config.patch({"fxrt": True}):
+    compiled = torch.compile(model, backend="inductor")
+
+out = compiled(x, y)
+```
+
+```python
+# PyTorch before 2.15
+import torch_npu._inductor  # Register the FXRT option.
+from torch._inductor import config
+
+with config.patch({"fxrt": True}):
+    compiled = torch.compile(model, backend="inductor")
+
+out = compiled(x, y)
+```
+
+### Set the default for subsequent compilations
+
+Set `config.fxrt` directly. Inductor reads that value when creating subsequent compiled models in the current context, until you change it again.
+
+```python
+# PyTorch 2.15+ with device namespace support
+from torch_npu._inductor import compile_options as config
+
+config.fxrt = True
+compiled = torch.compile(model, backend="inductor")
+out = compiled(x, y)
+```
+
+```python
+# PyTorch before 2.15
+import torch_npu._inductor  # Register the FXRT option.
+from torch._inductor import config
+
+config.fxrt = True
+compiled = torch.compile(model, backend="inductor")
+out = compiled(x, y)
+```
 
 ## Environment Variables
 

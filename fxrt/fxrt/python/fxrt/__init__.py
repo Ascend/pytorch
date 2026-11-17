@@ -2,6 +2,8 @@
 
 import sys
 
+__all__ = []
+
 if __name__ != "fxrt":
     # fxrt ships as torch_npu.fxrt, and nothing else in torch_npu imports it, so
     # it is loaded only when torch_npu.fxrt is imported. Its modules import each
@@ -14,8 +16,15 @@ if __name__ != "fxrt":
         import importlib.util
         import os
 
-        if sys.modules.get("fxrt") is not None:
-            return sys.modules["fxrt"]
+        def load_submodules(module):
+            module._backend = importlib.import_module("fxrt.fx_backend").backend
+            # Avoid loading the wrapper twice through its two import paths.
+            importlib.import_module("fxrt.fx_wrapper")
+
+        module = sys.modules.get("fxrt")
+        if module is not None:
+            load_submodules(module)
+            return module
         package_dir = os.path.dirname(os.path.abspath(__file__))
         spec = importlib.util.spec_from_file_location(
             "fxrt",
@@ -26,6 +35,7 @@ if __name__ != "fxrt":
         sys.modules["fxrt"] = module
         try:
             spec.loader.exec_module(module)
+            load_submodules(module)
         except BaseException:
             for name in [n for n in sys.modules if n == "fxrt" or n.startswith("fxrt.")]:
                 del sys.modules[name]
@@ -37,23 +47,3 @@ if __name__ != "fxrt":
         if _name.startswith("fxrt."):
             sys.modules.setdefault(f"{__name__}.{_name[len('fxrt.'):]}", _module)
     sys.modules[__name__] = _fxrt
-else:
-    # fxrt ships only inside the torch_npu wheel, so it carries torch_npu's version.
-    from torch_npu.version import __version__
-
-    # Keep the implementation under the canonical fxrt module name so both
-    # package aliases share its module state. setup.py's torch_dynamo_backends
-    # entry point targets torch_npu.fxrt:_backend; keep this externally used
-    # import even though the module body does not reference it.
-    from fxrt.fx_backend import backend as _backend  # noqa: F401  # pylint: disable=unused-import
-
-    # Importing fxrt must not take over inductor's device codegen on its own, so the
-    # fx_wrapper is registered only when the caller asks for it via
-    # fxrt.register_fx_wrapper().
-    from fxrt.fx_wrapper import register_fx_wrapper
-
-    from fxrt import ops
-
-    # The compile backend is discovered lazily through the wheel's
-    # torch_dynamo_backends entry point: torch.compile(fn, backend="fxrt").
-    __all__ = ['ops', 'register_fx_wrapper', '__version__']

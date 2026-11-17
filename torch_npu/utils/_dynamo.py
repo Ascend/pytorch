@@ -17,7 +17,7 @@ from torch.utils._pytree import TreeSpec, tree_flatten, tree_unflatten
 
 from torch_npu._compat.inductor import (
     compat_compile_option,
-    compat_global_npu_backend,
+    compat_global_compile_option,
     compat_inject_legacy_compile_options,
     compat_translate_compile_options,
     namespaced_compile_options,
@@ -101,7 +101,7 @@ def _resolve_npu_backend(selected_backend=None) -> str:
     if selected_backend not in (None, "", "default"):
         return selected_backend
 
-    global_backend = compat_global_npu_backend()
+    global_backend = compat_global_compile_option("npu_backend")
     if global_backend not in (None, "", "default"):
         return global_backend
 
@@ -161,6 +161,10 @@ def patch_inductor_wrapper():
             )
         ):
             src_init(self, mode, options, dynamic, name)
+        fxrt = compat_global_compile_option("fxrt")
+        if fxrt:
+            # Capture the active setting while preserving explicit compile options.
+            self.config.setdefault(compat_compile_option("fxrt"), fxrt)
         # Keep this hook outside torch_npu._inductor, whose import initializes the backend.
         from torch_npu.utils._triton import patch_triton_target_no_device_init
 
@@ -203,6 +207,10 @@ def patch_inductor_wrapper():
                 )
 
                 install_npu_deterministic_level_guard()
+            if self.config.get(compat_compile_option("fxrt"), False):
+                from torch_npu.fxrt.fx_wrapper import _compile_inductor_with_fxrt
+
+                return _compile_inductor_with_fxrt(src_call, self, model_, inputs_)
             return src_call(self, model_, inputs_)
 
     _TorchCompileInductorWrapper.__call__ = new_call

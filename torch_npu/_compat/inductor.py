@@ -22,7 +22,7 @@ __all__ = [
     "compat_prepare_dvm_backend_on_wrapper_init",
     "namespaced_compile_options",
     "compat_compile_option",
-    "compat_global_npu_backend",
+    "compat_global_compile_option",
     "compat_translate_compile_options",
     "compat_inject_legacy_compile_options",
 ]
@@ -589,15 +589,15 @@ def compat_compile_option(key: str) -> str:
     return f"npu.{key}" if namespaced_compile_options() else key
 
 
-# COMPAT(pytorch#194998): global npu_backend default: the npu options module
+# COMPAT(pytorch#194998): global defaults live in the npu options module
 #   once namespaced, the injected core-config entry on older torch.
 # CAN REMOVE the legacy branch when the upstream PR is required.
-def compat_global_npu_backend():
+def compat_global_compile_option(key: str):
     if namespaced_compile_options():
         compile_options = sys.modules.get("torch_npu._inductor.compile_options")
-        return getattr(compile_options, "npu_backend", None)
+        return getattr(compile_options, key, None)
     inductor_config = sys.modules.get("torch._inductor.config")
-    return getattr(inductor_config, "npu_backend", None)
+    return getattr(inductor_config, key, None)
 
 
 # COMPAT(pytorch#194998): legacy bare spellings map onto namespaced keys;
@@ -605,6 +605,7 @@ def compat_global_npu_backend():
 # CAN REMOVE when legacy spellings are dropped.
 _LEGACY_COMPILE_OPTIONS = {
     "npu_backend": "npu.npu_backend",
+    "fxrt": "npu.fxrt",
     "enable_shape_handling": "npu.enable_shape_handling",
     "shape_handling_configs": "npu.shape_handling_configs",
     "shape_handling_dict": "npu.shape_handling_dict",
@@ -641,6 +642,13 @@ def compat_inject_legacy_compile_options():
             self._config["npu_backend"] = _ConfigEntry(
                 Config(default="default", value_type=str),
                 name="npu_backend",
+            )
+
+        if "fxrt" not in ori_dict:
+            ori_dict["fxrt"] = False
+            self._config["fxrt"] = _ConfigEntry(
+                Config(default=False, value_type=bool),
+                name="fxrt",
             )
 
         if "enable_shape_handling" not in ori_dict:

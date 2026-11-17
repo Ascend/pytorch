@@ -12,6 +12,7 @@ from torch.utils._config_module import Config, install_config_module
 
 
 npu_backend: str = "default"
+fxrt: bool = False
 enable_shape_handling: bool = False
 shape_handling_configs: list = []
 shape_handling_dict: Optional[dict] = Config(default=None, value_type=dict)
