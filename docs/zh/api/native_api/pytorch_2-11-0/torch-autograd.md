@@ -707,6 +707,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id271 -->
 
+**限制与说明**：`NestedIOFunction`是PyTorch出于向后兼容目的保留的遗留类。新场景建议使用`torch.autograd.Function`，并通过`ctx.mark_dirty()`标记在前向过程中被原地修改的输入`Tensor`。
+
 </div>
 
 <a class="method_anchor" id="torch_autograd_function_NestedIOFunction_save_for_backward"></a>
