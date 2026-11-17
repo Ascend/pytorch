@@ -60705,7 +60705,6 @@
   "test/test_ops.py::TestCommonPRIVATEUSE1::test_out_warning__refs_fmod_npu",
   "test/test_ops.py::TestCommonPRIVATEUSE1::test_out_warning__refs_frac_npu",
   "test/test_ops.py::TestCommonPRIVATEUSE1::test_out_warning__refs_frexp_npu",
-  "test/test_ops.py::TestCommonPRIVATEUSE1::test_out_warning__refs_gcd_npu",
   "test/test_ops.py::TestCommonPRIVATEUSE1::test_out_warning__refs_ge_npu",
   "test/test_ops.py::TestCommonPRIVATEUSE1::test_out_warning__refs_gt_npu",
   "test/test_ops.py::TestCommonPRIVATEUSE1::test_out_warning__refs_heaviside_npu",
