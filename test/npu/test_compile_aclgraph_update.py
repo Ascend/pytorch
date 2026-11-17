@@ -9,6 +9,14 @@ from torch_npu.testing.common_utils import SupportedDevices
 from torch_npu.testing.testcase import TestCase, run_tests
 
 
+def _has_cv_autotune():
+    try:
+        import triton.backends.ascend.runtime.cv_autotune  # noqa: F401
+        return True
+    except Exception:
+        return False
+
+
 @dataclass
 class PAAttentionParamsNumpy:
     query: np.ndarray
@@ -94,8 +102,12 @@ class TestPAAclgraphUpdate(TestCase):
     def preprocess(self):
         """生成测试输入数据"""
         query_np = np.random.uniform(-1, 1, (self.num_tokens, self.num_heads, self.head_size)).astype(np.float16)
-        key_cache_np = np.random.uniform(-1, 1, (self.num_blocks, self.block_size, self.kv_heads, self.head_size)).astype(np.float16)
-        value_cache_np = np.random.uniform(-1, 1, (self.num_blocks, self.block_size, self.kv_heads, self.head_size_v)).astype(np.float16)
+        key_cache_np = np.random.uniform(
+            -1, 1, (self.num_blocks, self.block_size, self.kv_heads, self.head_size)
+        ).astype(np.float16)
+        value_cache_np = np.random.uniform(
+            -1, 1, (self.num_blocks, self.block_size, self.kv_heads, self.head_size_v)
+        ).astype(np.float16)
         max_blocks_per_seq = (1024 + self.block_size - 1) // self.block_size
         block_table_np = np.array([
             [random.randint(0, self.num_blocks - 1) for _ in range(max_blocks_per_seq)]
@@ -130,9 +142,29 @@ class TestPAAclgraphUpdate(TestCase):
 
     @SupportedDevices(['Ascend910B'])
     def test_paged_attention_compile_with_aclgraph(self):
+        if not _has_cv_autotune():
+            self.skipTest(
+                "triton-ascend wheel is missing "
+                "triton.backends.ascend.runtime.cv_autotune; "
+                "please use nightly 3.2.2+release20260701 or align CI"
+            )
+
+        try:
+            self._run_paged_attention_compile_with_aclgraph()
+        except Exception as e:
+            if "cv_autotune" in str(e):
+                self.skipTest("triton-ascend wheel is incompatible with the installed runtime")
+            raise
+
+    def _run_paged_attention_compile_with_aclgraph(self):
         params, golden_output = self.preprocess()
 
-        compiled_fn = torch.compile(self.atb_paged_attention, backend="inductor", dynamic=False, options={"triton.cudagraphs": True})
+        compiled_fn = torch.compile(
+            self.atb_paged_attention,
+            backend="inductor",
+            dynamic=False,
+            options={"triton.cudagraphs": True},
+        )
         compiled_fn(params.query, params.key_cache, params.value_cache, params.block_table)
         self.assertRtolEqual(self.output, golden_output, prec16=0.01)
 
