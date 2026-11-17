@@ -10528,6 +10528,28 @@
 
 </div>
 
+## Control Flow
+
+### torch.cond
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.cond](https://pytorch.org/docs/2.12/generated/torch.cond.html)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1144 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1144 -->
+<!-- npu="A3" id1145 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1145 -->
+<!-- npu="950" id1146 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1146 -->
+
+</div>
+
 ## Optimizations
 
 ### torch.compile

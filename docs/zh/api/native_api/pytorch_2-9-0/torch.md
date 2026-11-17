@@ -19,6 +19,7 @@
 - [Math operations](#math-operations)
 - [Utilities](#utilities)
 - [Symbolic Numbers](#symbolic-numbers)
+- [Control Flow](#control-flow)
 - [Optimizations](#optimizations)
 - [Operator Tags](#operator-tags)
 
@@ -10453,6 +10454,28 @@
 <!-- npu="950" id1142 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1142 -->
+
+</div>
+
+## Control Flow
+
+### torch.cond
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.cond](https://pytorch.org/docs/2.9/generated/torch.cond.html)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1139 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1139 -->
+<!-- npu="A3" id1140 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1140 -->
+<!-- npu="950" id1141 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1141 -->
 
 </div>
 
