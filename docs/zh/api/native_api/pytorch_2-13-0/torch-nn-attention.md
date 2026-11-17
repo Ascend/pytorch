@@ -23,6 +23,26 @@
 
 ## Utils
 
+### torch.nn.attention.sdpa_kernel
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.attention.sdpa_kernel](https://docs.pytorch.org/docs/2.13/generated/torch.nn.attention.sdpa_kernel.html#torch.nn.attention.sdpa_kernel)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1032 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1032 -->
+<!-- npu="A3" id1033 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1033 -->
+<!-- npu="950" id1034 -->
+- <term>Ascend 950PR系列产品</term>：支持
+<!-- end id1034 -->
+
+</div>
+
 ### <code><i>class</i></code> torch.nn.attention.SDPBackend
 
 <div style="margin-left: 2em">
