@@ -499,6 +499,46 @@
 
 </div>
 
+### <code><i>class</i></code> torch.autograd.function.InplaceFunction
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.function.InplaceFunction](https://docs.pytorch.org/docs/2.13/generated/torch.autograd.function.InplaceFunction.html)
+
+**产品支持情况**：
+
+<!-- npu="910b" id328 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id328 -->
+<!-- npu="A3" id329 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id329 -->
+<!-- npu="950" id330 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id330 -->
+
+> <font size="3">backward()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.function.InplaceFunction.backward](https://docs.pytorch.org/docs/2.13/generated/torch.autograd.function.InplaceFunction.html#torch.autograd.function.InplaceFunction.backward)
+
+**产品支持情况**：
+
+<!-- npu="910b" id331 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id331 -->
+<!-- npu="A3" id332 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id332 -->
+<!-- npu="950" id333 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id333 -->
+
+</div>
+
+</div>
+
 ## Context method mixins
 
 ### <code><i>class</i></code> torch.autograd.function.FunctionCtx
