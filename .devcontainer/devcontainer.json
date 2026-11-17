@@ -7,7 +7,7 @@
         "args": {
             "PY_VERSION": "3.10",
             "TORCH_VERSION": "2.12.0",
-            "CANN_VERSION": "9.1.0_beta.1",
+            "CANN_VERSION": "9.2.0",
             "CANN_PRODUCT": "910b"
         }
     },
