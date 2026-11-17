@@ -213,6 +213,28 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_attention_flex_attention_BlockMask_sparsity"></a>
+
+> <font size="3">sparsity()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.attention.flex_attention.BlockMask.sparsity](https://docs.pytorch.org/docs/2.14/nn.attention.flex_attention.html#torch.nn.attention.flex_attention.BlockMask.sparsity)
+
+**产品支持情况**：
+
+<!-- npu="910b" id2000 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id2000 -->
+<!-- npu="A3" id2001 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id2001 -->
+<!-- npu="950" id2002 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id2002 -->
+
+</div>
+
 <a class="method_anchor" id="torch_nn_attention_flex_attention_BlockMask_to"></a>
 
 > <font size="3">to()</font>
