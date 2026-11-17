@@ -3271,17 +3271,13 @@
 
 </div>
 
-<!-- npu="910b,A3" id1161 -->
-### torch.autograd.grad_mode.inference_mode
-<!-- end id1161 -->
+### <code><i>class</i></code> torch.autograd.grad_mode.inference_mode
 
 <div style="margin-left: 2em">
 
-<!-- npu="910b,A3" id1162 -->
 **原生文档**：[torch.autograd.grad_mode.inference_mode](https://pytorch.org/docs/2.14/generated/torch.autograd.grad_mode.inference_mode.html)
 
 **产品支持情况**：
-<!-- end id1162 -->
 
 <!-- npu="910b" id390 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -3289,8 +3285,10 @@
 <!-- npu="A3" id391 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id391 -->
+<!-- npu="950" id1521 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1521 -->
 
-<!-- npu="910b,A3" id1163 -->
 <a class="method_anchor" id="torch_autograd_grad_mode_inference_mode_clone"></a>
 
 > <font size="3">clone()</font>
@@ -3300,7 +3298,6 @@
 **原生文档**：[torch.autograd.grad_mode.inference_mode.clone](https://pytorch.org/docs/2.14/generated/torch.autograd.grad_mode.inference_mode.html#torch.autograd.grad_mode.inference_mode.clone)
 
 **产品支持情况**：
-<!-- end id1163 -->
 
 <!-- npu="910b" id393 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -3308,10 +3305,11 @@
 <!-- npu="A3" id394 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id394 -->
+<!-- npu="950" id1520 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1520 -->
 
-<!-- npu="910b,A3" id1164 -->
 </div>
-<!-- end id1164 -->
 
 </div>
 
