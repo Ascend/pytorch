@@ -138,6 +138,26 @@
 
 </div>
 
+### torch.autograd.forward_ad.exit_dual_level
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.forward_ad.exit_dual_level](https://docs.pytorch.org/docs/2.14/generated/torch.autograd.forward_ad.exit_dual_level.html)
+
+**产品支持情况**：
+
+<!-- npu="910b" id325 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id325 -->
+<!-- npu="A3" id326 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id326 -->
+<!-- npu="950" id327 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id327 -->
+
+</div>
+
 ### <code><i>class</i></code> torch.autograd.forward_ad.UnpackedDualTensor
 
 <div style="margin-left: 2em">
