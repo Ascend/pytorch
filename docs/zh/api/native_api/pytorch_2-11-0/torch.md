@@ -10343,6 +10343,26 @@
 
 </div>
 
+### torch.sym_fresh_size
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.sym_fresh_size](https://pytorch.org/docs/2.11/generated/torch.sym_fresh_size.html)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1153 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1153 -->
+<!-- npu="A3" id1154 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1154 -->
+<!-- npu="950" id1155 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1155 -->
+
+</div>
+
 ### torch.sym_int
 
 <div style="margin-left: 2em">
