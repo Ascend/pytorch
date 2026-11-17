@@ -65481,7 +65481,6 @@
   "test/inductor/test_unbacked_symints.py::TestUnbackedSymintsPRIVATEUSE1::test_override_optimization_hint_rejects_backed_symbol_npu",
   "test/inductor/test_unbacked_symints.py::TestUnbackedSymintsPRIVATEUSE1::test_override_optimization_hint_rejects_derived_expression_npu",
   "test/inductor/test_unbacked_symints.py::TestUnbackedSymintsPRIVATEUSE1::test_remove_no_ops_unbacked_shape_dde_npu",
-  "test/inductor/test_unbacked_symints.py::TestUnbackedSymintsPRIVATEUSE1::test_repeat_interleave_with_unbacked_scalar_npu",
   "test/inductor/test_unbacked_symints.py::TestUnbackedSymintsPRIVATEUSE1::test_reshape_indexer_dynamic_size_dynamic_backed_npu",
   "test/inductor/test_unbacked_symints.py::TestUnbackedSymintsPRIVATEUSE1::test_reshape_indexer_dynamic_size_dynamic_unbacked_npu",
   "test/inductor/test_unbacked_symints.py::TestUnbackedSymintsPRIVATEUSE1::test_reshape_indexer_fallback_npu",
