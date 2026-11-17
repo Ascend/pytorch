@@ -17,7 +17,11 @@ import sys
 import urllib.request
 
 WORKFLOW_FILE_MAP = {
-    "Nightly Build and Test": "nightly.yml",
+    "Nightly Build and Test A3 (upstream torch main, label-filtered)": "nightly-main-label-a3.yml",
+    "Nightly Build and Test A3 (upstream torch main, full)": "nightly-main-full-a3.yml",
+    "Nightly Build and Test A5 (upstream torch main, full)": "nightly-main-full-a5.yml",
+    "Nightly Build and Test A3 (upstream torch release)": "nightly-upstream-release-a3.yml",
+    "Nightly Build and Test A5 (upstream torch release)": "nightly-upstream-release-a5.yml",
     "Nightly Device Full Test (Manual)": "nightly-device-full-test.yml",
     "PyTorch CI Trigger PR": "pytorch_ci_trigger_pr.yml",
     "PyTorch CI Trigger Push": "pytorch_ci_trigger_push.yml",

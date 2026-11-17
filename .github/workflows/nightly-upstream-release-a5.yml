@@ -2,7 +2,7 @@ name: Nightly Build and Test A5 (upstream torch release)
 
 # A5 (x86_64) counterpart of nightly-upstream-release-a3.yml: validates torch_npu
 # against the UPSTREAM torch 2.15.0 release wheels for linux x86_64
-# instead of a source-built PyTorch, complementing nightly-a5.yml (which
+# instead of a source-built PyTorch, complementing nightly-main-full-a5.yml (which
 # tracks pytorch main). The test suite comes from the commit the torch
 # wheel was built from (wheel git_version, resolved in the build
 # workflow).
@@ -15,7 +15,7 @@ name: Nightly Build and Test A5 (upstream torch release)
 #     _nightly_build_upstream_wheels.yml matches the wheel.
 #   - torchvision 0.29.2+cpu (py3-none) x86_64 from the stable cpu
 #     channel, sha256 verified against the index.
-#   - Unlike the source-build flow (_nightly_build.yml for nightly-a5),
+#   - Unlike the source-build flow (_nightly_build.yml for nightly-main-full-a5),
 #     no MKL wiring from /opt/intel and no wheel repair is needed here:
 #     the upstream wheel is already self-contained (manylinux-repaired
 #     by upstream, ships its own BLAS).
@@ -94,9 +94,9 @@ jobs:
       # Same dedicated Guiyang wheels bucket as the build job above.
       wheels_obs_endpoint: 'obs.cn-southwest-2.myhuaweicloud.com'
       wheels_obs_bucket: 'pytorch-torchnpu/7day-cache'
-      # Same triton-ascend -std=c++17 -> c++20 workaround as nightly-a5:
+      # Same triton-ascend -std=c++17 -> c++20 workaround as nightly-main-full-a5:
       # this image is the original hotspot (549 npu_utils compile
-      # failures without the patch, see nightly-a5.yml). The C++20-only
+      # failures without the patch, see nightly-main-full-a5.yml). The C++20-only
       # ATen headers apply to the 2.15-era headers as well. See the
       # Patch triton cxx20 step in _nightly_test-category.yml. Flip to
       # false to disable.

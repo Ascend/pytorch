@@ -1,11 +1,11 @@
-name: Nightly Build and Test (label)
+name: Nightly Build and Test A3 (upstream torch main, label-filtered)
 
 on:
   push:
     branches:
       - ci-test
     paths:
-      - '.github/workflows/nightly.yml'
+      - '.github/workflows/nightly-main-label-a3.yml'
   workflow_dispatch:
 
 permissions:

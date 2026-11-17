@@ -1,14 +1,11 @@
-name: Nightly Build and Test A3 (All) 
+name: Nightly Build and Test A5 (upstream torch main, full)
 
 on:
-  schedule:
-    # 每天 01:00（北京时间 UTC+8），Actions cron 为 UTC，即 17:00 UTC（前一天）
-    - cron: '0 17 * * *'
   push:
     branches:
       - ci-test
     paths:
-      - '.github/workflows/nightly-a3.yml'
+      - '.github/workflows/nightly-main-full-a5.yml'
   workflow_dispatch:
 
 permissions:
@@ -24,12 +21,15 @@ jobs:
       upstream_ref: main
       torch_npu_repo: Ascend/pytorch
       torch_npu_ref: master
-      # Build in the dedicated builder image; the wheel-repair step in
-      # _nightly_build.yml vendors its private libs (OpenBLAS) into the
-      # torch wheel so it stays self-contained in the test image.
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-builder-aarch64-torch-master-202610160225-8a315d17
+      # Build in the dedicated x86_64 builder image. The build step
+      # statically links MKL from the image's /opt/intel (mkl-static
+      # layout, same wiring as upstream build_wheel.py), so the x86_64
+      # torch wheel matches upstream CPU wheels; the wheel-repair step
+      # then vendors libgomp and sets $ORIGIN RPATHs so the wheel stays
+      # self-contained in the A5 test image.
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-builder-x86_64-torch-master-202610160227-8a315d17
       report_to_upstream: false
-      runner_label: 'linux-aarch64-cpu-24'
+      runner_label: 'linux-amd64-a5-2'
       max_jobs: '23'
       # Wheels cache moved to the dedicated Guiyang bucket
       # (pytorch-torchnpu, cn-southwest-2); source stays on the legacy
@@ -50,31 +50,35 @@ jobs:
       torchnpu_wheels_tarball: ${{ needs.build.outputs.torchnpu_wheels_tarball }}
       upstream_repo: pytorch/pytorch
       torch_npu_short: ${{ needs.build.outputs.torch_npu_short }}
-      case_paths_config: .github/config/nightly_test_categories.yml
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17
+      case_paths_config: .github/config/nightly_test_categories_a5.yml
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.11-torch-master-cann9.2.0-20260910200430-202610160226-8a315d17
       report_to_upstream: false
       hw_classification: ''
       full_scan: true
       device_env: 'privateuse1,cpu'
-      runner_label: 'linux-aarch64-a3-800i-2-cn12-001'
-      # Same dedicated Guiyang wheels bucket as the build job above.
-      wheels_obs_endpoint: 'obs.cn-southwest-2.myhuaweicloud.com'
-      wheels_obs_bucket: 'pytorch-torchnpu/7day-cache'
       skip_list: |-
-        .github/config/disabled_testcases_a3_all.json
-        .github/config/running_skiped_testcases.json
+        .github/config/disabled_testcases_a5_all.json
         .github/config/unsupport_dtype_testcases.json
         .github/config/unsupported_aclnn_testcases.json
         .github/config/temporary_skiped_testcases.json
-      # Experimental: validates the triton-ascend -std=c++17 -> c++20
-      # workaround against the deterministic npu_utils build failure
-      # (ATen headers require C++20). The a3 image ships triton 3.6.0 +
-      # triton-ascend 3.6.0 (image build run kerer-ai/pytorch 38840250671).
+      runner_label: 'linux-amd64-a5-2'
+      test_max_parallel: 3
+      # Same dedicated Guiyang wheels bucket as the build job above.
+      wheels_obs_endpoint: 'obs.cn-southwest-2.myhuaweicloud.com'
+      wheels_obs_bucket: 'pytorch-torchnpu/7day-cache'
+      # Rewrites the installed triton-ascend backend's hardcoded
+      # -std=c++17 to -std=c++20 and prebuilds npu_utils.so once per
+      # shard container, working around the deterministic npu_utils
+      # build failure against torch master's C++20-only ATen headers.
+      # This image is the original hotspot: run 38846980367 graph-2
+      # alone showed 549 compile failures + 34 per-case timeouts +
+      # ~55h swallowed compile tax. Validated on nightly-a3 run
+      # 39538533016: npu_utils failures -> 0, no side effects.
       # See the Patch triton cxx20 step in _nightly_test-category.yml.
-      # Flip to false to disable.
       patch_triton_cxx20: true
       # flaky 用例重试：只重试 flaky_testcases 名单里的失败用例，
       # 每轮并发按机器 NPU 卡数（auto），不用固定线程数。
       retry_failed_cases: true
       retry_only_list: .github/config/flaky_testcases
       retry_max_workers: auto
+

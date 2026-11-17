@@ -1,6 +1,6 @@
 # Nightly test categories — categorization + execution config (full-scan mode).
 #
-# In full-scan mode (nightly.yml full_scan: true), this file is NOT a whitelist.
+# In full-scan mode (nightly-main-label-a3.yml full_scan: true), this file is NOT a whitelist.
 # ALL test_*.py files under pytorch/test/ are scanned; the files/paths below
 # assign files to categories. Unmatched files go to 'others' (catch-all).
 #
