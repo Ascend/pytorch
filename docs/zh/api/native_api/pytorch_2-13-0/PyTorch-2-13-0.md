@@ -115,6 +115,8 @@
 
 - **[torch.utils.data](torch-utils-data.md)**  
 
+- **[torch.utils.dlpack](torch-utils-dlpack.md)**  
+
 <!-- npu="910b,A3" id2 -->
 - **[torch.utils.model\_zoo](torch-utils-model_zoo.md)**  
 <!-- end id2 -->

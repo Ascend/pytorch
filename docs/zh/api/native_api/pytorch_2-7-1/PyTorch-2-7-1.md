@@ -112,6 +112,8 @@
 
 - **[torch.utils.data](torch-utils-data.md)**  
 
+- **[torch.utils.dlpack](torch-utils-dlpack.md)**  
+
 - **[torch.utils.mobile\_optimizer](torch-utils-mobile_optimizer.md)**  
 
 <!-- npu="910b,A3" id1 -->

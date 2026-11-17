@@ -63,6 +63,26 @@
 
 </div>
 
+### torch.utils.get_cpp_backtrace
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.utils.get_cpp_backtrace](https://pytorch.org/docs/2.14/generated/torch.utils.get_cpp_backtrace.html)
+
+**产品支持情况**：
+
+<!-- npu="910b" id16 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id16 -->
+<!-- npu="A3" id17 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id17 -->
+<!-- npu="950" id18 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id18 -->
+
+</div>
+
 ### torch.utils.set\_module
 
 <div style="margin-left: 2em">

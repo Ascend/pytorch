@@ -67,6 +67,7 @@
   - [torch.utils.cpp\_extension](./pytorch_2-14-0/torch-utils-cpp_extension.md)
   - [torch.utils.data](./pytorch_2-14-0/torch-utils-data.md)
   - [torch.utils.deterministic](./pytorch_2-14-0/torch-utils-deterministic.md)
+  - [torch.utils.dlpack](./pytorch_2-14-0/torch-utils-dlpack.md)
   <!-- npu="910b,A3" id2 -->
   - [torch.utils.model\_zoo](./pytorch_2-14-0/torch-utils-model_zoo.md)
   <!-- end id2 -->
@@ -146,6 +147,7 @@
   - [torch.utils.cpp\_extension](./pytorch_2-13-0/torch-utils-cpp_extension.md)
   - [torch.utils.data](./pytorch_2-13-0/torch-utils-data.md)
   - [torch.utils.deterministic](./pytorch_2-13-0/torch-utils-deterministic.md)
+  - [torch.utils.dlpack](./pytorch_2-13-0/torch-utils-dlpack.md)
   <!-- npu="910b,A3" id4 -->
   - [torch.utils.model\_zoo](./pytorch_2-13-0/torch-utils-model_zoo.md)
   <!-- end id4 -->
@@ -222,6 +224,7 @@
   - [torch.utils.cpp\_extension](./pytorch_2-12-0/torch-utils-cpp_extension.md)
   - [torch.utils.data](./pytorch_2-12-0/torch-utils-data.md)
   - [torch.utils.deterministic](./pytorch_2-12-0/torch-utils-deterministic.md)
+  - [torch.utils.dlpack](./pytorch_2-12-0/torch-utils-dlpack.md)
   <!-- npu="910b,A3" id5 -->
   - [torch.utils.model\_zoo](./pytorch_2-12-0/torch-utils-model_zoo.md)
   <!-- end id5 -->
@@ -297,6 +300,7 @@
   - [torch.utils.cpp\_extension](./pytorch_2-11-0/torch-utils-cpp_extension.md)
   - [torch.utils.data](./pytorch_2-11-0/torch-utils-data.md)
   - [torch.utils.deterministic](./pytorch_2-11-0/torch-utils-deterministic.md)
+  - [torch.utils.dlpack](./pytorch_2-11-0/torch-utils-dlpack.md)
   <!-- npu="910b,A3" id6 -->
   - [torch.utils.model\_zoo](./pytorch_2-11-0/torch-utils-model_zoo.md)
   <!-- end id6 -->
@@ -373,6 +377,7 @@
   - [torch.utils.cpp\_extension](./pytorch_2-10-0/torch-utils-cpp_extension.md)
   - [torch.utils.data](./pytorch_2-10-0/torch-utils-data.md)
   - [torch.utils.deterministic](./pytorch_2-10-0/torch-utils-deterministic.md)
+  - [torch.utils.dlpack](./pytorch_2-10-0/torch-utils-dlpack.md)
   <!-- npu="910b,A3" id7 -->
   - [torch.utils.model\_zoo](./pytorch_2-10-0/torch-utils-model_zoo.md)
   <!-- end id7 -->
@@ -449,6 +454,7 @@
   - [torch.utils.cpp\_extension](./pytorch_2-9-0/torch-utils-cpp_extension.md)
   - [torch.utils.data](./pytorch_2-9-0/torch-utils-data.md)
   - [torch.utils.deterministic](./pytorch_2-9-0/torch-utils-deterministic.md)
+  - [torch.utils.dlpack](./pytorch_2-9-0/torch-utils-dlpack.md)
   <!-- npu="910b,A3" id8 -->
   - [torch.utils.model\_zoo](./pytorch_2-9-0/torch-utils-model_zoo.md)
   <!-- end id8 -->
@@ -525,6 +531,7 @@
   - [torch.utils.cpp\_extension](./pytorch_2-7-1/torch-utils-cpp_extension.md)
   - [torch.utils.data](./pytorch_2-7-1/torch-utils-data.md)
   - [torch.utils.deterministic](./pytorch_2-7-1/torch-utils-deterministic.md)
+  - [torch.utils.dlpack](./pytorch_2-7-1/torch-utils-dlpack.md)
   - [torch.utils.mobile\_optimizer](./pytorch_2-7-1/torch-utils-mobile_optimizer.md)
   <!-- npu="910b,A3" id9 -->
   - [torch.utils.model\_zoo](./pytorch_2-7-1/torch-utils-model_zoo.md)
