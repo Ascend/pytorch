@@ -40,6 +40,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id3 -->
 
+<!-- npu="910b,A3,950" id15 -->
 > <font size="3">define()</font>
 
 <div style="margin-left: 2em">
@@ -47,6 +48,7 @@
 **Native Documentation**: [torch.library.Library.define](https://pytorch.org/docs/2.11/library.html#torch.library.Library.define)
 
 **Support Status**:
+<!-- end id15 -->
 
 <!-- npu="910b" id4 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -58,8 +60,11 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id6 -->
 
+<!-- npu="910b,A3,950" id16 -->
 </div>
+<!-- end id16 -->
 
+<!-- npu="910b,A3,950" id13 -->
 > <font size="3">impl()</font>
 
 <div style="margin-left: 2em">
@@ -67,6 +72,7 @@
 **Native Documentation**: [torch.library.Library.impl](https://pytorch.org/docs/2.11/library.html#torch.library.Library.impl)
 
 **Support Status**:
+<!-- end id13 -->
 
 <!-- npu="910b" id7 -->
 - <term>Atlas A2 training products</term>: Supported
@@ -78,7 +84,9 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id9 -->
 
+<!-- npu="910b,A3,950" id14 -->
 </div>
+<!-- end id14 -->
 
 </div>
 
