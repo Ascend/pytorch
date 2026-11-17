@@ -10975,16 +10975,18 @@
 **产品支持情况**：
 
 <!-- npu="910b" id1202 -->
-- <term>Atlas A2训练系列产品</term>：支持
+- <term>Atlas A2训练系列产品</term>：不支持
 <!-- end id1202 -->
 <!-- npu="A3" id1203 -->
-- <term>Atlas A3训练系列产品</term>：支持
+- <term>Atlas A3训练系列产品</term>：不支持
 <!-- end id1203 -->
 <!-- npu="950" id1204 -->
-- <term>Ascend 950DT系列产品</term>：支持
+- <term>Ascend 950DT系列产品</term>：不支持
 <!-- end id1204 -->
 
-**限制与说明**： `self`仅支持fp32
+**限制与说明**：
+
+- Atlas A2训练系列产品、Atlas A3训练系列产品：该接口可读取张量实际的存储步长；相关算子处理部分非连续输入时，输出步长传播与原生PyTorch的一致性暂不支持。
 
 </div>
 
