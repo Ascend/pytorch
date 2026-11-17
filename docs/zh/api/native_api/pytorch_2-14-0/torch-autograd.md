@@ -795,6 +795,26 @@
 
 </div>
 
+> <font size="3">set_materialize_grads()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[NestedIOFunction.set_materialize_grads](https://pytorch.org/docs/2.14/generated/torch.autograd.function.NestedIOFunction.html#torch.autograd.function.NestedIOFunction.set_materialize_grads)
+
+**产品支持情况**：
+
+<!-- npu="910b" id214 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id214 -->
+<!-- npu="A3" id215 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id215 -->
+<!-- npu="950" id216 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id216 -->
+
+</div>
+
 </div>
 
 ### torch.autograd.gradcheck.gradcheck
