@@ -490,6 +490,9 @@ void fill_equal_split_sizes_when_empty(std::vector<int64_t>& split_sizes, at::Te
 }
 
 void check_split_sizes(const std::vector<int64_t>& split_sizes, const at::Tensor& tensor, int group_size) {
+  for (const auto split_size : split_sizes) {
+    TORCH_CHECK(split_size >= 0, "Split sizes must be non-negative", DIST_ERROR(ErrCode::PARAM));
+  }
   if (split_sizes.empty()) {
     TORCH_CHECK(
         tensor.size(0) % group_size == 0,
@@ -7874,6 +7877,20 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
   check_npu_single_tensor(inputTensor);
   int ranks = getSize();
   TORCH_CHECK(ranks > 0, "Invalid rank count within current process group", ranks, DIST_ERROR(ErrCode::PARAM));
+
+  TORCH_CHECK(
+      inputTensor.dim() >= 1 && outputTensor.dim() >= 1,
+      "Scalar tensors (0-dim tensors) are not supported in alltoall. "
+      "inputTensor.dim()=",
+      inputTensor.dim(),
+      ", outputTensor.dim()=",
+      outputTensor.dim(),
+      ". Please reshape tensors to at least 1-D before calling alltoall.",
+      DIST_ERROR(ErrCode::NOT_SUPPORT));
+
+  check_split_sizes(inputSplitSizes, inputTensor, size_);
+  check_split_sizes(outputSplitSizes, outputTensor, size_);
+
   std::vector<at::Tensor> inputTensors = {inputTensor};
   std::vector<at::Tensor> outputTensors = {outputTensor};
 
@@ -7888,19 +7905,6 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
     TORCH_CHECK(
         outputTensor.numel() == inputTensor.numel() && outputTensor.type() == inputTensor.type(),
         "Tensors are not equal in size or data type",
-        DIST_ERROR(ErrCode::PARAM));
-    TORCH_CHECK(
-        inputTensor.dim() >= 1 && outputTensor.dim() >= 1,
-        "Scalar tensors (0-dim tensors) are not supported in alltoall. "
-        "inputTensor.dim()=",
-        inputTensor.dim(),
-        ", outputTensor.dim()=",
-        outputTensor.dim(),
-        ". Please reshape tensors to at least 1-D before calling alltoall.",
-        DIST_ERROR(ErrCode::NOT_SUPPORT));
-    TORCH_CHECK(
-        outputTensor.size(0) % ranks == 0,
-        "Tensor's dim 0 does not divide equally across group size",
         DIST_ERROR(ErrCode::PARAM));
     uint64_t output_counts = static_cast<uint64_t>(outputTensor.numel() / ranks);
     uint64_t input_counts = static_cast<uint64_t>(inputTensor.numel() / ranks);
@@ -7986,8 +7990,6 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
         inputSplitSizes.push_back(index);
       }
     }
-    check_split_sizes(inputSplitSizes, inputTensor, size_);
-    check_split_sizes(outputSplitSizes, outputTensor, size_);
 
     int inputSize = static_cast<int>(inputSplitSizes.size());
     int outSize = static_cast<int>(outputSplitSizes.size());

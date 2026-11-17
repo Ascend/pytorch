@@ -63,19 +63,73 @@ class HcclAlltoAllSingleTest(TestCase):
         input1 = input1.float().npu()
         output = torch.empty(12).float().npu() if rank == 0 else torch.empty(18).float().npu()
         output = torch_npu.npu_format_cast(output, 29)
-        inputsize1 = [4, 8]
-        inputsize2 = [8, 12]
-        outsize1 = [4, 6]
-        outsize2 = [6, 12]
-        inputsize = [inputsize1, inputsize2]
-        outsize = [outsize1, outsize2]
+        inputsize = [4, 8]
+        outsize = [4, 6]
         cout = 2
         errorInfo = ""
         try:
-            pg.all_to_all_single(output, input1, outsize[rank], inputsize[rank])
+            pg.all_to_all_single(output, input1, outsize, inputsize)
         except Exception as e:
             errorInfo = str(e)
-        c2p.put((rank, output.cpu(), cout, errorInfo))
+        c2p.put((rank, None, cout, errorInfo))
+
+    @classmethod
+    def _test_alltoall_single_independent_empty_split_sizes(
+            cls, rank, world_size, init_pg):
+        pg = init_pg(rank, world_size)
+        test_case = TestCase()
+        test_case.assertEqual(world_size, 2)
+        cases = (
+            ("input_empty", 2 * (rank + 1), [], [1, 2], [0, 1, 1]),
+            ("output_empty", 3, [1, 2], [],
+             [0] * (rank + 1) + [1] * (rank + 1)),
+        )
+        for name, input_count, input_splits, output_splits, expected in cases:
+            input_tensor = torch.full(
+                (input_count,), rank, dtype=torch.float32).npu()
+            output = torch.empty(len(expected), dtype=torch.float32).npu()
+            pg.all_to_all_single(
+                output,
+                input_tensor,
+                output_split_sizes=output_splits,
+                input_split_sizes=input_splits)
+            test_case.assertEqual(
+                output.cpu(),
+                torch.tensor(expected, dtype=torch.float32),
+                message=f"{name}, rank={rank}")
+
+    @classmethod
+    def _test_alltoall_single_invalid_split_sizes(
+            cls, rank, world_size, init_pg):
+        pg = init_pg(rank, world_size)
+        test_case = TestCase()
+        test_case.assertEqual(world_size, 2)
+        negative_error = "Split sizes must be non-negative"
+        length_error = "Number of tensor splits not equal to group size"
+        sum_error = "Split sizes doesn't match total dim 0 size"
+        divide_error = "does not divide equally across group size"
+        cases = (
+            ("negative_input", (4,), (4,), [-1, 5], [2, 2], negative_error),
+            ("negative_output", (4,), (4,), [2, 2], [-1, 5], negative_error),
+            ("length_input", (4,), (4,), [4], [2, 2], length_error),
+            ("length_output", (4,), (4,), [2, 2], [4], length_error),
+            ("sum_input", (4,), (4,), [3, 3], [2, 2], sum_error),
+            ("sum_output", (4,), (4,), [2, 2], [3, 3], sum_error),
+            ("empty_input", (3,), (4,), [], [2, 2], divide_error),
+            ("empty_output", (4,), (3,), [2, 2], [], divide_error),
+            ("both_empty_input_bad", (3, 4), (4, 3), [], [], divide_error),
+            ("both_empty_output_bad", (4, 3), (3, 4), [], [], divide_error),
+        )
+        for name, input_shape, output_shape, input_splits, output_splits, error in cases:
+            input_tensor = torch.ones(input_shape, dtype=torch.float32).npu()
+            output = torch.empty(output_shape, dtype=torch.float32).npu()
+            with test_case.assertRaisesRegex(
+                    RuntimeError, error, msg=f"{name}, rank={rank}"):
+                pg.all_to_all_single(
+                    output,
+                    input_tensor,
+                    output_split_sizes=output_splits,
+                    input_split_sizes=input_splits)
 
     def _test_multiprocess_2p(self, f, init_pg):
         ws = self.world_size_2p
@@ -127,6 +181,27 @@ class HcclAlltoAllSingleTest(TestCase):
         for p in ps:
             p.join(2)
 
+    def _test_multiprocess_2p_assert(self, f, init_pg):
+        ws = self.world_size_2p
+        ctx = mp.get_context('spawn')
+        ps = []
+        for i in range(ws):
+            p = ctx.Process(target=f, args=(i, ws, init_pg))
+            p.start()
+            ps.append(p)
+        try:
+            for p in ps:
+                p.join(120)
+            for p in ps:
+                if p.is_alive():
+                    self.fail("subprocess hung and was terminated")
+                self.assertEqual(p.exitcode, 0, "subprocess exit with abnormal code.")
+        finally:
+            for p in ps:
+                if p.is_alive():
+                    p.terminate()
+                    p.join(5)
+
     @skipIfUnsupportMultiNPU(2)
     def test_alltoall_single_2p_dist(self):
         self._test_multiprocess_2p(
@@ -144,6 +219,18 @@ class HcclAlltoAllSingleTest(TestCase):
     def test_alltoall_single_2p_expect(self):
         self._test_multiprocess_2p(
             HcclAlltoAllSingleTest._test_alltoall_single_2p_expect,
+            HcclAlltoAllSingleTest._init_dist_hccl)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_alltoall_single_independent_empty_split_sizes(self):
+        self._test_multiprocess_2p_assert(
+            HcclAlltoAllSingleTest._test_alltoall_single_independent_empty_split_sizes,
+            HcclAlltoAllSingleTest._init_dist_hccl)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_alltoall_single_invalid_split_sizes(self):
+        self._test_multiprocess_2p_assert(
+            HcclAlltoAllSingleTest._test_alltoall_single_invalid_split_sizes,
             HcclAlltoAllSingleTest._init_dist_hccl)
 
     @classmethod
