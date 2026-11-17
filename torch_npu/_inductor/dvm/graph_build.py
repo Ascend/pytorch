@@ -224,9 +224,3 @@ class DvmCodegenInterpreter(torch.fx.Interpreter):
             return ""
 
         return pytree.tree_map(codegen, outs, self.current_node.args[0])
-
-    def append_mfusion_kernel_profiling_metadata(
-        self, kernel_name: str, num_outputs: int
-    ) -> None:
-        """Emit ``k.set_kernel_info`` for stable Ascend profiler names."""
-        self.code.splice(f"k.set_kernel_info({kernel_name!r}, {kernel_name!r})")

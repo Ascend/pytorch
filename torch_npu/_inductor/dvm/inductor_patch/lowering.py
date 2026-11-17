@@ -23,7 +23,6 @@ from typing_extensions import ParamSpec
 from unittest.mock import patch
 
 import sympy
-from sympy.core import Expr
 
 import torch
 import torch.ao.quantization.fx._decomposed
@@ -128,13 +127,9 @@ quantized_decomposed = torch.ops.quantized_decomposed
 from torch_npu._inductor.lowering_common import (
     TracedGraph,
     MLIR_OPERATOR_MAPPING,
-    create_sym_inputs as _create_sym_inputs,
     fetch_graphs as _fetch_graphs,
     get_reduction_type_to_aten_fn,
-    map_operators_to_strings as _map_operators_to_strings,
-    map_strings_to_operators as _map_strings_to_operators,
     merge_traced_graphs as _merge_traced_graphs,
-    process_ir_constant as _process_ir_constant,
     register_fn_to_aten_fn as _register_fn_to_aten_fn,
     register_to_aten as _register_to_aten,
 )
@@ -157,17 +152,6 @@ reduction_type_to_aten_fn = get_reduction_type_to_aten_fn()
 operator_to_string = MLIR_OPERATOR_MAPPING.operator_to_string
 string_to_operator = MLIR_OPERATOR_MAPPING.string_to_operator
 
-def map_operators_to_strings(expr_str: str):
-    return _map_operators_to_strings(expr_str, MLIR_OPERATOR_MAPPING)
-
-def map_strings_to_operators(expr_str: str):
-    return _map_strings_to_operators(expr_str, MLIR_OPERATOR_MAPPING)
-
-def create_sym_inputs(traced_graph: TracedGraph, size: List[Expr]):
-    return _create_sym_inputs(traced_graph, size, MLIR_OPERATOR_MAPPING)
-
-def process_ir_constant(inp: ExpandView) -> Union[TracedGraph, int, float]:
-    return _process_ir_constant(inp, MLIR_OPERATOR_MAPPING)
 
 def fetch_graphs(inputs: Optional[List[TensorBox]]):
     return _fetch_graphs(inputs, MLIR_OPERATOR_MAPPING, use_npu_meta=False)
@@ -6385,22 +6369,6 @@ def fmod(a, b):
 
     return make_pointwise(fn)(a, b)
 
-
-def split_last_continuous(lst):
-    n = len(lst)
-    if n == 1:
-        return lst, []
-
-    i = n - 2
-    while i >= 0:
-        if lst[i] + 1 != lst[i + 1]:
-            break
-        i -= 1
-
-    start = i + 1
-    last_part = lst[start:]
-    remaining = lst[:start]
-    return last_part, remaining
 
 @register_lowering([aten.sum, prims.sum])
 def sum_(x, axis=None, keepdims=False, *, dtype=None):

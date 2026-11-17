@@ -437,7 +437,6 @@ def _patch_sliceview_create(
             return x
     except TypeError:
         pass
-    sizevars = V.graph.sizevars
     new_size = list(x.get_size())
 
     if clamp:
@@ -654,20 +653,10 @@ def _patch_devicecopy_create(
     return r
 
 
-def _patch_devicecopy_get_traced_graph(self):
-    return self.traced_graph
-
-
-
-
 def _patch_multioutput_get_traced_graph(self):
     return None
 
 
-
-
-def _patch_mutablebox_get_name(self):
-    return self.data.get_name()
 
 
 def _patch_mutablebox_get_traced_graph(self):
@@ -744,8 +733,6 @@ def apply_ir_patch() -> None:
         _patch_externkernel_convert_to_reinterpret_view
     )
     ir.DeviceCopy.create = _patch_devicecopy_create
-    ir.DeviceCopy.get_traced_graph = _patch_devicecopy_get_traced_graph
     ir.MultiOutput.get_traced_graph = _patch_multioutput_get_traced_graph
-    ir.MutableBox.get_name = _patch_mutablebox_get_name
     ir.MutableBox.get_traced_graph = _patch_mutablebox_get_traced_graph
     ir.MutationLayoutSHOULDREMOVE.realize_into = _patch_mutationlayout_realize_into
