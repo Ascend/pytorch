@@ -5916,12 +5916,12 @@ class NPUTritonKernel(TritonKernel):
                             wrapper.kernel_numel_expr.add((var_name, V.graph))
                             wrapper.writeline(
                                 f"{wrapper.declare}{var_name} = "
-                                f"{wrapper.codegen_python_sizevar(node.length)}{wrapper.ending}"
+                                f"{wrapper.codegen_sizevar(node.length)}{wrapper.ending}"
                             )
                         else:
                             wrapper.writeline(
                                 f"{var_name} = "
-                                f"{wrapper.codegen_python_sizevar(node.length)}{wrapper.ending}"
+                                f"{wrapper.codegen_sizevar(node.length)}{wrapper.ending}"
                             )
                         call_args.append(SymbolicCallArg(var_name, node.length))
                         arg_types.append(type(node.length))
