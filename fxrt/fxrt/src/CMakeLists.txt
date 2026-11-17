@@ -44,7 +44,7 @@ set(OBJECTS fxrt_common fxrt_config hardware_abstract execution_engine
 add_library(fxrt SHARED common/common.h)
 set_target_properties(fxrt PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(fxrt PRIVATE ${NANOBIND_INCLUDE_DIR})
-target_link_libraries(fxrt ${OBJECTS} nanobind-static Python::Module)
+target_link_libraries(fxrt ${OBJECTS} fxrt::nanobind Python::Module)
 
 set_target_properties(fxrt PROPERTIES
   INSTALL_RPATH "${FXRT_LIB_RPATH}"

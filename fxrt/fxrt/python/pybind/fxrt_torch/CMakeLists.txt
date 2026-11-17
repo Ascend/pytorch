@@ -1,6 +1,6 @@
 
 # Add fxrt_torch nanobind sub module
-nanobind_add_module(_fxrt_torch pybind_torch.cpp)
+nanobind_add_module(_fxrt_torch PROTECT_STACK pybind_torch.cpp)
 target_link_libraries(_fxrt_torch PUBLIC fxrt_common fxrt ${TORCH_LIBRARIES} ${TORCH_PYTHON_LIBRARY})
 
 if(ENABLE_ASCEND)

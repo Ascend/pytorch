@@ -2,7 +2,7 @@
 file(GLOB_RECURSE OPS_BASE_SRC_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.cpp")
 add_library(ops_base_obj STATIC ${OPS_BASE_SRC_FILES})
 target_link_libraries(ops_base_obj PRIVATE fxrt_common fxrt_ir_obj ${TORCH_LIBRARIES})
-target_link_libraries(ops_base_obj PRIVATE ops_utils fxrt_profiler nanobind-static)
+target_link_libraries(ops_base_obj PRIVATE ops_utils fxrt_profiler fxrt::nanobind)
 target_include_directories(ops_base_obj PUBLIC ${NANOBIND_INCLUDE_DIR})
 if(ENABLE_ASCEND)
     add_compile_definitions(ENABLE_TORCH_NPU)

@@ -85,6 +85,14 @@ include_directories(src)
 add_subdirectory(src)
 add_subdirectory(python)
 
+# With PROTECT_STACK, nanobind 2.13+ names the static target nanobind-static-ps.
+# Older versions may use nanobind-static for the same build.
+if(TARGET nanobind-static-ps)
+  add_library(fxrt::nanobind ALIAS nanobind-static-ps)
+else()
+  add_library(fxrt::nanobind ALIAS nanobind-static)
+endif()
+
 # ---------------------------------------------------------------------------
 # Stage the built artifacts and Python sources into FXRT_INSTALL_DST. setup.py
 # runs ninja without an install step, so this ALL target is what fills the
