@@ -23,5 +23,10 @@ def get_version() -> str:
     version = os.environ.get("TORCH_VERSION")
     if version:
         return version.strip()
+    # An installed torch_npu registers a torch.backends entrypoint, so a bare
+    # `import torch` would sideload it (and fail if that install is broken).
+    # Disable autoload before probing the installed PyTorch version, mirroring
+    # the guard that used to sit at the top of setup.py.
+    os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = "0"
     import torch
     return torch.__version__.split("+")[0]

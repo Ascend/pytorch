@@ -211,6 +211,19 @@ torch_npu/csrc/aten/RegisterCPU.cpp
 torch_npu/csrc/aten/RegisterNPU.cpp
 torch_npu/csrc/aten/python_custom_functions.cpp
 torch_npu/_op_plugin_docs.py
+# Codegen output (generate_code.sh), regenerated per build. Only untracked
+# files are affected: hand-written sources in aten/ that are git-tracked
+# (AutoCastOps.cpp, NPUGeneratorImpl.*, ops/*KernelNpu.cpp, ...) are not.
+torch_npu/csrc/aten/ops/*_npu_dispatch.h
+torch_npu/csrc/aten/*.cpp
+torch_npu/csrc/aten/*.h
+torch_npu/csrc/aten/npu_native_functions_by_codegen.yaml
+torch_npu/csrc/inductor/aoti_torch/generated/c_shim_npu.cpp
+torch_npu/testing/_npu_testing_utils.py
+torch_npu/utils/custom_ops.py
+torch_npu/utils/exposed_api.py
+# ACL headers fetched from the acl_src submodules during codegen.
+third_party/acl/inc/acl/
 
 # Scratch space for agent-authored throwaway files
 agent_space/

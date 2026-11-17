@@ -11,6 +11,9 @@ PY_VERSION="3.10"
 # version (e.g. 2.13.0.post1). When unset, setup.py uses the installed
 # PyTorch version. The requested version is validated against version.txt.
 TORCH_VERSION=""
+# Build method: legacy setuptools+cmake by default (transition phase);
+# --scikit-build-core opts into the new PEP 517 build path.
+USE_SCIKIT_BUILD_CORE="FALSE"
 
 # Parse arguments inside script
 function parse_script_args() {
@@ -31,6 +34,11 @@ function parse_script_args() {
             ;;
         --torch=*)
             TORCH_VERSION=$(echo "${1}"|cut -d"=" -f2)
+            args_num=$((args_num-1))
+            shift
+            ;;
+        --scikit-build-core)
+            USE_SCIKIT_BUILD_CORE="TRUE"
             args_num=$((args_num-1))
             shift
             ;;
@@ -166,10 +174,64 @@ function main()
     # if you add or delete file/files in the project, you need to remove the following comment
     # make clean
 
-    python"${PY_VERSION}" setup.py build bdist_wheel
-    if [ $? != 0 ]; then
-        echo "Failed to compile the wheel file. Please check the source code by yourself."
-        exit 1
+    if [ "${USE_SCIKIT_BUILD_CORE}" = "TRUE" ]; then
+        # New build: scikit-build-core (PEP 517) via pip's built-in frontend.
+        echo "Building torch_npu with scikit-build-core (PEP 517)..."
+        # Build into a fresh temp dir so stale wheels in dist/ (or a parallel
+        # build) can never be mistaken for this build's output.
+        wheel_tmpdir=$(mktemp -d)
+        python"${PY_VERSION}" -m pip wheel -v . --no-build-isolation --no-deps -w "${wheel_tmpdir}"
+        if [ $? != 0 ]; then
+            echo "Failed to compile the wheel file. Please check the source code by yourself."
+            rm -rf "${wheel_tmpdir}"
+            exit 1
+        fi
+
+        # pip wheel must have produced exactly one wheel.
+        wheel_count=$(ls "${wheel_tmpdir}"/*.whl 2>/dev/null | wc -l)
+        if [ "${wheel_count}" -ne 1 ]; then
+            echo "Expected exactly one wheel, found ${wheel_count}."
+            rm -rf "${wheel_tmpdir}"
+            exit 1
+        fi
+        wheel_file=$(ls "${wheel_tmpdir}"/*.whl 2>/dev/null)
+
+        # Manylinux repair: when AUDITWHEEL_PLAT names a manylinux tag, relabel
+        # the wheel and bundle external libs with auditwheel, matching the
+        # legacy BdistWheelBuild behavior. patchelf/eu-strip are not needed
+        # here: the new build no longer links libgomp and Release has no debug
+        # sections.
+        if [[ "${AUDITWHEEL_PLAT}" == manylinux* ]]; then
+            # External libs that must not be bundled (provided by PyTorch/CANN
+            # at runtime); same list as legacy setup.py.
+            deps=(libc10.so libtorch.so libtorch_cpu.so libtorch_python.so
+                  libhccl.so libascendcl.so libacl_op_compiler.so libge_runner.so
+                  libgraph.so libacl_tdt_channel.so libfmk_parser.so libascend_protobuf.so
+                  libascend_ml.so libtorch_npu.so libnpu_profiler.so libgomp.so.1 libatb.so)
+            exclude_args=()
+            for dep in "${deps[@]}"; do
+                exclude_args+=("--exclude" "${dep}")
+            done
+            auditwheel -v repair --plat "${AUDITWHEEL_PLAT}" -w dist "${wheel_file}" "${exclude_args[@]}"
+            if [ $? != 0 ]; then
+                echo "Failed to run auditwheel repair."
+                rm -rf "${wheel_tmpdir}"
+                exit 1
+            fi
+        else
+            cp "${wheel_file}" dist/
+        fi
+        rm -rf "${wheel_tmpdir}"
+    else
+        # Legacy build: setuptools + cmake (default during the transition
+        # phase). auditwheel/patchelf/eu-strip are handled inside setup.py's
+        # BdistWheelBuild.
+        echo "Building torch_npu with legacy setuptools + cmake..."
+        python"${PY_VERSION}" setup.py build bdist_wheel
+        if [ $? != 0 ]; then
+            echo "Failed to compile the wheel file. Please check the source code by yourself."
+            exit 1
+        fi
     fi
 
     exit 0

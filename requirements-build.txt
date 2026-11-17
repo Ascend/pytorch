@@ -5,6 +5,7 @@ typing-extensions>=4.10.0
 setuptools>=81.0.0
 wheel>=0.45.1
 cmake>=3.18.4.post1
+scikit-build-core>=1.1.1
 numpy>=1.26.4
 ninja
 nanobind>=2.9

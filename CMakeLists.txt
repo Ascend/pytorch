@@ -13,7 +13,15 @@ endif()
 project(TORCHNPU CXX C)
 add_compile_options(-fmacro-prefix-map=${CMAKE_SOURCE_DIR}/=)
 
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
+
+# Forward setup.py's -D flags and run the pre-configure codegen/stub steps.
+# Only for the scikit-build-core path (SKBUILD is injected by scikit-build-core).
+# The legacy setup.py already passes the same -D flags and runs codegen/stub
+# itself, so including Setup.cmake there would re-run codegen (and shadow -D).
+if (SKBUILD)
+  include(${PROJECT_SOURCE_DIR}/cmake/Setup.cmake)
+endif()
 
 set(PUBLIC_ENV_CHECK_SCRIPT ${PROJECT_SOURCE_DIR}/tools/check_public_environments.py)
 set(PUBLIC_ENV_SCHEMA ${PROJECT_SOURCE_DIR}/test/torch_npu_schema.json)
@@ -421,7 +429,7 @@ if (NOT DEFINED BUILD_LIBTORCH)
 endif()
 
 if (DEFINED BUILD_TENSORPIPE)
-  target_link_libraries(${PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/build/packages/torch_npu/lib/libtensorpipe.so)
+  target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_INSTALL_LIBDIR}/libtensorpipe.so)
 endif()
 
 if (NOT DEFINED BUILD_LIBTORCH)
@@ -438,6 +446,190 @@ if (DEFINED BUILD_FXRT)
   set(ENABLE_CPU ON)
   set(ENABLE_TORCH_FRONT ON)
   add_subdirectory(${PROJECT_SOURCE_DIR}/fxrt/fxrt)
+endif()
+
+# ============================================================================
+# torch_npu._C extension module + wheel install layout.
+#
+# Reproduces setup.py's CppExtension("torch_npu._C") and the file copies done
+# by get_src_py_and_dst()/add_ops_files(). scikit-build-core maps the CMake
+# install tree root onto wheel.install-dir ("torch_npu"), so every DESTINATION
+# below is relative to torch_npu/ inside the wheel.
+# ============================================================================
+if (NOT DEFINED BUILD_LIBTORCH AND SKBUILD)
+
+  # --- torch_npu._C (CPython extension module) --------------------------------
+  # setup.py: CppExtension('torch_npu._C', sources=[InitNpuBindings.cpp],
+  #   libraries=[torch_npu, c10, torch, torch_cpu, torch_python, hccl],
+  #   extra_link_args=['-Wl,-rpath,$ORIGIN/lib', '-Wl,-Bsymbolic-functions'],
+  #   define_macros=[_GLIBCXX_USE_CXX11_ABI, GLIBCXX_USE_CXX11_ABI]).
+  Python3_add_library(_C MODULE WITH_SOABI
+    ${TORCHNPU_ROOT}/InitNpuBindings.cpp)
+
+  set_target_properties(_C PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    PREFIX "")
+
+  # Link the exact six libraries the legacy CppExtension linked
+  # (-ltorch_npu -lc10 -ltorch -ltorch_cpu -ltorch_python -lhccl). Full paths
+  # are used so torch_npu's PUBLIC interface (ascendcl/ge_runner/tensorpipe/
+  # npu_profiler/...) is NOT propagated into _C's DT_NEEDED, matching the legacy
+  # _C.so exactly. add_dependencies keeps the build order correct.
+  target_link_libraries(_C PRIVATE
+    ${TORCHNPU_INSTALL_LIBDIR}/libtorch_npu.so
+    ${PYTORCH_INSTALL_DIR}/lib/libtorch.so
+    ${PYTORCH_INSTALL_DIR}/lib/libtorch_cpu.so
+    ${PYTORCH_INSTALL_DIR}/lib/libc10.so
+    ${PYTORCH_INSTALL_DIR}/lib/libtorch_python.so
+    ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libhccl.so)
+  add_dependencies(_C ${PLUGIN_NAME})
+
+  target_link_options(_C PRIVATE
+    "-Wl,-rpath,$ORIGIN/lib"
+    "-Wl,-Bsymbolic-functions")
+
+  target_compile_definitions(_C PRIVATE
+    _GLIBCXX_USE_CXX11_ABI=${GLIBCXX_USE_CXX11_ABI}
+    GLIBCXX_USE_CXX11_ABI=${GLIBCXX_USE_CXX11_ABI})
+
+  target_compile_options(_C PRIVATE "-D__FILENAME__=\"InitNpuBindings.cpp\"")
+
+  install(TARGETS _C LIBRARY DESTINATION .)
+
+  # --- generated files --------------------------------------------------------
+  # Produced by the pre-configure codegen (prebuild.py) and gitignored, so they
+  # must be installed explicitly (the wheel.packages scan skips gitignored
+  # files). Several are runtime-essential: custom_ops/exposed_api are imported
+  # by torch_npu._init, and the codegen yaml + testing helper are read by
+  # op-plugin's compatibility test and torch_npu's own tests.
+  install(FILES
+    ${PROJECT_SOURCE_DIR}/torch_npu/version.py
+    ${PROJECT_SOURCE_DIR}/torch_npu/_op_plugin_docs.py
+    DESTINATION .)
+  install(FILES
+    ${PROJECT_SOURCE_DIR}/torch_npu/utils/custom_ops.py
+    ${PROJECT_SOURCE_DIR}/torch_npu/utils/exposed_api.py
+    DESTINATION utils)
+  install(FILES
+    ${PROJECT_SOURCE_DIR}/torch_npu/testing/_npu_testing_utils.py
+    DESTINATION testing)
+  install(FILES
+    ${PROJECT_SOURCE_DIR}/torch_npu/csrc/aten/npu_native_functions_by_codegen.yaml
+    DESTINATION csrc/aten)
+
+  # --- op_plugin python sources -> torch_npu/op_plugin/ -----------------------
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/third_party/op-plugin/op_plugin/python/
+    DESTINATION op_plugin
+    FILES_MATCHING PATTERN "*.py")
+
+  # --- headers -> torch_npu/include/ ------------------------------------------
+  # torch_npu/csrc: all .h (max depth 5 in-tree) + depth-2 .hpp only. The
+  # depth-3 symm_mem .hpp files are dropped to match the legacy depth-2 glob.
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/torch_npu/csrc/
+    DESTINATION include/torch_npu/csrc
+    FILES_MATCHING
+    PATTERN "*.h"
+    PATTERN "*.hpp"
+    PATTERN "distributed/symm_mem/*.hpp" EXCLUDE)
+
+  # acl headers referenced as third_party/acl/inc/... by the csrc include group.
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/third_party/acl/inc/
+    DESTINATION include/third_party/acl/inc
+    FILES_MATCHING PATTERN "*.h")
+
+  # hccl headers.
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/third_party/hccl/inc/
+    DESTINATION include/third_party/hccl/inc
+    FILES_MATCHING PATTERN "*.h")
+
+  # op-plugin + dvm headers (depth-1 only in each of these dirs, like the
+  # legacy globs, so use explicit GLOBs rather than a recursive copy).
+  file(GLOB _op_plugin_include_h
+    "${PROJECT_SOURCE_DIR}/third_party/op-plugin/op_plugin/include/*.h")
+  file(GLOB _op_plugin_utils_h
+    "${PROJECT_SOURCE_DIR}/third_party/op-plugin/op_plugin/utils/*.h")
+  file(GLOB _op_plugin_dvm_h
+    "${PROJECT_SOURCE_DIR}/third_party/op-plugin/op_plugin/ops/dvm/*.h")
+  file(GLOB _dvm_include_h
+    "${PROJECT_SOURCE_DIR}/third_party/dvm/dvm/include/*.h")
+  install(FILES ${_op_plugin_include_h}
+    DESTINATION include/third_party/op-plugin/op_plugin/include)
+  install(FILES ${_op_plugin_utils_h}
+    DESTINATION include/third_party/op-plugin/op_plugin/utils)
+  install(FILES ${_op_plugin_dvm_h}
+    DESTINATION include/third_party/op-plugin/op_plugin/ops/dvm)
+  install(FILES ${_dvm_include_h}
+    DESTINATION include/third_party/dvm/dvm/include)
+
+  # acl headers (full recursive copy): include/<relpath from acl/inc>.
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/third_party/acl/inc/
+    DESTINATION include
+    FILES_MATCHING PATTERN "*.h")
+
+  # --- companion shared libraries -> torch_npu/lib/ ---------------------------
+  install(TARGETS npu_profiler op_plugin_atb
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+  if (DEFINED BUILD_TENSORPIPE)
+    install(TARGETS tensorpipe LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+  endif()
+
+  # --- op-plugin torchnpugen codegen -> torchnpugen/ (wheel root) -------------
+  # The in-repo torchnpugen/* is picked up by wheel.packages; this merges in the
+  # op-plugin/torchnpugen contribution. Install into ${SKBUILD_PLATLIB_DIR} (the
+  # wheel root) so the files land next to the in-repo package at torchnpugen/,
+  # not under torch_npu/torchnpugen/ (wheel.install-dir). Drop the op-plugin
+  # root __init__.py so the in-repo torchnpugen/__init__.py wins; keep the
+  # nested api/api.types/struct __init__.py files so those subpackages stay
+  # importable.
+  file(GLOB _torchnpugen_root_py
+    "${PROJECT_SOURCE_DIR}/third_party/op-plugin/torchnpugen/*.py")
+  list(REMOVE_ITEM _torchnpugen_root_py
+    "${PROJECT_SOURCE_DIR}/third_party/op-plugin/torchnpugen/__init__.py")
+  install(FILES ${_torchnpugen_root_py}
+    DESTINATION "${SKBUILD_PLATLIB_DIR}/torchnpugen")
+  install(DIRECTORY
+      ${PROJECT_SOURCE_DIR}/third_party/op-plugin/torchnpugen/api
+      ${PROJECT_SOURCE_DIR}/third_party/op-plugin/torchnpugen/struct
+      ${PROJECT_SOURCE_DIR}/third_party/op-plugin/torchnpugen/templates
+    DESTINATION "${SKBUILD_PLATLIB_DIR}/torchnpugen"
+    FILES_MATCHING
+    PATTERN "*.py"
+    PATTERN "*.yaml"
+    PATTERN "*.json"
+    PATTERN "*.cpp"
+    PATTERN "*.h")
+
+  # --- torchair -> torch_npu/dynamo/ + torch_npu/_inductor/ --------------------
+  # copy_torchair_pyfiles (ALL) stages torchair, npugraph_ex, and ascendc into
+  # build/packages/torch_npu at build time; copy them into the install tree at
+  # install time (install(DIRECTORY) would capture an empty dir at configure
+  # time, so use install(CODE)).
+  if (DEFINED BUILD_TORCHAIR)
+    install(CODE "
+      if(EXISTS \"${CMAKE_BINARY_DIR}/packages/torch_npu/dynamo/torchair\")
+        file(COPY \"${CMAKE_BINARY_DIR}/packages/torch_npu/dynamo/torchair/\"
+             DESTINATION \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/dynamo/torchair\")
+      endif()
+      if(EXISTS \"${CMAKE_BINARY_DIR}/packages/torch_npu/dynamo/npugraph_ex\")
+        file(COPY \"${CMAKE_BINARY_DIR}/packages/torch_npu/dynamo/npugraph_ex/\"
+             DESTINATION \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/dynamo/npugraph_ex\")
+      endif()
+      if(EXISTS \"${CMAKE_BINARY_DIR}/packages/torch_npu/_inductor/ascendc\")
+        file(COPY \"${CMAKE_BINARY_DIR}/packages/torch_npu/_inductor/ascendc/\"
+             DESTINATION \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/_inductor/ascendc\")
+      endif()")
+  endif()
+
+  # --- fxrt -> torch_npu/fxrt/ -------------------------------------------------
+  if (DEFINED BUILD_FXRT)
+    install(CODE "
+      if(EXISTS \"${CMAKE_BINARY_DIR}/packages/torch_npu/fxrt\")
+        file(COPY \"${CMAKE_BINARY_DIR}/packages/torch_npu/fxrt/\"
+             DESTINATION \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/fxrt\")
+      endif()")
+  endif()
+
 endif()
 
 if (BUILD_GTEST)

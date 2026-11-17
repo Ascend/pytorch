@@ -1,3 +1,148 @@
+# Package ######################################################################
+
+[build-system]
+requires = [
+    "numpy",
+    "packaging>=24.2",  # required by setuptools>=77 to validate PEP 639 license expressions
+    "pyyaml",
+    "scikit-build-core>=1.1.1",
+    "typing-extensions>=4.10.0",
+]
+build-backend = "scikit_build_core.build"
+
+[tool.scikit-build]
+# Track the build-system.requires floor so the schema and defaults are pinned
+# to the version we build against.
+minimum-version = "build-system.requires"
+# Separate from the legacy setup.py build dir ("build"), so the SKBUILD cache
+# variables and ninja state never leak into / conflict with the legacy build.
+build-dir = "build-skbuild"
+
+[tool.scikit-build.env]
+# MAX_JOBS is the umbrella parallelism knob (also read by setup.py's build_clib);
+# alias it to the variable CMake natively honors for `cmake --build`.
+# setdefault semantics: a user-set CMAKE_BUILD_PARALLEL_LEVEL always wins.
+CMAKE_BUILD_PARALLEL_LEVEL = { env = "MAX_JOBS" }
+# Listing CC/CXX here opts out of scikit-build-core's sysconfig-compiler
+# injection, so CMake detects the compiler from PATH. An ambient CC/CXX is
+# still respected.
+CC = { env = "CC" }
+CXX = { env = "CXX" }
+
+# cmake.build-type is deliberately not set: it defaults to Release. The
+# overrides below map the DEBUG and REL_WITH_DEB_INFO env vars (read by
+# setup.py's get_build_type) to the corresponding build types.
+[[tool.scikit-build.overrides]]
+if.env.DEBUG = true
+cmake.build-type = "Debug"
+
+[[tool.scikit-build.overrides]]
+if.env.REL_WITH_DEB_INFO = true
+cmake.build-type = "RelWithDebInfo"
+
+[[tool.dynamic-metadata]]
+# Delegates to tools/setup_helpers/version.py which resolves the version from
+# TORCH_VERSION (release build) or the installed PyTorch version.
+provider = { path = "tools/metadata", module = "version" }
+
+[[tool.dynamic-metadata]]
+# Emits torch==<base>.* plus numpy, mirroring setup.py's _get_torch_requires().
+provider = { path = "tools/metadata", module = "dependencies" }
+
+[tool.scikit-build.install]
+# scikit-build-core auto-strips binaries in Release builds. torch_npu keeps
+# symbols (e.g. for auditwheel repair and ABI checks in CI).
+strip = false
+
+[tool.scikit-build.wheel]
+# CMake install destinations are relative to CMAKE_INSTALL_PREFIX; placing them
+# under torch_npu/ matches the legacy build/packages/torch_npu layout.
+install-dir = "torch_npu"
+# Python packages to include in the wheel.
+packages = ["torch_npu", "torchnpugen"]
+# Drop build sources and docs from the wheel. wheel.packages walks each package
+# directory (skipping .gitignore'd files, which is why gitignored generated
+# files are installed explicitly in CMakeLists.txt), so the C++ sources under
+# csrc/ (whose headers are re-added under include/ by the CMake install rules)
+# and the documentation/media files must be excluded explicitly. These patterns
+# apply to both the package scan and the CMake install tree.
+exclude = [
+    # C++ sources/headers under csrc/ are re-added under include/ by the CMake
+    # install rules; exclude them here but keep csrc/aten/*.yaml (op-plugin's
+    # compatibility test reads those two schema files from the installed pkg).
+    "torch_npu/csrc/**/*.h",
+    "torch_npu/csrc/**/*.hpp",
+    "torch_npu/csrc/**/*.cpp",
+    "torch_npu/csrc/**/*.cc",
+    "torch_npu/csrc/**/*.cu",
+    "torch_npu/csrc/**/*.c",
+    "torch_npu/_inductor/experimental/python_wrapper_fast_launch/csrc/**",
+    # add_subdirectory(third_party/Tensorpipe) runs Tensorpipe's own install()
+    # rules at cmake --install time, leaking its public headers, a duplicate
+    # lib64/ copy of libtensorpipe.so, and its CMake package config into the
+    # install tree. The legacy wheel ships none of these (only
+    # torch_npu/lib/libtensorpipe.so, installed explicitly in CMakeLists.txt).
+    "torch_npu/include/tensorpipe/**",
+    "torch_npu/lib64/**",
+    "torch_npu/share/**",
+    "**/*.a",
+    "**/*.md",
+    "**/*.txt",
+    "**/*.png",
+    "**/*.svg",
+    "**/*.gitkeep",
+    "**/*.pyc",
+    "**/__pycache__/**",
+    "**/CMakeLists.txt",
+]
+
+[project]
+name = "torch_npu"
+description = "NPU bridge for PyTorch"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "BSD-3-Clause"
+authors = [{ name = "Huawei Technologies Co., Ltd" }]
+keywords = ["pytorch", "npu", "ascend"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dynamic = ["version", "dependencies"]
+
+[project.scripts]
+torch_npu_run = "torch_npu.distributed.run:_main"
+
+[project.entry-points."torch.backends"]
+torch_npu = "torch_npu:_autoload"
+
+[project.entry-points."torch.distributed.backends"]
+hccl = "torch_npu._init.registry.distributed:register_distributed_backend_for_npu"
+lccl = "torch_npu._init.registry.distributed:register_distributed_backend_for_npu"
+
+[project.entry-points."torch_dynamo_backends"]
+npu = "torch_npu.dynamo:_npu_backend_entrypoint"
+npugraph_ex = "torch_npu.dynamo:_npugraph_ex_backend_entrypoint"
+npugraphs = "torch_npu.dynamo:_npugraphs_backend_entrypoint"
+fxrt = "torch_npu.fxrt:_backend"
+
+[project.urls]
+Homepage = "https://gitcode.com/ascend/pytorch"
+
 # Linter tools #################################################################
 
 [tool.isort]
