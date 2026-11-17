@@ -18,6 +18,9 @@
   <!-- npu="950,A3,910b,910,310p" id4 -->
   - [ACL_DEVICE_SYNC_TIMEOUT](device_management/ACL_DEVICE_SYNC_TIMEOUT.md)
   <!-- end id4 -->
+  <!-- npu="950,A3,910b" id79 -->
+  - [(beta) ACL_STREAM_TIMEOUT](device_management/（beta）ACL_STREAM_TIMEOUT.md)
+  <!-- end id79 -->
   <!-- npu="950,A3,910b,910" id5 -->
   - [TORCH_NPU_DEVICE_CAPABILITY](device_management/TORCH_NPU_DEVICE_CAPABILITY.md)
   <!-- end id5 -->
