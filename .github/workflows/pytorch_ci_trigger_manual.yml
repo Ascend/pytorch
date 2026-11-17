@@ -108,10 +108,10 @@ jobs:
       pytorch_wheels_tarball: ${{ needs.build.outputs.pytorch_wheels_tarball }}
       torchnpu_wheels_tarball: ${{ needs.build.outputs.torchnpu_wheels_tarball }}
       # Categorization: nightly-style full scan (all test_*.py files,
-      # 3-pass classification via nightly_test_categories.yml: files >
+      # 3-pass classification via pr_test_categories.yml: files >
       # paths > others). Per-category workers/runner labels flow from the
       # config into the shard matrix automatically.
-      case_paths_config: .github/config/nightly_test_categories.yml
+      case_paths_config: .github/config/pr_test_categories.yml
       full_scan: true
       # Case-level intersection: only cases listed in the passed-testcases
       # file are executed. The file holds historically PASSED nodeids;

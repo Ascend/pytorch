@@ -343,10 +343,10 @@ jobs:
       precise_files: ${{ needs.select.result == 'success' && needs.select.outputs.precise_files || '' }}
       # Same test mechanism as the manual pipeline: nightly-style full
       # scan (all test_*.py files, 3-pass classification via
-      # nightly_test_categories.yml: files > paths > others). Per-category
+      # pr_test_categories.yml: files > paths > others). Per-category
       # workers/runner labels flow from the config into the shard matrix
       # automatically.
-      case_paths_config: .github/config/nightly_test_categories.yml
+      case_paths_config: .github/config/pr_test_categories.yml
       full_scan: true
       # Case-level intersection with the passed-testcases file: only
       # historically PASSED nodeids are executed. When a case starts

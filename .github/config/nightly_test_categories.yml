@@ -1,5 +1,10 @@
 # Nightly test categories — categorization + execution config (full-scan mode).
 #
+# SISTER FILE: keep paths/files/workers/execution/exclude in sync with
+# pr_test_categories.yml (the PR-gate copy); ONLY the runner labels may
+# differ. When upstream adds a test directory or the category mapping
+# changes, update BOTH files.
+#
 # In full-scan mode (nightly-main-label-a3.yml full_scan: true), this file is NOT a whitelist.
 # ALL test_*.py files under pytorch/test/ are scanned; the files/paths below
 # assign files to categories. Unmatched files go to 'others' (catch-all).
@@ -32,7 +37,8 @@ categories:
   core:
     workers: 32
     execution: concurrent
-    runner: linux-aarch64-a3-800i-8-cn12-001
+    # runner: linux-aarch64-a3-800i-8-cn12-001
+    runner: linux-aarch64-a3-800i-pytorch-fed-8
     paths:
       - test/nn
       - test/optim
@@ -62,7 +68,8 @@ categories:
   tensor:
     workers: 32
     execution: concurrent
-    runner: linux-aarch64-a3-800i-8-cn12-001
+    # runner: linux-aarch64-a3-800i-8-cn12-001
+    runner: linux-aarch64-a3-800i-pytorch-fed-8
     paths:
       - test/torch_np
       - test/complex_tensor
@@ -104,14 +111,16 @@ categories:
   distributed:
     workers: 1
     execution: serial
-    runner: linux-aarch64-a3-800i-2-cn12-001
+    # runner: linux-aarch64-a3-800i-2-cn12-001
+    runner: linux-aarch64-a3-800i-pytorch-fed-2
     paths:
       - test/distributed
 
   graph:
     workers: 32
     execution: concurrent
-    runner: linux-aarch64-a3-800i-8-cn12-001
+    # runner: linux-aarch64-a3-800i-8-cn12-001
+    runner: linux-aarch64-a3-800i-pytorch-fed-8
     paths:
       - test/fx
       - test/dynamo
@@ -167,4 +176,5 @@ categories:
   others:
     workers: 32
     execution: concurrent
-    runner: linux-aarch64-a3-800i-8-cn12-001
+    # runner: linux-aarch64-a3-800i-8-cn12-001
+    runner: linux-aarch64-a3-800i-pytorch-fed-8

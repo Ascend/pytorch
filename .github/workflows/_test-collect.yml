@@ -367,7 +367,7 @@ jobs:
           CASE_WHITELIST_CONFIG='${{ inputs.case_whitelist }}'
           if [ -n "${PRECISE_FILES}" ]; then
             printf '%s\n' "${PRECISE_FILES}" > /tmp/precise_files.txt
-            PRECISE_CONFIG="${CASE_PATHS_CONFIG:-.github/config/nightly_test_categories.yml}"
+            PRECISE_CONFIG="${CASE_PATHS_CONFIG:-.github/config/pr_test_categories.yml}"
             python3 - /tmp/precise_files.txt "${GITHUB_WORKSPACE}/ci-scripts/${PRECISE_CONFIG}" "${GITHUB_WORKSPACE}/ci-scripts/.github/config/precise_cases.yml" '${{ inputs.runner_label }}' <<'PYEOF'
           import sys
 
