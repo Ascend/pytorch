@@ -18,12 +18,11 @@ This feature applies to the default global ProcessGroup and non-global ProcessGr
 
 Enable Scalable RootInfo through environment variables and configure the number of ranks that each root is expected to manage:
 
-- `ROOTINFO_SCALABLE_ENABLE`: The switch of the Scalable RootInfo feature. The default value is "0". Set it to "1" to enable the feature.
-- `TORCH_HCCL_RANKS_PER_ROOT`: The maximum number of ranks that each root is expected to manage. The default value is "128", and the value must be a decimal integer from 1 to 4294967295.
+`TORCH_HCCL_RANKS_PER_ROOT`: The default value is "-1", indicating that Scalable RootInfo is disabled. When set to a decimal integer from 1 to 4294967295, it indicates the maximum number of ranks that each root is expected to manage.
 
-For the complete description of the environment variables, see the "[ROOTINFO\_SCALABLE\_ENABLE](../../../api/environment_variable/collective_communication/ROOTINFO_SCALABLE_ENABLE.md)" and "[TORCH\_HCCL\_RANKS\_PER\_ROOT](../../../api/environment_variable/collective_communication/TORCH_HCCL_RANKS_PER_ROOT.md)" sections in Environment Variables.
+For the complete description, see [TORCH\_HCCL\_RANKS\_PER\_ROOT](../../../api/environment_variable/collective_communication/TORCH_HCCL_RANKS_PER_ROOT.md).
 
-Assume the current ProcessGroup contains N ranks and `TORCH_HCCL_RANKS_PER_ROOT` is R:
+When set to a positive integer, assume the current ProcessGroup contains N ranks and `TORCH_HCCL_RANKS_PER_ROOT` is R:
 
 - When N is not greater than R, the original single-RootInfo path continues to be used.
 - When N is greater than R, the number of roots K is `ceil(N / R)`, and the Scalable RootInfo path is entered.
@@ -34,7 +33,6 @@ Assume the current ProcessGroup contains N ranks and `TORCH_HCCL_RANKS_PER_ROOT`
 Enable Scalable RootInfo and set the number of ranks that each root is expected to manage to 128:
 
 ```bash
-export ROOTINFO_SCALABLE_ENABLE=1
 export TORCH_HCCL_RANKS_PER_ROOT=128
 ```
 
@@ -43,9 +41,10 @@ For example, when a communicator contains 8 ranks and R is 2, K is 4, the root l
 To disable Scalable RootInfo, run:
 
 ```bash
-unset ROOTINFO_SCALABLE_ENABLE
-unset TORCH_HCCL_RANKS_PER_ROOT
+export TORCH_HCCL_RANKS_PER_ROOT=-1
 ```
+
+If this environment variable is not set or is unset with `unset TORCH_HCCL_RANKS_PER_ROOT`, the feature is also disabled.
 
 ## Constraints
 
