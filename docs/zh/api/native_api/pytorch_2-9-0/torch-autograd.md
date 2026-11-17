@@ -1106,6 +1106,48 @@ with torch.autograd.profiler.profile(use_device="npu", use_kineto=False) as prof
 
 </div>
 
+### <code><i>class</i></code> torch.autograd.profiler_util.MemRecordsAcc
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler_util.MemRecordsAcc](https://pytorch.org/docs/2.9/generated/torch.autograd.profiler_util.MemRecordsAcc.html#torch.autograd.profiler_util.MemRecordsAcc)
+
+**产品支持情况**：
+
+<!-- npu="910b" id269 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id269 -->
+<!-- npu="A3" id270 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id270 -->
+<!-- npu="950" id271 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id271 -->
+
+<a class="method_anchor" id="torch_autograd_profiler_util_MemRecordsAcc_in_interval"></a>
+
+> <font size="3">in_interval()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler_util.MemRecordsAcc.in_interval](https://pytorch.org/docs/2.9/generated/torch.autograd.profiler_util.MemRecordsAcc.html#torch.autograd.profiler_util.MemRecordsAcc.in_interval)
+
+**产品支持情况**：
+
+<!-- npu="910b" id272 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id272 -->
+<!-- npu="A3" id273 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id273 -->
+<!-- npu="950" id274 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id274 -->
+
+</div>
+
+</div>
+
 ### <code><i>class</i></code> torch.autograd.profiler_util.StringTable
 
 <div style="margin-left: 2em">

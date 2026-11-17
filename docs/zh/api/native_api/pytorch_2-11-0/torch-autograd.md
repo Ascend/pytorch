@@ -834,26 +834,6 @@ with torch.autograd.profiler.profile(use_device="npu", use_kineto=False) as prof
 
 </div>
 
-### torch.autograd.profiler_util.MemRecordsAcc.in_interval
-
-<div style="margin-left: 2em">
-
-**原生文档**：[torch.autograd.profiler_util.MemRecordsAcc.in_interval](https://pytorch.org/docs/2.11/generated/torch.autograd.profiler_util.MemRecordsAcc.html)
-
-**产品支持情况**：
-
-<!-- npu="910b" id220 -->
-- <term>Atlas A2训练系列产品</term>：支持
-<!-- end id220 -->
-<!-- npu="A3" id221 -->
-- <term>Atlas A3训练系列产品</term>：支持
-<!-- end id221 -->
-<!-- npu="950" id222 -->
-- <term>Ascend 950DT系列产品</term>：支持
-<!-- end id222 -->
-
-</div>
-
 ### profile.export_chrome_trace
 
 <div style="margin-left: 2em">
@@ -1161,6 +1141,48 @@ with torch.autograd.profiler.profile(use_device="npu", use_kineto=False) as prof
 <!-- npu="950" id225 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id225 -->
+
+</div>
+
+</div>
+
+### <code><i>class</i></code> torch.autograd.profiler_util.MemRecordsAcc
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler_util.MemRecordsAcc](https://pytorch.org/docs/2.11/generated/torch.autograd.profiler_util.MemRecordsAcc.html#torch.autograd.profiler_util.MemRecordsAcc)
+
+**产品支持情况**：
+
+<!-- npu="910b" id272 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id272 -->
+<!-- npu="A3" id273 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id273 -->
+<!-- npu="950" id274 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id274 -->
+
+<a class="method_anchor" id="torch_autograd_profiler_util_MemRecordsAcc_in_interval"></a>
+
+> <font size="3">in_interval()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler_util.MemRecordsAcc.in_interval](https://pytorch.org/docs/2.11/generated/torch.autograd.profiler_util.MemRecordsAcc.html#torch.autograd.profiler_util.MemRecordsAcc.in_interval)
+
+**产品支持情况**：
+
+<!-- npu="910b" id275 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id275 -->
+<!-- npu="A3" id276 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id276 -->
+<!-- npu="950" id277 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id277 -->
 
 </div>
 
