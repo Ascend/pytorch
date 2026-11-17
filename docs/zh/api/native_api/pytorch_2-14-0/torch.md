@@ -8566,7 +8566,7 @@
 - 输入最大支持6维
 
 <!-- npu="950" id1131 -->
-- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。当输入数据类型为`fp32`且`shape`为2维时，可将`cube_math_type`设为`4`，此时会使用Vector Core进行计算以提升结果精度，部分场景下可能导致算子性能下降。
 <!-- end id1131 -->
 
 </div>
