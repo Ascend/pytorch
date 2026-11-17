@@ -3568,6 +3568,7 @@ std::shared_ptr<c10::Allocator> ProcessGroupHCCL::getMemAllocator() {
 }
 
 void ProcessGroupHCCL::registerMemPool(c10_npu::MemPool* pool, bool symm) {
+  using c10_npu::NPUCachingAllocator::SegmentInfo;
   auto comm = tryGetHcclComm(pool->device());
   TORCH_CHECK(
       comm != nullptr,
@@ -3580,8 +3581,16 @@ void ProcessGroupHCCL::registerMemPool(c10_npu::MemPool* pool, bool symm) {
   }
   attachAllocatorHooks();
   auto snapshot = c10_npu::NPUCachingAllocator::snapshot();
+  // Symmetric registration must visit corresponding segments in the same order on every rank.
+  std::sort(snapshot.segments.begin(), snapshot.segments.end(), [](const SegmentInfo& a, const SegmentInfo& b) {
+    return a.registration_counter < b.registration_counter;
+  });
   for (const auto& segmentInfo : snapshot.segments) {
     if (segmentInfo.owner_private_pool_id == pool->id()) {
+      TORCH_INTERNAL_ASSERT(
+          segmentInfo.registration_counter >= 0, "SegmentInfo has uninitialized registration counter");
+      TORCH_INTERNAL_ASSERT(
+          segmentInfo.device == pool->device(), "Mismatch between NPU memory segment device and pool's device");
       // NOLINTNEXTLINE(performance-no-int-to-ptr)
       comm->registerSegment(
           reinterpret_cast<void*>(segmentInfo.address),
