@@ -1186,6 +1186,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id114 -->
 
+**限制与说明**：
+
+- `external=True`仅在Ascend 950DT系列产品上支持，且要求CANN版本不低于`9.3.0`。
+- 受CANN的ACL（Ascend Computing Language）运行时能力限制，存在以下约束：
+  - `external=True`事件在同一张图（Graph）内不支持同时执行`record`和`wait`；可拆分为两张图分别执行`record`和`wait`，或同图场景改用普通事件。
+  - `external=True`事件首次`record`后不支持在external模式与default模式之间切换；一种模式请使用一个独立的事件实例。
+
 <a class="method_anchor" id="torch_cuda_Event_elapsed_time"></a>
 
 > <font size="3">elapsed_time()</font>
