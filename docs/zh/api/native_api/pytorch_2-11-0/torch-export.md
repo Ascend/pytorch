@@ -376,6 +376,26 @@
 
 </div>
 
+### <code><i>class</i></code> torch.export.graph_signature.ExportBackwardSignature
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.export.graph_signature.ExportBackwardSignature](https://pytorch.org/docs/2.11/user_guide/torch_compiler/export/api_reference.html#torch.export.graph_signature.ExportBackwardSignature)
+
+**产品支持情况**：
+
+<!-- npu="910b" id85 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id85 -->
+<!-- npu="A3" id86 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id86 -->
+<!-- npu="950" id87 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id87 -->
+
+</div>
+
 ### <code><i>class</i></code> torch.export.exported_program.ModuleCallEntry
 
 <div style="margin-left: 2em">
@@ -553,5 +573,25 @@
 <!-- npu="950" id66 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id66 -->
+
+</div>
+
+### torch.export.exported_program.default_decompositions
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.export.exported_program.default_decompositions](https://pytorch.org/docs/2.11/user_guide/torch_compiler/export/api_reference.html#torch.export.exported_program.default_decompositions)
+
+**产品支持情况**：
+
+<!-- npu="910b" id88 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id88 -->
+<!-- npu="A3" id89 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id89 -->
+<!-- npu="950" id90 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id90 -->
 
 </div>
