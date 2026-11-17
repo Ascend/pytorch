@@ -358,6 +358,25 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id24 -->
 
+> <font size="3">generate_json_dump()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.tensor.debug.CommDebugMode.generate_json_dump](https://docs.pytorch.org/docs/2.13/distributed.tensor.html#torch.distributed.tensor.debug.CommDebugMode.generate_json_dump)
+
+**产品支持情况**：
+
+<!-- npu="910b" id50 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id50 -->
+<!-- npu="A3" id51 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id51 -->
+<!-- npu="950" id52 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id52 -->
+
+</div>
 </div>
 
 ## Experimental Features
