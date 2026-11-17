@@ -575,3 +575,23 @@
 <!-- npu="910b,A3" id135 -->
 </div>
 <!-- end id135 -->
+
+### torch.distributed.fsdp.wrap.enable_wrap
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.fsdp.wrap.enable_wrap](https://pytorch.org/docs/2.13/fsdp.html#torch.distributed.fsdp.wrap.enable_wrap)
+
+**产品支持情况**：
+
+<!-- npu="910b" id136 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id136 -->
+<!-- npu="A3" id137 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id137 -->
+<!-- npu="950" id138 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id138 -->
+
+</div>
