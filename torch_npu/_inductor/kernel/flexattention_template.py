@@ -627,9 +627,10 @@ compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
         stride_kv_idx_h = {{stride("KV_IDX", 1)}}
         stride_kv_idx_m = {{stride("KV_IDX", 2)}}
 
-        m_i = tl.full([BLOCK_M], float("-inf"), dtype=tl.float32)
-        l_i = tl.zeros([BLOCK_M], dtype=tl.float32)
+        # Match the partial loop helper: TA joins loop-carried values by position.
         acc = tl.zeros([BLOCK_M, V_HEAD_DIM], dtype=tl.float32)
+        l_i = tl.zeros([BLOCK_M], dtype=tl.float32)
+        m_i = tl.full([BLOCK_M], float("-inf"), dtype=tl.float32)
 
         offs_m = q_start * BLOCK_M + tl.arange(0, BLOCK_M)
         offs_k = tl.arange(0, QK_HEAD_DIM)
@@ -682,42 +683,41 @@ compute_flex_attention_sparse_mask_in_loop_no_load_balance = r"""
         full_kv_idx_offset = full_hz_offset * stride_full_kv_idx_h + q_sparse_idx * stride_full_kv_idx_m
         kv_num_blocks = tl.load(FULL_KV_NUM_BLKS + full_kv_num_blks_offset)
 
-        if kv_num_blocks > 0:
-            kv_indices = FULL_KV_IDX + full_kv_idx_offset
+        kv_indices = FULL_KV_IDX + full_kv_idx_offset
 
-            for start_n in range(0, kv_num_blocks):
-                kv_block_start = tl.load(kv_indices + start_n) * SPARSE_KV_BLOCK_SIZE
-                for sub_idx in range(0, FULL128_SUBTILES):
-                    kv_start = kv_block_start + sub_idx * BLOCK_N
-                    offs_n = kv_start + tl.arange(0, BLOCK_N)
-                    k = tl.load(
-                        K_tile + offs_n[:, None] * stride_kn + offs_k[None, :] * stride_kk,
-                        mask=offs_n[:, None] < KV_LEN,
-                        other=0.0,
-                    )
-                    v = tl.load(
-                        V_tile + offs_n[:, None] * stride_vn + offs_v[None, :] * stride_vk,
-                        mask=offs_n[:, None] < KV_LEN,
-                        other=0.0,
-                    )
+        for start_n in range(0, kv_num_blocks):
+            kv_block_start = tl.load(kv_indices + start_n) * SPARSE_KV_BLOCK_SIZE
+            for sub_idx in range(0, FULL128_SUBTILES):
+                kv_start = kv_block_start + sub_idx * BLOCK_N
+                offs_n = kv_start + tl.arange(0, BLOCK_N)
+                k = tl.load(
+                    K_tile + offs_n[:, None] * stride_kn + offs_k[None, :] * stride_kk,
+                    mask=offs_n[:, None] < KV_LEN,
+                    other=0.0,
+                )
+                v = tl.load(
+                    V_tile + offs_n[:, None] * stride_vn + offs_v[None, :] * stride_vk,
+                    mask=offs_n[:, None] < KV_LEN,
+                    other=0.0,
+                )
 
-                    if IS_DIVISIBLE:
-                        acc, l_i, m_i = forward_block_mn_full(
-                            {{gen_argdefs()}},
-                            q, k, v, Q_LEN, KV_LEN,
-                            acc, l_i, m_i,
-                            off_zq, off_hq, offs_m[:, None], offs_n[None, :],
-                            MATMUL_PRECISION,
-                        )
-                    else:
-                        acc, l_i, m_i = forward_block_mn_full(
-                            {{gen_argdefs()}},
-                            q, k, v, Q_LEN, KV_LEN,
-                            acc, l_i, m_i,
-                            off_zq, off_hq, offs_m[:, None], offs_n[None, :],
-                            MATMUL_PRECISION,
-                            CHECK_BLOCK_BOUNDARY=True,
-                        )
+                if IS_DIVISIBLE:
+                    acc, l_i, m_i = forward_block_mn_full(
+                        {{gen_argdefs()}},
+                        q, k, v, Q_LEN, KV_LEN,
+                        acc, l_i, m_i,
+                        off_zq, off_hq, offs_m[:, None], offs_n[None, :],
+                        MATMUL_PRECISION,
+                    )
+                else:
+                    acc, l_i, m_i = forward_block_mn_full(
+                        {{gen_argdefs()}},
+                        q, k, v, Q_LEN, KV_LEN,
+                        acc, l_i, m_i,
+                        off_zq, off_hq, offs_m[:, None], offs_n[None, :],
+                        MATMUL_PRECISION,
+                        CHECK_BLOCK_BOUNDARY=True,
+                    )
 {% endif %}
 
         l_i = tl.where(l_i == 0.0, 1, l_i)
