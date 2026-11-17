@@ -326,6 +326,26 @@
 <!-- end id198 -->
 </div>
 
+> <font size="3">save_for_backward()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.function.BackwardCFunction.save_for_backward](https://docs.pytorch.org/docs/2.10/generated/torch.autograd.function.BackwardCFunction.html#torch.autograd.function.BackwardCFunction.save_for_backward)
+
+**产品支持情况**：
+
+<!-- npu="910b" id263 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id263 -->
+<!-- npu="A3" id264 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id264 -->
+<!-- npu="950" id265 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id265 -->
+
+</div>
+
 </div>
 
 ## Function
