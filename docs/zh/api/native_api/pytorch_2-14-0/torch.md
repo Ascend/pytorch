@@ -3119,7 +3119,7 @@
 
 </div>
 
-<!-- npu="910b,A3" id1153 -->
+<!-- npu="910b,A3,950" id1153 -->
 ### torch.set_num_interop_threads
 
 <div style="margin-left: 2em">
@@ -3135,8 +3135,11 @@
 <!-- npu="A3" id370 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id370 -->
+<!-- npu="950" id371 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id371 -->
 
-<!-- npu="910b,A3" id1154 -->
+<!-- npu="910b,A3,950" id1154 -->
 </div>
 <!-- end id1154 -->
 
