@@ -273,9 +273,8 @@ def _register_triton_decompositions():
         aten.nll_loss_backward,
         aten._log_softmax_backward_data,
         aten.addmm,
-        aten.gelu,
-        aten.expm1,
-        aten.erfc,
+        aten.gelu,                      # register decomposition
+        aten.erfc,                      # register decomposition
         aten.native_layer_norm,
         aten.repeat_interleave.Tensor,  # perf issue
         aten.slice_backward,
@@ -298,11 +297,6 @@ def _register_triton_decompositions():
         for op in overload_op_set:
             if (op in decompositions):
                 del decompositions[op]
-
-        @register_decomposition([aten.expm1])
-        def expm1(x):
-            tensor = torch.exp(x) - torch.ones_like(x)
-            return tensor
 
         @register_decomposition([aten.erfc])
         def erfc(x):
