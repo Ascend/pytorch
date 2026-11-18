@@ -1,16 +1,20 @@
 name: Blacklist Test (a3/a5)
 
-# Runs ONLY the nodeids recorded in the platform blacklist files, without any
-# collection phase: the blacklists already list explicit nodeids, so this
-# pipeline just splits them into shards and executes them.
+# Runs the FULL union of blacklist nodeids on BOTH platforms (a3 + a5), with
+# no collection phase: every blacklist file already lists explicit nodeids, so
+# this pipeline merges them into one set, splits it into shards and executes
+# those shards on each platform.
 #
 # Both platforms always run in the same workflow (a3 + a5), each with its own
-# build, shards and test jobs; there is no platform scope switch any more.
+# build, shards and test jobs; both consume the same full-union nodeid set.
 #
-# Blacklist files per platform:
-#   disabled_testcases_<platform>_all.json
-#   unsupported_aclnn_testcases.json   (common + <platform> group)
-#   unsupport_dtype_testcases.json     (common + <platform> group)
+# Blacklist source: .github/config/blacklist_testccases/. All *.json files in
+# that directory are flattened in one pass into a single pure nodeid list
+# (the files use several shapes: groups[].nodes, groups[].canns[].nodes, and
+# the log->count blacklist_logs.json which is skipped as it holds no nodeids).
+#
+# The summary job then lists, per platform, the nodeids that passed / were
+# skipped / errored with "No testcase in XML" — all removal candidates.
 #
 # Manual re-trigger: this file is listed in its own `paths` filter below, so a
 # push touching only this file re-runs the whole pipeline without editing any
@@ -39,11 +43,6 @@ on:
         required: true
         type: string
         default: '4'
-      diff_num_shards:
-        description: 'Number of shards per cross-platform diff category'
-        required: true
-        type: string
-        default: '2'
       test_max_parallel:
         description: 'Max concurrent shard jobs across both platforms'
         required: true
@@ -57,8 +56,8 @@ on:
 
 # NOTE: on push events the `inputs` context is empty, so every reference
 # below carries an explicit `|| fallback` that encodes the push default
-# (upstream main, torch_npu master, 4 blacklist shards, 2 diff shards,
-# 8 parallel, patch_triton_cxx20=true — matching the nightly a3/a5 pipelines).
+# (upstream main, torch_npu master, 4 shards, 8 parallel,
+# patch_triton_cxx20=true — matching the nightly a3/a5 pipelines).
 
 permissions:
   id-token: write
@@ -90,14 +89,6 @@ jobs:
           esac
           if [ "${NUM_SHARDS}" -lt 1 ]; then
             echo "::error::num_shards must be >= 1"
-            exit 1
-          fi
-          DIFF_SHARDS="${{ inputs.diff_num_shards || '2' }}"
-          case "${DIFF_SHARDS}" in
-            ''|*[!0-9]*) echo "::error::diff_num_shards must be a positive integer"; exit 1 ;;
-          esac
-          if [ "${DIFF_SHARDS}" -lt 1 ]; then
-            echo "::error::diff_num_shards must be >= 1"
             exit 1
           fi
 
@@ -362,6 +353,7 @@ jobs:
     secrets: inherit
     with:
       platform: a3
+      scope: all
       num_shards: ${{ inputs.num_shards || '4' }}
       artifact_name: cases-shards-a3
 
@@ -451,6 +443,7 @@ jobs:
     secrets: inherit
     with:
       platform: a5
+      scope: all
       num_shards: ${{ inputs.num_shards || '4' }}
       artifact_name: cases-shards-a5
 
@@ -490,87 +483,6 @@ jobs:
       cases_artifact_name: cases-shards-a5
 
   # ==========================================================================
-  # Cross-platform diff: cases that only ONE platform blacklists are re-run on
-  # BOTH platforms, so a failure-with-matching-reason can be turned into a
-  # blacklist-sync candidate for the other platform. The candidates are
-  # reported as an artifact and never written back to the repository
-  # automatically.
-  # ==========================================================================
-  shard-diff:
-    needs: validate
-    uses: ./.github/workflows/_blacklist_diff_shard.yml
-    with:
-      num_shards: ${{ inputs.diff_num_shards || '2' }}
-
-  test-diff-a3:
-    needs:
-      - resolve
-      - build-a3
-      - shard-diff
-    if: ${{ !cancelled() && needs.shard-diff.result == 'success' && (needs.resolve.outputs.a3_found == 'true' || needs.build-a3.result == 'success') }}
-    strategy:
-      fail-fast: false
-      max-parallel: ${{ inputs.test_max_parallel || 8 }}
-      matrix:
-        include:
-          - category: diff-a3only-a3
-            cases_artifact_name: cases-shards-diff-a3only-a3
-          - category: diff-a5only-a3
-            cases_artifact_name: cases-shards-diff-a5only-a3
-    uses: ./.github/workflows/_blacklist_test-category.yml
-    secrets: inherit
-    with:
-      resolved_short: ${{ needs.resolve.outputs.a3_resolved_short || needs.build-a3.outputs.resolved_short }}
-      resolved_sha: ${{ needs.resolve.outputs.a3_resolved_short || needs.build-a3.outputs.resolved_sha }}
-      pytorch_wheels_tarball: ${{ needs.resolve.outputs.a3_pytorch_wheels_tarball || needs.build-a3.outputs.pytorch_wheels_tarball }}
-      torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a3_torchnpu_wheels_tarball || needs.build-a3.outputs.torchnpu_wheels_tarball }}
-      upstream_repo: pytorch/pytorch
-      category: ${{ matrix.category }}
-      num_shards: ${{ needs.shard-diff.outputs.num_shards }}
-      matrix_json: ${{ needs.shard-diff.outputs.shards_json }}
-      max_workers: '32'
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17
-      report_to_upstream: false
-      runner_label: 'linux-aarch64-a3-800i-2-cn12-001'
-      device_env: 'privateuse1,cpu'
-      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 || github.event_name == 'push' }}
-      cases_artifact_name: ${{ matrix.cases_artifact_name }}
-
-  test-diff-a5:
-    needs:
-      - resolve
-      - build-a5
-      - shard-diff
-    if: ${{ !cancelled() && needs.shard-diff.result == 'success' && (needs.resolve.outputs.a5_found == 'true' || needs.build-a5.result == 'success') }}
-    strategy:
-      fail-fast: false
-      max-parallel: ${{ inputs.test_max_parallel || 8 }}
-      matrix:
-        include:
-          - category: diff-a3only-a5
-            cases_artifact_name: cases-shards-diff-a3only-a5
-          - category: diff-a5only-a5
-            cases_artifact_name: cases-shards-diff-a5only-a5
-    uses: ./.github/workflows/_blacklist_test-category.yml
-    secrets: inherit
-    with:
-      resolved_short: ${{ needs.resolve.outputs.a5_resolved_short || needs.build-a5.outputs.resolved_short }}
-      resolved_sha: ${{ needs.resolve.outputs.a5_resolved_short || needs.build-a5.outputs.resolved_sha }}
-      pytorch_wheels_tarball: ${{ needs.resolve.outputs.a5_pytorch_wheels_tarball || needs.build-a5.outputs.pytorch_wheels_tarball }}
-      torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a5_torchnpu_wheels_tarball || needs.build-a5.outputs.torchnpu_wheels_tarball }}
-      upstream_repo: pytorch/pytorch
-      category: ${{ matrix.category }}
-      num_shards: ${{ needs.shard-diff.outputs.num_shards }}
-      matrix_json: ${{ needs.shard-diff.outputs.shards_json }}
-      max_workers: '32'
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.11-torch-master-cann9.2.0-20260910200430-202610160226-8a315d17
-      report_to_upstream: false
-      runner_label: 'linux-amd64-a5-2'
-      device_env: 'privateuse1,cpu'
-      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 || github.event_name == 'push' }}
-      cases_artifact_name: ${{ matrix.cases_artifact_name }}
-
-  # ==========================================================================
   # Aggregate results only. Blacklisted cases are EXPECTED to fail, so this job
   # never turns failures into a red pipeline: a red run would just mean "the
   # blacklist is still accurate". The only signal worth checking is `passed`
@@ -588,13 +500,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    outputs:
-      a3_retest_count: ${{ steps.passed_skipped.outputs.a3_retest_count }}
-      a3_num_shards: ${{ steps.passed_skipped.outputs.a3_num_shards }}
-      a3_shards_json: ${{ steps.passed_skipped.outputs.a3_shards_json }}
-      a5_retest_count: ${{ steps.passed_skipped.outputs.a5_retest_count }}
-      a5_num_shards: ${{ steps.passed_skipped.outputs.a5_num_shards }}
-      a5_shards_json: ${{ steps.passed_skipped.outputs.a5_shards_json }}
     steps:
       # Checkout first: actions/checkout runs `git clean -ffdx`, which would
       # delete the downloaded report directories if it ran after them.
@@ -689,48 +594,29 @@ jobs:
               )
           PY
 
-      # Cases that PASSED or were SKIPPED on a platform are stale blacklist
-      # entries; they are the candidates to be blacklisted on the OTHER
-      # platform. Aggregate them and emit retest shards (one direction per
-      # platform) plus a Markdown record. Artifact-only: nothing is written
+      # After both platforms run the FULL union of blacklist nodeids, collect
+      # the removal candidates: nodeids that now PASS or are SKIPPED (stale
+      # entries), plus "No testcase in XML" errors (nodeid no longer matches
+      # any collected test). Emitted as JSON + Markdown; nothing is written
       # back to the repo.
-      - name: Collect passed/skipped blacklist cases
-        id: passed_skipped
+      - name: Generate removal-candidate report
         if: always()
         continue-on-error: true
         run: |
-          python3 .github/scripts/blacklist-test/scripts/collect_passed_skipped.py collect \
+          python3 .github/scripts/blacklist-test/scripts/generate_removal_candidates.py \
             --reports-root . \
-            --config-dir .github/config \
-            --output-prefix passed-skipped
+            --config-dir .github/config/blacklist_testccases \
+            --output-prefix removal-candidates
 
-      - name: Upload passed/skipped cases
+      - name: Upload removal-candidate report
         if: always()
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: passed-skipped-cases
+          name: removal-candidates
           path: |
-            passed-skipped.json
-            passed-skipped.md
-          retention-days: 30
-
-      - name: Upload a3 retest cases
-        if: always()
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: retest-cases-a3
-          path: retest-cases-a3/
-          retention-days: 30
-
-      - name: Upload a5 retest cases
-        if: always()
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: retest-cases-a5
-          path: retest-cases-a5/
+            removal-candidates.json
+            removal-candidates.md
           retention-days: 30
 
       - name: Generate blacklist report
@@ -753,229 +639,12 @@ jobs:
           retention-days: 30
 
   # ==========================================================================
-  # Re-run the stale cases: those that passed / were skipped on one platform
-  # are re-run ON the other platform, so a failure there turns into a
-  # blacklist-sync candidate. retest-a3 runs the a3 shards (cases that were
-  # passed/skipped on a5); retest-a5 runs the a5 shards (cases from a3).
-  # Artifact-only: nothing is written back to the repo.
-  # ==========================================================================
-  retest-a3:
-    needs:
-      - summary
-      - resolve
-      - build-a3
-    if: ${{ !cancelled() && needs.summary.outputs.a3_retest_count != '' && needs.summary.outputs.a3_retest_count != '0' && (needs.resolve.outputs.a3_found == 'true' || needs.build-a3.result == 'success') }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - category: retest-a3
-            num_shards: ${{ needs.summary.outputs.a3_num_shards }}
-            matrix_json: ${{ needs.summary.outputs.a3_shards_json }}
-            max_workers: '32'
-            runner_label: 'linux-aarch64-a3-800i-2-cn12-001'
-    uses: ./.github/workflows/_blacklist_test-category.yml
-    secrets: inherit
-    with:
-      resolved_short: ${{ needs.resolve.outputs.a3_resolved_short || needs.build-a3.outputs.resolved_short }}
-      resolved_sha: ${{ needs.resolve.outputs.a3_resolved_short || needs.build-a3.outputs.resolved_sha }}
-      pytorch_wheels_tarball: ${{ needs.resolve.outputs.a3_pytorch_wheels_tarball || needs.build-a3.outputs.pytorch_wheels_tarball }}
-      torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a3_torchnpu_wheels_tarball || needs.build-a3.outputs.torchnpu_wheels_tarball }}
-      upstream_repo: pytorch/pytorch
-      category: ${{ matrix.category }}
-      num_shards: ${{ matrix.num_shards }}
-      matrix_json: ${{ matrix.matrix_json }}
-      max_workers: ${{ matrix.max_workers }}
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17
-      report_to_upstream: false
-      runner_label: ${{ matrix.runner_label }}
-      device_env: 'privateuse1,cpu'
-      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 || github.event_name == 'push' }}
-      cases_artifact_name: retest-cases-a3
-
-  retest-a5:
-    needs:
-      - summary
-      - resolve
-      - build-a5
-    if: ${{ !cancelled() && needs.summary.outputs.a5_retest_count != '' && needs.summary.outputs.a5_retest_count != '0' && (needs.resolve.outputs.a5_found == 'true' || needs.build-a5.result == 'success') }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - category: retest-a5
-            num_shards: ${{ needs.summary.outputs.a5_num_shards }}
-            matrix_json: ${{ needs.summary.outputs.a5_shards_json }}
-            max_workers: '32'
-            runner_label: 'linux-amd64-a5-2'
-    uses: ./.github/workflows/_blacklist_test-category.yml
-    secrets: inherit
-    with:
-      resolved_short: ${{ needs.resolve.outputs.a5_resolved_short || needs.build-a5.outputs.resolved_short }}
-      resolved_sha: ${{ needs.resolve.outputs.a5_resolved_short || needs.build-a5.outputs.resolved_sha }}
-      pytorch_wheels_tarball: ${{ needs.resolve.outputs.a5_pytorch_wheels_tarball || needs.build-a5.outputs.pytorch_wheels_tarball }}
-      torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a5_torchnpu_wheels_tarball || needs.build-a5.outputs.torchnpu_wheels_tarball }}
-      upstream_repo: pytorch/pytorch
-      category: ${{ matrix.category }}
-      num_shards: ${{ matrix.num_shards }}
-      matrix_json: ${{ matrix.matrix_json }}
-      max_workers: ${{ matrix.max_workers }}
-      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.11-torch-master-cann9.2.0-20260910200430-202610160226-8a315d17
-      report_to_upstream: false
-      runner_label: ${{ matrix.runner_label }}
-      device_env: 'privateuse1,cpu'
-      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 || github.event_name == 'push' }}
-      cases_artifact_name: retest-cases-a5
-
-  # ==========================================================================
-  # Cross-platform sync candidates. Runs after the diff shards finished on both
-  # platforms and only emits a report: nothing is written back to the repo.
-  # ==========================================================================
-  diff-summary:
-    needs:
-      - shard-diff
-      - test-diff-a3
-      - test-diff-a5
-    if: always()
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout this repo
-        if: always()
-        uses: actions/checkout@v6
-        with:
-          ref: ci-test
-
-      - name: Download diff results (a3only on a3)
-        if: always()
-        continue-on-error: true
-        uses: actions/download-artifact@v4
-        with:
-          pattern: test-reports-d3a3-*
-          path: diff-reports/a3only-a3
-          merge-multiple: true
-
-      - name: Download diff results (a3only on a5)
-        if: always()
-        continue-on-error: true
-        uses: actions/download-artifact@v4
-        with:
-          pattern: test-reports-d3a5-*
-          path: diff-reports/a3only-a5
-          merge-multiple: true
-
-      - name: Download diff results (a5only on a3)
-        if: always()
-        continue-on-error: true
-        uses: actions/download-artifact@v4
-        with:
-          pattern: test-reports-d5a3-*
-          path: diff-reports/a5only-a3
-          merge-multiple: true
-
-      - name: Download diff results (a5only on a5)
-        if: always()
-        continue-on-error: true
-        uses: actions/download-artifact@v4
-        with:
-          pattern: test-reports-d5a5-*
-          path: diff-reports/a5only-a5
-          merge-multiple: true
-
-      - name: Compare diff results
-        if: always()
-        continue-on-error: true
-        run: |
-          python3 .github/scripts/blacklist-test/scripts/compare_diff_results.py \
-            --reports-root diff-reports \
-            --config-dir .github/config \
-            --output-prefix blacklist-sync-candidates
-
-      - name: Upload sync candidates
-        if: always()
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: blacklist-sync-candidates
-          path: |
-            blacklist-sync-candidates.json
-            blacklist-sync-candidates.md
-          retention-days: 30
-
-  # ==========================================================================
-  # Render the cross-platform retest outcome: for every stale case, whether its
-  # re-run on the other platform passed / failed / was skipped / errored /
-  # timed out. Only a report is produced; nothing is written back to the repo.
-  # ==========================================================================
-  retest-report:
-    needs:
-      - summary
-      - retest-a3
-      - retest-a5
-    if: always()
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      # Checkout first: actions/checkout runs `git clean -ffdx`, which would
-      # delete the downloaded report directories if it ran after them.
-      - name: Checkout this repo
-        if: always()
-        uses: actions/checkout@v6
-        with:
-          ref: ci-test
-
-      - name: Download passed/skipped cases
-        if: always()
-        continue-on-error: true
-        uses: actions/download-artifact@v4
-        with:
-          name: passed-skipped-cases
-          path: passed-skipped
-
-      - name: Download a3 retest reports
-        if: always()
-        continue-on-error: true
-        uses: actions/download-artifact@v4
-        with:
-          pattern: test-reports-rta3-*
-          path: retest-reports-a3
-          merge-multiple: true
-
-      - name: Download a5 retest reports
-        if: always()
-        continue-on-error: true
-        uses: actions/download-artifact@v4
-        with:
-          pattern: test-reports-rta5-*
-          path: retest-reports-a5
-          merge-multiple: true
-
-      - name: Render retest report
-        if: always()
-        continue-on-error: true
-        run: |
-          python3 .github/scripts/blacklist-test/scripts/collect_passed_skipped.py report \
-            --input passed-skipped/passed-skipped.json \
-            --reports-root . \
-            --output passed-skipped-retest.md
-
-      - name: Upload retest report
-        if: always()
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: passed-skipped-retest-report
-          path: passed-skipped-retest.md
-          retention-days: 30
-
-  # ==========================================================================
   # Flatten the grouped blacklist (disabled_testcases_grouped.json) into a
   # plain nodeid list, purely as a read-only companion to the grouped source.
-  # This does NOT feed any shard/test job: the existing shards still read the
-  # flat per-platform blacklist files. The flattened list is uploaded as an
-  # artifact so the grouped file can be diffed against the flat files easily.
+  # This does NOT feed any shard/test job: the shards read the full-union
+  # blacklist files (`scope: all`), not the grouped source. The flattened list
+  # is uploaded as an artifact so the grouped file can be diffed against the
+  # flat files easily.
   # ==========================================================================
   flatten-grouped:
     needs: validate

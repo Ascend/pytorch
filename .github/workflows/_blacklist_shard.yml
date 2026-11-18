@@ -1,8 +1,9 @@
 name: Blacklist Shard
 
-# Shards nodeids taken directly from the blacklist files (no collection):
-# the lists already contain explicit nodeids, so we only need to split them
-# into balanced shards and upload them in the format expected by
+# Shards nodeids taken directly from the blacklist files (no collection).
+# With scope=all, the blacklist_testccases/ directory is first flattened into a
+# single pure nodeid list (the files use several different shapes), then split
+# into balanced shards uploaded in the format expected by
 # _nightly_test-category.yml ({"shard", "num_shards", "test_type", "cases"}).
 
 on:
@@ -11,7 +12,15 @@ on:
       platform:
         required: true
         type: string
-        description: 'Target platform: a3 or a5'
+        description: 'Target platform: a3 or a5 (used for the category name)'
+      scope:
+        required: false
+        type: string
+        default: 'platform'
+        description: >-
+          'platform' (default) shards only the given platform's flat
+          blacklist; 'all' flattens blacklist_testccases/ into a single
+          nodeid list and shards that (used by the removal-candidate pipeline).
       num_shards:
         required: false
         type: string
@@ -57,6 +66,7 @@ jobs:
         id: build_shards
         env:
           PLATFORM: ${{ inputs.platform }}
+          SCOPE: ${{ inputs.scope }}
           NUM_SHARDS: ${{ inputs.num_shards }}
           CATEGORY: blacklist-${{ inputs.platform }}
         run: |
@@ -67,6 +77,7 @@ jobs:
           import pathlib
 
           platform = os.environ["PLATFORM"]
+          scope = os.environ.get("SCOPE", "platform")
           num_shards = int(os.environ["NUM_SHARDS"])
           category = os.environ["CATEGORY"]
 
@@ -75,21 +86,40 @@ jobs:
           if num_shards < 1:
               raise SystemExit(f"invalid num_shards: {num_shards}")
 
-          spec = importlib.util.spec_from_file_location(
-              "collect_all_cases", ".github/scripts/collect_all_cases.py"
-          )
-          module = importlib.util.module_from_spec(spec)
-          spec.loader.exec_module(module)
+          if scope == "all":
+              # Flatten the blacklist_testccases/ directory into a single pure
+              # nodeid list, handling every file format inside it in one pass.
+              flatten_spec = importlib.util.spec_from_file_location(
+                  "flatten_blacklist_testccases",
+                  ".github/scripts/blacklist-test/scripts/flatten_blacklist_testccases.py",
+              )
+              flatten = importlib.util.module_from_spec(flatten_spec)
+              flatten_spec.loader.exec_module(flatten)
 
-          files = [
-              f".github/config/disabled_testcases_{platform}_all.json",
-              ".github/config/unsupported_aclnn_testcases.json",
-              ".github/config/unsupport_dtype_testcases.json",
-          ]
-          if platform == "a3":
-              files.append(".github/config/temporary_skiped_testcases.json")
-          nodeids = sorted(module.load_skip_list(files, platform=platform))
-          print(f"[{platform}] {len(nodeids)} unique blacklist nodeids from {len(files)} files")
+              config_dir = ".github/config/blacklist_testccases"
+              nodeids, stats = flatten.collect_nodeids(config_dir)
+              for name, kind, count in stats:
+                  if kind == "nodes":
+                      print(f"    {name}: +{count} nodeids")
+                  else:
+                      print(f"    {name}: {kind}: {count}")
+              files = [f"{config_dir}/{name}" for name, _kind, _count in stats]
+          else:
+              spec = importlib.util.spec_from_file_location(
+                  "collect_all_cases", ".github/scripts/collect_all_cases.py"
+              )
+              module = importlib.util.module_from_spec(spec)
+              spec.loader.exec_module(module)
+
+              files = [
+                  f".github/config/disabled_testcases_{platform}_all.json",
+                  ".github/config/unsupported_aclnn_testcases.json",
+                  ".github/config/unsupport_dtype_testcases.json",
+              ]
+              if platform == "a3":
+                  files.append(".github/config/temporary_skiped_testcases.json")
+              nodeids = sorted(module.load_skip_list(files, platform=platform))
+          print(f"[{platform}] {len(nodeids)} unique blacklist nodeids from {len(files)} files (scope={scope})")
 
           out_dir = pathlib.Path("cases-shards")
           out_dir.mkdir(parents=True, exist_ok=True)
