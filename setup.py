@@ -502,6 +502,21 @@ def get_src_py_and_dst():
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         ret.append((src, dst))
 
+    hccl_include_root = os.path.join(BASE_DIR, "third_party", "hccl", "inc")
+    hccl_header_files = glob.glob(
+        os.path.join(hccl_include_root, "**", "*.h"),
+        recursive=True,
+    )
+    for src in hccl_header_files:
+        relative_header = os.path.relpath(src, hccl_include_root)
+        dst = os.path.join(
+            BASE_DIR,
+            "build/packages/torch_npu/include",
+            relative_header,
+        )
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        ret.append((src, dst))
+
     torch_header_files = [
         "*/*.h",
         "*/*/*.h",

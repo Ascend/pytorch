@@ -1,7 +1,7 @@
 #ifndef __PLUGIN_NATIVE_NPU_INTERFACE_HCCLINTERFACE__
 #define __PLUGIN_NATIVE_NPU_INTERFACE_HCCLINTERFACE__
 
-#include "third_party/hccl/inc/hccl/hccl.h"
+#include <hccl/hccl.h>
 
 namespace at_npu {
 namespace native {
