@@ -366,7 +366,12 @@ class CPPLibBuild(build_clib, object):
             '-DTORCHNPU_INSTALL_LIBDIR=' + os.path.realpath(output_lib_path),
             '-DPYTHON_INCLUDE_DIR=' + get_paths().get('include'),
             '-DTORCH_VERSION=' + VERSION,
-            '-DPYTORCH_INSTALL_DIR=' + get_pytorch_dir()]
+            '-DPYTORCH_INSTALL_DIR=' + get_pytorch_dir(),
+            '-DNPU_SYMM_MEM_ARCH=' + os.getenv('NPU_SYMM_MEM_ARCH', '')]
+
+        for variable in ('BISHENG', 'ASCEND_HOME_PATH'):
+            if os.getenv(variable) is not None:
+                cmake_args.append('-D' + variable + '=' + os.getenv(variable))
 
         if DISABLE_TORCHAIR == 'FALSE':
             if check_torchair_valid(BASE_DIR):

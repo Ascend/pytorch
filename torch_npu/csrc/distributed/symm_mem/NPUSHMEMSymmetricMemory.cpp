@@ -1,40 +1,54 @@
+#include <cstdint>
 #include <memory>
 
 #include <ATen/ceil_div.h>
+#include <torch/csrc/distributed/c10d/GroupRegistry.hpp>
 
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/logging/LogContext.h"
 #include "torch_npu/csrc/distributed/symm_mem/NPUSymmetricMemoryUtils.hpp"
 #include "torch_npu/csrc/distributed/symm_mem/NPUSHMEMExtension.h"
 #include "torch_npu/csrc/distributed/symm_mem/NPUSHMEMSymmetricMemory.hpp"
+#include "torch_npu/csrc/distributed/symm_mem/NPUSHMEMSymmetricMemoryKernels.hpp"
 
 namespace c10d {
 namespace symmetric_memory {
 
+#ifndef USE_NPU_SYMM_MEM
+namespace {
+[[noreturn]] void signal_kernels_unavailable() {
+  TORCH_CHECK(
+      false,
+      "torch-npu was built without symmetric memory kernels. "
+      "Rebuild with an available BiSheng compiler to enable barrier(), put_signal() and wait_signal().");
+}
+} // namespace
+
+int32_t launch_npushmem_put_signal(void*, uint64_t, uint64_t, void*) {
+  signal_kernels_unavailable();
+}
+
+int32_t launch_npushmem_wait_signal(void*, uint64_t, uint64_t, void*) {
+  signal_kernels_unavailable();
+}
+
+size_t get_npushmem_barrier_workspace_size(int) {
+  signal_kernels_unavailable();
+}
+
+int32_t launch_npushmem_barrier(void**, void*, int, int, int, uint64_t, void*) {
+  signal_kernels_unavailable();
+}
+#endif
+
 // Keep the data buffer aligned independently of the configured signal pad size.
 constexpr size_t kSignalPadAlignment = 128;
 
-// RAII guard for a caching-allocator device pointer. The constructor allocates
-// buffers_dev_/signal_pads_dev_ before the object is fully constructed; if a
-// later step (raw_alloc/aclrtMemcpy for the second array) throws via
-// TORCH_CHECK, the destructor will NOT run, so the first array would leak.
-// Hold each array under this guard and release() to the member only after both
-// succeed, so any exception on the way frees whatever was already allocated.
-struct DevPtrDeleter {
-  void operator()(void* p) const noexcept {
-    if (p != nullptr) {
-      c10_npu::NPUCachingAllocator::raw_delete(p);
-    }
-  }
-};
-using DevPtrGuard = std::unique_ptr<void, DevPtrDeleter>;
-
 /* Start of NPUSHMEMSymmetricMemory implementation */
-
-static NPUStoreExchange storeExchange = NPUStoreExchange("NPUSHMEMSymmetricMemory");
 
 static std::mutex rank_map_mutex;
 static std::unordered_map<std::string, std::vector<int>> rank_to_global_rank_map{};
@@ -63,17 +77,22 @@ NPUSHMEMSymmetricMemory::NPUSHMEMSymmetricMemory(
   auto device = c10::Device(at::DeviceType::PrivateUse1, device_idx_);
   at::DeviceGuard device_guard(device);
 
-  auto global_rank = get_group_info("0").rank;
-  GroupInfo& group_info = get_group_info(group_name_);
-  auto store = group_info.store;
-  rank_ = group_info.rank;
-  world_size_ = group_info.world_size;
+  // Distributed initialization already registers the ProcessGroup; no separate
+  // enable_symm_mem_for_group() call is needed to resolve its Store or ranks.
+  auto group = resolve_process_group(group_name_);
+  auto store = group->getStore();
+  rank_ = group->getRank();
+  world_size_ = group->getSize();
+  auto global_rank = resolve_process_group("0")->getRank();
   // Exchange rank to global rank mapping for this group.
   // If it is already available, skip the exchange.
   std::lock_guard<std::mutex> rank_map_lock(rank_map_mutex);
   auto it = rank_to_global_rank_map.find(group_name_);
   if (it == rank_to_global_rank_map.end()) {
-    auto rank_to_global_rank = storeExchange.all_gather(store, rank_, world_size_, global_rank);
+    // Each group's Store has its own namespace. Start this one-time exchange
+    // locally so ranks that skipped another subgroup still use the same key.
+    NPUStoreExchange exchange("NPUSHMEMSymmetricMemory");
+    auto rank_to_global_rank = exchange.all_gather(store, rank_, world_size_, global_rank);
     exchanged_n_times++;
     if (rank_ == 0) {
       std::stringstream ss;
@@ -111,41 +130,41 @@ NPUSHMEMSymmetricMemory::NPUSHMEMSymmetricMemory(
         peer_base);
   }
 
-  // Copy the per-rank buffer pointers to device memory so device-side kernels
-  // can access them via get_buffer_ptrs_dev().
+  // DataPtr members release the tables even if construction throws.
   const size_t arr_size = sizeof(void*) * world_size_;
-  DevPtrGuard buffers_dev_guard(c10_npu::NPUCachingAllocator::raw_alloc(arr_size));
+  buffers_dev_owner_ = c10_npu::NPUCachingAllocator::get()->allocate(arr_size);
   TORCH_CHECK(
-      buffers_dev_guard, "NPUSHMEMSymmetricMemory failed to allocate buffers_dev_", DIST_ERROR(ErrCode::MEMORY));
-  DevPtrGuard signal_pads_dev_guard(c10_npu::NPUCachingAllocator::raw_alloc(arr_size));
+      buffers_dev_owner_, "NPUSHMEMSymmetricMemory failed to allocate buffers_dev_", DIST_ERROR(ErrCode::MEMORY));
+  signal_pads_dev_owner_ = c10_npu::NPUCachingAllocator::get()->allocate(arr_size);
   TORCH_CHECK(
-      signal_pads_dev_guard,
+      signal_pads_dev_owner_,
       "NPUSHMEMSymmetricMemory failed to allocate signal_pads_dev_",
       DIST_ERROR(ErrCode::MEMORY));
 
   // The device pointer arrays must not alias the symmetric allocation.
   TORCH_CHECK(
-      buffers_dev_guard.get() != buffers_[rank_] && signal_pads_dev_guard.get() != signal_pads_[rank_],
+      buffers_dev_owner_.get() != buffers_[rank_] && signal_pads_dev_owner_.get() != signal_pads_[rank_],
       "symm_mem device pointer array aliases the SHMEM allocation: buffers_dev_=",
-      buffers_dev_guard.get(),
+      buffers_dev_owner_.get(),
       " signal_pads_dev_=",
-      signal_pads_dev_guard.get(),
+      signal_pads_dev_owner_.get(),
       " buffer_ptr=",
       buffers_[rank_],
       DIST_ERROR(ErrCode::MEMORY));
 
   // Upload on the current stream, then sync: consumers may read these arrays
   // from another stream (pytorch/pytorch#192308).
-  auto stream = c10_npu::getCurrentNPUStream(static_cast<c10::DeviceIndex>(device_idx_));
+  // stream() drains the host task queue so pending writes to reused allocator
+  // blocks are enqueued before these copies. Reuse the ACL handle throughout.
+  auto table_stream = c10_npu::getCurrentNPUStream(device_idx_).stream();
   NPU_CHECK_ERROR(aclrtMemcpyAsync(
-      buffers_dev_guard.get(), arr_size, buffers_.data(), arr_size, ACL_MEMCPY_HOST_TO_DEVICE, stream));
+      buffers_dev_owner_.get(), arr_size, buffers_.data(), arr_size, ACL_MEMCPY_HOST_TO_DEVICE, table_stream));
   NPU_CHECK_ERROR(aclrtMemcpyAsync(
-      signal_pads_dev_guard.get(), arr_size, signal_pads_.data(), arr_size, ACL_MEMCPY_HOST_TO_DEVICE, stream));
-  NPU_CHECK_ERROR(aclrtSynchronizeStream(stream));
+      signal_pads_dev_owner_.get(), arr_size, signal_pads_.data(), arr_size, ACL_MEMCPY_HOST_TO_DEVICE, table_stream));
+  NPU_CHECK_ERROR(aclrtSynchronizeStream(table_stream));
 
-  // Both succeeded: transfer ownership to members (destructor will raw_delete).
-  buffers_dev_ = reinterpret_cast<void**>(buffers_dev_guard.release());
-  signal_pads_dev_ = reinterpret_cast<void**>(signal_pads_dev_guard.release());
+  buffers_dev_ = static_cast<void**>(buffers_dev_owner_.get());
+  signal_pads_dev_ = static_cast<void**>(signal_pads_dev_owner_.get());
 
   TORCH_NPU_SYMMEM_LOGD(
       "NPUSHMEMSymmetricMemory created, buffer_size is %d, device_idx is %d, group_name is %s.",
@@ -155,13 +174,12 @@ NPUSHMEMSymmetricMemory::NPUSHMEMSymmetricMemory(
 }
 
 NPUSHMEMSymmetricMemory::~NPUSHMEMSymmetricMemory() {
-  if (buffers_dev_ != nullptr) {
-    c10_npu::NPUCachingAllocator::raw_delete(buffers_dev_);
-    buffers_dev_ = nullptr;
-  }
-  if (signal_pads_dev_ != nullptr) {
-    c10_npu::NPUCachingAllocator::raw_delete(signal_pads_dev_);
-    signal_pads_dev_ = nullptr;
+  if (is_finalizing()) {
+    // Returning alone still invokes the DataPtr deleters. Release their contexts
+    // to avoid allocator calls after the driver has shut down.
+    (void)buffers_dev_owner_.release_context();
+    (void)signal_pads_dev_owner_.release_context();
+    return;
   }
   TORCH_NPU_SYMMEM_LOGD("NPUSHMEMSymmetricMemory destroy, group_name is %s", group_name_.c_str());
 }
@@ -175,10 +193,18 @@ std::vector<void*> NPUSHMEMSymmetricMemory::get_signal_pad_ptrs() {
 }
 
 void** NPUSHMEMSymmetricMemory::get_buffer_ptrs_dev() {
+  const auto device = c10::Device(at::DeviceType::PrivateUse1, device_idx_);
+  at::DeviceGuard device_guard(device);
+  // Call on each consuming stream. This records only the table, not its SHMEM entries.
+  c10_npu::NPUCachingAllocator::recordStream(buffers_dev_owner_, c10_npu::getCurrentNPUStream(device_idx_));
   return buffers_dev_;
 }
 
 void** NPUSHMEMSymmetricMemory::get_signal_pad_ptrs_dev() {
+  const auto device = c10::Device(at::DeviceType::PrivateUse1, device_idx_);
+  at::DeviceGuard device_guard(device);
+  // Register every stream that consumes this table, as for the buffer table.
+  c10_npu::NPUCachingAllocator::recordStream(signal_pads_dev_owner_, c10_npu::getCurrentNPUStream(device_idx_));
   return signal_pads_dev_;
 }
 
@@ -194,19 +220,82 @@ void* NPUSHMEMSymmetricMemory::get_multicast_ptr() {
   return nullptr;
 }
 
+static void check_signal_channel(int channel, int world_size) {
+  TORCH_CHECK(
+      channel >= 0,
+      "channel for barrier(), put_signal() and wait_signal() must be non-negative (got ",
+      channel,
+      ")",
+      DIST_ERROR(ErrCode::PARAM));
+  const size_t num_channels = get_signal_pad_size() / (sizeof(uint32_t) * world_size);
+  TORCH_CHECK(
+      static_cast<size_t>(channel) < num_channels,
+      "The maximum supported channel for barrier(), put_signal() and wait_signal() is ",
+      static_cast<int64_t>(num_channels) - 1,
+      " (got ",
+      channel,
+      ")",
+      DIST_ERROR(ErrCode::PARAM));
+}
+
 void NPUSHMEMSymmetricMemory::barrier(int channel, size_t timeout_ms) {
-  // to be done
-  throw std::runtime_error("NPUSHMEMSymmetricMemory does not support barrier" + DIST_ERROR(ErrCode::NOT_SUPPORT));
+  check_signal_channel(channel, world_size_);
+  const auto device = c10::Device(at::DeviceType::PrivateUse1, device_idx_);
+  at::DeviceGuard device_guard(device);
+  const auto npu_stream = c10_npu::getCurrentNPUStream(device_idx_);
+  auto stream = npu_stream.stream();
+  TORCH_CHECK(stream != nullptr, "barrier: failed to obtain the current NPU stream", DIST_ERROR(ErrCode::INTERNAL));
+
+  // Each invocation owns its progress state; the kernel initializes it before
+  // use. Separate scratch does not isolate overlapping signal-pad slots.
+  auto peer_states = c10_npu::NPUCachingAllocator::get()->allocate(get_npushmem_barrier_workspace_size(world_size_));
+  // Keep the scratch and pointer table alive until the enqueued kernel is done.
+  c10_npu::NPUCachingAllocator::recordStream(peer_states, npu_stream);
+  c10_npu::NPUCachingAllocator::recordStream(signal_pads_dev_owner_, npu_stream);
+  NPU_CHECK_ERROR(
+      launch_npushmem_barrier(signal_pads_dev_, peer_states.get(), channel, rank_, world_size_, timeout_ms, stream));
 }
 
 void NPUSHMEMSymmetricMemory::put_signal(int dst_rank, int channel, size_t timeout_ms) {
-  // to be done
-  throw std::runtime_error("NPUSHMEMSymmetricMemory does not support put_signal" + DIST_ERROR(ErrCode::NOT_SUPPORT));
+  TORCH_CHECK(
+      dst_rank >= 0 && dst_rank < world_size_,
+      "put_signal: destination rank must be in [0, ",
+      world_size_,
+      "), got ",
+      dst_rank,
+      DIST_ERROR(ErrCode::PARAM));
+  check_signal_channel(channel, world_size_);
+
+  // The mapped peer pad already accounts for the SHMEM WORLD PE; slots use
+  // group-local ranks, independently of that global mapping.
+  const uint64_t signal_index = static_cast<uint64_t>(channel) * world_size_ + rank_;
+  const auto device = c10::Device(at::DeviceType::PrivateUse1, device_idx_);
+  at::DeviceGuard device_guard(device);
+  auto stream = c10_npu::getCurrentNPUStream(device_idx_).stream();
+  TORCH_CHECK(stream != nullptr, "put_signal: failed to obtain the current NPU stream", DIST_ERROR(ErrCode::INTERNAL));
+
+  // Only enqueue: CAS backpressure and timeout handling run on the device.
+  NPU_CHECK_ERROR(launch_npushmem_put_signal(signal_pads_[dst_rank], signal_index, timeout_ms, stream));
 }
 
 void NPUSHMEMSymmetricMemory::wait_signal(int src_rank, int channel, size_t timeout_ms) {
-  // to be done
-  throw std::runtime_error("NPUSHMEMSymmetricMemory does not support wait_signal" + DIST_ERROR(ErrCode::NOT_SUPPORT));
+  TORCH_CHECK(
+      src_rank >= 0 && src_rank < world_size_,
+      "wait_signal: source rank must be in [0, ",
+      world_size_,
+      "), got ",
+      src_rank,
+      DIST_ERROR(ErrCode::PARAM));
+  check_signal_channel(channel, world_size_);
+
+  // Consume the source's slot in our local pad, without a separate clear task.
+  const uint64_t signal_index = static_cast<uint64_t>(channel) * world_size_ + src_rank;
+  const auto device = c10::Device(at::DeviceType::PrivateUse1, device_idx_);
+  at::DeviceGuard device_guard(device);
+  auto stream = c10_npu::getCurrentNPUStream(device_idx_).stream();
+  TORCH_CHECK(stream != nullptr, "wait_signal: failed to obtain the current NPU stream", DIST_ERROR(ErrCode::INTERNAL));
+
+  NPU_CHECK_ERROR(launch_npushmem_wait_signal(signal_pads_[rank_], signal_index, timeout_ms, stream));
 }
 
 int NPUSHMEMSymmetricMemory::get_rank() {
@@ -246,12 +335,14 @@ void* NPUSHMEMSymmetricMemoryAllocator::alloc(
       device_idx,
       group_name == std::nullopt ? "" : (*group_name).c_str());
 
+  // Resolve an unindexed "npu" device before selecting it or storing its index.
+  if (device_idx == -1) {
+    device_idx = c10_npu::current_device();
+  }
   c10_npu::LazySetDevice(device_idx);
-  auto group_info = get_group_info("0");
-  auto store = group_info.store;
-  int rank = group_info.rank;
-  int world_size = group_info.world_size;
-  npushmem_extension::initialize_npushmem_with_store(store, rank, world_size);
+  // SHMEM bootstraps over WORLD even when a later rendezvous uses a subgroup.
+  auto group = resolve_process_group("0");
+  npushmem_extension::initialize_npushmem_with_store(group->getStore(), group->getRank(), group->getSize());
 
   // Layout: [signal pad | alignment padding | data buffer]. The data offset
   // depends only on the configured pad size, never on the requested data size.
@@ -315,9 +406,9 @@ size_t NPUSHMEMSymmetricMemoryAllocator::get_alloc_size(void* ptr) {
 c10::intrusive_ptr<SymmetricMemory> NPUSHMEMSymmetricMemoryAllocator::rendezvous(
     void* ptr,
     const std::optional<std::string>& group_name) {
+  TORCH_CHECK(group_name.has_value(), "rendezvous, group_name is invalid.", DIST_ERROR(ErrCode::PARAM));
   TORCH_NPU_SYMMEM_LOGD(
       "NPUSHMEMSymmetricMemoryAllocator rendezvous start, ptr is %p, group_name is %s", ptr, (*group_name).c_str());
-  TORCH_CHECK(group_name.has_value(), "rendezvous, group_name is invalid.", DIST_ERROR(ErrCode::PARAM));
   std::lock_guard<std::mutex> lock(mutex_);
   {
     auto it = symm_mems_.find(std::make_tuple(ptr, *group_name));

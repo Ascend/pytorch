@@ -4,6 +4,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <c10/core/Allocator.h>
 #include <torch/csrc/distributed/c10d/symm_mem/SymmetricMemory.hpp>
 #include "torch_npu/csrc/distributed/symm_mem/NPUSHMEMInterface.h"
 #include "torch_npu/csrc/logging/LogContext.h"
@@ -70,6 +71,10 @@ class NPUSHMEMSymmetricMemory : public SymmetricMemory {
   int device_idx_;
   int rank_;
   int world_size_;
+  // Own only the device pointer tables, not the SHMEM block they reference.
+  // Callers must keep the SHMEM allocation alive until device work completes.
+  c10::DataPtr buffers_dev_owner_;
+  c10::DataPtr signal_pads_dev_owner_;
   void** buffers_dev_ = nullptr;
   void** signal_pads_dev_ = nullptr;
   std::string group_name_;

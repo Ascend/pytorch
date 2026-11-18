@@ -291,8 +291,12 @@ add_subdirectory(${TORCHNPU_ROOT}/libs)
 
 set(OPS_PLUGIN_SRCS)
 # Add subdirectory of op-plugin
+set(TORCH_NPU_SOURCE_DIR "${PROJECT_SOURCE_DIR}")
 include_directories(${PROJECT_SOURCE_DIR}/third_party/op-plugin)
 add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/op-plugin/op_plugin)
+if (NOT DEFINED BUILD_LIBTORCH)
+  include("${PROJECT_SOURCE_DIR}/cmake/NPUSymmetricMemory.cmake")
+endif()
 
 if (DEFINED BUILD_TENSORPIPE)
   add_definitions(-DUSE_RPC_FRAMEWORK)
@@ -405,6 +409,14 @@ target_compile_options(torch_npu_objs PRIVATE "-DC10_BUILD_MAIN_LIB")
 add_library(${PLUGIN_NAME} SHARED $<TARGET_OBJECTS:torch_npu_objs>)
 target_link_libraries(${PLUGIN_NAME} PUBLIC torch_npu_objs)
 target_link_options(${PLUGIN_NAME} PRIVATE "-Wl,-Bsymbolic-functions,--no-as-needed")
+
+if (TARGET torch_npu_symm_mem_kernels)
+  target_sources(${PLUGIN_NAME} PRIVATE "${_symm_mem_object}")
+  target_link_libraries(${PLUGIN_NAME} PRIVATE ${_symm_mem_runtime_libraries})
+  set_property(SOURCE "${_symm_mem_source_dir}/NPUSHMEMSymmetricMemory.cpp"
+    APPEND PROPERTY COMPILE_DEFINITIONS USE_NPU_SYMM_MEM)
+  add_dependencies(${PLUGIN_NAME} torch_npu_symm_mem_kernels)
+endif()
 
 # Shared library: link step, dvm / torchair deps only gate linking, not compilation.
 add_dependencies(${PLUGIN_NAME} dvm_build)

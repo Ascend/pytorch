@@ -34,3 +34,6 @@
 [submodule "third_party/acl_src/graph-autofusion"]
 	path = third_party/acl_src/graph-autofusion
 	url = https://gitcode.com/cann/graph-autofusion.git
+[submodule "third_party/asc-devkit"]
+	path = third_party/asc-devkit
+	url = https://gitcode.com/cann/asc-devkit.git

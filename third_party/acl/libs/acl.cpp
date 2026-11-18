@@ -109,4 +109,8 @@ aclError aclrtStreamQuery(aclrtStream stream, aclrtStreamStatus *status) {return
 aclError aclmdlRIDebugJsonPrint(aclmdlRI modelRI, const char* path, uint32_t flags) {return 0;};
 aclError aclrtGetErrorVerbose(int32_t deviceId, aclrtErrorInfo *errorInfo) {return 0;};
 aclError aclrtRepairError(int32_t deviceId, const aclrtErrorInfo *errorInfo) {return 0;}
+aclError aclrtGetFuncBySymbol(const void *symbol, aclrtFuncHandle *funcHandle) {return 0;}
+aclError aclrtLaunchKernelWithArgsArray(void *func, uint32_t numBlocks,
+                                      aclrtStream stream, aclrtLaunchKernelCfg *cfg,
+                                      void **args) {return 0;}
 }
