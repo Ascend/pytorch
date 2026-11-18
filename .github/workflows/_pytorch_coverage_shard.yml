@@ -247,15 +247,33 @@ jobs:
 
           obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=obs.ap-southeast-1.myhuaweicloud.com
 
+          # Cross-border puts to ap-southeast-1 frequently stall after the
+          # body is sent ("timeout awaiting response headers"). With the
+          # defaults (socketTimeout=310s, maxRetryCount=3) a single failed
+          # `obsutil cp` burns ~10 minutes, so two attempts are rarely
+          # enough. Tighten the idle timeout, let obsutil retry each
+          # request more times, and force the ~15MB shard tarballs through
+          # multipart upload so a stalled segment is retried on its own
+          # (the checkpoint under ~/.obsutil_checkpoint resumes the rest).
+          OBS_CFG="${HOME}/.obsutilconfig"
+          for kv in connectTimeout=15 socketTimeout=60 maxRetryCount=5 \
+                    defaultBigfileThreshold=8MB defaultPartSize=9MB; do
+            key="${kv%%=*}"
+            sed -i "/^${key}=/d" "${OBS_CFG}"
+            echo "${kv}" >> "${OBS_CFG}"
+          done
+
           TARGET="${{ env.OBS_SHARD_PREFIX }}/${{ github.run_id }}/${{ inputs.category }}-${{ matrix.shard }}.tar.gz"
-          for attempt in 1 2; do
+          for attempt in 1 2 3 4; do
             echo "=== Upload attempt ${attempt} ==="
             if obsutil cp "${TARBALL}" "${TARGET}" -f -vlength; then
               echo "Shard data uploaded: ${TARGET}"
               rm -f "${TARBALL}"
               exit 0
             fi
-            sleep 10
+            echo "Upload attempt ${attempt} failed"
+            # Jittered backoff so parallel shards do not retry in lockstep.
+            sleep $((10 + RANDOM % 20))
           done
           echo "ERROR: failed to upload ${TARGET}" >&2
           exit 1
