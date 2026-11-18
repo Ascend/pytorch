@@ -227,9 +227,6 @@
 <!-- npu="A3" id230 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id230 -->
-<!-- npu="950" id231 -->
-- <term>Ascend 950DT系列产品</term>：未验证（A5无多卡环境）
-<!-- end id231 -->
 
 <a class="method_anchor" id="torch_distributed_checkpoint_staging_DefaultStager_close"></a>
 
@@ -247,9 +244,6 @@
 <!-- npu="A3" id233 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id233 -->
-<!-- npu="950" id234 -->
-- <term>Ascend 950DT系列产品</term>：未验证（A5无多卡环境）
-<!-- end id234 -->
 
 </div>
 
@@ -269,9 +263,6 @@
 <!-- npu="A3" id236 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id236 -->
-<!-- npu="950" id237 -->
-- <term>Ascend 950DT系列产品</term>：未验证（A5无多卡环境）
-<!-- end id237 -->
 
 </div>
 
@@ -291,9 +282,6 @@
 <!-- npu="A3" id239 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id239 -->
-<!-- npu="950" id240 -->
-- <term>Ascend 950DT系列产品</term>：未验证（A5无多卡环境）
-<!-- end id240 -->
 
 </div>
 

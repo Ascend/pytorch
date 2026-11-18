@@ -4,7 +4,7 @@
 >
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
 > - 本支持清单的范围以[PyTorch社区文档](https://pytorch.org/docs/2.14/)为准，社区文档中未列出的接口不在本清单范围内；已在社区文档中存在但未收录于本清单的API尚未验证，请谨慎使用，我们将在验证完成后更新文档。
-> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
+> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证的产品暂不纳入。
 > - 在使用支持的CUDA接口时，需要将API名称中的CUDA替换为NPU形式才能使用：将torch.cuda.替换为torch_npu.npu.或torch.npu.。torch_npu.npu.和torch.npu.两种调用方式，功能一致。举例如下：
 >
 >   `torch.cuda.current_device` --> `torch_npu.npu.current_device`<br>
@@ -747,7 +747,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id243 -->
 
-**限制与说明**： 可使用`npu-smi info -t common -i <id>`查看Aicore curFreq(MHZ)指标代替。
+**限制与说明**： 可使用`npu-smi info -t common -i <id>`查看AI Core curFreq(MHZ)指标代替。
 
 </div>
 
@@ -1489,7 +1489,7 @@
 **限制与说明**：
 
 - 当前仅支持推理场景，不支持训练场景
-- 导出文件内容为json格式
+- 导出文件内容为JSON格式
 
 </div>
 <!-- end id147 -->

@@ -729,10 +729,10 @@
 **限制与说明**：
 
 - `query`、`key`、`value`仅支持bf16、fp16和fp32，且所有输入参数须满足以下规格约束：
-  - 输入`query`、`key`、`value`的N：batch size，当前只支持[N，head_num, S(L), E(Ev)]的排布方式，取值范围1~2K
+  - 输入`query`、`key`、`value`的N：batch size，当前只支持[N, head_num, S(L), E(Ev)]的排布方式，取值范围1~2k
   - 输入`query`的head_num和`key`/`value`的head_num必须成比例关系，即Nq/Nkv必须是非0整数，取值范围1~256
-  - 输入`query`的L：Target sequence length，取值范围1~512K
-  - 输入`key`、`value`的S：Source sequence length，取值范围1~512K
+  - 输入`query`的L：Target sequence length，取值范围1~512k
+  - 输入`key`、`value`的S：Source sequence length，取值范围1~512k
   - 输入`query`、`key`、`value`的E：Embedding dimension of the query and key，取值范围1~512
   - 输入`value`的Ev：Embedding dimension of the value，必须与E相等
   - 输入`attn_mask`：当前支持[N, 1, L, S]、[N, head_num, L, S]、[1, 1, L, S]、[L, S]，以及可广播到[N, head_num, L, S]的bool类型mask，例如[L, 1]、[1, S]、[1, 1]等排布方式
@@ -747,8 +747,8 @@
         out = torch.nn.functional.scaled_dot_product_attention(query, key, value)
     ```
 
-- 与原接口除了规格限制之外差异点：
-  - NPU的随机算法部分用DSA硬件实现，算法在DSA引擎固化与GPU算法实现存在差异，导致dropout功能和GPU结果不一致
+- 与原接口除了规格限制之外的差异点：
+  - NPU的随机算法部分用DSA硬件实现，算法在DSA引擎固化后与GPU算法实现存在差异，导致dropout功能和GPU结果不一致
   - 当前接口支持输入`query`的head num和`key`/`value`的head num不等长，而原生PyTorch接口不支持
   - 当前接口传入符合类型要求（`attn_mask`必须为bool或与`query`同dtype，否则直接报错）的非bool类型`attn_mask`时，不会命中融合算子实现路径，而是静默回退到小算子拼接实现，性能存在下降。原生CUDA SDPA支持符合接口要求的浮点加性mask，是否使用融合实现取决于所选后端及其他输入条件。
 
@@ -2366,7 +2366,7 @@
 **限制与说明**：
 
 - `input`仅支持fp32
-- `target`中每个元素值需≥0且小于`input`的类别数，不满足会返回错误结果而非报错
+- `target`中每个元素值需≥0且小于`input`的类别数，不满足时会返回错误结果而非报错
 
 </div>
 
@@ -2571,7 +2571,7 @@
 - 不支持`scale_factor`
 
 <!-- npu="950" id322 -->
-- 在<term>Ascend 950DT系列产品</term>上，不支持`double`数据类型。
+- 在<term>Ascend 950DT系列产品</term>上，不支持`double`数据类型
 <!-- end id322 -->
 
 </div>

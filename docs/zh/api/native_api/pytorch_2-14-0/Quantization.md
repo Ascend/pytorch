@@ -4283,7 +4283,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id360 -->
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -4305,7 +4305,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id363 -->
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -4327,7 +4327,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id366 -->
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -4349,7 +4349,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id369 -->
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>
 
@@ -4371,6 +4371,6 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id372 -->
 
-**限制与说明**： `input`仅支持fp32
+**限制与说明**：`input`仅支持fp32
 
 </div>

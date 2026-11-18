@@ -41,7 +41,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id3 -->
 
-**限制与说明**：`input`仅支持bf16，fp16，fp32
+**限制与说明**：`input`仅支持bf16、fp16、fp32
 
 </div>
 

@@ -29,7 +29,7 @@
 
 **原生文档**：[torch.autocast](https://pytorch.org/docs/2.14/amp.html#torch.autocast)
 
-**NPU 形式名称**：torch.autocast
+**NPU形式名称**：torch.autocast
 
 **产品支持情况**：
 
@@ -71,7 +71,7 @@
 
 **原生文档**：[torch.amp.custom_bwd](https://pytorch.org/docs/2.14/amp.html#torch.amp.custom_bwd)
 
-**NPU 形式名称**：torch_npu.npu.amp.custom_bwd
+**NPU形式名称**：torch_npu.npu.amp.custom_bwd
 
 **产品支持情况**：
 
@@ -93,7 +93,7 @@
 
 **原生文档**：[torch.cuda.amp.autocast](https://pytorch.org/docs/2.14/amp.html#torch.cuda.amp.autocast)
 
-**NPU 形式名称**：torch_npu.npu.amp.autocast
+**NPU形式名称**：torch_npu.npu.amp.autocast
 
 **产品支持情况**：
 
@@ -115,7 +115,7 @@
 
 **原生文档**：[torch.cuda.amp.custom_fwd](https://pytorch.org/docs/2.14/amp.html#torch.cuda.amp.custom_fwd)
 
-**NPU 形式名称**：torch_npu.npu.amp.custom_fwd
+**NPU形式名称**：torch_npu.npu.amp.custom_fwd
 
 **产品支持情况**：
 
@@ -137,7 +137,7 @@
 
 **原生文档**：[torch.cuda.amp.custom_bwd](https://pytorch.org/docs/2.14/amp.html#torch.cuda.amp.custom_bwd)
 
-**NPU 形式名称**：torch_npu.npu.amp.custom_bwd
+**NPU形式名称**：torch_npu.npu.amp.custom_bwd
 
 **产品支持情况**：
 
@@ -205,7 +205,7 @@
 
 **原生文档**：[torch.cpu.amp.GradScaler](https://pytorch.org/docs/2.14/amp.html#torch.cpu.amp.GradScaler)
 
-**NPU 形式名称**：torch.cpu.amp.GradScaler
+**NPU形式名称**：torch.cpu.amp.GradScaler
 
 **产品支持情况**：
 
