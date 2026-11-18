@@ -42,6 +42,14 @@ _PUBLIC_API_ALIASES = [
         "distributed.distributed_c10d._gather_object",
     ),
     (
+        "distributed.scatter_object_list",
+        "distributed.distributed_c10d._scatter_object_list",
+    ),
+    (
+        "distributed.distributed_c10d.scatter_object_list",
+        "distributed.distributed_c10d._scatter_object_list",
+    ),
+    (
         "distributed.is_hccl_available",
         "distributed.is_hccl_available",
     ),

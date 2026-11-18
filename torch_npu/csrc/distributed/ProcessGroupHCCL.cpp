@@ -1915,8 +1915,8 @@ void ProcessGroupHCCL::HeartbeatMonitor::runLoop() {
   std::string exitReason;
   bool checkDumpSignal = (dumpOnException_ && pg_->options_->global_ranks_in_group.empty());
   // Manual pipe requests still need timely polling when automatic fault dumps are off.
-  bool checkDumpPipe = pg_->options_->global_ranks_in_group.empty() &&
-      !pg_->debugInfoPipeFile_.empty() && pg_->hcclTraceBufferSize_ > 0;
+  bool checkDumpPipe =
+      pg_->options_->global_ranks_in_group.empty() && !pg_->debugInfoPipeFile_.empty() && pg_->hcclTraceBufferSize_ > 0;
   int monitorPollInterval =
       (checkDumpSignal || checkDumpPipe) ? coordCheckIntervalMilSec_ : heartbeatTimeoutInSec_ * 1000;
   auto lastTimePollStore = std::chrono::steady_clock::now();
@@ -6676,14 +6676,35 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
     }
 
     std::vector<at::Tensor> byte_alignment_inputTensors_ = {byte_alignment(inputTensors_[0])};
-    std::vector<at::Tensor> byte_alignment_outputTensors_;
-    for (unsigned int i = 0; i < outputTensors[0].size(); i++) {
-      byte_alignment_outputTensors_.push_back(byte_alignment(outputTensors[0][i]));
+    TORCH_CHECK(
+        outputTensors.size() == byte_alignment_inputTensors_.size(),
+        "Tensor list operands to scatter/gather must have the same length",
+        DIST_ERROR(ErrCode::VALUE));
+    std::vector<at::Tensor> outputFlattened;
+    for (const auto i : c10::irange(outputTensors.size())) {
+      TORCH_CHECK(
+          outputTensors[i].size() == size_ * byte_alignment_inputTensors_.size(),
+          "Tensor list input to scatter/gather must match number of collective participants",
+          DIST_ERROR(ErrCode::PARAM));
+      const auto& alignedInput = byte_alignment_inputTensors_[i];
+      TORCH_CHECK(
+          outputTensors[i].front().get_device() == alignedInput.get_device(),
+          "Corresponding input/output tensors to scatter/gather must all reside on the same device",
+          DIST_ERROR(ErrCode::PARAM));
+      // Validate unpadded element counts because padding can hide a size mismatch.
+      for (const auto& tensor : outputTensors[i]) {
+        TORCH_CHECK(
+            tensor.numel() == inputTensors_[i].numel(),
+            "All tensor operands to scatter/gather must have the same size",
+            DIST_ERROR(ErrCode::PARAM));
+      }
+      c10_npu::OptionalNPUGuard npuGuard;
+      npuGuard.set_index(alignedInput.get_device());
+      // The input passed to HCCL sets the size of each slot in the single receive
+      // buffer. This avoids padding each output tensor into a temporary buffer.
+      outputFlattened.push_back(
+          at::empty({static_cast<int64_t>(outputTensors[i].size()), 1, alignedInput.numel()}, alignedInput.options()));
     }
-    std::vector<std::vector<at::Tensor>> byte_alignment_outputTensors;
-    byte_alignment_outputTensors.push_back(byte_alignment_outputTensors_);
-    auto outputFlattened =
-        flatten_for_scatter_gather(byte_alignment_outputTensors, byte_alignment_inputTensors_, size_);
     check_npu_tensors_different_devices(outputFlattened);
     return collective(
         byte_alignment_inputTensors_,
@@ -7845,12 +7866,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
     if (getRank() == opts.rootRank) {
       inputFlattened = flatten_for_scatter_gather(inputTensors, outputTensors, size_);
     } else {
-      std::vector<at::Tensor> empty;
-      for (int i = 0; i < size_; i++) {
-        empty.push_back(at::empty_like(outputTensors[0]));
-      }
-      inputTensors.push_back(empty);
-      inputFlattened = flatten_for_scatter_gather(inputTensors, outputTensors, size_);
+      c10_npu::OptionalNPUGuard npuGuard;
+      npuGuard.set_index(outputTensors[0].get_device());
+      auto sizes = outputTensors[0].sizes().vec();
+      sizes.insert(sizes.begin(), size_);
+      inputFlattened.push_back(at::empty(sizes, outputTensors[0].options()));
+      // Only root has real inputs. Keeping inputTensors empty also skips the
+      // non-root placeholder copies in the pre-collective callback.
     }
     collectiveInputs = inputFlattened;
     need_flatten_copy = true;
