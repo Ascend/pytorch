@@ -1,0 +1,151 @@
+name: precise_select
+
+on:
+  workflow_call:
+    outputs:
+      precise_files:
+        description: >-
+          Newline-separated test file paths selected for the run; empty with a
+          successful job means nothing to run, while a failing job makes the
+          caller fall back to the full case list
+        value: ${{ jobs.precision-test.outputs.precise_files }}
+      status:
+        description: "success 或 failed，failed 时下游回退现有选测逻辑"
+        value: ${{ jobs.precision-test.outputs.status }}
+
+jobs:
+  precision-test:
+    name: Precise test case selection
+    select: selected_by_default
+    runs-on: [ self-hosted, default, x86, cpu=2 ]
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/atlas-ci/common:latest
+    outputs:
+      precise_files: ${{ steps.expose.outputs.files }}
+      status: ${{ steps.package.outputs.status }}
+    steps:
+      - name: Download the coverage data from OBS
+        id: coverage
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+
+          URL="https://pta-pr.obs.cn-north-4.myhuaweicloud.com/pta/coverage/torch_npu/latest/release.tar.gz"
+          DEST="/tmp/release.tar.gz"
+          echo "release: ${URL}"
+
+          DOWNLOADED=""
+          for attempt in 1 2 3; do
+            echo "=== Download attempt ${attempt} ==="
+            rm -f "${DEST}"
+            if wget -c -q "${URL}" -O "${DEST}"; then
+              DOWNLOADED=1
+              break
+            fi
+            echo "download failed (attempt ${attempt})"
+            sleep 10
+          done
+          if [ -z "${DOWNLOADED}" ]; then
+            echo "ERROR: cannot download the coverage release from ${URL}" >&2
+            exit 1
+          fi
+
+          rm -rf coverage && mkdir -p coverage
+          tar -xzf "${DEST}" -C coverage
+
+          python3 - <<'PYEOF'
+          import os
+          import sys
+          from pathlib import Path
+
+          root = Path("coverage")
+          cov_dir = root / "torch_npu@latest"
+          source_dir = root / "covstub"
+          if not cov_dir.is_dir():
+              sys.exit("ERROR: torch_npu@latest not found under the OBS download")
+          if not (source_dir / "torch_npu" / "__init__.py").is_file():
+              sys.exit("ERROR: no source snapshot (covstub/torch_npu) found under the OBS download")
+          if not any(cov_dir.glob("**/covdata")):
+              sys.exit(f"ERROR: no per-test coverage data under {cov_dir}")
+
+          map_file = cov_dir / "test_case_map.json"
+          with open(os.environ["ATOMGIT_OUTPUT"], "a", encoding="utf-8") as f:
+              f.write(f"task_dir={cov_dir}\n")
+              f.write(f"source_dir={source_dir}\n")
+              f.write(f"map_file={map_file if map_file.is_file() else ''}\n")
+          print(f"coverage dir: {cov_dir}")
+          print(f"source dir:   {source_dir}")
+          print(f"map file:     {map_file if map_file.is_file() else '<built by selector>'}")
+          PYEOF
+
+      - name: generate-select-tests-case
+        id: select
+        if: ${{ steps.coverage.outcome == 'success' }}
+        continue-on-error: true
+        uses: openlibing/test-action/precision-test@v1.0.11
+        with:
+          repo: torch_npu
+          gitcode-pr: ${{ atomgit.repository }}#${{ atomgit.event.pull_request.number }}
+          source-dir: ${{ steps.coverage.outputs.source_dir }}
+          coverage-dir: ${{ steps.coverage.outputs.task_dir }}
+          map-file: ${{ steps.coverage.outputs.map_file }}
+          dedup: true
+        env:
+          GITCODE_TOKEN: ${{ atomgit.token }}
+          PYTHON_EXEC_TIMEOUT_SECONDS: "900"
+
+      - name: Expose the recommendation
+        id: expose
+        if: always()
+        continue-on-error: true
+        env:
+          SELECT_OUTCOME: ${{ steps.select.outcome }}
+        run: |
+          set -euo pipefail
+
+          if [ -s recommended_pytest_paths.txt ]; then
+            { echo "files<<EOF"; cat recommended_pytest_paths.txt; echo "EOF"; } >> "$ATOMGIT_OUTPUT"
+            echo "recommended test files: $(wc -l < recommended_pytest_paths.txt)"
+          elif [ "${SELECT_OUTCOME}" = "success" ]; then
+            echo "files=" >> "$ATOMGIT_OUTPUT"
+            echo "::warning::no test file to run after the precision selection (0 recommended); the test stage is skipped"
+          else
+            echo "files=" >> "$ATOMGIT_OUTPUT"
+            echo "::error::the precision selector did not succeed (${SELECT_OUTCOME}); the test stage falls back to the full case list"
+          fi
+
+      - name: Package precise selection
+        id: package
+        if: always()
+        continue-on-error: true
+        env:
+          SELECT_OUTCOME: ${{ steps.select.outcome }}
+        run: |
+          mkdir -p precise
+          if [ "${SELECT_OUTCOME}" = "success" ]; then
+            echo "success" > precise/status
+            if [ -s recommended_pytest_paths.txt ]; then
+              cp recommended_pytest_paths.txt precise/test_files.txt
+            else
+              : > precise/test_files.txt
+            fi
+          else
+            echo "failed" > precise/status
+            : > precise/test_files.txt
+          fi
+          echo "status=$(cat precise/status)" >> "$ATOMGIT_OUTPUT"
+          echo "=== precise selection files ==="
+          cat precise/test_files.txt
+
+      - name: Upload precise selection
+        if: always()
+        continue-on-error: true
+        uses: upload-artifact
+        with:
+          name: precise-selection
+          path: precise/
+          overwrite: true

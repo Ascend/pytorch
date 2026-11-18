@@ -61,7 +61,10 @@ jobs:
           esac
           pip3.10 install psutil
           cd CODE || exit 1
-          python3.10 ci/access_control_test.py --estimate_tasks || echo "estimate_tasks failed, fall back to default"
+          # --world_size 2: 仅用于让估算走与 UT 任务相同的过滤口径（world_size!=0 时 load() 会排除
+          # test/_inductor 下由独立 inductor 任务执行的用例），避免 count 与 select 口径不一致。
+          # estimate 阶段在分片前就退出，该值不参与实际拆分，传任意非 0 值效果相同。
+          python3.10 ci/access_control_test.py --estimate_tasks --world_size 2 || echo "estimate_tasks failed, fall back to default"
           cd ..
           ls -l
           python3.10 -c "
@@ -73,6 +76,10 @@ jobs:
                   plan = json.load(f)
               core_tasks = plan['core']
               select_tasks = plan['select']
+              # 流水线静态 job 上限：core 3 个、select 2 个。
+              # 超出上限时合并到已有任务，保证 world_size 与实际启动的 job 数一致，避免分片无job执行。
+              core_tasks = min(core_tasks, 3)
+              select_tasks = min(select_tasks, 2)
           except Exception as e:
               logging.error(f'parse task_plan.json failed: {e}, use default')
               core_tasks = 3

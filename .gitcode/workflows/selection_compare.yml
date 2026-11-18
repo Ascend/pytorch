@@ -1,0 +1,54 @@
+name: selection_compare
+
+on:
+  workflow_call:
+
+jobs:
+  compare:
+    name: selection-compare
+    select: selected_by_default
+    runs-on: [ self-hosted, default, x86, cpu=2 ]
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/pytorch_images_x86/pytorchx86:v_03
+    steps:
+      - name: checkout
+        uses: checkout
+        with:
+          ref: refs/merge-requests/${{ atomgit.event.pull_request.number }}/merge
+          fetch-depth: 1
+          allow-unsafe-pr-checkout: true
+
+      - name: download modify_files.txt
+        uses: download-artifact
+        with:
+          name: modify_files.txt
+          path: ./
+
+      - name: download precise-selection
+        continue-on-error: true
+        uses: download-artifact
+        with:
+          name: precise-selection
+          path: precise
+
+      - name: compare selections
+        continue-on-error: true
+        run: |
+          python3 .gitcode/scripts/compare_selection.py \
+            --modify-files modify_files.txt \
+            --precise-dir precise \
+            --output selection_comparison.txt
+          cat selection_comparison.txt
+
+      - name: upload comparison
+        if: always()
+        continue-on-error: true
+        uses: upload-artifact
+        with:
+          name: selection-comparison
+          path: selection_comparison.txt
+          overwrite: true
