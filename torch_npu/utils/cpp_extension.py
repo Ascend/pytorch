@@ -53,7 +53,6 @@ def NpuExtension(name, sources, *args, **kwargs):
     include_dirs = list(copied_kwargs.get("include_dirs") or [])
     include_dirs += [
         os.path.join(torch_npu_dir, "include"),
-        os.path.join(torch_npu_dir, "include", "third_party", "hccl", "inc"),
     ]
     if has_asc_sources:
         include_dirs.append(sysconfig.get_path("include"))
