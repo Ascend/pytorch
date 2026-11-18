@@ -270,13 +270,6 @@ stages:
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
         uses: .gitcode/workflows/get_count.yml
 
-      precise_select:
-        name: precise_select
-        select: selected_by_default
-        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
-        continue-on-error: true
-        uses: .gitcode/workflows/precise_select.yml
-
   stage_3:
     name: Build
     select: selected_by_default
@@ -343,13 +336,6 @@ stages:
           torch_branch: ${{ jobs.img_select.outputs.target_branch }}
           CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_x86_build }}
           runs_on_arch: "x86"
-
-      selection_compare:
-        name: selection_compare
-        select: selected_by_default
-        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
-        continue-on-error: true
-        uses: .gitcode/workflows/selection_compare.yml
 
   stage_4:
     name: UT
@@ -576,51 +562,3 @@ post:
             token: ${{ secrets.GIT_TOKEN }}
             pr_number: ${{ atomgit.event.pull_request.number }}
             apply_label: 'true'
-
-        - name: download selection comparison
-          if: always()
-          continue-on-error: true
-          uses: download-artifact
-          with:
-            name: selection-comparison
-            path: ./
-
-        - name: print selection summary
-          if: always()
-          continue-on-error: true
-          run: |
-            set -euo pipefail
-
-            if [ ! -f selection_comparison.txt ]; then
-              echo "no selection comparison artifact (precise selection skipped or failed)"
-              exit 0
-            fi
-
-            if grep -q '^precise status: failed or missing' selection_comparison.txt; then
-              echo "precise status: failed or missing; no diff"
-              exit 0
-            fi
-
-            added=$(awk '/^=== formal added/{f=1;next} /^===/{f=0} f' selection_comparison.txt)
-            removed=$(awk '/^=== formal removed/{f=1;next} /^===/{f=0} f' selection_comparison.txt)
-
-            {
-              echo "=== selection diff vs original ==="
-              if [ -z "${added}" ] && [ -z "${removed}" ]; then
-                echo "no difference"
-              else
-                if [ -n "${added}" ]; then
-                  echo "added by precise + retained:"
-                  echo "${added}"
-                fi
-                if [ -n "${removed}" ]; then
-                  echo ""
-                  echo "removed from original (not in precise + retained):"
-                  echo "${removed}"
-                fi
-              fi
-            } | tee /tmp/selection_summary.txt
-
-            if [ -n "${ATOMGIT_STEP_SUMMARY:-}" ]; then
-              cat /tmp/selection_summary.txt >> "$ATOMGIT_STEP_SUMMARY"
-            fi
