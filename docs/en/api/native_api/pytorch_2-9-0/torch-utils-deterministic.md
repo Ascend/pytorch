@@ -31,6 +31,6 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id3 -->
 
-**Constraints & Notes**: The default value of `torch.utils.deterministic.fill_uninitialized_memory` is True. After determinism is enabled with `torch.use_deterministic_algorithms`, PyTorch fills uninitialized memory, while TorchNPU does not fill it by default. To enable filling, manually set `torch.utils.deterministic.fill_uninitialized_memory` to True
+**Constraints & Notes**: The default value of `torch.utils.deterministic.fill_uninitialized_memory` is True. After determinism is enabled with `torch.use_deterministic_algorithms`, PyTorch fills uninitialized memory, while TorchNPU does not fill it by default. To enable filling, manually set `torch.utils.deterministic.fill_uninitialized_memory` to True.
 
 </div>

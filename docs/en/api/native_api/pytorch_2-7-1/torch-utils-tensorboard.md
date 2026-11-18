@@ -129,7 +129,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id18 -->
 
-**Constraints & Notes**: `img_tensor` only supports fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
+**Constraints & Notes**: `img_tensor` only supports fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool.
 
 </div>
 
@@ -151,7 +151,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id21 -->
 
-**Constraints & Notes**: `img_tensor` only supports fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
+**Constraints & Notes**: `img_tensor` only supports fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool.
 
 </div>
 
@@ -193,7 +193,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id27 -->
 
-**Constraints & Notes**: `vid_tensor` only supports fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
+**Constraints & Notes**: `vid_tensor` only supports fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool.
 
 </div>
 
@@ -215,7 +215,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id30 -->
 
-**Constraints & Notes**: `snd_tensor` only supports fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
+**Constraints & Notes**: `snd_tensor` only supports fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool.
 
 </div>
 
@@ -257,7 +257,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id36 -->
 
-**Constraints & Notes**: `input` only supports bf16, fp16, fp32
+**Constraints & Notes**: `input` only supports bf16, fp16, fp32.
 
 </div>
 
@@ -279,7 +279,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id39 -->
 
-**Constraints & Notes**: `mat` only supports fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
+**Constraints & Notes**: `mat` only supports fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool.
 
 </div>
 
@@ -301,7 +301,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id42 -->
 
-**Constraints & Notes**: `labels` only supports fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
+**Constraints & Notes**: `labels` only supports fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool.
 
 </div>
 
@@ -343,7 +343,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id48 -->
 
-**Constraints & Notes**: `vertices` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
+**Constraints & Notes**: `vertices` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool.
 
 </div>
 

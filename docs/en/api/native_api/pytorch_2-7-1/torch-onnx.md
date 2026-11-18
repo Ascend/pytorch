@@ -167,7 +167,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id21 -->
 
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>
 
@@ -558,7 +558,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id84 -->
 
-**Constraints & Notes**: `input` only supports bool
+**Constraints & Notes**: `input` only supports bool.
 
 </div>
 
@@ -580,7 +580,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id87 -->
 
-**Constraints & Notes**: `input` only supports bool
+**Constraints & Notes**: `input` only supports bool.
 
 </div>
 

@@ -50,7 +50,7 @@
 
 **Native Documentation**: [torch.utils.data.MapDataPipe](https://docs.pytorch.org/docs/2.14/data.html#torch.utils.data.graph.traverse_dps)
 
-**Notes**: The link points to the parameter type description in the official documentation.
+**Note**: The link points to the parameter type description in the official documentation.
 
 **Support Status**:
 <!-- end id69 -->
@@ -131,7 +131,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id51 -->
 
-**Constraints & Notes**: `input` only supports fp16, fp32, fp64, uint8, int8, int16, int32, int64
+**Constraints & Notes**: `input` only supports fp16, fp32, fp64, uint8, int8, int16, int32, int64.
 
 </div>
 
@@ -254,7 +254,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id57 -->
 
-**Constraints & Notes**: `dataset` only supports int64
+**Constraints & Notes**: `dataset` only supports int64.
 
 </div>
 
@@ -276,7 +276,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id24 -->
 
-**Constraints & Notes**: `batch` only supports int64
+**Constraints & Notes**: `batch` only supports int64.
 
 </div>
 
@@ -298,7 +298,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id60 -->
 
-**Constraints & Notes**: `batch` only supports fp64, int64, bool
+**Constraints & Notes**: `batch` only supports fp64, int64, bool.
 
 </div>
 
@@ -340,7 +340,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id45 -->
 
-**Constraints & Notes**: `dataset` only supports int32
+**Constraints & Notes**: `dataset` only supports int32.
 
 </div>
 
@@ -382,7 +382,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id66 -->
 
-**Constraints & Notes**: `data_source` only supports int64
+**Constraints & Notes**: `data_source` only supports int64.
 
 </div>
 
@@ -404,7 +404,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id30 -->
 
-**Constraints & Notes**: `data_source` only supports fp32
+**Constraints & Notes**: `data_source` only supports fp32.
 
 </div>
 
@@ -426,7 +426,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id33 -->
 
-**Constraints & Notes**: `data_source` only supports fp32
+**Constraints & Notes**: `data_source` only supports fp32.
 
 </div>
 
@@ -448,7 +448,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id36 -->
 
-**Constraints & Notes**: `indices` only supports fp32
+**Constraints & Notes**: `indices` only supports fp32.
 
 </div>
 
@@ -470,7 +470,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id39 -->
 
-**Constraints & Notes**: `weights` only supports fp32
+**Constraints & Notes**: `weights` only supports fp32.
 
 </div>
 

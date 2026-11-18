@@ -43,7 +43,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id3 -->
 
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 > <font size="3">index()</font>
 
@@ -63,7 +63,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id6 -->
 
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>
 
@@ -85,7 +85,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id9 -->
 
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>
 
@@ -107,7 +107,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id12 -->
 
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>
 
@@ -193,7 +193,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id24 -->
 
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>
 
@@ -215,7 +215,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id33 -->
 
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>
 
@@ -258,7 +258,7 @@
 <!-- end id26 -->
 
 <!-- npu="910b,A3" id53 -->
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>
 <!-- end id53 -->
@@ -386,6 +386,6 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id51 -->
 
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>

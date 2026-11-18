@@ -420,7 +420,7 @@
 <!-- end id56 -->
 
 <!-- npu="910b,A3" id256 -->
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>
 <!-- end id256 -->

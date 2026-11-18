@@ -112,7 +112,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id12 -->
 
-**Constraints & Notes**: `tensor` only supports fp32
+**Constraints & Notes**: `tensor` only supports fp32.
 
 </div>
 
@@ -134,7 +134,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id15 -->
 
-**Constraints & Notes**: `tensor` only supports fp32
+**Constraints & Notes**: `tensor` only supports fp32.
 
 </div>
 
@@ -158,7 +158,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id57 -->
 
-**Constraints & Notes**: `inputs` only supports fp32
+**Constraints & Notes**: `inputs` only supports fp32.
 
 </div>
 
@@ -180,7 +180,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id60 -->
 
-**Constraints & Notes**: `inputs` only supports fp32
+**Constraints & Notes**: `inputs` only supports fp32.
 
 </div>
 
@@ -202,7 +202,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id63 -->
 
-**Constraints & Notes**: `inputs` only supports fp32
+**Constraints & Notes**: `inputs` only supports fp32.
 
 </div>
 
@@ -224,7 +224,7 @@
 <!-- end id65 -->
 
 <!-- npu="910b,A3" id207 -->
-**Constraints & Notes**: `inputs` only supports fp32
+**Constraints & Notes**: `inputs` only supports fp32.
 
 </div>
 <!-- end id207 -->
@@ -247,7 +247,7 @@
 <!-- end id68 -->
 
 <!-- npu="910b,A3" id209 -->
-**Constraints & Notes**: `inputs` only supports fp32
+**Constraints & Notes**: `inputs` only supports fp32.
 
 </div>
 <!-- end id209 -->
@@ -270,7 +270,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id72 -->
 
-**Constraints & Notes**: `inputs` only supports fp32
+**Constraints & Notes**: `inputs` only supports fp32.
 
 </div>
 
@@ -1119,6 +1119,6 @@ with torch.autograd.profiler.profile(use_device="npu") as prof:
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id195 -->
 
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>

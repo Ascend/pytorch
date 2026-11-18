@@ -5,7 +5,7 @@
 > - If an API has "Constraints & Notes", it means that the support level of the API on the Ascend NPU differs from the native version. Refer to the specific notes to ensure compatibility with the Ascend NPU platform.
 > - The scope of this support list is based on the [PyTorch Community Documentation](https://pytorch.org/docs/2.11/). APIs not listed in the community documentation are outside the scope of this list; APIs that exist in the community documentation but are not included in this list have not been verified yet. Use them with caution. We will update the document upon completion of verification.
 > - Product support scope: This document only provides verified product information. Unverified products are temporarily excluded.
-> - When using the supported CUDA APIs, replace "CUDA" in the API name with the NPU form: replace "torch.cuda." with "torch_npu.npu." or "torch.npu.".. Both torch_npu.npu. and torch.npu. are available, with the same functionality. Examples:
+> - When using the supported CUDA APIs, replace "CUDA" in the API name with the NPU form: replace "torch.cuda." with "torch_npu.npu." or "torch.npu.". Both "torch_npu.npu." and "torch.npu." are available, with the same functionality. Examples:
 >
 >   `torch.cuda.current_device` --> `torch_npu.npu.current_device`<br>
 >   `torch.cuda.current_device` --> `torch.npu.current_device`
@@ -144,7 +144,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id12 -->
 
-**Constraints & Notes**: When `device` is not set, calling this API implicitly initializes the current `device` (defaults to device 0)
+**Constraints & Notes**: When `device` is not set, calling this API implicitly initializes the current `device` (defaults to device 0).
 
 </div>
 
@@ -168,7 +168,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id15 -->
 
-**Constraints & Notes**: When `device` is not set, calling this API implicitly initializes the current `device` (defaults to device 0)
+**Constraints & Notes**: When `device` is not set, calling this API implicitly initializes the current `device` (defaults to device 0).
 
 </div>
 
@@ -256,7 +256,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id24 -->
 
-**Constraints & Notes**: The return value of `torch_npu.npu.get_device_capability()` is configured through the environment variable TORCH_NPU_DEVICE_CAPABILITY. It is only used for compatibility with native PyTorch and does not represent the actual capability of the NPU hardware
+**Constraints & Notes**: The return value of `torch_npu.npu.get_device_capability()` is configured through the environment variable TORCH_NPU_DEVICE_CAPABILITY. It is only used for compatibility with native PyTorch and does not represent the actual capability of the NPU hardware.
 
 </div>
 
@@ -302,7 +302,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id30 -->
 
-**Constraints & Notes**: Only the name, total_memory, L2_cache_size, cube_core_num, and vector_core_num attributes are supported; the remaining attributes supported on the original CUDA return empty fields
+**Constraints & Notes**: Only the name, total_memory, L2_cache_size, cube_core_num, and vector_core_num attributes are supported; the remaining attributes supported on the original CUDA return empty fields.
 
 </div>
 
@@ -640,13 +640,13 @@
 **Support Status**:
 
 <!-- npu="910b" id236 -->
-- <term>Atlas A2 training products</term>: Not Supported
+- <term>Atlas A2 training products</term>: Supported
 <!-- end id236 -->
 <!-- npu="A3" id237 -->
-- <term>Atlas A3 training products</term>: Not Supported
+- <term>Atlas A3 training products</term>: Supported
 <!-- end id237 -->
 <!-- npu="950" id238 -->
-- <term>Ascend 950DT products</term>: Not Supported
+- <term>Ascend 950DT products</term>: Supported
 <!-- end id238 -->
 
 **Constraints & Notes**: You can use the `npu-smi info -t common -i <id>` command to view the Temperature(C) metric instead.
@@ -664,13 +664,13 @@
 **Support Status**:
 
 <!-- npu="910b" id239 -->
-- <term>Atlas A2 training products</term>: Not Supported
+- <term>Atlas A2 training products</term>: Supported
 <!-- end id239 -->
 <!-- npu="A3" id240 -->
-- <term>Atlas A3 training products</term>: Not Supported
+- <term>Atlas A3 training products</term>: Supported
 <!-- end id240 -->
 <!-- npu="950" id241 -->
-- <term>Ascend 950DT products</term>: Not Supported
+- <term>Ascend 950DT products</term>: Supported
 <!-- end id241 -->
 
 **Constraints & Notes**: You can use the `npu-smi info -t common -i <id>` command to view the NPU Real-time Power(W) metric instead.
@@ -697,7 +697,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id244 -->
 
-**Constraints & Notes**: You can use `npu-smi info -t common -i <id>` to view the Ai core curFreq(MHZ) metric.
+**Constraints & Notes**: You can use the `npu-smi info -t common -i <id>` command to view the Ai core curFreq(MHZ) metric instead.
 
 </div>
 
@@ -1335,7 +1335,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id132 -->
 
-**Constraints & Notes**: Currently only supports inference scenarios and does not support training scenarios
+**Constraints & Notes**: Currently supports only inference scenarios, not training scenarios.
 
 </div>
 
@@ -1423,7 +1423,7 @@
 
 **Constraints & Notes**:
 
-- Currently supports only inference scenarios and does not support training scenarios.
+- Currently supports only inference scenarios, not training scenarios.
 - The exported file content is in JSON format.
 
 </div>
@@ -1536,7 +1536,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id156 -->
 
-**Constraints & Notes**: Currently only supports inference scenarios and does not support training scenarios
+**Constraints & Notes**: Currently supports only inference scenarios, not training scenarios.
 
 </div>
 
@@ -1560,7 +1560,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id159 -->
 
-**Constraints & Notes**: Currently only supports inference scenarios and does not support training scenarios
+**Constraints & Notes**: Currently supports only inference scenarios, not training scenarios.
 
 </div>
 
@@ -2133,7 +2133,7 @@
 <!-- end id215 -->
 
 <!-- npu="910b,A3" id254 -->
-**Constraints & Notes**: This API involves high-risk operations. For usage, refer to the "[torch_npu.npu.NPUPluggableAllocator](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/en/custom_APIs/torch_npu-npu/torch-npu-npu-NPUPluggableAllocator.md)" chapter.
+**Constraints & Notes**: This API involves high-risk operations. For usage, refer to the "[torch_npu.npu.NPUPluggableAllocator](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/en/custom_APIs/torch_npu-npu/torch-npu-npu-NPUPluggableAllocator.md)" section in Custom APIs.
 
 </div>
 <!-- end id254 -->
@@ -2158,7 +2158,7 @@
 <!-- end id218 -->
 
 <!-- npu="910b,A3" id256 -->
-**Constraints & Notes**: This API involves high-risk operations. For usage, refer to the "[torch_npu.npu.change_current_allocator](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/en/custom_APIs/torch_npu-npu/torch-npu-npu-change_current_allocator.md)" section in Custom APIs
+**Constraints & Notes**: This API involves high-risk operations. For usage, refer to the "[torch_npu.npu.change_current_allocator](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/en/custom_APIs/torch_npu-npu/torch-npu-npu-change_current_allocator.md)" section in Custom APIs.
 
 </div>
 <!-- end id256 -->

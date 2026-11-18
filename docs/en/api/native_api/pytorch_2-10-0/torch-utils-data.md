@@ -65,7 +65,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id45 -->
 
-**Constraints & Notes**: `input` only supports fp16, fp32, fp64, uint8, int8, int16, int32, int64
+**Constraints & Notes**: `input` only supports fp16, fp32, fp64, uint8, int8, int16, int32, int64.
 
 </div>
 
@@ -188,7 +188,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id51 -->
 
-**Constraints & Notes**: `dataset` only supports int64
+**Constraints & Notes**: `dataset` only supports int64.
 
 </div>
 
@@ -210,7 +210,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id15 -->
 
-**Constraints & Notes**: `batch` only supports int64
+**Constraints & Notes**: `batch` only supports int64.
 
 </div>
 
@@ -232,7 +232,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id54 -->
 
-**Constraints & Notes**: `batch` only supports fp64, int64, bool
+**Constraints & Notes**: `batch` only supports fp64, int64, bool.
 
 </div>
 
@@ -294,7 +294,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id39 -->
 
-**Constraints & Notes**: `dataset` only supports int32
+**Constraints & Notes**: `dataset` only supports int32.
 
 </div>
 
@@ -336,7 +336,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id60 -->
 
-**Constraints & Notes**: `data_source` only supports int64
+**Constraints & Notes**: `data_source` only supports int64.
 
 </div>
 
@@ -358,7 +358,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id24 -->
 
-**Constraints & Notes**: `data_source` only supports fp32
+**Constraints & Notes**: `data_source` only supports fp32.
 
 </div>
 
@@ -380,7 +380,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id27 -->
 
-**Constraints & Notes**: `data_source` only supports fp32
+**Constraints & Notes**: `data_source` only supports fp32.
 
 </div>
 
@@ -402,7 +402,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id30 -->
 
-**Constraints & Notes**: `indices` only supports fp32
+**Constraints & Notes**: `indices` only supports fp32.
 
 </div>
 
@@ -424,7 +424,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id33 -->
 
-**Constraints & Notes**: `weights` only supports fp32
+**Constraints & Notes**: `weights` only supports fp32.
 
 </div>
 

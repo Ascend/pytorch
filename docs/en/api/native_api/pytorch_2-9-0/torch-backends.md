@@ -371,7 +371,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id48 -->
 
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>
 
@@ -393,7 +393,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id51 -->
 
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>
 
@@ -415,7 +415,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id54 -->
 
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>
 
@@ -457,7 +457,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id60 -->
 
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>
 
@@ -629,7 +629,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id85 -->
 
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>
 
@@ -653,7 +653,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id88 -->
 
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>
 
@@ -675,7 +675,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id91 -->
 
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>
 

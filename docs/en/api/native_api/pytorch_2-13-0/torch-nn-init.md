@@ -51,7 +51,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id6 -->
 
-**Constraints & Notes**: `tensor` only supports fp32
+**Constraints & Notes**: `tensor` only supports fp32.
 
 </div>
 
@@ -73,7 +73,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id9 -->
 
-**Constraints & Notes**: `tensor` only supports fp32
+**Constraints & Notes**: `tensor` only supports fp32.
 
 </div>
 
@@ -95,7 +95,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id12 -->
 
-**Constraints & Notes**: `tensor` only supports fp32
+**Constraints & Notes**: `tensor` only supports fp32.
 
 </div>
 
@@ -117,7 +117,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id15 -->
 
-**Constraints & Notes**: `tensor` only supports fp32
+**Constraints & Notes**: `tensor` only supports fp32.
 
 </div>
 
@@ -139,7 +139,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id18 -->
 
-**Constraints & Notes**: `tensor` only supports fp32
+**Constraints & Notes**: `tensor` only supports fp32.
 
 </div>
 
@@ -161,7 +161,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id21 -->
 
-**Constraints & Notes**: `tensor` only supports fp32
+**Constraints & Notes**: `tensor` only supports fp32.
 
 </div>
 
@@ -183,7 +183,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id24 -->
 
-**Constraints & Notes**: `tensor` only supports fp32
+**Constraints & Notes**: `tensor` only supports fp32.
 
 </div>
 
@@ -205,7 +205,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id27 -->
 
-**Constraints & Notes**: `tensor` only supports fp32
+**Constraints & Notes**: `tensor` only supports fp32.
 
 </div>
 
@@ -227,7 +227,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id30 -->
 
-**Constraints & Notes**: `tensor` only supports fp32
+**Constraints & Notes**: `tensor` only supports fp32.
 
 </div>
 
@@ -249,7 +249,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id33 -->
 
-**Constraints & Notes**: `tensor` only supports fp32
+**Constraints & Notes**: `tensor` only supports fp32.
 
 </div>
 
@@ -271,7 +271,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id36 -->
 
-**Constraints & Notes**: `tensor` only supports fp32
+**Constraints & Notes**: `tensor` only supports fp32.
 
 </div>
 
@@ -313,7 +313,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id42 -->
 
-**Constraints & Notes**: `tensor` only supports fp32
+**Constraints & Notes**: `tensor` only supports fp32.
 
 </div>
 
@@ -335,7 +335,7 @@
 <!-- end id44 -->
 
 <!-- npu="910b,A3" id46 -->
-**Constraints & Notes**: `tensor` only supports fp32
+**Constraints & Notes**: `tensor` only supports fp32.
 
 </div>
 <!-- end id46 -->

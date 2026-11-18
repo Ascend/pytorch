@@ -321,7 +321,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id51 -->
 
-**Constraints & Notes**: When the `pg_options` parameter is passed in with the type `torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()`, the HCCL communicator buffer size can be controlled by configuring the `hccl_config` attribute of the variable. For specific examples, refer to the `hccl_buffer_size` configuration description in [Configuring HCCL Communicator Parameters Through pg_options](../../../developer_notes/distributed/parameter_configuration/setting_HCCL_communicator_parameter.md). A custom name for the communication group of the HCCL communicator can be set by configuring the `group_name` field of the `hccl_config` variable, whose value is a string with a length not exceeding 32.
+**Constraints & Notes**: When the `pg_options` parameter is of the type `torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()`, the HCCL communicator buffer size can be controlled by configuring the `hccl_config` attribute of the variable. For specific examples, refer to the `hccl_buffer_size` configuration description in [Configuring HCCL Communicator Parameters Through pg_options](../../../developer_notes/distributed/parameter_configuration/setting_HCCL_communicator_parameter.md). A custom name for the communication group of the HCCL communicator can be set by configuring the `group_name` field of the `hccl_config` variable, whose value is a string with a length not exceeding 32.
 
 </div>
 
@@ -547,7 +547,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id78 -->
 
-**Constraints & Notes**: `tensor` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
+**Constraints & Notes**: `tensor` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool.
 
 </div>
 
@@ -569,7 +569,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id81 -->
 
-**Constraints & Notes**: `tensor` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
+**Constraints & Notes**: `tensor` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool.
 
 </div>
 
@@ -591,7 +591,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id84 -->
 
-**Constraints & Notes**: `tensor` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
+**Constraints & Notes**: `tensor` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool.
 
 </div>
 
@@ -613,7 +613,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id87 -->
 
-**Constraints & Notes**: `tensor` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
+**Constraints & Notes**: `tensor` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool.
 
 </div>
 
@@ -655,7 +655,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id75 -->
 
-**Constraints & Notes**: `p2p_op_list` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
+**Constraints & Notes**: `p2p_op_list` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool.
 
 </div>
 
@@ -677,7 +677,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id90 -->
 
-**Constraints & Notes**: `tensor` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
+**Constraints & Notes**: `tensor` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool.
 
 </div>
 
@@ -701,7 +701,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id112 -->
 
-**Constraints & Notes**: `tensor` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool
+**Constraints & Notes**: `tensor` only supports bf16, fp16, fp32, fp64, uint8, int8, int16, int32, int64, bool.
 
 </div>
 
@@ -743,7 +743,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id142 -->
 
-**Constraints & Notes**: `tensor` only supports bf16, fp16, fp32, int32, int64, bool
+**Constraints & Notes**: `tensor` only supports bf16, fp16, fp32, int32, int64, bool.
 
 </div>
 
@@ -765,7 +765,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id118 -->
 
-**Constraints & Notes**: `tensor` only supports bf16, fp16, fp32, uint8, int8, int32, int64, bool
+**Constraints & Notes**: `tensor` only supports bf16, fp16, fp32, uint8, int8, int32, int64, bool.
 
 </div>
 
@@ -787,7 +787,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id121 -->
 
-**Constraints & Notes**: `tensor` only supports bf16, fp16, fp32, int8, int32, bool
+**Constraints & Notes**: `tensor` only supports bf16, fp16, fp32, int8, int32, bool.
 
 </div>
 
@@ -958,7 +958,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id96 -->
 
-**Constraints & Notes**: `input_list` only supports bf16, fp16, fp32, int8, int32
+**Constraints & Notes**: `input_list` only supports bf16, fp16, fp32, int8, int32.
 
 </div>
 
@@ -1009,7 +1009,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id103 -->
 
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>
 
@@ -1261,7 +1261,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id139 -->
 
-**Constraints & Notes**: `input` only supports bf16, fp16, fp32, uint8, int8, int32, int64, bool
+**Constraints & Notes**: `input` only supports bf16, fp16, fp32, uint8, int8, int32, int64, bool.
 
 </div>
 
@@ -1283,7 +1283,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id109 -->
 
-**Constraints & Notes**: `input` only supports bf16, fp16, fp32, uint8, int8, int32, int64
+**Constraints & Notes**: `input` only supports bf16, fp16, fp32, uint8, int8, int32, int64.
 
 </div>
 

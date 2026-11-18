@@ -1040,7 +1040,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id114 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 > <font size="3">arg_constraints()</font>
 
@@ -1160,7 +1160,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id129 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 </div>
 
@@ -1787,7 +1787,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id219 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 </div>
 
@@ -1849,7 +1849,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id228 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 </div>
 
@@ -1917,7 +1917,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id237 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 > <font size="3">arg_constraints()</font>
 
@@ -2343,7 +2343,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id300 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 > <font size="3">arg_constraints()</font>
 
@@ -2443,7 +2443,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id315 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 </div>
 
@@ -2505,7 +2505,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id324 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 </div>
 
@@ -2857,7 +2857,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id375 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 > <font size="3">arg_constraints()</font>
 
@@ -3063,7 +3063,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id405 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 <!-- npu="910b,A3" id1452 -->
 > <font size="3">arg_constraints()</font>
@@ -3104,7 +3104,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id411 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 </div>
 
@@ -3187,7 +3187,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id423 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 </div>
 
@@ -3761,7 +3761,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id507 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 > <font size="3">arg_constraints()</font>
 
@@ -4026,7 +4026,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id546 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 > <font size="3">arg_constraints()</font>
 
@@ -4835,7 +4835,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id630 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 </div>
 
@@ -4981,7 +4981,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id651 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 <!-- npu="910b,A3" id1476 -->
 > <font size="3">arg_constraints()</font>
@@ -5229,7 +5229,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id687 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 </div>
 
@@ -5435,7 +5435,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id717 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 </div>
 
@@ -6461,7 +6461,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id867 -->
 
-**Constraints & Notes**: `dim`must be less than or equal to 8192
+**Constraints & Notes**: `dim`must be less than or equal to 8192.
 
 </div>
 
@@ -6544,7 +6544,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id879 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 </div>
 
@@ -6626,7 +6626,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id891 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 </div>
 
@@ -6713,7 +6713,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id903 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 > <font size="3">arg_constraints()</font>
 
@@ -6893,7 +6893,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id930 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 </div>
 
@@ -7733,7 +7733,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id1047 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 > <font size="3">arg_constraints()</font>
 
@@ -8262,7 +8262,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id1125 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 > <font size="3">arg_constraints()</font>
 
@@ -8427,7 +8427,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id1149 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 > <font size="3">arg_constraints()</font>
 
@@ -9843,7 +9843,7 @@
 <!-- end id1350 -->
 
 <!-- npu="950" id1432 -->
-**Constraints & Notes**: <term>Ascend 950DT products</term>: complex64 and complex128 are not supported
+**Constraints & Notes**: <term>Ascend 950DT products</term>: complex64 and complex128 are not supported.
 <!-- end id1432 -->
 
 </div>

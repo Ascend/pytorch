@@ -481,7 +481,7 @@
 <!-- end id33 -->
 
 <!-- npu="950" id34 -->
-**Constraints & Notes**: <term>Ascend 950DT products</term>: fp64, complex64, and complex128 are not supported
+**Constraints & Notes**: <term>Ascend 950DT products</term>: fp64, complex64, and complex128 are not supported.
 <!-- end id34 -->
 
 </div>

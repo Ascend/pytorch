@@ -1196,7 +1196,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id159 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -1218,7 +1218,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id162 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -1490,7 +1490,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id198 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -1512,7 +1512,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id201 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -1654,7 +1654,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id222 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -1676,7 +1676,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id225 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -1698,7 +1698,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id228 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -1722,7 +1722,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id231 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 > <font size="3">add_param_group()</font>
 
@@ -1742,7 +1742,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id234 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -1764,7 +1764,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id237 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -1906,7 +1906,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id258 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -1928,7 +1928,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id261 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -1950,7 +1950,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id264 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -2242,7 +2242,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id306 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -2264,7 +2264,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id309 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -2406,7 +2406,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id330 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -2428,7 +2428,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id333 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -2450,7 +2450,7 @@
 - <term>Ascend 950DT products</term>: Not Supported
 <!-- end id336 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -2502,7 +2502,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id342 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -2524,7 +2524,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id345 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -2666,7 +2666,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id366 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -2688,7 +2688,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id369 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -2710,7 +2710,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id372 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -3002,7 +3002,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id414 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -3024,7 +3024,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id417 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -3166,7 +3166,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id438 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -3188,7 +3188,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id441 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -3210,7 +3210,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id444 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -3264,7 +3264,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id450 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -3286,7 +3286,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id453 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -3428,7 +3428,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id474 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -3450,7 +3450,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id477 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -3472,7 +3472,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id480 -->
 
-**Constraints & Notes**: `params` only supports fp16, fp32
+**Constraints & Notes**: `params` only supports fp16, fp32.
 
 </div>
 
@@ -3736,7 +3736,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id498 -->
 
-**Constraints & Notes**: `lr` only supports fp32
+**Constraints & Notes**: `lr` only supports fp32.
 
 </div>
 
@@ -3778,7 +3778,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id501 -->
 
-**Constraints & Notes**: `lr` only supports fp32
+**Constraints & Notes**: `lr` only supports fp32.
 
 </div>
 
@@ -3800,7 +3800,7 @@
 - <term>Ascend 950DT products</term>: Not Supported
 <!-- end id504 -->
 
-**Constraints & Notes**: `lr` only supports fp32
+**Constraints & Notes**: `lr` only supports fp32.
 
 </div>
 
@@ -3842,7 +3842,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id510 -->
 
-**Constraints & Notes**: `lr` only supports fp16, fp32
+**Constraints & Notes**: `lr` only supports fp16, fp32.
 
 </div>
 
@@ -3884,7 +3884,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id513 -->
 
-**Constraints & Notes**: `lr` only supports fp16, fp32
+**Constraints & Notes**: `lr` only supports fp16, fp32.
 
 </div>
 
@@ -3906,7 +3906,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id516 -->
 
-**Constraints & Notes**: `lr` only supports fp16, fp32
+**Constraints & Notes**: `lr` only supports fp16, fp32.
 
 </div>
 
@@ -3948,7 +3948,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id522 -->
 
-**Constraints & Notes**: `lr` only supports fp16, fp32
+**Constraints & Notes**: `lr` only supports fp16, fp32.
 
 </div>
 
@@ -3990,7 +3990,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id525 -->
 
-**Constraints & Notes**: `lr` only supports fp16, fp32
+**Constraints & Notes**: `lr` only supports fp16, fp32.
 
 </div>
 
@@ -4012,7 +4012,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id528 -->
 
-**Constraints & Notes**: `lr` only supports fp16, fp32
+**Constraints & Notes**: `lr` only supports fp16, fp32.
 
 </div>
 
@@ -4054,7 +4054,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id534 -->
 
-**Constraints & Notes**: `lr` only supports fp32
+**Constraints & Notes**: `lr` only supports fp32.
 
 </div>
 
@@ -4096,7 +4096,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id537 -->
 
-**Constraints & Notes**: `lr` only supports fp32
+**Constraints & Notes**: `lr` only supports fp32.
 
 </div>
 
@@ -4118,7 +4118,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id540 -->
 
-**Constraints & Notes**: `lr` only supports fp32
+**Constraints & Notes**: `lr` only supports fp32.
 
 </div>
 

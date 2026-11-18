@@ -1710,7 +1710,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id231 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 </div>
 
@@ -2234,7 +2234,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id267 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 </div>
 
@@ -2276,7 +2276,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id273 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 </div>
 
@@ -3208,7 +3208,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id345 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 </div>
 
@@ -4147,7 +4147,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id357 -->
 
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>
 
@@ -4169,7 +4169,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id360 -->
 
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>
 
@@ -4191,7 +4191,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id363 -->
 
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>
 
@@ -4213,7 +4213,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id366 -->
 
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>
 
@@ -4235,7 +4235,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id369 -->
 
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>
 

@@ -48,7 +48,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id3 -->
 
-**Constraints & Notes**: `input` only supports bf16, fp16, fp32
+**Constraints & Notes**: `input` only supports bf16, fp16, fp32.
 
 </div>
 
@@ -70,7 +70,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id6 -->
 
-**Constraints & Notes**: `input` only supports bf16, fp16, fp32
+**Constraints & Notes**: `input` only supports bf16, fp16, fp32.
 
 </div>
 
@@ -154,7 +154,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id9 -->
 
-**Constraints & Notes**: `A` only supports fp32
+**Constraints & Notes**: `A` only supports fp32.
 
 </div>
 
@@ -176,7 +176,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id12 -->
 
-**Constraints & Notes**: `A` only supports fp32, fp64, complex64, complex128
+**Constraints & Notes**: `A` only supports fp32, fp64, complex64, complex128.
 
 </div>
 
@@ -380,7 +380,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id18 -->
 
-**Constraints & Notes**: `A` and `B` only support fp32, fp64, complex64, complex128
+**Constraints & Notes**: `A` and `B` only support fp32, fp64, complex64, complex128.
 
 </div>
 
@@ -422,7 +422,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id15 -->
 
-**Constraints & Notes**: May fall back to CPU execution
+**Constraints & Notes**: May fall back to CPU execution.
 
 </div>
 

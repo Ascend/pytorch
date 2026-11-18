@@ -31,7 +31,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id3 -->
 
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>
 
@@ -53,7 +53,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id6 -->
 
-**Constraints & Notes**: `input` only supports fp32, bool
+**Constraints & Notes**: `input` only supports fp32, bool.
 
 </div>
 
@@ -75,7 +75,7 @@
 <!-- end id8 -->
 
 <!-- npu="910b,A3" id10 -->
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>
 <!-- end id10 -->

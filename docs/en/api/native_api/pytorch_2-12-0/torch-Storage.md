@@ -2057,7 +2057,7 @@
 <!-- end id212 -->
 
 <!-- npu="910b,A3" id412 -->
-**Constraints & Notes**: `self` only supports int8
+**Constraints & Notes**: `self` only supports int8.
 
 </div>
 <!-- end id412 -->
@@ -2210,7 +2210,7 @@
 <!-- end id218 -->
 
 <!-- npu="910b,A3" id414 -->
-**Constraints & Notes**: `self` only supports int32
+**Constraints & Notes**: `self` only supports int32.
 
 </div>
 <!-- end id414 -->
@@ -2254,7 +2254,7 @@
 <!-- end id224 -->
 
 <!-- npu="910b,A3" id416 -->
-**Constraints & Notes**: `self` only supports uint8
+**Constraints & Notes**: `self` only supports uint8.
 
 </div>
 <!-- end id416 -->
@@ -2297,7 +2297,7 @@
 <!-- end id230 -->
 
 <!-- npu="910b,A3" id418 -->
-**Constraints & Notes**: `self` only supports uint8
+**Constraints & Notes**: `self` only supports uint8.
 
 </div>
 <!-- end id418 -->

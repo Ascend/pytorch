@@ -46,7 +46,7 @@
 **Constraints & Notes**:
 
 - When RPC is enabled on an NPU device, specific settings need to be configured in `init_rpc`: bind `backend` to `rpc.backend_registry.BackendType.NPU_TENSORPIPE`.
-- `options` is bound to `NPUTensorPipeRpcBackendOptions`. You need to import it via `from torch_npu.distributed.rpc.options import NPUTensorPipeRpcBackendOptions` and set the option. The parameter format is the same as that of the original `TensorPipeRpcBackendOptions`.
+- options is bound to `NPUTensorPipeRpcBackendOptions`. You need to import it via `from torch_npu.distributed.rpc.options import NPUTensorPipeRpcBackendOptions` and set the option. The parameter format is the same as that of the original `TensorPipeRpcBackendOptions`.
 
 </div>
 
@@ -328,7 +328,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id9 -->
 
-**Constraints & Notes**: Use the adapted `torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions`
+**Constraints & Notes**: Use the adapted `torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions`.
 
 > <font size="3">device_maps</font>
 
@@ -408,7 +408,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id12 -->
 
-**Constraints & Notes**: Use the adapted `torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions.set_device_map`
+**Constraints & Notes**: Use the adapted `torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions.set_device_map`.
 
 </div>
 
@@ -430,7 +430,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id15 -->
 
-**Constraints & Notes**: Use the adapted `torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions.set_devices`
+**Constraints & Notes**: Use the adapted `torch_npu.distributed.rpc.options.NPUTensorPipeRpcBackendOptions.set_devices`.
 
 </div>
 

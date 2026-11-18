@@ -441,7 +441,7 @@
 <!-- end id59 -->
 
 <!-- npu="910b,A3" id261 -->
-**Constraints & Notes**: `input` only supports fp32
+**Constraints & Notes**: `input` only supports fp32.
 
 </div>
 <!-- end id261 -->

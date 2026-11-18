@@ -42,7 +42,7 @@
 <!-- end id2 -->
 
 <!-- npu="910b,A3" id27 -->
-**Constraints & Notes**: `self` only supports fp32
+**Constraints & Notes**: `self` only supports fp32.
 <!-- end id27 -->
 
 <!-- npu="910b,A3" id28 -->
@@ -63,7 +63,7 @@
 <!-- end id5 -->
 
 <!-- npu="910b,A3" id29 -->
-**Constraints & Notes**: `self` only supports fp32
+**Constraints & Notes**: `self` only supports fp32.
 
 </div>
 <!-- end id29 -->
@@ -86,7 +86,7 @@
 <!-- end id8 -->
 
 <!-- npu="910b,A3" id31 -->
-**Constraints & Notes**: `self` only supports fp32
+**Constraints & Notes**: `self` only supports fp32.
 
 </div>
 <!-- end id31 -->
@@ -109,7 +109,7 @@
 <!-- end id11 -->
 
 <!-- npu="910b,A3" id33 -->
-**Constraints & Notes**: `self` only supports fp32
+**Constraints & Notes**: `self` only supports fp32.
 
 </div>
 <!-- end id33 -->
@@ -132,7 +132,7 @@
 <!-- end id14 -->
 
 <!-- npu="910b,A3" id35 -->
-**Constraints & Notes**: `self` only supports fp32
+**Constraints & Notes**: `self` only supports fp32.
 
 </div>
 <!-- end id35 -->
@@ -155,7 +155,7 @@
 <!-- end id17 -->
 
 <!-- npu="910b,A3" id37 -->
-**Constraints & Notes**: `self` only supports fp32
+**Constraints & Notes**: `self` only supports fp32.
 
 </div>
 <!-- end id37 -->
@@ -178,7 +178,7 @@
 <!-- end id20 -->
 
 <!-- npu="910b,A3" id39 -->
-**Constraints & Notes**: `self` only supports fp32
+**Constraints & Notes**: `self` only supports fp32.
 
 </div>
 <!-- end id39 -->
@@ -201,7 +201,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id24 -->
 
-**Constraints & Notes**: `self` only supports fp32
+**Constraints & Notes**: `self` only supports fp32.
 
 </div>
 
