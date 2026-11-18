@@ -969,3 +969,34 @@ jobs:
           name: passed-skipped-retest-report
           path: passed-skipped-retest.md
           retention-days: 30
+
+  # ==========================================================================
+  # Flatten the grouped blacklist (disabled_testcases_grouped.json) into a
+  # plain nodeid list, purely as a read-only companion to the grouped source.
+  # This does NOT feed any shard/test job: the existing shards still read the
+  # flat per-platform blacklist files. The flattened list is uploaded as an
+  # artifact so the grouped file can be diffed against the flat files easily.
+  # ==========================================================================
+  flatten-grouped:
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v6
+        with:
+          ref: ci-test
+
+      - name: Flatten grouped blacklist to nodeids
+        run: |
+          python3 .github/scripts/blacklist-test/scripts/flatten_grouped_testcases.py \
+            --input .github/config/disabled_testcases_grouped.json \
+            --output grouped-nodeids.txt
+
+      - name: Upload flattened nodeid list
+        uses: actions/upload-artifact@v4
+        with:
+          name: grouped-blacklist-nodeids
+          path: grouped-nodeids.txt
+          retention-days: 30
