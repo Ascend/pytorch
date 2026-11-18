@@ -194,7 +194,6 @@ class TestSelectLaneGuards(TestCase):
         kernel._npu_prepared_load_options = None
         with (
             mock.patch.object(TritonKernel, "indexing", return_value=upstream_result),
-            mock.patch.object(npu_triton_codegen, "triton_codegen_linearize", True),
             mock.patch.object(kernel, "filter_masks"),
             mock.patch.object(kernel, "dense_size_str", return_value="[XBLOCK]"),
             mock.patch.object(

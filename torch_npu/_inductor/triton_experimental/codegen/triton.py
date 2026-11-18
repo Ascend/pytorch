@@ -5993,6 +5993,20 @@ class NPUTritonKernel(TritonKernel):
         ):
             return None
 
+        # Widening the inner lane also widens its mask, but every OTHER mask
+        # operand keeps its original shape. A per-tree ``<name>mask`` broadcasts
+        # against the widened lane; a *derived* predicate on the inner index
+        # (e.g. ``tmp2 = ge(x0, 4)``, still ``real_block`` wide) does not, and
+        # the emitted ``tl.load(..., tmp2 & _es_smask0 & x1mask)`` dies with
+        # "ValueError: Cannot make_shape_compatible: incompatible dimensions".
+        for _node in ast.walk(load_ast.args[1]):
+            if (
+                isinstance(_node, ast.Name)
+                and _node.id != inner_mask_tok
+                and not _node.id.endswith("mask")
+            ):
+                return None
+
         # Transitive inner-index guard: the widened mask swap below replaces
         # only the inner mask TOKEN. Any other mask term that carries a real
         # inner extent (e.g. a select-lane predicate ``tmpK = (x0 >= c)``)
