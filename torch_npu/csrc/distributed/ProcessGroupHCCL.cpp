@@ -4701,9 +4701,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
             } else {
                 work->stashed_for_allocator_safety_->stash(inputs[i]);
             }
-        } else if (inputs[i].storage().data_ptr().get() != nullptr) {
-            // Empty storages have no allocator block to record, including in reuse
-            // mode 3. Keep the input and block tracking lists paired for nonempty ones.
+        } else {
             c10_npu::NPUCachingAllocator::recordStream(inputs[i].storage().data_ptr(), hcclStream);
             if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM ||
                 multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
@@ -7353,9 +7351,6 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::gather(
             auto multi_stream_memory_reuse_mode = c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse();
             for (const auto i : c10::irange(inputTensors.size())) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[i]);
-                if (inputTensors[i].storage().data_ptr().get() == nullptr) {
-                    continue;
-                }
                 // See [Sync Streams].
                 if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
                     work->stashed_for_allocator_safety_->stash(inputTensors[i]);
@@ -7561,9 +7556,6 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
                 for (const auto i : c10::irange(inputTensors.size())) {
                     c10_npu::NPUStreamGuard guard(hcclStreams[i]);
                     for (const auto j : c10::irange(inputTensors[0].size())) {
-                        if (inputTensors[i][j].storage().data_ptr().get() == nullptr) {
-                            continue;
-                        }
                         // See [Sync Streams].
                         if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
                             work->stashed_for_allocator_safety_->stash(inputTensors[i][j]);
@@ -7589,9 +7581,6 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
                 if (getRank() == opts.rootRank) {
                     for (const auto j : c10::irange(inputTensors[0].size())) {
                         c10_npu::NPUStreamGuard guard(hcclStreams[0]);
-                        if (inputTensors[0][j].storage().data_ptr().get() == nullptr) {
-                            continue;
-                        }
                         if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
                             work->stashed_for_allocator_safety_->stash(inputTensors[0][j]);
                         } else {
