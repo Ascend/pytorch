@@ -1,5 +1,7 @@
 # 问题处理
 
+本文档介绍TorchNPU编译与安装过程中的常见问题，按编译问题与安装问题分类说明问题描述、报错原因和处理方法。
+
 ## 编译问题
 
 ### 问题1：torch.libs/libopenblasp-r0-56e95da7.3.24.so链接报错或libgfortran缺失
@@ -10,7 +12,7 @@ aarch64环境下进行libtorch推理测试，编译时依赖torch.libs/\*.so库�
 
 - 报错截图
 
-    ![](../../figures/libtorch_error.png)
+    ![libtorch推理测试编译链接阶段的终端报错截图，ld提示libgfortran缺失导致collect2链接失败](../../figures/libtorch_error.png)
 
 - 报错文本
 
@@ -77,7 +79,7 @@ RuntimeError: The path does not exist: /home/pytorch/third_party/op-plugin/op_pl
 git submodule update --init --recursive
 ```
 
-如需切换某个third_party项目的 commit ID，进入对应项目目录后执行：
+如需切换某个third_party项目的commit ID，进入对应项目目录后执行：
 
 ```bash
 git checkout <commit_id>
@@ -151,11 +153,11 @@ CMake Error at third_party/Tensorpipe/third_party/libuv/CMakeLists.txt:1 (cmake_
 
 您可以在setup.py文件中`class CPPLibBuild`的`run`函数里添加`cmake_args.append('-DCMAKE_POLICY_VERSION_MINIMUM=3.5')`来尝试解决，让CMake以兼容模式处理旧版cmake_minimum_required声明。
 
-### 问题5：编译时报错链接符问题
+### 问题5：编译时报错符号链接问题
 
 **问题描述**
 
-编译时报错无法正确识别链接符。
+编译时报错无法正确识别符号链接。
 
 报错文本
 
@@ -179,7 +181,7 @@ done
 
 或尝试用实际内容替换：
 
-譬如，用`third_party\torchair\torchair\third_party\ascend\include\air\external\ge\ge_error_codes.h`中内容替换`third_party\torchair\torchair\third_party\ascend\include\ascend/include/ascendcl/external/acl/error_codes/rt_error_codes.h`中的内容。
+譬如，用`third_party\torchair\torchair\third_party\ascend\include\air\external\ge\ge_error_codes.h`中的内容替换`third_party\torchair\torchair\third_party\ascend\include\ascend/include/ascendcl/external/acl/error_codes/rt_error_codes.h`中的内容。
 
 ### 问题6：fatal error: 'filesystem' file not found
 
@@ -203,7 +205,7 @@ gcc --version
 
 **处理方法**
 
-请按照[GCC和Cmake版本要求](../building_from_source.md#gcc_cmake)选择与所装PyTorch版本对应的GCC，具体安装步骤请参考[安装GCC](https://ubuntu.com/developers/docs/howto/gcc-setup/)。
+请按照[GCC和CMake版本要求](../building_from_source.md#gcc_cmake)选择与所装PyTorch版本对应的GCC，具体安装步骤请参考[安装GCC](https://ubuntu.com/developers/docs/howto/gcc-setup/)。
 
 ## 安装问题
 
@@ -249,7 +251,7 @@ ImportError: libhccl.so: cannot open shared object file: No such file or directo
 
 **处理方法**
 
-请检查是否已安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops 和 NNAL）并正确配置CANN环境变量，具体请参考《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/920/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》。
+请检查是否已安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops和NNAL）并正确配置CANN环境变量，具体请参考《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/920/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》。
 
 ### 问题3：导入torch_npu时，系统报错core dump
 
@@ -272,7 +274,7 @@ Segmentation fault
 
 使用对应的GCC版本进行编译，具体对应版本可参考[GCC和CMake版本要求](../building_from_source.md#gcc_cmake)。
 
-### 问题4：“import torch_npu”报错找不到torch_npu._C
+### 问题4：`import torch_npu`报错找不到torch_npu._C
 
 **问题描述**
 
@@ -300,7 +302,7 @@ ModuleNotFoundError: No module named 'torch_npu._C'
 
 **处理方法**
 
-进入合适的运行目录下重试，如先`cd test`或`cd /home/test`后再“import torch_npu”。
+在合适的运行目录下重试，如先`cd test`或`cd /home/test`后再“import torch_npu”。
 
 ### 问题5：查询已安装的TorchNPU版本
 

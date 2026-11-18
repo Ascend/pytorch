@@ -23,7 +23,7 @@ Docker镜像中已预装PyTorch框架、TorchNPU插件及配套的CANN软件，�
         tail -f /dev/null
     ```
 
-    **表 1**  启动容器参数说明
+    **表 1** 启动容器参数说明
 
     |参数|说明|
     |--|--|
@@ -49,19 +49,19 @@ Docker镜像中已预装PyTorch框架、TorchNPU插件及配套的CANN软件，�
 
     > [!NOTE]
     >
-    > - `LD_LIBRARY_PATH` 通过 `-e` 参数指定 Ascend 驱动库路径。注意 `-e` 会覆盖容器镜像原有的 `LD_LIBRARY_PATH`，如需额外库路径，请在 `docker run` 命令的 `LD_LIBRARY_PATH` 值末尾追加，例如 `:/your/extra/path`。
-    > - `<镜像标签>` 请替换为第 1 步所选镜像的实际标签，例如 `2.10.0-310p-ubuntu22.04-py3.11`。
-    > - `PY_VERSION` 请根据镜像对应的 Python 版本修改。
+    > - `LD_LIBRARY_PATH` 通过 `-e` 参数指定Ascend驱动库路径。注意 `-e` 会覆盖容器镜像原有的 `LD_LIBRARY_PATH`，如需额外库路径，请在 `docker run` 命令的 `LD_LIBRARY_PATH` 值末尾追加，例如 `:/your/extra/path`。
+    > - `<镜像标签>` 请替换为上表中实际的镜像标签，例如 `2.10.0-310p-ubuntu22.04-py3.11`。
+    > - `PY_VERSION` 请根据镜像对应的Python版本修改。
 
 ## 安装后验证
 
 执行以下命令可检查PyTorch框架和TorchNPU插件是否已成功安装。
 
-```Python
+```bash
 python3 -c "import torch;import torch_npu; a = torch.randn(3, 4).npu(); print(a + a);"
 ```
 
-输出如下类似信息说明安装成功。
+输出类似如下信息说明安装成功。
 
 ```text
 tensor([[-0.6066,  6.3385,  0.0379,  3.3356],

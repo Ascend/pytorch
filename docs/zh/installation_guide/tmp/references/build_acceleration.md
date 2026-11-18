@@ -1,6 +1,6 @@
 # 编译加速
 
-本文介绍TorchNPU源码构建的编译加速方法，涵盖Ninja、Mold、CCache的使用及按需编译目标的方法。在使用之前，请参考[源码编译](building_from_source.md)完成环境准备。
+本文介绍TorchNPU源码构建的编译加速方法，涵盖Ninja、Mold、CCache的使用及按需编译目标。在使用之前，请参考[源码编译](building_from_source.md)完成环境准备。
 
 > [!NOTE]
 >
@@ -12,7 +12,7 @@ CMake默认使用Makefile生成器。安装Ninja构建系统可以显著加快�
 
 本项目`setup.py`会自动检测Ninja环境，其配置规则如下：
  
-- 若设置了CMAKE_GENERATOR，则会严格遵守该设置。例如，生成器设置为ninja时会启用Ninja构建；设置为其他的生成器时，即使PATH中存在ninja，也不会自动启用。
+- 若设置了`CMAKE_GENERATOR`，则会严格遵守该设置。例如，生成器设置为ninja时会启用Ninja构建；设置为其他的生成器时，即使PATH中存在ninja，也不会自动启用。
  
 - 若未设置CMAKE_GENERATOR，系统会自动检测PATH中是否存在ninja，若存在，则默认启用Ninja构建；否则使用默认生成器。
 
@@ -34,7 +34,7 @@ python setup.py clean
 
 在频繁修改代码并重新编译的开发循环中，链接阶段会成为性能瓶颈。相比Linux发行版默认的GNU ld链接器，Mold链接器具有显著的速度优势，能大幅度缩短构建时间，提升开发体验。
 
-本项目的`CMakeLists.txt`文件已集成了链接器自动检测逻辑，优先检测Mold链接器，若存在则自动通过`-fuse-ld=mold`参数来启动。
+本项目的`CMakeLists.txt`文件已集成了链接器自动检测逻辑，优先检测Mold链接器，若存在则自动通过`-fuse-ld=mold`参数来启用。
 
 安装命令如下：
 

@@ -25,7 +25,7 @@ NPUGraph_EX支持的编译选项（`options`参数）和详细使用指导请参
 
 ## 调用样例
 
-```Python
+```python
 import torch
 import torch.nn as nn
 

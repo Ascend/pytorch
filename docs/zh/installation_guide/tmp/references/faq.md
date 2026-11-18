@@ -77,7 +77,7 @@ RuntimeError: The path does not exist: /home/pytorch/third_party/op-plugin/op_pl
 git submodule update --init --recursive
 ```
 
-如需切换某个third_party项目的 commit ID，进入对应项目目录后执行：
+如需切换某个third_party项目的commit ID，进入对应项目目录后执行：
 
 ```bash
 git checkout <commit_id>
@@ -151,11 +151,11 @@ CMake Error at third_party/Tensorpipe/third_party/libuv/CMakeLists.txt:1 (cmake_
 
 您可以在setup.py文件中`class CPPLibBuild`的`run`函数里添加`cmake_args.append('-DCMAKE_POLICY_VERSION_MINIMUM=3.5')`来尝试解决，让CMake以兼容模式处理旧版cmake_minimum_required声明。
 
-### 问题5：编译时报错链接符问题
+### 问题5：编译时报错符号链接问题
 
 **问题描述**
 
-编译时报错无法正确识别链接符。
+编译时报错无法正确识别符号链接。
 
 报错文本
 
@@ -203,7 +203,7 @@ gcc --version
 
 **处理方法**
 
-请按照[GCC和Cmake版本要求](building_from_source.md#gcc_cmake)选择与所装PyTorch版本对应的GCC，具体安装步骤请参考[安装GCC](https://ubuntu.com/developers/docs/howto/gcc-setup/)。
+请按照[GCC和CMake版本要求](building_from_source.md#gcc_cmake)选择与所装PyTorch版本对应的GCC，具体安装步骤请参考[安装GCC](https://ubuntu.com/developers/docs/howto/gcc-setup/)。
 
 ## 安装问题
 
@@ -249,7 +249,7 @@ ImportError: libhccl.so: cannot open shared object file: No such file or directo
 
 **处理方法**
 
-请检查是否已安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops 和 NNAL）并正确配置CANN环境变量，具体请参考《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/920/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》。
+请检查是否已安装配套版本的NPU驱动固件、CANN软件（Toolkit、ops和NNAL）并正确配置CANN环境变量，具体请参考《[CANN 软件安装](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/920/softwareinst/instg/instg_0000.html?OS=openEuler&InstallType=netyum)》。
 
 ### 问题3：导入torch_npu时，系统报错core dump
 
@@ -272,7 +272,7 @@ Segmentation fault
 
 使用对应的GCC版本进行编译，具体对应版本可参考[GCC和CMake版本要求](building_from_source.md#gcc_cmake)。
 
-### 问题4：“import torch_npu”报错找不到torch_npu._C
+### 问题4：import torch_npu报错找不到torch_npu._C
 
 **问题描述**
 
@@ -318,7 +318,7 @@ ModuleNotFoundError: No module named 'torch_npu._C'
 
     输出如下TorchNPU安装包版本号。
 
-    ```text
+    ```output
     torch_npu     2.12.0
     ```
 

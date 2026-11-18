@@ -2,7 +2,7 @@
 
 ## 简介
 
-Inductor是`torch.compile()`的默认后端编译器，通过 “Dynamo前端图捕获 + Inductor后端优化 + 高性能算子生成” 的协同方式，在不改变模型逻辑的前提下自动进行算子融合和代码生成，显著提升训练或推理的吞吐量。
+Inductor是`torch.compile()`的默认后端编译器，通过“Dynamo前端图捕获 + Inductor后端优化 + 高性能算子生成”的协同方式，在不改变模型逻辑的前提下自动进行算子融合和代码生成，显著提升训练或推理的吞吐量。
 
 Inductor后端支持三种算子编译器，可根据场景选择：
 
@@ -21,7 +21,7 @@ Inductor后端支持三种算子编译器，可根据场景选择：
 
 ### Triton（默认模式）
 
-Triton是Inductor的默认算子编译器，在保留torch.compile动态图捕获 + 静态图优化 + 高效代码生成的核心逻辑的基础上，借助Triton的自动Tiling和融合算子生成能力，显著减少开发者手动设计Tiling、管理内存等工作量，通过减少内存访问次数来提升性能。
+Triton是Inductor的默认算子编译器，在保留torch.compile动态图捕获 + 静态图优化 + 高效代码生成核心逻辑的基础上，借助Triton的自动Tiling和融合算子生成能力，显著减少开发者手动设计Tiling、管理内存等工作量，通过减少内存访问次数来提升性能。
 
 Triton编译器包含如下核心组件：
 
@@ -114,7 +114,7 @@ out = compile_func(x, y)
 
 DVM编译后会生成对应的融合算子代码。两种模式的输出示例分别如下：
 
-**mlir_fusion 模式输出：**
+**mlir_fusion模式输出：**
 
 ```python
 # 声明算子
@@ -145,7 +145,7 @@ stream0 = get_raw_stream(0)
 dvm_fused_add_mul_sum_0.run(arg4_1, s1, s0, s2, buf1, arg5_1, buf2, stream=stream0)
 ```
 
-**graph_fusion 模式输出：**
+**graph_fusion模式输出：**
 
 ```python
 # 声明算子
@@ -257,5 +257,5 @@ Inductor支持的编译选项（`options`参数）：
 
 ## 约束说明
 
-- 优化器（optimizer）通常不入图，优化器的 `step()` 包含 Python 侧动态逻辑（如学习率调度、梯度累积、自适应更新规则），难以被静态图捕获。
+- 优化器（optimizer）通常不入图，优化器的 `step()` 包含Python侧动态逻辑（如学习率调度、梯度累积、自适应更新规则），难以被静态图捕获。
 - `torch.compile(backend="inductor")` 支持动态形状，但会触发重新编译（增加开销），建议尽量固定形状。

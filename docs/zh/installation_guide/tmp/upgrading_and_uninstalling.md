@@ -1,5 +1,7 @@
 # 卸载与升级
 
+本文档介绍卸载与升级TorchNPU的操作方法，涵盖卸载PyTorch框架与TorchNPU插件、卸载CANN软件与驱动固件以及升级TorchNPU。
+
 ## 卸载TorchNPU
 
 - 卸载PyTorch框架需执行如下命令：

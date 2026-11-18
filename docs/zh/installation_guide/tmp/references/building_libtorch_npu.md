@@ -49,7 +49,7 @@ libtorch\_npu是TorchNPU插件的C++版本，包含运行TorchNPU插件所需的
         pip3 install hypothesis
         ```
 
-2. 编译文件中添加NPU编译配置。
+2. 在编译文件中添加NPU编译配置。
 
     已完成NPU适配的编译文件请参见“pytorch/examples/libtorch\_resnet/**CMakeLists.txt**”，可以直接用于编译工作。
 
@@ -81,7 +81,7 @@ libtorch\_npu是TorchNPU插件的C++版本，包含运行TorchNPU插件所需的
     torch_npu::finalize_npu();
     ```
 
-    **表 1**  C++接口说明
+    **表 1** C++接口说明
 
     |接口|说明|
     |--|--|
@@ -91,9 +91,9 @@ libtorch\_npu是TorchNPU插件的C++版本，包含运行TorchNPU插件所需的
 
 4. 执行编译并推理。
 
-    “pytorch/examples/libtorch\_resnet/**resnet\_trace.py**”脚本用于导出torchscript文件，可用于libtorch推理。
+    “pytorch/examples/libtorch\_resnet/**resnet\_trace.py**”脚本用于导出TorchScript文件，可用于libtorch推理。
 
-    编译与推理脚本可参见“pytorch/ci/**libtorch\_resnet.sh**”，当前提供的脚本已集成了导出torchscript文件、编译与推理部分，执行如下命令编译并推理：
+    编译与推理脚本可参见“pytorch/ci/**libtorch\_resnet.sh**”，当前提供的脚本已集成了导出TorchScript文件、编译与推理部分，执行如下命令编译并推理：
 
     ```bash
     bash libtorch_resnet.sh
@@ -101,7 +101,7 @@ libtorch\_npu是TorchNPU插件的C++版本，包含运行TorchNPU插件所需的
 
     打印以下内容，表示编译成功。
 
-    **图 1**  命令回显
+    **图 1** 命令回显
     
     ![](../../../figures/command_output.png "命令回显")
 

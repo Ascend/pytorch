@@ -81,7 +81,7 @@ libtorch\_npu是TorchNPU插件的C++版本，包含运行TorchNPU插件所需的
     torch_npu::finalize_npu();
     ```
 
-    **表 1**  C++接口说明
+    **表 1** C++接口说明
 
     |接口|说明|
     |--|--|
@@ -101,7 +101,7 @@ libtorch\_npu是TorchNPU插件的C++版本，包含运行TorchNPU插件所需的
 
     打印以下内容，表示编译成功。
 
-    **图 1**  命令回显
+    **图 1** 命令回显
     
     ![](../../figures/command_output.png "命令回显")
 

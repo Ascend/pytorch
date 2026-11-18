@@ -48,7 +48,7 @@
 
     以上命令以root用户安装后的默认路径为例，请用户根据set\_env.sh的实际路径进行替换。
 
-- 容器场景下源码安装TorchNPU插件，涉及从外部网络获取社区提供基础镜像、Python第三方库以及编译使用源码，代理配置等相关网络问题请参考[Docker官方文档](https://docs.docker.com/engine/cli/proxy/)。
+- 容器场景下源码安装TorchNPU插件，涉及从外部网络获取社区提供的基础镜像、Python第三方库以及编译使用的源码，代理配置等相关网络问题请参考[Docker官方文档](https://docs.docker.com/engine/cli/proxy/)。
 
 - 在容器场景下，安装TorchNPU前需预先安装Docker环境，具体请参考[安装Docker](https://docs.docker.com/engine/install/)。
 
@@ -113,7 +113,7 @@
 
     3. 编译生成Whl安装包。
 
-       编译前需关注环境中安装的torch版本是否与当前要编译的TorchNPU版本一致，若要更换可使用如下命令：
+       编译前需关注环境中安装的PyTorch版本是否与当前要编译的TorchNPU版本一致，若要更换可使用如下命令：
 
        ```bash
        pip3 install torch==2.14.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu # 根据自身需求安装CPU版本的torch
@@ -147,37 +147,37 @@
 
 - **方式二：物理机及虚拟机场景**
 
-    1. 安装系统依赖
+    1. 安装系统依赖。
 
         1. 根据不同类型的操作系统，选择对应的命令安装所需依赖。
 
             - openEuler、CentOS、Kylin、BCLinux、UOS V20、AntOS、AliOS、CTyunOS、CULinux、Tlinux、MTOS、vesselOS：
 
-                1. 安装依赖（除gcc和cmake以外）。
+                1. 安装依赖（除GCC和CMake以外）。
 
                     ```bash
                     yum install -y patch libjpeg-turbo-devel dos2unix openblas git
                     ```
 
-                2. 安装gcc和cmake。
+                2. 安装GCC和CMake。
 
                     根据实际情况，安装对应gcc和cmake版本，版本信息及安装指导请参见[表1](#gcc_cmake)。
 
             - Debian、Ubuntu、veLinux：
 
-                1. 安装依赖（除gcc和cmake以外）。
+                1. 安装依赖（除GCC和CMake以外）。
 
                     ```bash
                     apt-get install -y patch build-essential libbz2-dev libreadline-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev liblzma-dev m4 dos2unix libopenblas-dev git
                     ```
 
-                2. 安装gcc和cmake。
+                2. 安装GCC和CMake。
 
                     根据实际情况，安装对应gcc和cmake版本，版本信息及安装指导请参见[表1](#gcc_cmake)。
 
-                    **表 1**  gcc和cmake版本要求<a id="gcc_cmake"></a>
+                    **表1** gcc和cmake版本要求<a id="gcc_cmake"></a>
 
-                    |PyTorch版本|系统架构|gcc版本|cmake版本|
+                    |PyTorch版本|系统架构|GCC版本|CMake版本|
                     |--|--|--|--|
                     |2.7.1|X86_64|11.2.0|3.18.4|
                     |2.7.1|AArch64|11.2.0|3.31.1|
@@ -219,7 +219,7 @@
 
         2. 编译生成Whl安装包。
 
-            编译前需关注环境中安装的torch版本是否与当前要编译的TorchNPU版本一致，若要更换可使用如下命令：
+            编译前需关注环境中安装的PyTorch版本是否与当前要编译的TorchNPU版本一致，若要更换可使用如下命令：
 
             ```bash
             pip3 install torch==2.14.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu # 根据自身需求安装CPU版本的torch
@@ -236,7 +236,7 @@
             > 
             > 默认编译Release版本。如需编译Debug版本，请在执行构建命令时设置环境变量`DEBUG=1`。
 
-    3. 安装pytorch/dist目录下生成的插件TorchNPU包，如果使用非root用户安装，需要在命令后加`--user`。
+    3. 安装pytorch/dist目录下生成的TorchNPU插件包，如果使用非root用户安装，需要在命令后加`--user`。
 
         ```bash
         pip3 install --upgrade dist/torch_npu-2.14.0-cp311-cp311-manylinux_2_28_aarch64.whl
@@ -244,17 +244,17 @@
 
         请用户根据实际情况更改命令中的TorchNPU包名。
 
-    4. 安装pytorch目录下的依赖文件requirements.txt。
+    4. 安装pytorch目录下的依赖文件requirements_2.14.txt。
 
         ```bash
-        pip3 install -r requirements.txt
+        pip3 install -r requirements_2.14.txt
         ```
 
 ## 安装后验证
 
 执行以下命令可检查PyTorch框架和TorchNPU插件是否已成功安装。
 
-```Python
+```bash
 python3 -c "import torch;import torch_npu; a = torch.randn(3, 4).npu(); print(a + a);"
 ```
 

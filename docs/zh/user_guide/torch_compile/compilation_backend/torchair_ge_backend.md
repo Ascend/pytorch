@@ -25,7 +25,7 @@ TorchAir-GE后端支持的编译选项（`compiler_config`参数）和详细使�
 
 ## 调用样例
 
-```Python
+```python
 import torch
 import torch_npu
 import torchair
