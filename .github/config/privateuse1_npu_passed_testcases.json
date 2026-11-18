@@ -7490,7 +7490,6 @@
   "test/export/test_passes.py::TestMoveToDevicePassDevicePRIVATEUSE1::test_move_to_device_pass_npu",
   "test/export/test_serialize.py::TestDeserializeAcceleratorNPU::test_device_npu",
   "test/export/test_serialize.py::TestSaveLoadAcceleratorNPU::test_save_load_accelerator_tensor_npu",
-  "test/export/test_serialize.py::TestSerializeAcceleratorPRIVATEUSE1::test_triton_constexpr_matching_npu",
   "test/export/test_serialize.py::TestSerializeAcceleratorPRIVATEUSE1::test_weight_sharing_npu",
   "test/export/test_torchbind.py::TestCompileTorchbindDevicePRIVATEUSE1::test_compile_obj_torchbind_op_with_autocast_backend_aot_eager_npu",
   "test/export/test_torchbind.py::TestCompileTorchbindDevicePRIVATEUSE1::test_compile_obj_torchbind_op_with_autocast_backend_eager_npu",
