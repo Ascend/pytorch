@@ -34,6 +34,7 @@ class HCCLTraceTestBase(MultiProcessTestCase):
         ] = "0"  # see 'timing_enabled' parametrized tests
         os.environ["TORCH_HCCL_TRACE_BUFFER_SIZE"] = "1000"
         os.environ["TORCH_HCCL_DUMP_ON_TIMEOUT"] = "1"
+        os.environ["TORCH_HCCL_ENABLE_MONITORING"] = "1"
         os.environ["TORCH_HCCL_WAIT_TIMEOUT_DUMP_MILSEC"] = "15000"
         self.tempdir = tempfile.TemporaryDirectory()
         os.environ["TORCH_HCCL_DEBUG_INFO_TEMP_FILE"] = self._trace_basename()
@@ -802,30 +803,40 @@ class HCCLTraceTestTimeoutDumpOnStuckRanks(HCCLTraceTestDumpOnTimeoutBase):
 
     def test_timeout_dumps_on_stuck_ranks(self):
         if self.rank != self.MAIN_PROCESS_RANK:
-            # now we need start heartbeatmonitor thread manually
+            # Allow the peer's monitor to terminate its rank after the fault dump.
             os.environ["TORCH_HCCL_ENABLE_MONITORING"] = "1"
-        # need rank0 to crash quicker after detecting timeout
-        os.environ["TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC"] = "60"
+        os.environ["TORCH_HCCL_ASYNC_ERROR_HANDLING"] = "3"
+        os.environ["TORCH_HCCL_RETHROW_HCCL_ERRORS"] = "1"
+        # This also controls the monitor's extra grace after dumping, not the PG's 60s timeout.
+        os.environ["TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC"] = "10"
         # restore this env var to its prior default in case another test changed it
         os.environ["TORCH_HCCL_COORD_CHECK_MILSEC"] = "1000"
 
         if self.rank == self.MAIN_PROCESS_RANK:
-            # wait for both rank0 and 1 to crash before looking for both ranks' output
-            # file, and we rely on rank1 to sleep long enough to dump the debug info.
-            self.assertEqual(self._wait_process(0, timeout=180), -6)
-            self.assertEqual(self._wait_process(1, timeout=180), -6)
-            self.assertTrue(os.path.exists(self._trace_name(rank=1)))
-            self.assertTrue(os.path.exists(self._trace_name(rank=0)))
-            with open(self._trace_name(rank=0), "rb") as f:
-                t = pickle.load(f)
-                t = t["entries"]
-                self.assertEqual(len(t), 2)
-            with open(self._trace_name(rank=1), "rb") as f:
-                t = pickle.load(f)
-                t = t["entries"]
-                self.assertEqual(len(t), 1)
-                self.assertEqual(t[0]["collective_seq_id"], 1)
-                self.assertEqual(t[0]["state"], "completed")
+            try:
+                # Both ranks must abort; a normal return must not count as fault handling.
+                self.assertEqual(self._wait_process(0, timeout=180), -6)
+                self.assertEqual(self._wait_process(1, timeout=180), -6)
+                self.assertTrue(os.path.exists(self._trace_name(rank=1)))
+                self.assertTrue(os.path.exists(self._trace_name(rank=0)))
+                with open(self._trace_name(rank=0), "rb") as f:
+                    t = pickle.load(f)
+                    t = t["entries"]
+                    self.assertEqual(len(t), 2)
+                with open(self._trace_name(rank=1), "rb") as f:
+                    t = pickle.load(f)
+                    t = t["entries"]
+                    self.assertEqual(len(t), 1)
+                    self.assertEqual(t[0]["collective_seq_id"], 1)
+                    self.assertEqual(t[0]["state"], "completed")
+            finally:
+                for process in self.processes:
+                    if process.is_alive():
+                        process.terminate()
+                        process.join(timeout=10)
+                    if process.is_alive():
+                        process.kill()
+                        process.join(timeout=10)
             return
 
         pg = self._create_process_group_hccl()
@@ -841,9 +852,9 @@ class HCCLTraceTestTimeoutDumpOnStuckRanks(HCCLTraceTestDumpOnTimeoutBase):
             torch.npu.synchronize(device=device)
 
             if self.rank == 1:
-                # Force rank 1 to sleep 120s so that it will eventually exit as well after
-                # getting the global signal to dump the debugging info(won't break).
-                time.sleep(120)
+                # Stay alive for the remote dump and monitor abort; never return normally.
+                time.sleep(180)
+                self.fail("Rank 1's monitor did not terminate the process after the remote fault dump")
 
 
 class HcclErrorDumpTest(HCCLTraceTestBase):
@@ -918,21 +929,20 @@ class HcclHeartbeatDumpTest(HCCLTraceTestBase):
         self.assertIn(self.processes[1].exitcode, (0, -15))
 
     def test_hccl_heartbeat_dump(self):
-        if self.rank != self.MAIN_PROCESS_RANK:
-            # dump on heartbeatmonitor thread
-            os.environ["TORCH_HCCL_ENABLE_MONITORING"] = "1"
+        os.environ["TORCH_HCCL_ENABLE_MONITORING"] = "1"
         os.environ["TORCH_HCCL_ASYNC_ERROR_HANDLING"] = "1"
         os.environ["TORCH_HCCL_TRACE_BUFFER_SIZE"] = "1000"
         os.environ["TORCH_HCCL_DUMP_ON_TIMEOUT"] = "1"
-        # need rank0 to dump
         os.environ["TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC"] = "10"
+        os.environ["TORCH_HCCL_PROPAGATE_ERROR"] = "1"
+        os.environ["TORCH_HCCL_WAIT_TIMEOUT_DUMP_MILSEC"] = "5000"
 
         if self.rank == self.MAIN_PROCESS_RANK:
             try:
                 self.assertEqual(self._wait_process(0, timeout=90), -6)
                 self.assertTrue(os.path.exists(self._trace_name(rank=0)))
                 with open(self._trace_name(rank=0) + "_py_traceback", "r") as f:
-                    self.assertIn("time.sleep(30)", f.read())
+                    self.assertIn("threading.Event().wait(60)", f.read())
                 self.assertFalse(os.path.exists(self._trace_name(rank=1)))
             finally:
                 for process in self.processes:
@@ -944,19 +954,47 @@ class HcclHeartbeatDumpTest(HCCLTraceTestBase):
                         process.join(timeout=10)
             return
 
-        pg = self._create_process_group_hccl()
+        class HeartbeatStore(dist.Store):
+            def __init__(self, store):
+                super().__init__()
+                self.store = store
+                self.block_watchdog = False
+
+            def set(self, key, value):
+                return self.store.set(key, value)
+
+            def get(self, key):
+                return self.store.get(key)
+
+            def add(self, key, value):
+                return self.store.add(key, value)
+
+            def wait(self, keys, *args):
+                return self.store.wait(keys, *args)
+
+            def check(self, keys):
+                if self.block_watchdog and any(key.startswith("remote_error:") for key in keys):
+                    # Only watchdog waits here; the monitor can still check and dump.
+                    threading.Event().wait(60)
+                return self.store.check(keys)
+
+            def clone(self):
+                return self
+
+        store = HeartbeatStore(dist.FileStore(self.file_name, self.world_size))
+        options = torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()
+        pg = torch_npu._C._distributed_c10d.ProcessGroupHCCL(store, self.rank, self.world_size, options)
         device = self.local_device
         with torch.npu.device(device):
+            if self.rank == 1:
+                # STOP keeps heartbeats alive and avoids peer errors after rank 0 aborts.
+                pg.set_watchdog_status(2)
             a = torch.full((3, 4), float(self.rank), device=device)
-
-            pg.allreduce(a).wait()
-            if self.rank == 0:
-                # sleep for heartbeat dump
-                time.sleep(30)
-
-            pg.allreduce(a).wait()
-
+            pg.allreduce([a]).wait()
             torch.npu.synchronize(device=device)
+            store.block_watchdog = self.rank == 0
+            threading.Event().wait(90)
+            self.fail("Heartbeat monitor did not terminate rank 0")
 
 
 class HCCLTraceTestDumpOnHcclTimeout(HCCLTraceTestBase):

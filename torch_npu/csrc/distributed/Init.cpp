@@ -71,6 +71,14 @@ class IntrusivePtrNoGilDestructor {
   }
 };
 
+bool acquireHcclGilForWatchdog() {
+  // If acquiring the GIL blocks, the monitor's bounded wait reports a possible GIL hang.
+  if (Py_IsInitialized()) {
+    pybind11::gil_scoped_acquire gil;
+    return true;
+  }
+  return false;
+}
 } // anonymous namespace
 
 PYBIND11_DECLARE_HOLDER_TYPE(T, IntrusivePtrNoGilDestructor<T>, true);
@@ -186,6 +194,7 @@ void _register_builtin_comm_hook(c10d_npu::Reducer& reducer, ::c10d::BuiltinComm
 
 PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs) {
   c10d_npu::registerPythonDebugAdapter();
+  c10d_npu::get_gil_checker() = &acquireHcclGilForWatchdog;
   auto torch_npu_C_module = THPObjectPtr(PyImport_ImportModule("torch_npu._C"));
   if (!torch_npu_C_module) {
     throw python_error();

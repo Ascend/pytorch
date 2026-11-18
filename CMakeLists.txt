@@ -632,6 +632,13 @@ if (NOT DEFINED BUILD_LIBTORCH AND SKBUILD)
 
 endif()
 
+# The Python watchdog tests do not require GoogleTest or Kineto headers.
+add_library(watchdog_fault_injection SHARED EXCLUDE_FROM_ALL
+  ${PROJECT_SOURCE_DIR}/test/distributed/watchdog/watchdog_fault_injection.cpp)
+target_link_libraries(watchdog_fault_injection PRIVATE ${CMAKE_DL_LIBS})
+set_target_properties(watchdog_fault_injection PROPERTIES
+  LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/build/gtest)
+
 if (BUILD_GTEST)
   enable_testing()
   # Make internal HCCL utilities linkable from unit tests in test builds only.

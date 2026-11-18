@@ -12,6 +12,7 @@
 #include <c10d/ProcessGroup.hpp>
 #include <c10d/Store.hpp>
 #include <c10d/Utils.hpp>
+#include <c10d/logger.hpp>
 #include <c10d/Work.hpp>
 #include <torch/csrc/distributed/c10d/FlightRecorder.hpp>
 #include <torch/csrc/distributed/c10d/logger.hpp>
@@ -70,6 +71,7 @@ static std::vector<std::string> TORCH_HCCL_BLOCKING_WAIT = {"TORCH_HCCL_BLOCKING
 constexpr const char* HCCL_BACKEND_NAME = "hccl";
 
 constexpr const char* EXCEPTION_DUMP = "exception_dump";
+constexpr const char* kStoreErrorSignalKey = "remote_error";
 
 // Environment variable which controls whether or not we perform Async Error
 // Handling with HCCL.
@@ -82,7 +84,7 @@ constexpr const char* HCCL_DESYNC_DEBUG = "HCCL_DESYNC_DEBUG";
 constexpr const int DEFAULT_TIMEOUT = 30 * 60 * 1000;
 
 // Control whether dumping debug info on watchdog
-// timeout is enabled. This variable must be set together with
+// timeout is enabled (disabled by default). This variable must be set together with
 // TORCH_HCCL_ENABLE_MONITORING=1 and a non-zero shared recorder buffer.
 static std::vector<std::string> TORCH_HCCL_DUMP_ON_TIMEOUT = {"TORCH_HCCL_DUMP_ON_TIMEOUT"};
 
@@ -90,7 +92,8 @@ static std::vector<std::string> TORCH_HCCL_DUMP_ON_TIMEOUT = {"TORCH_HCCL_DUMP_O
 // independent of the heartbeat monitor and is disabled by default.
 static std::vector<std::string> TORCH_HCCL_EXTRA_DUMP_ON_EXEC = {"TORCH_HCCL_EXTRA_DUMP_ON_EXEC"};
 
-// Enable monitoring thread which aborts the process when the ProcessGroupHCCL
+// Enable or disable the heartbeat monitor thread (disabled by default).
+// When enabled, it aborts the process when the ProcessGroupHCCL
 // Watchdog thread gets stuck and no heartbeat is detected after
 // TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC. This can happen due to calling CANN/HCCL
 // APIs that may hang. It is Useful to prevent jobs being stuck for a prolonged
@@ -117,6 +120,19 @@ static std::vector<std::string> TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC = {"TORCH_HCCL_
 // signal from other ranks, e.g. to dump the debugging information.
 static std::vector<std::string> TORCH_HCCL_COORD_CHECK_MILSEC = {"TORCH_HCCL_COORD_CHECK_MILSEC"};
 
+// Whether to log C++ stack traces on unclean shutdown (default true).
+static std::vector<std::string> TORCH_HCCL_LOG_CPP_STACK_ON_UNCLEAN_SHUTDOWN = {
+    "TORCH_HCCL_LOG_CPP_STACK_ON_UNCLEAN_SHUTDOWN"};
+
+// Whether the HCCL watchdog rethrows errors caught by its run loop (default true).
+static std::vector<std::string> TORCH_HCCL_RETHROW_HCCL_ERRORS = {"TORCH_HCCL_RETHROW_HCCL_ERRORS"};
+
+// Whether to rethrow timeout exceptions independently of the general error setting (default false).
+static std::vector<std::string> TORCH_HCCL_TEARDOWN_ON_TIMEOUT = {"TORCH_HCCL_TEARDOWN_ON_TIMEOUT"};
+
+// Whether to propagate detected errors to other ranks through the Store.
+static std::vector<std::string> TORCH_HCCL_PROPAGATE_ERROR = {"TORCH_HCCL_PROPAGATE_ERROR"};
+
 // Control whether to always use high priority streams
 static std::vector<std::string> TORCH_HCCL_HIGH_PRIORITY = {"TORCH_HCCL_HIGH_PRIORITY"};
 
@@ -125,7 +141,6 @@ using ProcessGroupStatus = c10d::ProcessGroupStatus;
 using FlightRecorderNPU = c10d::FlightRecorder<c10_npu::NPUEvent>;
 using TraceIdentifier = FlightRecorderNPU::TraceIdentifier;
 
-#ifndef BUILD_LIBTORCH
 struct DumpPipe {
   DumpPipe(int rank, const std::string& fileStem, int traceBufferSize) {
     if (fileStem.empty() || traceBufferSize <= 0) {
@@ -159,7 +174,6 @@ struct DumpPipe {
  private:
   int fd_ = -1;
 };
-#endif
 
 // A shelf for stashing tensors between op call and `work.wait()`.
 // Used in case of async ops.
@@ -262,7 +276,7 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
     ~WorkHCCL() override;
 
     // Checks if the HCCL kernel has started to execute.
-    bool isStarted(ErrorHandlingMode errorHandling);
+    bool isStarted();
 
     std::shared_ptr<bool> is_dispatched = std::make_shared<bool>(false);
     bool is_reported = false;
@@ -409,7 +423,7 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
 
     // Just checks whether NPU execution has started, without modifying
     // exception_ptr.
-    bool startedNPUExecutionInternal(ErrorHandlingMode errorHandling) const;
+    bool startedNPUExecutionInternal() const;
 
     // Just checks whether NPU execution has completed, without modifying
     // exception_ptr.
@@ -417,6 +431,10 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
 
     // Get a Future object that will be marked as completed internally.
     c10::intrusive_ptr<c10::ivalue::Future> getFuture() override;
+
+    // Get a Future result of each work (e.g. success, different error types).
+    // instead of the tensor output.
+    c10::intrusive_ptr<c10::ivalue::Future> getFutureResult() override;
 
     // Store a reference to HCCL collective's outputs, used by result and to
     // give a more descriptive message when representing the Work as a string.
@@ -428,6 +446,9 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
 
     // The future returned by getFuture.
     c10::intrusive_ptr<at::ivalue::Future> future_;
+
+    // the future result (e.g., success or failure) of the work
+    c10::intrusive_ptr<at::ivalue::Future> futureWorkResult_;
 
     // save inputs for tensor free when WorkHCCL::wait
     std::vector<std::pair<c10::weak_intrusive_ptr<c10::StorageImpl>, c10_npu::NPUStream>> recorded_inputs_;
@@ -470,6 +491,112 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
     std::string group_id;
   };
 
+  // Helper class related to TORCH_HCCL_DESYNC_DEBUG.
+  class DesyncDebugger {
+   public:
+    // Initialize and enable DesyncDebugger.
+    void init(int rank, int size, int globalRank, size_t pgId, c10::intrusive_ptr<c10d::Store> store);
+
+    // Log work start to the Store.
+    void logWorkStart(WorkHCCL& work);
+
+    // Log work end to the Store.
+    void logWorkEnd(WorkHCCL& work);
+
+    // Run desync debug. Called by the watchdog when a work times out.
+    void run();
+
+   private:
+    // Whether desync debug is enabled. If false, all methods are no-op.
+    bool enabled_{false};
+
+    // Rank information copied from ProcessGroupHCCL during initialization.
+    int rank_;
+    int size_;
+    int globalRank_;
+    size_t pgId_;
+
+    c10::intrusive_ptr<c10d::Store> store_;
+
+    // Store keys for the most recent HCCL collective start and end events.
+    std::string traceKeyStart_;
+    std::string traceKeyEnd_;
+  };
+
+  class HeartbeatMonitor {
+   public:
+    // Create a monitor for the owning ProcessGroupHCCL.
+    HeartbeatMonitor(ProcessGroupHCCL* pg);
+    virtual ~HeartbeatMonitor() = default;
+
+    // Start the heartbeat monitor thread.
+    void start();
+
+    // Set the stop flag and wake the monitor thread.
+    void stop();
+
+    // Wait for the monitor thread and its diagnostic tasks to finish.
+    void join();
+
+    // Run the loop that checks watchdog progress and handles dump requests.
+    virtual void runLoop();
+
+    // Set the last update time of watchdog thread.
+    void setLastWorkListUpdateTime(std::chrono::time_point<std::chrono::steady_clock> time);
+
+    int getDumpTimeout() const;
+
+    // Fault dumps require both the monitor thread and the dump option.
+    bool getDumpOnException() const {
+      return watchdogHeartbeatMonitorEnabled_ && dumpOnException_;
+    }
+
+    // Util function to get the HCCL watchdog timeout error message.
+    std::string getHCCLWatchdogTimeoutErrorMsg(const std::string& extraMsg);
+
+    // Util function to get the HCCL watchdog timeout exit message.
+    std::string getHCCLWatchdogTimeoutExitMsg(const std::string& exitReason);
+
+   protected:
+    // The monitor thread uses the PG to read watchdog state and save diagnostics.
+    // The raw pointer is safe because the PG joins this thread before destruction.
+    ProcessGroupHCCL* pg_;
+
+   private:
+    // Whether to start the heartbeat monitor thread.
+    bool watchdogHeartbeatMonitorEnabled_;
+
+    // Whether to print C++ stack traces when the monitor detects an unclean shutdown.
+    bool logCppStackOnUncleanShutdown_;
+
+    // The heartbeat monitor thread.
+    std::thread hcclHeartbeatMonitorThread_;
+
+    // Whether the monitor thread should stop.
+    std::atomic<bool> terminateHeartbeatMonitorThread_{false};
+
+    // Condition variable used to wake the monitor thread early.
+    std::condition_variable monitorWakeUpCV_;
+
+    // Used only by the monitor loop when waiting on its condition variable.
+    std::mutex monitorMutex_;
+
+    // Last time the watchdog updated its work list.
+    std::chrono::time_point<std::chrono::steady_clock> lastWorkListUpdateTime_;
+
+    // Whether to dump debug info on watchdog timeout or HCCL errors.
+    bool dumpOnException_;
+
+    // Timeout for deciding that the watchdog has stopped making progress.
+    int heartbeatTimeoutInSec_;
+
+    // Maximum time to wait for a diagnostic dump to finish.
+    int waitTimeoutDumpInMilSec_;
+
+    // How often to check the Store for coordinated dump requests.
+    int coordCheckIntervalMilSec_;
+  };
+
   // Class that runs as a side thread to check whether the HCCL collective
   // is timed out or errors on the cached HCCL communicators.
   class Watchdog {
@@ -510,8 +637,6 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
 
     uint64_t getHeartbt() const;
 
-    void setDesyncDebug(bool desyncDebug);
-
    private:
     std::thread hcclCommWatchdogThread_;
 
@@ -521,8 +646,14 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
     // lifetime of the PG instance.
     ProcessGroupHCCL* pg_;
 
-    // cached rank for logging inside Watchdog
-    int rank_ = -1;
+    // Whether the HCCL watchdog should rethrow errors caught in run().
+    bool rethrowHcclErrors_;
+
+    // Whether timeout exceptions can be rethrown even when general rethrow is disabled.
+    bool tearDownOnTimeout_;
+
+    // Set in runLoop() when a timeout should be rethrown by run()'s catch block.
+    bool rethrowTimeoutException_ = false;
 
     std::exception_ptr watchDogException_ = nullptr;
 
@@ -530,13 +661,17 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
     std::condition_variable workMetaListCV_;
 
     // Heartbeat of watchdog thread.
-    std::atomic_uint64_t heartbeat_{};
+    std::atomic_uint64_t heartbeat_;
 
-    // Whether or not to propagate detected errors to all ranks in the same PG
-    // through TCPStore. Check for the variable propagatePgError_
+    // Whether to propagate detected errors to all ranks in the same PG
+    // through TCPStore. Initialized from TORCH_HCCL_PROPAGATE_ERROR.
+    bool propagatePgError_;
 
-    // Whether or not to enable timeout root cause analysis.
+    // Whether desync debugging is enabled for this watchdog.
     bool desyncDebug_;
+
+    // Helper that records work progress and reports desync information.
+    DesyncDebugger desyncDebugger_;
   };
 
   // If you wish to create multiple process groups, each with a potentially
@@ -827,6 +962,8 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
   // whenever feasible.
   void addEphemeralTimeout(const std::chrono::milliseconds& timeout);
 
+  c10d::ErrorType getError() override;
+
  protected:
   // Helper that broadcasts HCCL Master ID to all ranks through the store
   void broadcastMasterID(HcclRootInfo* hcclID, bool isSingleP2POp, const std::string& devicesKey, int p2pRank);
@@ -889,18 +1026,26 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
   // In the timeout case and we will dump debug info such as the NCCL flight
   // recorder to storage. Down the road, if we have more complicated or blocking
   // operations, we might need to use a side thread to do it.
-#ifndef BUILD_LIBTORCH
+  bool dumpDebuggingInfo(bool includeStack = true, bool onlyActive = false);
   void dumpExtraDebuggingInfo();
-  bool dumpDebuggingInfo(bool includeStackTrace = true, bool onlyActive = false);
-  bool dumpPythonTraceback();
   std::future<bool> launchAsyncPythonTracebackDump();
+  bool dumpPythonTraceback();
 
-  // Function that runs as part of a separate thread aside from watchdog
-  // thread because we need to check the heartbeat from watchdog thread
-  // so that when we get stuck in some HCCL/CANN calls,
-  // we can dump the debugging information and abort the process.
-  virtual void heartbeatMonitor();
-#endif
+  // Broadcast a flight-recorder dump request to this process and other ranks.
+  void broadcastDumpSignal();
+
+  // Broadcast a signal from a source rank to the ranks sharing the Store.
+  void broadcastSignal(c10::intrusive_ptr<c10d::Store>& store, const std::string& signal, int srcRank);
+
+  // Instance of the heartbeat monitor thread.
+  std::unique_ptr<HeartbeatMonitor> heartbeatMonitor_;
+
+  // Protects the PG-level error state.
+  std::mutex errorMutex_;
+
+  // The first error reported for this process group.
+  c10d::ErrorType error_ = c10d::ErrorType::SUCCESS;
+  static std::atomic<bool> shouldDumpEarly_;
 
   // Instance of the watchdog thread.
   std::unique_ptr<Watchdog> watchdog_;
@@ -913,6 +1058,7 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
       std::future<bool>& fut,
       const std::chrono::milliseconds& timeOutMilSec,
       const std::string& futDescription,
+      ::c10d::C10dLoggingData& debugLog,
       bool throwException = false);
 
   // Do not call this directly, use ProcessGroup::setGroupName instead.
@@ -936,8 +1082,6 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
   // global.
   c10::intrusive_ptr<c10d::Store> globalStore_;
 
-  bool storeError_{false};
-
   // The lock which protects the write/read of
   // ephemeralTimeoutActive_/ephemeralTimeoutInflight_.
   std::mutex mtxTimeoutExtension_;
@@ -955,12 +1099,6 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
   // the lifetime of this process group. This sequence number is
   // used to scope keys used in the store.
   uint64_t hcclCommCounter_{0};
-
-  // The store keys to trace the last HCCL collective kernel Ascend events - start
-  // event and end event respectively. These are used to do desync root cause
-  // analysis.
-  const std::string traceKeyStart_;
-  const std::string traceKeyEnd_;
 
   // The HCCL communicator that the process group has cached.
   // The key is a list of NPU devices that an operation is operating on
@@ -994,19 +1132,6 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
   // Mutex to guard maps like devHCCLCommMap_.
   std::mutex mutex_;
 
-  // Heartbeat of watchdog thread.
-  std::atomic_uint64_t heartbeat_;
-
-  // The time interval used for deciding whether there is no watchdog heartbeat.
-  int heartbeatTimeoutInSec_;
-
-  // timeout for the dump to finish.
-  int waitTimeoutDumpInMilSec_;
-
-  // Interval of check coordinated signals in ProcessGroupHCCL from other ranks
-  // e.g., trigger the dump of the debugging info for timeout when notified.
-  int coordCheckIntervalMilSec_;
-
   // Size of ring buffer where we store HCCL Traces for debugging.
   int hcclTraceBufferSize_;
 
@@ -1014,23 +1139,8 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
   // for thread-safe access in heartbeatMonitor thread.
   std::string debugInfoPipeFile_;
 
-  // We gate the heartbeat monitor thread so that we can roll it out gradually.
-  static std::atomic<bool> monitorThreadEnabled_;
-
-  // Monitor thread which checks the heartbeat of Watchdog thread.
-  // If the monitor thread finds there is no heartbeat, it will dump debug info
-  // and then kill the watchdog thread to avoid hang.
-  std::thread hcclHeartbeatMonitorThread_;
-
   // Whether or not we should terminate the watchdog and workCleanup threads.
   std::atomic<bool> terminateProcessGroup_;
-
-  // Whether or not we should terminate the heartbeat monitoring threads.
-  std::atomic<bool> terminateHeartbeatMonitorThread_;
-
-  // Whether we are in the shutdown mode when we are trying to get debug info,
-  // such as desync report.
-  std::atomic<bool> collectiveDebugInfoMode_;
 
   // This is the signal from watchdog threads to indicate whether the monitor
   // thread should dump. Making it static so that it is accessible from all the
@@ -1044,22 +1154,11 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
   // Vector to Store WorkHCCL pointers
   std::list<ProcessGroupHCCL::WorkHCCL> workMetaList_;
 
-  // Mutex to Guard monitorWakeUpCV_
-  std::mutex monitorMutex_;
-
   // Mutex to Guard workMetaList_
   std::mutex workMetaListMutex_;
 
   // Add Work Pointer to workVector
   void workEnqueue(c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>);
-
-  // Condition Variable for watchdog thread sleep
-  std::condition_variable workMetaListCV_;
-
-  // Condition Variable for monitor thread to wake up early
-  std::condition_variable monitorWakeUpCV_;
-
-  std::chrono::time_point<std::chrono::steady_clock> lastWorkListUpdateTime_{std::chrono::steady_clock::now()};
 
   // Condition variable to control how long the  watchdog thread waits.
   std::condition_variable watchdogCV_;
@@ -1134,10 +1233,6 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
 
   // Whether or not to enable timeout root cause analysis.
   bool desyncDebug_;
-
-  // Whether or not to dump debug info on exception including both watchdog
-  // timeout and hccl errors.
-  bool dumpOnException_;
 
   // the perfdump path
   static std::string perfdumppath;
@@ -1341,12 +1436,6 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
   // timeout.
   void workCleanupLoop();
 
-  // Desync debug helper
-  void logWorkStart(WorkHCCL& work);
-
-  // Desync debug helper
-  void logWorkEnd(WorkHCCL& work);
-
   // Generates a prefix that is unique to this process group and rank, for
   // disambiguating logs
   std::string createLogPrefix() const;
@@ -1382,7 +1471,7 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
 
   std::unordered_map<c10d::OpType, std::pair<at::Tensor, at::Tensor>> silenceCheckCache_;
 
-  WatchdogStatus watchdogStatus = WatchdogStatus::RUN;
+  std::atomic<WatchdogStatus> watchdogStatus{WatchdogStatus::RUN};
 
   static ProcessGroupHCCL* global_;
 

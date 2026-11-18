@@ -297,7 +297,8 @@ uint32_t OptionsManager::CheckUseHcclAsyncErrorHandleEnable() {
             "please use TORCH_HCCL_ASYNC_ERROR_HANDLING instead.");
       }
     }
-    int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 1;
+    // Default to SkipCleanUp (3), matching the community async error handling default.
+    int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 3;
     if (asyncErrorHandlingMode.find(envFlag) == asyncErrorHandlingMode.end()) {
       TORCH_CHECK(false, "TORCH_HCCL_ASYNC_ERROR_HANDLING should be 0, 1, 2, or 3.", PTA_ERROR(ErrCode::VALUE));
     }
