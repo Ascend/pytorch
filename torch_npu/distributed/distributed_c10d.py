@@ -82,6 +82,74 @@ if is_xccl_available():
 logger = logging.getLogger("torch.distributed")
 origin_get_sequence_number_for_group = ProcessGroup._get_sequence_number_for_group
 npu_device_name = None
+_origin_scatter_object_list = dist_c10d.scatter_object_list
+
+
+def _create_coalesced_output_tensors(tensor_sizes, dtype, device):
+    """Create nonoverlapping receive views backed by one device storage."""
+    tensor_numels = [torch.Size(tensor_size).numel() for tensor_size in tensor_sizes]
+    coalesced_output_tensor = torch.empty(sum(tensor_numels), dtype=dtype, device=device)
+    output_tensors = []
+    offset = 0
+    for tensor_size, tensor_numel in zip(tensor_sizes, tensor_numels):
+        output_tensors.append(coalesced_output_tensor.narrow(0, offset, tensor_numel).view(tensor_size))
+        offset += tensor_numel
+    return output_tensors
+
+
+def _scatter_object_list(scatter_object_output_list, scatter_object_input_list=None,
+                         src=None, group=None, group_src=None):
+    """Scatter NPU objects with shared payload and length storages."""
+    original_kwargs = {"src": src, "group": group, "group_src": group_src}
+    group = dist_c10d._group_or_default_group(group)
+    device = None if _rank_not_in_group(group) else _get_object_coll_device(group)
+    if device is None or torch.device(device).type != "npu":
+        return _origin_scatter_object_list(
+            scatter_object_output_list, scatter_object_input_list, **original_kwargs)
+
+    if src is None and group_src is None:
+        src = 0
+    group_src = dist_c10d._canonicalize_group_rank(group, src, group_src, return_global=False)
+    if not isinstance(scatter_object_output_list, list) or len(scatter_object_output_list) < 1:
+        raise ValueError("Expected argument scatter_object_output_list to be a list of size at least 1.")
+
+    input_tensor_list = None
+    input_tensor_sizes = None
+    if group.rank() == group_src:
+        if scatter_object_input_list is None:
+            raise ValueError("source rank must provide non-None scatter_object_input_list")
+        # Serialize once on CPU: creating NPU payloads and sizes here would
+        # allocate two independent storages for every group member. Serialize
+        # each yielded value before advancing a potentially stateful iterator.
+        tensor_list = []
+        tensor_sizes = []
+        for obj in scatter_object_input_list:
+            cpu_tensor, _ = _object_to_tensor(obj, torch.device("cpu"), group)
+            tensor_list.append(cpu_tensor)
+            tensor_sizes.append(cpu_tensor.numel())
+        if len(tensor_list) != group.size():
+            raise ValueError("scatter_object_input_list must contain one object per group rank")
+        max_object_size = max(tensor_sizes)
+        coalesced_input_tensor = torch.zeros((group.size(), max_object_size), dtype=torch.uint8, device=device)
+        for index, cpu_tensor in enumerate(tensor_list):
+            # Keep this copy blocking before releasing the CPU staging tensor.
+            coalesced_input_tensor[index, :tensor_sizes[index]].copy_(cpu_tensor)
+            tensor_list[index] = None
+        del cpu_tensor, tensor_list
+        input_tensor_list = list(coalesced_input_tensor.unbind(0))
+        coalesced_input_sizes = torch.tensor(tensor_sizes, dtype=torch.long, device=device)
+        input_tensor_sizes = list(coalesced_input_sizes.split(1))
+        max_tensor_size = torch.tensor([max_object_size], dtype=torch.long, device=device)
+    else:
+        max_tensor_size = torch.zeros(1, dtype=torch.long, device=device)
+
+    # Preserve the upstream protocol and ordering: max size, payload, sizes.
+    dist_c10d.broadcast(max_tensor_size, group=group, group_src=group_src)
+    output_tensor = torch.empty(max_tensor_size.item(), dtype=torch.uint8, device=device)
+    dist_c10d.scatter(output_tensor, input_tensor_list, group=group, group_src=group_src)
+    output_size = torch.zeros(1, dtype=torch.long, device=device)
+    dist_c10d.scatter(output_size, input_tensor_sizes, group=group, group_src=group_src)
+    scatter_object_output_list[0] = _tensor_to_object(output_tensor, output_size, group)
 
 
 def _batch_isend_irecv(p2p_op_list):
@@ -225,10 +293,7 @@ def _gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
                 # To handle tensors of different shape on each rank, update recv shape first.
                 dist.broadcast_object_list(recv_size_list, dst, group)
                 if not gather_list:
-                    gather_list = [
-                        torch.empty(tensor_size, dtype=tensor.dtype).npu()
-                        for tensor_size in recv_size_list
-                    ]
+                    gather_list = _create_coalesced_output_tensors(recv_size_list, tensor.dtype, tensor.device)
 
                 output_tensors = [gather_list]
                 _group = default_pg._get_backend(torch.device("npu"))
@@ -253,10 +318,7 @@ def _gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
                 # To handle tensors of different shape on each rank, update recv shape first.
                 dist.broadcast_object_list(recv_size_list, dst, group)
                 if not gather_list:
-                    gather_list = [
-                        torch.empty(tensor_size, dtype=tensor.dtype).npu()
-                        for tensor_size in recv_size_list
-                    ]
+                    gather_list = _create_coalesced_output_tensors(recv_size_list, tensor.dtype, tensor.device)
 
                 output_tensors = [gather_list]
                 _group = group._get_backend(torch.device("npu"))
