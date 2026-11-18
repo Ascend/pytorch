@@ -5,7 +5,6 @@ import functools
 import itertools
 import math
 import operator
-import os
 import re
 from collections.abc import Callable, Iterable, Sequence
 from typing import Any, cast, Optional
@@ -60,7 +59,6 @@ from torch._inductor.runtime.hints import DeviceProperties, ReductionHint
 from torch._inductor.runtime.runtime_utils import next_power_of_2
 from torch._inductor.scheduler import SchedulerNode
 from torch._inductor.utils import (
-    generate_assert,
     get_bounds_index_expr,
     Placeholder,
     sympy_index_symbol,
@@ -72,7 +70,6 @@ from torch._inductor.virtualized import _ops as ops, ReductionType, StoreMode, V
 from torch.utils import _pytree as pytree
 from torch.utils._ordered_set import OrderedSet
 from torch.utils._sympy.functions import FloorDiv, Identity, ModularIndexing
-from torch.utils._sympy.numbers import int_oo
 from torch.utils._sympy.value_ranges import bound_sympy, ValueRanges
 
 from .. import config as npu_config
@@ -3262,16 +3259,6 @@ class NPUIndexTritonKernel(TritonKernel):
 
         return None
 
-    def find_indirect_axis(self, indirect_var):
-        indirect_key = sympy_index_symbol(indirect_var)
-        for node in self.node_schedule:
-            if node in (EnableReduction, DisableReduction):
-                continue
-            if indirect_key in node._body.indirect_replacements:
-                return node._body.indirect_replacements[indirect_key]
-
-        return None
-
     def get_template_shape_offset(self, analyzer):
         tiling_offset = []
         axis_shape = []
@@ -3319,43 +3306,6 @@ class NPUIndexTritonKernel(TritonKernel):
             tiling_offset.append(axis_offset)
 
         return axis_shape, tiling_offset, reshape_type, reshape_list
-
-    def get_template_offset(self, analyzer):
-        axis_start_offset = []
-        axis_end_offset = []
-        reshape_list = []
-        reshape_type = ""
-
-        for axis_key in reversed(analyzer.all_var_list):
-            if symbol_is_type(axis_key, NPUSymT.TMP):
-                axis_start_offset.append("0")
-                continue
-            axis = self.range_tree_nodes[axis_key]
-            BLOCK_NAME = f"{axis.name.upper()}BLOCK"
-            BLOCK_NAME_SUB = f"{BLOCK_NAME}_SUB"
-            start_offset = "0"
-            end_offset = f"{axis.name}_numel"
-            if axis.is_tiling_axis:
-                if axis.is_split_axis:
-                    offset = f"{axis.name}_offset"
-                    start_offset = f"{offset} + (loop_{axis.name} * {BLOCK_NAME_SUB})"
-                    end_offset = f"min({BLOCK_NAME} + {offset}, {axis.name}_numel)"
-                else:
-                    axis_persistent_reduction = (
-                        axis.name[0] == "r" and self.persistent_reduction
-                    )
-                    if (not axis.is_no_loop_axis) and (not axis_persistent_reduction):
-                        start_offset = f"(loop_{axis.name} * {BLOCK_NAME_SUB})"
-                reshape_list.append(BLOCK_NAME_SUB)
-            else:
-                start_offset = f"{axis.name}"
-                end_offset = f"{axis.name}_numel"
-                reshape_list.append("1")
-                reshape_type = "reshape"
-            axis_start_offset.append(start_offset)
-            axis_end_offset.append(end_offset)
-
-        return axis_start_offset, axis_end_offset, reshape_type, reshape_list
 
     def parse_golden_from_load_store_index(self):
         load_store_indexing = getattr(self, "load_store_indexing", None)
@@ -5465,69 +5415,6 @@ class NPUIndexTritonKernel(TritonKernel):
                 return ValueRanges.unknown()
 
             @staticmethod
-            def indirect_indexing(
-                var: CSEVariable,
-                size: sympy.Expr | int,
-                check: bool = True,
-                wrap_neg=True,
-            ):
-                if isinstance(size, int):
-                    size = sympy.Integer(size)
-                if not (isinstance(size, sympy.Expr)):
-                    raise RuntimeError("assert isinstance(size, sympy.Expr), size")
-                # Skip CSE since this doesn't return an expression
-
-                current_node = V.interpreter.current_node
-                if current_node and current_node.meta.get("indirect_template", False):
-                    sympy_var = sympy_index_symbol(str(var))
-                    return sympy_var
-
-                if var.bounds.lower < 0:  # type: ignore[operator]
-                    if (
-                        os.environ.get("INDUCTOR_ASCEND_DUMP_FX_GRAPH")
-                        or os.environ.get("INDUCTOR_ASCEND_CHECK_ACCURACY")
-                    ):
-                        wrap_neg = False
-                    if wrap_neg:
-                        stm = ops.add(var, ops.index_expr(size, torch.long))
-                        # Mixed negative and non-negative
-                        if var.bounds.upper >= 0:  # type: ignore[operator]
-                            lt = ops.lt(var, 0)
-                            stm = ops.where(lt, stm, var)
-                    else:
-                        stm = var
-
-                    # Propagate bounds as we know how to compute them properly
-                    new_bounds = ValueRanges.unknown()
-                    if var.bounds != ValueRanges.unknown() and isinstance(
-                        size, sympy.Number
-                    ):
-                        # Take the negative part of the bound and add size to it
-                        # Then take union of that and the positive part
-                        # This is a tighter bound than that of a generic ops.where, as we have info on the cond
-                        neg_bounds = var.bounds & ValueRanges(-int_oo, -1)
-                        new_bounds = ValueRanges(
-                            neg_bounds.lower + size, neg_bounds.upper + size
-                        )
-                        # We don't have a good way of representing the empty range
-                        if var.bounds.upper >= 0:  # type: ignore[operator]
-                            pos = var.bounds & ValueRanges(0, int_oo)
-                            new_bounds = new_bounds | pos
-
-                    var = self.cse.generate(self.compute, stm, bounds=new_bounds)
-
-                sympy_var = parent_handler.indirect_indexing(var, size, check)
-                if generate_assert(check):
-                    assert_lower = not (var.bounds.lower >= 0)
-                    # value ranges cannot x < s when x and s are symbols
-                    assert_upper = (
-                        not isinstance(size, sympy.Number)
-                        or not var.bounds.upper < size
-                    )
-                    self.check_bounds(sympy_var, size, assert_lower, assert_upper)
-                return sympy_var
-
-            @staticmethod
             def check_bounds(
                 expr: sympy.Expr, size: sympy.Expr, lower: bool, upper: bool
             ):
@@ -5629,329 +5516,15 @@ class NPUIndexTritonKernel(TritonKernel):
                     sorter_indices,
                 )
 
-            @staticmethod
-            def index_select(
-                src_name: str,
-                weight_index: CSEVariable,
-                indirect_var,
-                set_indirect,
-                bound,
-                index_select_type,
-            ) -> CSEVariable:
-                log.debug(
-                    "index_select: %s, %s, %s, %s, %s, %s",
-                    src_name,
-                    weight_index,
-                    indirect_var,
-                    set_indirect,
-                    bound,
-                    index_select_type,
-                )  # noqa: B950
 
-                from torch._inductor.utils import triton_type
 
-                def fallback_index_select_load(reason):
-                    log.info(
-                        "fallback index_select to tl.load reason: %s, bound: %s",
-                        reason,
-                        bound,
-                    )
-                    new_indirect_var = V.ops.indirect_indexing(indirect_var, bound)
-                    new_index = sympy_subs(
-                        weight_index,
-                        {
-                            sympy_index_symbol(indirect_var.name): sympy_index_symbol(
-                                new_indirect_var.name
-                            )
-                        },
-                    )  # noqa: B950
-                    return V.ops.load(src_name, new_index)
 
-                def is_correct_weight_index():
-                    if not self.is_indirect_indexing(weight_index):
-                        return False
-                    if index_select_type != "embedding":
-                        return True
-                    embedding_axis = None
-                    for key, coeff in weight_index.as_coefficients_dict().items():
-                        if isinstance(key, sympy.Integer):
-                            continue
-                        if isinstance(coeff, sympy.Integer) and int(coeff) == 1:
-                            embedding_axis = key
-                            break
-                    if not embedding_axis or embedding_axis not in self.golden_var_list:
-                        return False
-                    if self.golden_var_list.index(embedding_axis) != 0:
-                        return False
-
-                    return True
-
-                def check_output_index(output_index_analyzer):
-                    for var in output_index_analyzer.all_var_list:
-                        if not var.is_Atom:
-                            return False
-                    return True
-
-                current_node = V.interpreter.current_node
-                if current_node and current_node.meta.get(
-                    "multi_indirect_index", False
-                ):
-                    log_info = "ir is multi_indirect_index"
-                    return fallback_index_select_load(log_info)
-
-                # Fallback to tl.load
-                if not is_correct_weight_index():
-                    log_info = f"{str(weight_index)} not invalid"
-                    return fallback_index_select_load(log_info)
-
-                var = self.args.input(src_name)
-                dtype = V.graph.get_dtype(src_name)
-
-                indice_index = self.find_indirect_axis(set_indirect)
-                if indice_index is None:
-                    log_info = f"{str(set_indirect)} can't find indexing"
-                    return fallback_index_select_load(log_info)
-
-                indirect_output_analyzer = IndexAnalysis(self, weight_index)
-                indirect_output_vars = tuple(
-                    reversed(indirect_output_analyzer.all_var_list)
-                )
-                gather_dim = next(
-                    (
-                        dim
-                        for dim, var in enumerate(indirect_output_vars)
-                        if symbol_is_type(var, NPUSymT.TMP)
-                    ),
-                    None,
-                )
-                if gather_dim is None:
-                    log_info = f"gather_dim is None, weight_index: {weight_index}"
-                    return fallback_index_select_load(log_info)
-
-                src_stride = tuple(reversed(indirect_output_analyzer.all_stride_list))
-                if src_stride[-1] != 1:
-                    log_info = f"src_stride: {src_stride} not fit"
-                    return fallback_index_select_load(log_info)
-                output_index = sympy_subs(
-                    weight_index, {sympy_index_symbol(indirect_var.name): indice_index}
-                )
-                output_index_analyzer = IndexAnalysis(self, output_index)
-                indice_analyzer = IndexAnalysis(self, indice_index)
-                output_index_analyzer.analyze_index()
-                indice_analyzer.analyze_index()
-
-                if not check_output_index(output_index_analyzer):
-                    log_info = f"check_output_index: {output_index} not fit"
-                    return fallback_index_select_load(log_info)
-
-                start_offsets, _, _, _ = self.get_template_offset(
-                    indirect_output_analyzer
-                )
-                _, end_offsets, _, value_shapes = self.get_template_offset(
-                    output_index_analyzer
-                )
-                _, _, _, indice_shape = self.get_template_offset(indice_analyzer)
-                if isinstance(indice_index, (sympy.Integer, int)):
-                    indice_shape = ["1"]
-                    end_offsets.insert(gather_dim, "1")
-                    value_shapes.insert(gather_dim, "1")
-
-                if len(start_offsets) != len(src_stride):
-                    log_info = f"src_stride: {src_stride}, starts_offset: {start_offsets} don't fit"
-                    return fallback_index_select_load(log_info)
-
-                if len(end_offsets) != len(indice_shape) + len(start_offsets) - 1:
-                    log_info = f"end_offsets: {end_offsets}, starts_offset: {start_offsets}, value_shapes: {indice_shape} don't fit"
-                    return fallback_index_select_load(log_info)
-
-                start_offset_val = ", ".join(start_offsets)
-                end_offset_val = ", ".join(end_offsets)
-                shape_val = ",".join(value_shapes)
-                indice_shape = ", ".join(indice_shape)
-                indirect_var = self.cse.generate(
-                    self.compute,
-                    f"tl.reshape({indirect_var}, ({indice_shape}, ))",
-                    dtype=dtype,
-                )
-                out_triton_type = triton_type(dtype)
-                if index_select_type == "embedding":
-                    shape_val = ",".join(value_shapes[:-1] + [str(src_stride[0])])
-                out_var = self.cse.generate(
-                    self.compute,
-                    f"tl.full(({shape_val}, ), 0, dtype={out_triton_type})",
-                    dtype=dtype,
-                )
-                line = f'extension.custom("__builtin_index_select", {var}, {indirect_var}, dim={gather_dim}, bound={bound}, end_offset=({end_offset_val}, ), start_offset=({start_offset_val}, ), src_stride={src_stride}, out={out_var})'  # noqa: B950
-                index_select_var = self.cse.generate(self.compute, line, dtype=dtype)
-                # output shape is golden var list
-                output_shapes = []
-                for axis_key in reversed(self.golden_var_list):
-                    axis = self.range_tree_nodes[axis_key]
-                    BLOCK_NAME_SUB = f"{axis.name.upper()}BLOCK_SUB"
-                    output_shapes.append(BLOCK_NAME_SUB)
-                output_shapes_vals = ", ".join(output_shapes)
-                line = f"tl.reshape({index_select_var}, ({output_shapes_vals}, ))"
-                index_select_var = self.cse.generate(self.compute, line, dtype=dtype)
-                return index_select_var
-
-            @staticmethod
-            def gather_template(
-                src_name: str,
-                gather_index: CSEVariable,
-                indirect_var: CSEVariable,
-                set_indirect: str,
-                index_boundary: int,
-            ):  # noqa: B950
-                var = self.args.input(src_name)
-                dtype = V.graph.get_dtype(src_name)
-                indice_index = self.find_indirect_axis(set_indirect)
-                if not (indice_index):
-                    raise RuntimeError("assert indirect indice_index is not None")
-
-                indice_index_analyzer = IndexAnalysis(self, indice_index)
-                indirect_output_analyzer = IndexAnalysis(self, gather_index)
-                indirect_output_vars = tuple(
-                    reversed(indirect_output_analyzer.all_var_list)
-                )
-                indirect_dim = next(
-                    (
-                        dim
-                        for dim, var in enumerate(indirect_output_vars)
-                        if symbol_is_type(var, NPUSymT.TMP)
-                    ),
-                    None,
-                )
-                if indirect_dim is None:
-                    raise RuntimeError(f"indirect_dim is None in {gather_index}")
-                src_stride = tuple(reversed(indirect_output_analyzer.all_stride_list))
-
-                axis_shape, tiling_offset, reshape_type, reshape_list = (
-                    self.get_template_shape_offset(indice_index_analyzer)
-                )
-                axis_shape_val = ", ".join(axis_shape)
-                tiling_offset_val = ", ".join(tiling_offset)
-
-                if reshape_type:
-                    before_gather_shape = ",".join(reshape_list)
-                    line = f"tl.{reshape_type}({indirect_var}, ({before_gather_shape}))"
-                    reshape_var = self.cse.generate(self.compute, line, dtype=dtype)
-                    line = f"extension.gather_out_to_ub({var}, {reshape_var}, {index_boundary}, {indirect_dim}, {src_stride}, ({axis_shape_val},), ({tiling_offset_val},))"  # noqa: B950
-                    gather_var = self.cse.generate(self.compute, line, dtype=dtype)
-                    after_gather_shape = ",".join(
-                        [var for var in reshape_list if var != "1"]
-                    )
-                    line = f"tl.reshape({gather_var}, ({after_gather_shape}))"
-                else:
-                    line = f"extension.gather_out_to_ub({var}, {indirect_var}, {index_boundary}, {indirect_dim}, {src_stride}, ({axis_shape_val},), ({tiling_offset_val},))"  # noqa: B950
-                return self.cse.generate(self.compute, line, dtype=dtype)
-
-            @staticmethod
-            def indexput_template(
-                name: str,
-                output_index: CSEVariable,
-                store_var: CSEVariable,
-                set_indirect: str,
-                boundary: int,
-            ):
-                indirect_indexing = self.is_indirect_indexing(output_index)
-                # Fallback to tl.store
-                if not indirect_indexing:
-                    return self.store(name, output_index, store_var, None)
-                var_ptr = self.args.output(name)
-                dtype = V.graph.get_dtype(name)
-
-                indirect_axis = self.find_indirect_axis(set_indirect)
-                if not (indirect_axis):
-                    raise RuntimeError("assert indirect indirect_axis is not None")
-
-                indirect_output_analyzer = IndexAnalysis(self, output_index)
-                indirect_output_vars = tuple(
-                    reversed(indirect_output_analyzer.all_var_list)
-                )
-                indirect_dim, indirect_var = next(
-                    (
-                        (dim, var)
-                        for dim, var in enumerate(indirect_output_vars)
-                        if symbol_is_type(var, NPUSymT.TMP)
-                    ),
-                    None,
-                )  # noqa: B950
-                if indirect_dim is None:
-                    raise RuntimeError(f"indirect_dim is None in {output_index}")
-
-                output_codegen_index = sympy_subs(
-                    output_index, {sympy_index_symbol(indirect_var.name): indirect_axis}
-                )
-                output_index_analyzer = IndexAnalysis(self, output_codegen_index)
-
-                dst_stride = tuple(reversed(indirect_output_analyzer.all_stride_list))
-                start_offset, end_offset, reshape_type, reshape_list = (
-                    self.get_template_offset(output_index_analyzer)
-                )
-                start_offset_val = ", ".join(start_offset)
-                end_offset_val = ", ".join(end_offset)
-
-                if reshape_type:
-                    before_indexput_shape = ",".join(reshape_list)
-                    line = f"tl.reshape({store_var}, ({before_indexput_shape}))"
-                    store_var = self.cse.generate(self.compute, line, dtype=dtype)
-
-                line = f"extension.index_put({var_ptr}, {indirect_var}, {store_var}, {indirect_dim}, {boundary}, ({end_offset_val},), ({start_offset_val},), {dst_stride})"  # noqa: B950
-                return self.cse.generate(self.compute, line, dtype=dtype)
-
-            @staticmethod
-            def scatter_template(
-                name: str,
-                output_index: CSEVariable,
-                store_var: CSEVariable,
-                set_indirect: str,
-                boundary: int,
-            ):
-                var = self.args.output(name)
-                dtype = V.graph.get_dtype(name)
-
-                indice_index = self.find_indirect_axis(set_indirect)
-                if not (indice_index):
-                    raise RuntimeError("assert indirect indice_index is not None")
-
-                indice_index_analyzer = IndexAnalysis(self, indice_index)
-                indirect_output_analyzer = IndexAnalysis(self, output_index)
-                indirect_output_vars = tuple(
-                    reversed(indirect_output_analyzer.all_var_list)
-                )
-                indirect_dim, indirect_var = next(
-                    (
-                        (dim, var)
-                        for dim, var in enumerate(indirect_output_vars)
-                        if symbol_is_type(var, NPUSymT.TMP)
-                    ),
-                    None,
-                )
-                if indirect_dim is None:
-                    raise RuntimeError(f"indirect_dim is None in {output_index}")
-                dst_stride = tuple(reversed(indirect_output_analyzer.all_stride_list))
-
-                axis_shape, tiling_offset, reshape_type, reshape_list = (
-                    self.get_template_shape_offset(indice_index_analyzer)
-                )
-                tiling_offset_val = ", ".join(tiling_offset)
-                axis_shape_val = ", ".join(axis_shape)
-
-                if reshape_type:
-                    before_scatter_shape = ",".join(reshape_list)
-                    line = (
-                        f"tl.{reshape_type}({indirect_var}, ({before_scatter_shape}))"
-                    )
-                    indirect_var = self.cse.generate(self.compute, line, dtype=dtype)
-                    line = f"tl.reshape({store_var}, ({before_scatter_shape}))"
-                    store_var = self.cse.generate(self.compute, line, dtype=dtype)
-                line = f"extension.scatter_ub_to_out({var}, {store_var}, {indirect_var}, {boundary}, {indirect_dim}, {dst_stride}, ({axis_shape_val}, ), ({tiling_offset_val}, ))"  # noqa: B950
-                return self.cse.generate(self.compute, line, dtype=dtype)
 
         super().__enter__()
         if not self.overrides:
             raise RuntimeError("assert self.overrides")
         parent_handler = self.overrides()
+        CSEProxy.indirect_indexing = staticmethod(V.get_ops_handler().indirect_indexing)
         self.exit_stack.enter_context(V.set_ops_handler(CSEProxy()))
         self.exit_stack.enter_context(V.set_kernel_handler(self))
         return self

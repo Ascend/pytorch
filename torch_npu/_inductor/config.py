@@ -9,6 +9,7 @@ import torch._inductor.config as inductor_config
 import torch_npu
 
 from .utils import classproperty
+from .codegen.triton_utils import NPUKernelType
 
 # init inductor log
 def _init_inductor_log():
@@ -355,19 +356,7 @@ acc_comp_tol = {
 
 inductor_indirect_memory_mode = None
 if is_ascend950:
-    # A5 INDUCTOR_INDIRECT_MEMORY_MODE: fallback, simt_template, simt_only, simd_simt_mix
-    inductor_indirect_memory_mode = os.environ.get(
-        "INDUCTOR_INDIRECT_MEMORY_MODE", "simd_simt_mix"
-    )
-    if inductor_indirect_memory_mode == "fallback":
-        inductor_indirect_memory_mode = None
-    if inductor_indirect_memory_mode not in [
-        None,
-        "simt_template",
-        "simt_only",
-        "simd_simt_mix",
-    ]:
-        inductor_indirect_memory_mode = "simd_simt_mix"
+    inductor_indirect_memory_mode = str(NPUKernelType.SIMD_SIMT_MIX)
 
 # nddma switch
 default_nddma_switch = "1" if is_ascend950 else "0"

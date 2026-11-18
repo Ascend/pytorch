@@ -197,7 +197,7 @@ def _load_triton_backend():
     from .choices import patch_inductor_choices
     from .export import patch_aot_load
     from .codegen._sizevars import patch_simplify
-    from .codegen.ir import patch_fixed_indexer, patch_indexing, patch_loop_body
+    from .codegen.ir import patch_fixed_indexer, patch_loop_body
     from .decomposition import _register_triton_decompositions
     from .fx_passes import patch_pattern_mm_plus_mm, register_fav3_partition_pass
     from .fx_passes.graph_match_pass import (
@@ -317,7 +317,6 @@ def _load_triton_backend():
     patch_simplify()
     patch_num_splits()
     patch_loop_body()
-    patch_indexing()
     patch_fixed_indexer()
 
     patch_fast_launch()
@@ -331,60 +330,6 @@ def _load_triton_backend():
 
     patch_count_bytes()
 
-    def add_additional_op():
-        from torch._inductor.ops_handler import OpsHandler
-        from torch._inductor.utils import register_op_dtype_propagation_rules
-        from torch._prims_common import ELEMENTWISE_TYPE_PROMOTION_KIND
-
-        def index_select(
-            self, name, index, indirect_var, set_indirect, bound, index_select_type
-        ):
-            return self._default(
-                "index_select",
-                (name, index, indirect_var, set_indirect, bound, index_select_type),
-                {},
-            )
-
-        OpsHandler.index_select = index_select
-        register_op_dtype_propagation_rules(
-            "index_select", ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT, None
-        )
-
-        def gather_template(
-            self, name, index, indirect_var, set_indirect, index_boundary
-        ):
-            return self._default(
-                "gather_template",
-                (name, index, indirect_var, set_indirect, index_boundary),
-                {},
-            )
-
-        OpsHandler.gather_template = gather_template
-        register_op_dtype_propagation_rules(
-            "gather_template", ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT, None
-        )
-
-        def indexput_template(self, name, index, value, indirect_var, boundary):
-            return self._default(
-                "indexput_template", (name, index, value, indirect_var, boundary), {}
-            )
-
-        OpsHandler.indexput_template = indexput_template
-        register_op_dtype_propagation_rules(
-            "indexput_template", ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT, None
-        )
-
-        def scatter_template(self, name, index, value, indirect_var, boundary):
-            return self._default(
-                "scatter_template", (name, index, value, indirect_var, boundary), {}
-            )
-
-        OpsHandler.scatter_template = scatter_template
-        register_op_dtype_propagation_rules(
-            "scatter_template", ELEMENTWISE_TYPE_PROMOTION_KIND.DEFAULT, None
-        )
-
-    add_additional_op()
     torch._inductor.config.comprehensive_padding = False
 
     _fasta_autotune = os.environ.get("FASTAUTOTUNE", "0") == "1"
