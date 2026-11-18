@@ -343,6 +343,34 @@ def _npu_fractional_max_pool(
         return result, indices
 
 def _register_npu_inductor_fallbacks():
+    @register_lowering(aten.contiguous.default, type_promotion_kind=None)
+    def contiguous(x, *, memory_format=torch.contiguous_format):
+        # The lowering registry is shared by devices. Keep native semantics
+        # outside ordinary NPU tensors with standard contiguous memory format.
+        if (
+            x.get_device().type != "npu"
+            or x.get_dtype() in (torch.qint8, torch.quint8, torch.qint32)
+            or memory_format != torch.contiguous_format
+        ):
+            return fallback_handler(
+                aten.contiguous.default, add_to_fallback_set=False
+            )(x, memory_format=memory_format)
+
+        # Empty tensors are contiguous regardless of their strides. Returning
+        # self also preserves native aliasing, offsets and singleton strides.
+        if V.graph.sizevars.statically_known_equals(x.get_numel(), 0):
+            return x
+        try:
+            _, layout = ir.as_storage_and_layout(x, freeze=False)
+        except NotImplementedError:
+            layout = None
+        if isinstance(layout, ir.FixedLayout) and layout.is_contiguous():
+            return x
+
+        # Keep the Pointwise copy fusible while enforcing its output layout.
+        copied = clone_pt(x, memory_format=torch.contiguous_format)
+        return ir.ExternKernel.require_contiguous(copied)
+
 
     env_fallback_list = enable_full_lowering_fallback
     if env_fallback_list:
