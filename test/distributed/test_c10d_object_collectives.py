@@ -34,6 +34,7 @@ class TestObjectCollectives(TestCase):
             if self.rank == self.MAIN_PROCESS_RANK:
                 for p in self.processes:
                     p.join()
+                    self.assertEqual(p.exitcode, 0, f"worker {p.name} failed")
             else:
                 fn()
 
@@ -44,6 +45,7 @@ class TestObjectCollectives(TestCase):
         fn = getattr(self, method_name)
         setattr(self, method_name, self.join_or_run(fn))
 
+    @skipIfUnsupportMultiNPU(4)
     def setUp(self):
         super(TestCase, self).setUp()
         os.environ['MASTER_ADDR'] = '127.0.0.1'
@@ -98,6 +100,22 @@ class TestObjectCollectives(TestCase):
         output = [None for _ in gather_objects]
         dist.all_gather_object(output, gather_objects[dist.get_rank()])
         self.assertEqual(output, gather_objects)
+
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms()
+    def test_all_gather_object_length_exchange(self):
+        # Check one int64 per rank in shared output views, then exercise the
+        # same length exchange through all_gather_object.
+        local_size = torch.tensor([self.rank + 1], dtype=torch.int64, device="npu")
+        sizes = torch.zeros(self.world_size, dtype=torch.int64, device="npu")
+        outputs = [sizes[index:index + 1] for index in range(self.world_size)]
+        dist.all_gather(outputs, local_size)
+        self.assertEqual(sizes.cpu(), torch.arange(1, self.world_size + 1))
+        local_value = f"rank-{self.rank}"
+        gathered = [None] * self.world_size
+        dist.all_gather_object(gathered, local_value)
+        expected = [f"rank-{rank}" for rank in range(self.world_size)]
+        self.assertEqual(gathered, expected)
 
     @skipIfUnsupportMultiNPU(4)
     @with_comms()

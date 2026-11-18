@@ -4701,7 +4701,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
             } else {
                 work->stashed_for_allocator_safety_->stash(inputs[i]);
             }
-        } else {
+        } else if (inputs[i].storage().data_ptr().get() != nullptr) {
+            // Empty storages have no allocator block to record, including in reuse
+            // mode 3. Keep the input and block tracking lists paired for nonempty ones.
             c10_npu::NPUCachingAllocator::recordStream(inputs[i].storage().data_ptr(), hcclStream);
             if (multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM ||
                 multi_stream_memory_reuse_mode == c10_npu::option::ERASE_RECORD_STREAM_WITH_OPTIMIZE) {
@@ -6278,14 +6280,35 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
         }
 
         std::vector<at::Tensor> byte_alignment_inputTensors_ = {byte_alignment(inputTensors_[0])};
-        std::vector<at::Tensor> byte_alignment_outputTensors_;
-        for (unsigned int i = 0; i < outputTensors[0].size(); i++) {
-            byte_alignment_outputTensors_.push_back(byte_alignment(outputTensors[0][i]));
+        TORCH_CHECK(
+            outputTensors.size() == byte_alignment_inputTensors_.size(),
+            "Tensor list operands to scatter/gather must have the same length",
+            DIST_ERROR(ErrCode::VALUE));
+        std::vector<at::Tensor> outputFlattened;
+        for (const auto i : c10::irange(outputTensors.size())) {
+            TORCH_CHECK(
+                outputTensors[i].size() == size_ * byte_alignment_inputTensors_.size(),
+                "Tensor list input to scatter/gather must match number of collective participants",
+                DIST_ERROR(ErrCode::PARAM));
+            const auto& alignedInput = byte_alignment_inputTensors_[i];
+            TORCH_CHECK(
+                outputTensors[i].front().get_device() == alignedInput.get_device(),
+                "Corresponding input/output tensors to scatter/gather must all reside on the same device",
+                DIST_ERROR(ErrCode::PARAM));
+            // Validate unpadded element counts because padding can hide a size mismatch.
+            for (const auto& tensor : outputTensors[i]) {
+                TORCH_CHECK(
+                    tensor.numel() == inputTensors_[i].numel(),
+                    "All tensor operands to scatter/gather must have the same size",
+                    DIST_ERROR(ErrCode::PARAM));
+            }
+            c10_npu::OptionalNPUGuard npuGuard;
+            npuGuard.set_index(alignedInput.get_device());
+            // The input passed to HCCL sets the size of each slot in the single receive
+            // buffer. This avoids padding each output tensor into a temporary buffer.
+            outputFlattened.push_back(
+                at::empty({static_cast<int64_t>(outputTensors[i].size()), 1, alignedInput.numel()}, alignedInput.options()));
         }
-        std::vector<std::vector<at::Tensor>> byte_alignment_outputTensors;
-        byte_alignment_outputTensors.push_back(byte_alignment_outputTensors_);
-        auto outputFlattened =
-            flatten_for_scatter_gather(byte_alignment_outputTensors, byte_alignment_inputTensors_, size_);
         check_npu_tensors_different_devices(outputFlattened);
         return collective(
             byte_alignment_inputTensors_,
@@ -7330,6 +7353,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::gather(
             auto multi_stream_memory_reuse_mode = c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse();
             for (const auto i : c10::irange(inputTensors.size())) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[i]);
+                if (inputTensors[i].storage().data_ptr().get() == nullptr) {
+                    continue;
+                }
                 // See [Sync Streams].
                 if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
                     work->stashed_for_allocator_safety_->stash(inputTensors[i]);
@@ -7413,12 +7439,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
         if (getRank() == opts.rootRank) {
             inputFlattened = flatten_for_scatter_gather(inputTensors, outputTensors, size_);
         } else {
-            std::vector<at::Tensor> empty;
-            for (int i = 0; i < size_; i++) {
-                empty.push_back(at::empty_like(outputTensors[0]));
-            }
-            inputTensors.push_back(empty);
-            inputFlattened = flatten_for_scatter_gather(inputTensors, outputTensors, size_);
+            c10_npu::OptionalNPUGuard npuGuard;
+            npuGuard.set_index(outputTensors[0].get_device());
+            auto sizes = outputTensors[0].sizes().vec();
+            sizes.insert(sizes.begin(), size_);
+            inputFlattened.push_back(at::empty(sizes, outputTensors[0].options()));
+            // Only root has real inputs. Keeping inputTensors empty also skips the
+            // non-root placeholder copies in the pre-collective callback.
         }
         collectiveInputs = inputFlattened;
         need_flatten_copy = true;
@@ -7534,6 +7561,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
                 for (const auto i : c10::irange(inputTensors.size())) {
                     c10_npu::NPUStreamGuard guard(hcclStreams[i]);
                     for (const auto j : c10::irange(inputTensors[0].size())) {
+                        if (inputTensors[i][j].storage().data_ptr().get() == nullptr) {
+                            continue;
+                        }
                         // See [Sync Streams].
                         if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
                             work->stashed_for_allocator_safety_->stash(inputTensors[i][j]);
@@ -7559,6 +7589,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
                 if (getRank() == opts.rootRank) {
                     for (const auto j : c10::irange(inputTensors[0].size())) {
                         c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+                        if (inputTensors[0][j].storage().data_ptr().get() == nullptr) {
+                            continue;
+                        }
                         if (multi_stream_memory_reuse_mode == c10_npu::option::AVOID_RECORD_STREAM) {
                             work->stashed_for_allocator_safety_->stash(inputTensors[0][j]);
                         } else {
