@@ -1192,6 +1192,7 @@
 - 受CANN的ACL（Ascend Computing Language）运行时能力限制，存在以下约束：
   - `external=True`事件在同一张图（Graph）内不支持同时执行`record`和`wait`；可拆分为两张图分别执行`record`和`wait`，或同图场景改用普通事件。
   - `external=True`事件首次`record`后不支持在external模式与default模式之间切换；一种模式请使用一个独立的事件实例。
+- 同时开启`enable_timing=True`和`external=True`的事件在图（Graph）内使用时依赖驱动版本，如遇相关报错，建议升级驱动后重试。
 
 <a class="method_anchor" id="torch_cuda_Event_elapsed_time"></a>
 
