@@ -2859,13 +2859,18 @@ def reduction(
         _orig_x = size_hints.get("x", 1)
         if isinstance(_orig_x, int) and _orig_x > 64:
             size_hints["x"] = 64
-        # Force a single fixed config (XBLOCK=64, R0_BLOCK=128) to ensure
-        # the same kernel binary for all batch sizes. Different XBLOCK values
-        # produce different kernel binaries with different FP behavior on NPU.
-        # R0_BLOCK=128 keeps [64,128]*5*4B*2 ~ 131KB within the 192KB UB limit.
+        # Force a single fixed config to ensure the same kernel binary for all
+        # batch sizes. Different XBLOCK values produce different kernel
+        # binaries with different FP behavior on NPU. XBLOCK=64/R0_BLOCK=128
+        # keeps [64,128]*5*4B*2 ~ 131KB within the 192KB UB limit, but still
+        # honor the codegen-pinned floors: a staged kernel whose body needs
+        # R0_BLOCK >= min_rblock cannot compile the hard-coded 128 tile
+        # (tl.arange(0, 0)).
+        _fixed_x = max(64, int(inductor_meta.get("min_xblock") or 1))
+        _fixed_r = max(128, int(inductor_meta.get("min_rblock") or 1))
         return cached_autotune(
             size_hints,
-            [npu_triton_config_reduction(size_hints, 64, 128)],
+            [npu_triton_config_reduction(size_hints, _fixed_x, _fixed_r)],
             triton_meta=triton_meta,
             inductor_meta=inductor_meta,
             heuristic_type=HeuristicType.REDUCTION,
@@ -2898,6 +2903,36 @@ def reduction(
             num_warps=num_warps,
             register_intensive=register_intensive,
         )
+
+    # Upstream heuristics read inductor_meta["min_rblock"]/["min_xblock"]
+    # (pinned by the nested/staged codegen: kernel.min_rblock = ...) to keep
+    # the derived-family block floors. The NPU reduction path generates its own
+    # candidates, so enforce the same floors here: a kernel body that emits
+    # tl.arange(0, R0_BLOCK // LOCAL_REDUCTION_SIZE) cannot compile with
+    # R0_BLOCK < LOCAL_REDUCTION_SIZE (arange end <= start for every candidate).
+    _min_rblock = inductor_meta.get("min_rblock")
+    _min_xblock = inductor_meta.get("min_xblock")
+
+    def _apply_min_blocks(configs):
+        if _min_rblock is None and _min_xblock is None:
+            return configs
+        out = []
+        for cfg in configs:
+            xb = cfg.kwargs.get("XBLOCK")
+            rb = cfg.kwargs.get("R0_BLOCK")
+            if _min_rblock is not None and isinstance(rb, int) and rb < _min_rblock:
+                continue
+            if _min_xblock is not None and isinstance(xb, int) and xb < _min_xblock:
+                continue
+            out.append(cfg)
+        if not out:
+            # No legal candidate: force one tile that satisfies both floors.
+            # XBLOCK must stay 1 when there is a single output element, or
+            # check_config rejects the config before the floor can help.
+            x0 = 1 if xnumel == 1 else max(1, int(_min_xblock or 1))
+            r0 = max(1, int(_min_rblock or 1))
+            out = [reduction_cfg(x0, r0)]
+        return out
 
     if len(size_hints) in (2, 3):
         # Permute-gather rewrite (ncfg.enable_permute_gather): the codegen
@@ -2936,11 +2971,14 @@ def reduction(
 
         # ``autotune_enhance`` uses the compact reduction formula unless the saved
         # ``autotune_fallback`` or an Inductor max-autotune setting requests the
-        # exhaustive candidate cascade below.
+        # exhaustive candidate cascade below. The formula candidates still have to
+        # respect the codegen-pinned min_rblock/min_xblock floors.
         if (_runtime_config(inductor_meta, "autotune_enhance")
                 and not _runtime_config(inductor_meta, "autotune_fallback")
                 and not (inductor_meta.get("max_autotune", False) or inductor_meta.get("max_autotune_pointwise", False))):
-            configs = _red_formula_configs(size_hints, triton_meta, inductor_meta)
+            configs = _apply_min_blocks(
+                _red_formula_configs(size_hints, triton_meta, inductor_meta)
+            )
             return cached_autotune(
                 size_hints,
                 configs,
@@ -3189,7 +3227,7 @@ def reduction(
                 if all(cfg.kwargs != existing.kwargs for existing in base_configs):
                     base_configs.append(cfg)
 
-        configs = base_configs
+        configs = _apply_min_blocks(base_configs)
 
         return cached_autotune(
             size_hints,

@@ -108,3 +108,37 @@ def ge(a, b):
     if a.dtype.is_bool():
         return a | (a == b)
     return a >= b
+
+
+@triton.jit
+def log1p(x):
+    """Accurate ``log(1 + x)`` for the vector path.
+
+    CANN's ``libdevice.log1p`` is implemented as ``log(1 + x)``: the addition
+    is rounded to the input dtype before the log is applied, so inputs below
+    half an ulp of 1 collapse to 0 and the next decades lose most of their
+    bits (fp32: 1e-8 -> 0, 1e-7 -> 19% high). ``u = 1 + x`` keeps only the leading bits of x;
+    ``delta = x - (u - 1)`` is exactly the part the addition dropped and
+    ``log(u) + delta / u`` restores ``log1p`` to about 1 ulp.
+
+    ``x = -1`` gives ``u = 0``; the divisor is forced away from 0 so that
+    ``log(0) + 0 / 0`` stays ``-inf`` instead of becoming NaN. ``x = +inf``
+    gives ``u = +inf`` and ``delta = inf - inf = NaN``; the correction is
+    dropped for non-finite ``u`` so the result stays ``+inf`` (``-inf`` and
+    NaN still produce NaN).
+
+    ``x = -0.0`` needs one more fix-up: ``log1p(-0.0)`` is ``-0.0``, but the
+    compensated form evaluates ``log(1) + 0 - 0``, and every term of that is
+    ``+0``, so the sign of the input zero is lost. That changes
+    ``1 / log1p(-0.0)`` from ``-inf`` to ``+inf``. Return the argument itself
+    for zero inputs (it already carries the sign) and the compensated result
+    everywhere else.
+    """
+    u = 1.0 + x
+    delta = x - (u - 1.0)
+    # u is non-finite for x = +-inf/NaN. log(u) already carries the correct
+    # +inf/NaN then, while delta would poison it with NaN (inf - inf).
+    # u - u == 0 holds for finite u only.
+    delta = tl.where(u - u == 0.0, delta, 0.0)
+    result = tl.log(u) + delta / tl.where(u == 0.0, 1.0, u)
+    return tl.where(x == 0.0, x, result)

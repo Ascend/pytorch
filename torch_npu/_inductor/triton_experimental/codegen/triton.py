@@ -2143,6 +2143,23 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
         return f"tl.rsqrt({x})"
 
     @staticmethod
+    @maybe_upcast_float32()
+    def log1p(x):
+        """``log(1 + x)`` with the addition's rounding error compensated.
+
+        CANN's ``libdevice.log1p`` is ``log(1 + x)`` on the vector path, so it
+        rounds ``1 + x`` to fp32 before taking the log, so inputs below half
+        an fp32 ulp of 1 collapse to 0 (measured on Ascend 910B4: log1p(1e-8)
+        == 0 although the result is 1e-8, log1p(1e-7) == 1.19e-7, 19% high).
+        npu_triton_helpers.log1p adds the bits dropped by that addition back
+        and matches a float64 reference to <= 2 ulp over 400k fp32 samples
+        spanning (-1, 1] and [1, 1e6], x = -1 included (stays -inf). Every
+        generated triton_experimental wrapper imports npu_triton_helpers.
+        Pinned by test/_inductor/triton_experimental/test_log1p_generate_list.py.
+        """
+        return f"npu_triton_helpers.log1p({x})"
+
+    @staticmethod
     def minimum(a, b):
         return f"npu_triton_helpers.minimum({a}, {b})"
 

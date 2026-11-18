@@ -106,11 +106,15 @@ class TestBCELogitsBackward(TestCase):
         # with a weight/pos_weight it materializes the dtype-converted broadcast
         # operand into its own kernel, which carries no BCE math at all (the same
         # split appears in the untouched backward graph).
+        # Match the log1p call itself rather than one intrinsic: the TE override
+        # emits the compensated npu_triton_helpers.log1p in place of the CANN
+        # libdevice intrinsic, and which target is used is pinned separately by
+        # test_log1p_generate_list.py.
         math_kernels = sum(
             1
             for generated in forward_code
             for kernel in generated.split("async_compile.triton(")[1:]
-            if "libdevice.log1p" in kernel
+            if ".log1p(" in kernel
         )
         self.assertEqual(math_kernels, 1)
         if reduction == "none" and not weighted:
