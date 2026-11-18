@@ -450,7 +450,7 @@ class AOTInductorModelContainer {
     }
   }
 
-  // We directly take ownership from AtenTensorHandle if constants are moved.
+  // torch/csrc/inductor/aoti_runtime/model_container.h
   void update_constant_buffer(
       std::unordered_map<std::string, AtenTensorHandle>&& constants_map,
       bool use_inactive,
@@ -467,21 +467,34 @@ class AOTInductorModelContainer {
     target.fold_state = ConstantState::INITIALIZED;
 
     auto num_constants = models_[0]->num_constants();
-    for (size_t idx = 0; idx < num_constants; idx++) {
-      auto constant_name = std::string(models_[0]->constant_name(static_cast<int64_t>(idx)));
-      auto it = constants_map.find(constant_name);
-      if (it == constants_map.end() && !(use_inactive && _is_tensor_constant_type(idx))) {
-        continue;
-      }
+    try {
+      for (size_t idx = 0; idx < num_constants; idx++) {
+        auto constant_name = std::string(models_[0]->constant_name(static_cast<int64_t>(idx)));
+        auto it = constants_map.find(constant_name);
+        if (it == constants_map.end() && !(use_inactive && _is_tensor_constant_type(idx))) {
+          continue;
+        }
 
-      AtenTensorHandle tensor;
-      if (it == constants_map.end()) {
-        aoti_torch_clone(source.map->find(constant_name)->second.get(), &tensor);
-      } else {
-        tensor = it->second;
-      }
+        AtenTensorHandle tensor = nullptr;
+        if (it == constants_map.end()) {
+          AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_clone(source.map->find(constant_name)->second.get(), &tensor));
+        } else {
+          tensor = it->second;
+          it->second = nullptr;
+        }
 
-      target.map->insert_or_assign(constant_name, RAIIAtenTensorHandle(tensor));
+        target.map->insert_or_assign(constant_name, RAIIAtenTensorHandle(tensor));
+      }
+    } catch (...) {
+      for (auto& kv : constants_map) {
+        if (kv.second != nullptr) {
+          (void)aoti_torch_delete_tensor_object(kv.second);
+          kv.second = nullptr;
+        }
+      }
+      // The array borrows from the map, whose replaced entries are freed.
+      target.update_array(models_[0].get());
+      throw;
     }
     target.update_array(models_[0].get());
   }

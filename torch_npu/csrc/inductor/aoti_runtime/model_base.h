@@ -575,16 +575,24 @@ class AOTInductorModelBase {
     auto* model = static_cast<Model*>(this);
     auto folded_constants = model->const_run_impl(run_stream, proxy_executor, initialization);
 
+    // torch/csrc/inductor/aoti_runtime/model_base.h
+    try {
 #ifdef USE_NPU
-    AOTI_RUNTIME_DEVICE_CHECK(aclrtRecordEvent(*run_finished_, run_stream));
+      AOTI_RUNTIME_DEVICE_CHECK(aclrtRecordEvent(*run_finished_, run_stream));
 #else
-    run_finished_ = true;
+      run_finished_ = true;
 #endif
 
-    // Wait for the constant folding kernels to complete. The folded
-    // constants may be read by inference on a different stream after
-    // swap_constant_buffer(), which has no GPU synchronization.
-    wait_for_completion();
+      wait_for_completion();
+    } catch (...) {
+      for (auto& kv : folded_constants) {
+        if (kv.second != nullptr) {
+          (void)aoti_torch_delete_tensor_object(kv.second);
+          kv.second = nullptr;
+        }
+      }
+      throw;
+    }
 
     return folded_constants;
   }
