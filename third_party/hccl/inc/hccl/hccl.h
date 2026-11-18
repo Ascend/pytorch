@@ -11,7 +11,7 @@
 #ifndef HCCL_H_
 #define HCCL_H_
 
-#include "third_party/hccl/inc/hccl/hccl_types.h"
+#include <hccl/hccl_types.h>
 #include <acl/acl.h>
 
 #ifdef __cplusplus
