@@ -62,45 +62,65 @@
 
 在安装不同类型操作系统所需依赖前，请在安装用户下检查源是否可用。以配置华为镜像源为例，可参考[华为开源镜像站](https://mirrors.huaweicloud.com/)中镜像源对应的配置方法操作。
 
-以下操作步骤以安装PyTorch 2.13.0版本、Python 3.10.0版本为例。
+以下操作步骤以安装PyTorch 2.14.0版本、Python 3.10.0版本为例。
 
 - **方式一（推荐）：容器场景**
     
     1. 下载TorchNPU源码。
 
         ```bash
-        git clone https://gitcode.com/Ascend/pytorch.git -b v2.13.0-26.2.0 --depth 1
+        git clone https://gitcode.com/Ascend/pytorch.git -b v2.14.0-26.2.0 --depth 1
         ```
 
-    2. 自构建并启动容器。
+    2. 构建并启动容器。
 
-        TorchNPU提供了可用的Dockerfile，可以自动检测架构来拉取镜像。你可以阅览该目录（pytorch/docker/devel）下的README文件，获取更多信息，并根据其指导构建自己的开发环境。或者可以直接通过devcontainer工具来构建开发环境。
+        开发镜像有两种获取方式：直接从昇腾镜像仓库拉取已构建好的镜像，或使用Dockerfile自行构建。
 
-        ```bash
-        cd pytorch/docker/devel
-        export DOCKER_BUILDKIT=1
-        docker build -t manylinux-builder:v1 .
-        ```
+        - 直接拉取镜像
 
-        或直接使用一键式创建容器脚本builder.sh。
+            TorchNPU提供了最新的PyTorch 2.14.0版本配套CANN9.2.0的开发镜像，镜像具体信息及拉取请参考[torch-npu-devel](https://www.hiascend.com/developer/ascendhub/detail/3b0ca76864884546acd07845f6153ee6)。
 
-        ```bash
-        cd pytorch/docker/devel
-        export DOCKER_BUILDKIT=1
-        bash builder.sh --cann
-        ```
+            以Atlas A2 训练系列产品为例，拉取镜像的命令为：
 
-        > [!NOTE]
-        >
-        > - Dockerfile会自动根据当前架构（ARM/X86）拉取对应镜像。
-        > - 如果需要指定更具体的构建参数，可参考该目录（pytorch/docker/devel）下README。
-        > - 注意不要遗漏命令结尾的“.”。
+            ```bash
+            docker pull swr.cn-south-1.myhuaweicloud.com/ascendhub/torch-npu-devel:2.14.0-cann9.2.0-910b-manylinux_2_28
+            ```
 
-        构建完成后，使用以下命令启动并进入Docker容器，并将TorchNPU源代码挂载至容器内：
+            拉取完成后，使用以下命令启动并进入Docker容器，并将TorchNPU源代码挂载至容器内：
 
-        ```bash
-        docker run -it -v /{code_path}/pytorch:/home/pytorch manylinux-builder:v1 bash
-        ```
+            ```bash
+            docker run -it -v /{code_path}/pytorch:/home/pytorch swr.cn-south-1.myhuaweicloud.com/ascendhub/torch-npu-devel:2.14.0-cann9.2.0-910b-manylinux_2_28 bash
+            ```
+
+        - 自构建镜像
+
+            我们同样提供了可用的Dockerfile，可以自动检测架构来拉取镜像。您可以阅览该目录（pytorch/docker/devel）下的README文件，获取更多信息，并根据其指导构建自己的开发环境。或者直接通过devcontainer工具来构建开发环境。
+
+            ```bash
+            cd pytorch/docker/devel
+            export DOCKER_BUILDKIT=1
+            docker build -t manylinux-builder:v1 .
+            ```
+
+            或直接使用一键式创建容器脚本builder.sh。
+
+            ```bash
+            cd pytorch/docker/devel
+            export DOCKER_BUILDKIT=1
+            bash builder.sh --cann
+            ```
+
+            > [!NOTE]
+            >
+            > - Dockerfile会自动根据当前架构（ARM/X86）拉取对应镜像。
+            > - 如果需要指定更具体的构建参数，可参考该目录（pytorch/docker/devel）下README。
+            > - 注意不要遗漏命令结尾的“.”。
+
+            构建完成后，使用以下命令启动并进入Docker容器，并将TorchNPU源代码挂载至容器内：
+
+            ```bash
+            docker run -it -v /{code_path}/pytorch:/home/pytorch manylinux-builder:v1 bash
+            ```
 
         _{code_path}_ 表示TorchNPU源代码路径，请根据实际情况进行替换。
 
@@ -114,7 +134,7 @@
        编译前需关注环境中安装的torch版本是否与当前要编译的TorchNPU版本一致，若要更换可使用如下命令：
 
        ```bash
-       pip3 install torch==2.13.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu # 根据自身需求安装CPU版本的torch
+       pip3 install torch==2.14.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu # 根据自身需求安装CPU版本的torch
        ```
 
         环境准备完成后使用如下命令进行编译：
@@ -132,15 +152,15 @@
     4. 在运行环境中安装生成的TorchNPU插件包，如果使用非root用户进行安装，需要在命令后加`--user`。
 
         ```bash
-        pip3 install --upgrade dist/torch_npu-2.13.0rc1-cp310-cp310-linux_aarch64.whl
+        pip3 install --upgrade dist/torch_npu-2.14.0-cp310-cp310-manylinux_2_28_aarch64.whl
         ```
 
         请用户根据实际情况更改命令中的TorchNPU包名。
 
-    5. 在运行环境中安装pytorch目录下的依赖文件requirements_2.13.txt。
+    5. 在运行环境中安装pytorch目录下的依赖文件requirements_2.14.txt。
 
         ```bash
-        pip3 install -r requirements_2.13.txt
+        pip3 install -r requirements_2.14.txt
         ```
 
 - **方式二：物理机及虚拟机场景**
@@ -197,10 +217,10 @@
                     > 安装指导可参见[安装gcc](https://ubuntu.com/developers/docs/howto/gcc-setup/)和[安装cmake](https://cmake.org/download/)。
 
     2. 编译生成TorchNPU插件的Whl安装包。
-        1. 下载v2.13.0-26.2.0分支代码并进入TorchNPU插件根目录。
+        1. 下载v2.14.0-26.2.0分支代码并进入TorchNPU插件根目录。
 
             ```bash
-            git clone -b v2.13.0-26.2.0 https://gitcode.com/Ascend/pytorch.git
+            git clone -b v2.14.0-26.2.0 https://gitcode.com/Ascend/pytorch.git
             cd pytorch
             ```
 
@@ -217,7 +237,7 @@
             编译前需关注环境中安装的torch版本是否与当前要编译的TorchNPU版本一致，若要更换可使用如下命令：
 
             ```bash
-            pip3 install torch==2.13.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu # 根据自身需求安装CPU版本的torch
+            pip3 install torch==2.14.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu # 根据自身需求安装CPU版本的torch
             ```
 
             环境准备完成后使用如下命令进行编译：
@@ -234,7 +254,7 @@
     3. 安装pytorch/dist目录下生成的插件TorchNPU包，如果使用非root用户安装，需要在命令后加`--user`。
 
         ```bash
-        pip3 install --upgrade dist/torch_npu-2.13.0rc1-cp310-cp310-linux_aarch64.whl
+        pip3 install --upgrade dist/torch_npu-2.14.0-cp310-cp310-linux_aarch64.whl
         ```
 
         请用户根据实际情况更改命令中的TorchNPU包名。

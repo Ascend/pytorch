@@ -62,14 +62,14 @@ In a container scenario, the source installation of the TorchNPU plugin involves
 
 Before installing the dependencies required by different types of operating systems, check whether the source is available under the installation user. For example, to configure the Huawei mirror source, refer to the configuration method for the corresponding mirror source on the [Huawei Open Source Mirror Site](https://mirrors.huaweicloud.com/).
 
-The following steps use the installation of PyTorch 2.13.0 and Python 3.10.0 as an example.
+The following steps use the installation of PyTorch 2.14.0 and Python 3.10.0 as an example.
 
 - **Method 1 (Recommended): Container Scenario**
     
     1. Download the TorchNPU source code.
 
         ```bash
-        git clone https://gitcode.com/Ascend/pytorch.git -b v2.13.0-26.2.0 --depth 1
+        git clone https://gitcode.com/Ascend/pytorch.git -b v2.14.0-26.2.0 --depth 1
         ```
 
     2. Build and start the container.
@@ -82,7 +82,7 @@ The following steps use the installation of PyTorch 2.13.0 and Python 3.10.0 as 
         docker build -t manylinux-builder:v1 .
         ```
 
-        Or directly use the one-click container creation script builder.sh.
+            TorchNPU provides the latest development image pairing PyTorch 2.14.0 with CANN 9.2.0. For specific image details and pull instructions, please refer to [torch-npu-devel](https://www.hiascend.com/developer/ascendhub/detail/3b0ca76864884546acd07845f6153ee6).
 
         ```bash
         cd pytorch/docker/devel
@@ -90,17 +90,45 @@ The following steps use the installation of PyTorch 2.13.0 and Python 3.10.0 as 
         bash builder.sh --cann
         ```
 
-        > [!NOTE]
-        >
-        > - The Dockerfile automatically pulls the corresponding image based on the current architecture (ARM/X86).
-        > - If you need to specify more specific build parameters, refer to the README in the directory (pytorch/docker/devel).
-        > - Be careful not to omit the "." at the end of the command.
+            ```bash
+            docker pull swr.cn-south-1.myhuaweicloud.com/ascendhub/torch-npu-devel:2.14.0-cann9.2.0-910b-manylinux_2_28
+            ```
 
         After the image is built, use the following command to start and enter the Docker container, and mount the TorchNPU source code into the container:
 
-        ```bash
-        docker run -it -v /{code_path}/pytorch:/home/pytorch manylinux-builder:v1 bash
-        ```
+            ```bash
+            docker run -it -v /{code_path}/pytorch:/home/pytorch swr.cn-south-1.myhuaweicloud.com/ascendhub/torch-npu-devel:2.14.0-cann9.2.0-910b-manylinux_2_28 bash
+            ```
+
+        - Build the image yourself
+
+            We also provide a usable Dockerfile that can automatically detect the architecture and pull the corresponding image. You can read the README file in the directory (pytorch/docker/devel) for more information and build your own development environment according to its guidance. Alternatively, you can directly use the devcontainer tool to build the development environment.
+
+            ```bash
+            cd pytorch/docker/devel
+            export DOCKER_BUILDKIT=1
+            docker build -t manylinux-builder:v1 .
+            ```
+
+            Or directly use the one-click container creation script builder.sh.
+
+            ```bash
+            cd pytorch/docker/devel
+            export DOCKER_BUILDKIT=1
+            bash builder.sh --cann
+            ```
+
+            > [!NOTE]
+            >
+            > - The Dockerfile automatically pulls the corresponding image based on the current architecture (ARM/X86).
+            > - If you need to specify more specific build parameters, refer to the README in the directory (pytorch/docker/devel).
+            > - Be careful not to omit the "." at the end of the command.
+
+            After the image is built, use the following command to start and enter the Docker container, and mount the TorchNPU source code into the container:
+
+            ```bash
+            docker run -it -v /{code_path}/pytorch:/home/pytorch manylinux-builder:v1 bash
+            ```
 
         _{code_path}_ indicates the path to the TorchNPU source code. Replace it based on the actual situation.
 
@@ -111,11 +139,11 @@ The following steps use the installation of PyTorch 2.13.0 and Python 3.10.0 as 
 
     3. Compile and generate the Whl installation package.
 
-        Before compilation, pay attention to whether the torch version installed in the environment is consistent with the TorchNPU version to be compiled. To change the version, use the following command:
+       Before compilation, pay attention to whether the torch version installed in the environment is consistent with the TorchNPU version to be compiled. To change the version, use the following command:
 
-        ```bash
-        pip3 install torch==2.13.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu # Install the CPU version of torch as needed
-        ```
+       ```bash
+       pip3 install torch==2.14.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu # Install the CPU version of torch as needed
+       ```
 
         After environment preparation is complete, use the following command to compile:
 
@@ -124,7 +152,7 @@ The following steps use the installation of PyTorch 2.13.0 and Python 3.10.0 as 
         bash ci/build.sh --python=3.10
         ```
 
-        To specify another Python version, use --python=3.10, --python=3.11, --python=3.12, --python=3.13, or --python=3.14.
+        To specify another Python version, use --python=3.10, --python=3.11, --python=3.12, --python=3.13, --python=3.14, or --python=3.14t.
         > [!NOTE]
         > 
         > The Release version is compiled by default. To compile the Debug version, set the environment variable `DEBUG=1` when executing the build command.
@@ -132,15 +160,15 @@ The following steps use the installation of PyTorch 2.13.0 and Python 3.10.0 as 
     4. Install the generated TorchNPU plugin package in the runtime environment. If you install as a non-root user, add `--user` to the command.
 
         ```bash
-        pip3 install --upgrade dist/torch_npu-2.13.0rc1-cp310-cp310-linux_aarch64.whl
+        pip3 install --upgrade dist/torch_npu-2.14.0-cp310-cp310-manylinux_2_28_aarch64.whl
         ```
 
         Replace the TorchNPU package name in the command based on the actual situation.
 
-    5. Install the dependency file requirements_2.13.txt in the pytorch directory in the runtime environment.
+    5. Install the dependency file requirements_2.14.txt in the pytorch directory of the runtime environment.
 
         ```bash
-        pip3 install -r requirements_2.13.txt
+        pip3 install -r requirements_2.14.txt
         ```
 
 - **Method 2: Physical Machine and VM Scenario**
@@ -197,10 +225,10 @@ The following steps use the installation of PyTorch 2.13.0 and Python 3.10.0 as 
                     > For installation guidance, see [Install gcc](https://ubuntu.com/developers/docs/howto/gcc-setup/) and [Install cmake](https://cmake.org/download/).
 
     2. Compile and generate the Whl installation package of the TorchNPU plugin.
-        1. Download the v2.13.0-26.2.0 branch code and enter the root directory of the TorchNPU plugin.
+        1. Download the v2.14.0-26.2.0 branch code and enter the root directory of the TorchNPU plugin.
 
             ```bash
-            git clone -b v2.13.0-26.2.0 https://gitcode.com/Ascend/pytorch.git
+            git clone -b v2.14.0-26.2.0 https://gitcode.com/Ascend/pytorch.git
             cd pytorch
             ```
 
@@ -217,7 +245,7 @@ The following steps use the installation of PyTorch 2.13.0 and Python 3.10.0 as 
             Before compilation, pay attention to whether the torch version installed in the environment is consistent with the TorchNPU version to be compiled. To change the version, use the following command:
 
             ```bash
-            pip3 install torch==2.13.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu # Install the CPU version of torch as needed
+            pip3 install torch==2.14.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu # Install the CPU version of torch as needed
             ```
 
             After environment preparation is complete, use the following command to compile:
@@ -234,7 +262,7 @@ The following steps use the installation of PyTorch 2.13.0 and Python 3.10.0 as 
     3. Install the plugin TorchNPU package generated in the pytorch/dist directory. If you install as a non-root user, add `--user` to the command.
 
         ```bash
-        pip3 install --upgrade dist/torch_npu-2.13.0rc1-cp310-cp310-linux_aarch64.whl
+        pip3 install --upgrade dist/torch_npu-2.14.0-cp310-cp310-linux_aarch64.whl
         ```
 
         Replace the TorchNPU package name in the command based on the actual situation.
