@@ -2656,6 +2656,7 @@ class NPUTritonKernel(TritonKernel):
                 restore_other = True
         self._npu_capture_prepared_load_index = True
         self._npu_prepared_load_index = None
+        self._npu_prepared_load_options = None
         try:
             result_var = super().load(name, index)
             if config.test_configs.runtime_triton_shape_assert:
@@ -2663,13 +2664,15 @@ class NPUTritonKernel(TritonKernel):
             # Seed the pad-lane fact while the chosen ``other`` fill is still
             # live on self._load_other (the seeding reads it).
             self._maybe_record_select_lane_load(
-                name, result_var, index, self._npu_prepared_load_index
+                name, result_var, index, self._npu_prepared_load_index,
+                self._npu_prepared_load_options,
             )
             self._record_reduction_load_padinfo(result_var, index)
             self._npu_pg_record(result_var, name, index)
         finally:
             self._npu_capture_prepared_load_index = False
             self._npu_prepared_load_index = None
+            self._npu_prepared_load_options = None
             if restore_other:
                 self._load_other = saved_other
         _bufs = [self.loads, self.compute, self.body]
@@ -2807,6 +2810,7 @@ class NPUTritonKernel(TritonKernel):
         result_var,
         index: sympy.Expr,
         prepared_index: sympy.Expr | None = None,
+        options=None,
     ):
         """Structurally flag a stride-k select-lane load for the extract_slice
         rewrite, keyed by its result-var name.
@@ -2826,6 +2830,11 @@ class NPUTritonKernel(TritonKernel):
         The returned ``result_var`` names the exact load line codegen_body will
         rewrite, so no text classification is needed there. Gated on
         NPU_SELECT_EXTRACT_SLICE and only in linearize mode.
+
+        Alongside the lane/index, record the two shape facts the rewrite needs
+        (address inner extent, mask block shapes). They are read off the load's
+        IndexingOptions and the CSEProxy-maintained CSE shapes while both are
+        live, so the rewrite never has to scan the generated body.
         """
         if not ncfg.select_extract_slice:
             return
@@ -2866,7 +2875,108 @@ class NPUTritonKernel(TritonKernel):
             "lane": k,
             "index": prepared_index,
             "pointer": self.args.input(name),
+            # Shape facts captured here, while the load's IndexingOptions and
+            # CSE variables are still live. The rewrite below must not re-derive
+            # them from the generated body text.
+            "addr_real_inner": self._select_lane_addr_has_real_inner(
+                options, prepared_index
+            ),
+            "mask_terms": list(getattr(result_var, "mask_vars", ()) or ()),
         }
+
+    @staticmethod
+    def _shape_inner_extent_is_one(shape) -> bool:
+        """Whether a CSE block shape's trailing (inner-slot) extent is one.
+
+        Triton right-aligns block shapes, so the last entry is the slot this
+        rewrite widens. ``None`` means the shape is unknown and must be treated
+        as unsafe.
+        """
+        if shape is None:
+            return False
+        if not len(shape):
+            return True
+        return str(shape[-1]) == "1"
+
+    def _select_lane_addr_has_real_inner(self, options, index) -> bool:
+        """True iff the load address already carries a real inner extent.
+
+        The rewrite appends a k-wide lane at the inner slot, so every other
+        operand there must be 1. Two structural sources can break that:
+          * ``indexing()`` broadcast the address to the dense tile shape and the
+            trailing dense extent is a real block (multi-real-block layouts);
+          * the prepared index references a CSE temporary whose block shape
+            keeps a real trailing extent.
+        Both are read off the IndexingOptions / CSEProxy shape metadata; no
+        text re-parsing of the emitted address.
+        """
+        expand_str = getattr(options, "expand_str", None)
+        expand_shape = getattr(options, "expand_shape", None)
+        if expand_str is not None and expand_shape:
+            if str(expand_shape[-1]) != "1":
+                return True
+        for sym in getattr(index, "free_symbols", ()):
+            var = self.cse.varname_map.get(getattr(sym, "name", ""))
+            if var is not None and not self._shape_inner_extent_is_one(
+                getattr(var, "shape", None)
+            ):
+                return True
+        return False
+
+    @staticmethod
+    def _select_lane_base_index_has_foreign_axis(
+        base_index, inner_name, slot_names
+    ) -> bool:
+        """True iff ``base_index`` references an axis that owns no slot here.
+
+        ``slot_names`` is the set of range-tree node names that map to a tensor
+        slot of this kernel's free (non-reduction) layouts. Once the
+        ``k*inner`` term is removed, every remaining base symbol must be one of
+        those names: the widened lane vector occupies the inner slot, so the
+        remaining terms can only broadcast against it from OTHER slots
+        ([tok, 1]-style vs [1, k*tok]).
+
+        Anything else is an axis from a layout that owns no slot in this kernel
+        (e.g. a y/z/r axis mixed into this buffer's addressing by a fused
+        multi-layout graph). Its extent lives on the inner slot, so the k*-wide
+        lane would collide with it ("incompatible dimensions at index N:
+        <extent> and k*tok"). Do not whitelist by prefix: x/r are not the only
+        axis prefixes (y/z trees exist) and guessing wrong re-enables the crash
+        this guard exists to prevent.
+        """
+        for sym in getattr(base_index, "free_symbols", ()):
+            name = getattr(sym, "name", "")
+            if name == inner_name or name in slot_names:
+                continue
+            return True
+        return False
+
+    def _select_lane_mask_has_real_inner(self, terms, inner_name, inner_mask_tok):
+        """True iff a mask term other than the replaced inner mask keeps a real
+        inner extent.
+
+        The strided-slice rewrite swaps the inner mask token for a k-wide tail
+        mask. Any other term whose trailing block extent is not 1 cannot be
+        ANDed with it. Terms are the CSEVariables recorded on the load's
+        ``mask_vars`` (shape maintained by CSEProxy) plus axis mask names; a
+        term that is not a CSE variable and not an axis mask carries no block
+        shape of its own, so it cannot collide.
+        """
+        axis_masks = {tree.mask_name() for tree in self.range_trees}
+        for term in terms:
+            if isinstance(term, str):
+                if term in (inner_mask_tok, "None") or term in axis_masks:
+                    continue
+                if term in (inner_name, f"{inner_name}index"):
+                    return True
+                var = self.cse.varname_map.get(term)
+            else:
+                var = term
+            if var is None:
+                continue
+            if not self._shape_inner_extent_is_one(getattr(var, "shape", None)):
+                return True
+        return False
 
     # -- permute-gather reduction rewrite: thin delegates into
     # permute_gather_rewrite.py (kept as methods for the call sites and the
@@ -4260,6 +4370,9 @@ class NPUTritonKernel(TritonKernel):
             self._npu_prepared_load_index = (
                 result.index if isinstance(result, IndexingOptions) else None
             )
+            self._npu_prepared_load_options = (
+                result if isinstance(result, IndexingOptions) else None
+            )
         if not self._npu_linearize:
             return result
 
@@ -4401,7 +4514,7 @@ class NPUTritonKernel(TritonKernel):
             and new_index_str == result.index_str
         ):
             return result
-        return IndexingOptions(
+        emitted = IndexingOptions(
             new_index_str,
             new_mask_vars,
             new_expand_str,
@@ -4409,6 +4522,15 @@ class NPUTritonKernel(TritonKernel):
             result.index,
             expand_shape=expand_shape,
         )
+        if getattr(self, "_npu_capture_prepared_load_index", False):
+            # The select-lane guards read the address facts off the captured
+            # IndexingOptions, so keep the capture pointing at the object that
+            # is actually emitted: this tail can wrap the address in a dense
+            # ``tl.broadcast_to`` (``new_expand_str`` above), which turns the
+            # inner slot from "broadcast away" into a real block. The capture
+            # in load() happens before this tail runs.
+            self._npu_prepared_load_options = emitted
+        return emitted
 
     def iteration_ranges_get_pid(self, entry: IterationRangesRoot) -> str:
         if not self._npu_linearize:
@@ -5746,6 +5868,22 @@ class NPUTritonKernel(TritonKernel):
                 new_lines.append(line)
                 continue
 
+            # Lane-vector precondition: the lane append assumes the inner slot
+            # contributes no vector extent to the address (Case A: the inner
+            # axis is broadcast away), so `_es_laneN`'s trailing `:` is the
+            # only real extent at that slot. When the address is broadcast to a
+            # non-1 real block at the inner slot (multi-real-block fused
+            # layouts), appending the lane vector collides there (real_block vs
+            # lane) and triton rejects the kernel with "Cannot
+            # make_shape_compatible". The fact is captured from the load's
+            # IndexingOptions / CSE shapes in _maybe_record_select_lane_load,
+            # not re-parsed from the emitted address. Leave such loads
+            # untouched: the plain gather stays correct, just not rewritten
+            # into a contiguous burst.
+            if target.get("addr_real_inner", False):
+                new_lines.append(line)
+                continue
+
             lane_var = f"_es_lane{counter}"
             full_var = f"_es_full{counter}"
             counter += 1
@@ -5815,6 +5953,18 @@ class NPUTritonKernel(TritonKernel):
         base_index = sympy.expand(prepared_index - coeff * inner_symbol)
         if base_index.has(inner_symbol):
             return None
+        # Mixed-layout guard: the widened lane vector occupies the inner slot,
+        # so every remaining base term must broadcast against it from OTHER
+        # slots ([tok, 1]-style vs [1, k*tok]). An axis symbol that belongs to
+        # no slot of this layout (a foreign axis mixed into this buffer's
+        # addressing by a fused multi-layout graph) carries its own extent on
+        # the inner slot; arange(k*real_block_inner) then collides with it
+        # ("incompatible dimensions at index N: <extent> and k*tok"). Leave
+        # such loads untouched: the plain stride-k gather stays correct.
+        if self._select_lane_base_index_has_foreign_axis(
+            base_index, inner_name, set(slot_to_name.values())
+        ):
+            return None
         base_addr = self.index_to_str(base_index)
 
         # The inner mask token (e.g. ``x1mask``) must be present in ``rest`` so we
@@ -5823,6 +5973,20 @@ class NPUTritonKernel(TritonKernel):
         inner_mask_tok = f"{inner_name}mask"
         if len(load_ast.args) < 2 or not _npu_ast_has_name(
             load_ast.args[1], inner_mask_tok
+        ):
+            return None
+
+        # Transitive inner-index guard: the widened mask swap below replaces
+        # only the inner mask TOKEN. Any other mask term that carries a real
+        # inner extent (e.g. a select-lane predicate ``tmpK = (x0 >= c)``)
+        # keeps its [1, real_block_inner] extent; ANDing it with the k*-wide
+        # lane mask collides at the inner slot ("incompatible dimensions at
+        # index N: real_block_inner and k*real_block_inner"). The load's
+        # ``mask_vars`` are captured at load() time together with the CSEProxy
+        # block shapes, so the check is a shape query, not a text scan: skip
+        # when any non-replaced term's trailing extent is not 1.
+        if self._select_lane_mask_has_real_inner(
+            target.get("mask_terms", ()), inner_name, inner_mask_tok
         ):
             return None
 
