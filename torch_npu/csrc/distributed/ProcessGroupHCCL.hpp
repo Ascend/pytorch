@@ -17,7 +17,7 @@
 #include <torch/csrc/distributed/c10d/FlightRecorder.hpp>
 #include <torch/csrc/distributed/c10d/logger.hpp>
 
-#include "third_party/hccl/inc/hccl/hccl.h"
+#include <hccl/hccl.h>
 #include "torch_npu/csrc/logging/LogContext.h"
 #include "torch_npu/csrc/core/npu/interface/HcclInterface.h"
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"

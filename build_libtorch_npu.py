@@ -276,6 +276,21 @@ def copy_hpp():
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             ret.append((src, dst))
 
+        hccl_include_root = os.path.join(BASE_DIR, "third_party", "hccl", "inc")
+        hccl_header_files = glob.glob(
+            os.path.join(hccl_include_root, "**", "*.h"),
+            recursive=True,
+        )
+        for src in hccl_header_files:
+            relative_header = os.path.relpath(src, hccl_include_root)
+            dst = os.path.join(
+                BASE_DIR,
+                "libtorch_npu/include",
+                relative_header,
+            )
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            ret.append((src, dst))
+
         return ret
     ret = get_src_py_and_dst()
     for src, dst in ret:

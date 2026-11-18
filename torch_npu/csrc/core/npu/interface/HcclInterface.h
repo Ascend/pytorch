@@ -1,4 +1,6 @@
-#include "third_party/hccl/inc/hccl/hccl.h"
+#pragma once
+
+#include <hccl/hccl.h>
 
 namespace at_npu {
 namespace hccl {
