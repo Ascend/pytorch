@@ -136,10 +136,6 @@ Torch NPU supports the following Ascend product families:
 
 |        Product range         |
 |----------------------------|
-| Ascend 950DT Series Products |
-| Ascend A3 Series Products   |
-| Ascend A2 Series Products   |
-| Ascend 910 Series Products  |
-| Ascend 310 P Series      |
-| Ascend 310 B Series      |
-| Ascend 310 Series       |
+| Ascend 950DT products |
+| Atlas A3 training products |
+| Atlas A2 training products |

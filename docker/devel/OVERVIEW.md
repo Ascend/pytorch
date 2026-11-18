@@ -32,14 +32,14 @@ For more details on the Dockerfile and build scripts, see [README](https://gitco
 Tags follow the format:
 
 ```text
-<PyTorch_version>-<CANN_version>-<chip>-<os>
+<PyTorch_version>-<CANN_version>-<soc_series>-<os>
 ```
 
 | Field            | value                              | Description                                       |
 |------------------|------------------------------------|---------------------------------------------------|
 | PyTorch Version | 2.14.0                             | Pre-installed PyTorch version |
 | CANN_version     | 9.2.0                              | Pre-installed CANN version |
-| Chip             | 310p / 910 / 910b / a3 / 950       | The Atlas chip models supported by the image     |
+| soc_series     | 310p / 910 / 910b / a3 / 950       | Short names for the SoC series supported by the image |
 | OS               | manylinux_2_28                     | Base image OS distribution used                   |
 
 > The Python version (default `3.10`) is specified via the `PY_VERSION` build arg and is not part of the tag.

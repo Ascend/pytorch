@@ -50,7 +50,7 @@ Docker镜像中已预装PyTorch框架、TorchNPU插件及配套的CANN软件，�
     > [!NOTE]
     >
     > - `LD_LIBRARY_PATH` 通过 `-e` 参数指定 Ascend 驱动库路径。注意 `-e` 会覆盖容器镜像原有的 `LD_LIBRARY_PATH`，如需额外库路径，请在 `docker run` 命令的 `LD_LIBRARY_PATH` 值末尾追加，例如 `:/your/extra/path`。
-    > - `<镜像标签>` 请替换为上表中实际的镜像标签，例如 `2.10.0-310p-ubuntu22.04-py3.11`。
+    > - `<镜像标签>` 请替换为第 1 步所选镜像的实际标签，例如 `2.10.0-310p-ubuntu22.04-py3.11`。
     > - `PY_VERSION` 请根据镜像对应的 Python 版本修改。
 
 ## 安装后验证

@@ -4,32 +4,32 @@ Use a Docker image to quickly pull and run an environment with the pre-integrate
 
 ## Pulling and Running the Docker Image
 
-|PyTorch Version<!-- class: installation_torch_npu -->|TorchNPU Plugin Version|Python Version|Chip Model|System Architecture|Operating System|CANN Version|Installation Method|Installation Command|
+|PyTorch Version<!-- class: installation_torch_npu -->|TorchNPU Plugin Version|Python Version|Product Series|System Architecture|Operating System|CANN Version|Installation Method|Installation Command|
 |--|--|--|--|--|--|--|--|--|
-|2.10.0|2.10.0|Python 3.11|Ascend 310P|X86_64|ubuntu|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.10.0-310p-ubuntu22.04-py3.11</copy> |
-|2.10.0|2.10.0|Python 3.11|Ascend 310P|AArch64|openeuler|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.10.0-310p-openeuler24.03-py3.11</copy> |
-|2.10.0|2.10.0|Python 3.11|Ascend 910B|X86_64|ubuntu|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.10.0-910b-ubuntu22.04-py3.11</copy> |
-|2.10.0|2.10.0|Python 3.11|Ascend 910B|AArch64|openeuler|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.10.0-910b-openeuler24.03-py3.11</copy> |
-|2.10.0|2.10.0|Python 3.11|Ascend A3|X86_64|ubuntu|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.10.0-a3-ubuntu22.04-py3.11</copy> |
-|2.10.0|2.10.0|Python 3.11|Ascend A3|AArch64|openeuler|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.10.0-a3-openeuler24.03-py3.11</copy> |
-|2.9.0|2.9.0.post2|Python 3.11|Ascend 310P|X86_64|ubuntu|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.9.0.post2-310p-ubuntu22.04-py3.11</copy> |
-|2.9.0|2.9.0.post2|Python 3.11|Ascend 310P|AArch64|openeuler|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.9.0.post2-310p-openeuler24.03-py3.11</copy> |
-|2.9.0|2.9.0.post2|Python 3.11|Ascend 910B|X86_64|ubuntu|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.9.0.post2-910b-ubuntu22.04-py3.11</copy> |
-|2.9.0|2.9.0.post2|Python 3.11|Ascend 910B|AArch64|openeuler|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.9.0.post2-910b-openeuler24.03-py3.11</copy> |
-|2.9.0|2.9.0.post2|Python 3.11|Ascend A3|X86_64|ubuntu|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.9.0.post2-a3-ubuntu22.04-py3.11</copy> |
-|2.9.0|2.9.0.post2|Python 3.11|Ascend A3|AArch64|openeuler|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.9.0.post2-a3-openeuler24.03-py3.11</copy> |
-|2.8.0|2.8.0.post4|Python 3.11|Ascend 310P|X86_64|ubuntu|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.8.0.post4-310p-ubuntu22.04-py3.11</copy> |
-|2.8.0|2.8.0.post4|Python 3.11|Ascend 310P|AArch64|openeuler|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.8.0.post4-310p-openeuler24.03-py3.11</copy> |
-|2.8.0|2.8.0.post4|Python 3.11|Ascend 910B|X86_64|ubuntu|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.8.0.post4-910b-ubuntu22.04-py3.11</copy> |
-|2.8.0|2.8.0.post4|Python 3.11|Ascend 910B|AArch64|openeuler|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.8.0.post4-910b-openeuler24.03-py3.11</copy> |
-|2.8.0|2.8.0.post4|Python 3.11|Ascend A3|X86_64|ubuntu|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.8.0.post4-a3-ubuntu22.04-py3.11</copy> |
-|2.8.0|2.8.0.post4|Python 3.11|Ascend A3|AArch64|openeuler|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.8.0.post4-a3-openeuler24.03-py3.11</copy> |
-|2.7.1|2.7.1.post4|Python 3.11|Ascend 310P|X86_64|ubuntu|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.7.1.post4-310p-ubuntu22.04-py3.11</copy> |
-|2.7.1|2.7.1.post4|Python 3.11|Ascend 310P|AArch64|openeuler|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.7.1.post4-310p-openeuler24.03-py3.11</copy> |
-|2.7.1|2.7.1.post4|Python 3.11|Ascend 910B|X86_64|ubuntu|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.7.1.post4-910b-ubuntu22.04-py3.11</copy> |
-|2.7.1|2.7.1.post4|Python 3.11|Ascend 910B|AArch64|openeuler|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.7.1.post4-910b-openeuler24.03-py3.11</copy> |
-|2.7.1|2.7.1.post4|Python 3.11|Ascend A3|X86_64|ubuntu|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.7.1.post4-a3-ubuntu22.04-py3.11</copy> |
-|2.7.1|2.7.1.post4|Python 3.11|Ascend A3|AArch64|openeuler|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.7.1.post4-a3-openeuler24.03-py3.11</copy> |
+|2.10.0|2.10.0|Python 3.11|Atlas inference products|X86_64|ubuntu|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.10.0-310p-ubuntu22.04-py3.11</copy> |
+|2.10.0|2.10.0|Python 3.11|Atlas inference products|AArch64|openeuler|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.10.0-310p-openeuler24.03-py3.11</copy> |
+|2.10.0|2.10.0|Python 3.11|Atlas A2 series products|X86_64|ubuntu|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.10.0-910b-ubuntu22.04-py3.11</copy> |
+|2.10.0|2.10.0|Python 3.11|Atlas A2 series products|AArch64|openeuler|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.10.0-910b-openeuler24.03-py3.11</copy> |
+|2.10.0|2.10.0|Python 3.11|Atlas A3 series products|X86_64|ubuntu|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.10.0-a3-ubuntu22.04-py3.11</copy> |
+|2.10.0|2.10.0|Python 3.11|Atlas A3 series products|AArch64|openeuler|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.10.0-a3-openeuler24.03-py3.11</copy> |
+|2.9.0|2.9.0.post2|Python 3.11|Atlas inference products|X86_64|ubuntu|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.9.0.post2-310p-ubuntu22.04-py3.11</copy> |
+|2.9.0|2.9.0.post2|Python 3.11|Atlas inference products|AArch64|openeuler|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.9.0.post2-310p-openeuler24.03-py3.11</copy> |
+|2.9.0|2.9.0.post2|Python 3.11|Atlas A2 series products|X86_64|ubuntu|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.9.0.post2-910b-ubuntu22.04-py3.11</copy> |
+|2.9.0|2.9.0.post2|Python 3.11|Atlas A2 series products|AArch64|openeuler|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.9.0.post2-910b-openeuler24.03-py3.11</copy> |
+|2.9.0|2.9.0.post2|Python 3.11|Atlas A3 series products|X86_64|ubuntu|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.9.0.post2-a3-ubuntu22.04-py3.11</copy> |
+|2.9.0|2.9.0.post2|Python 3.11|Atlas A3 series products|AArch64|openeuler|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.9.0.post2-a3-openeuler24.03-py3.11</copy> |
+|2.8.0|2.8.0.post4|Python 3.11|Atlas inference products|X86_64|ubuntu|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.8.0.post4-310p-ubuntu22.04-py3.11</copy> |
+|2.8.0|2.8.0.post4|Python 3.11|Atlas inference products|AArch64|openeuler|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.8.0.post4-310p-openeuler24.03-py3.11</copy> |
+|2.8.0|2.8.0.post4|Python 3.11|Atlas A2 series products|X86_64|ubuntu|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.8.0.post4-910b-ubuntu22.04-py3.11</copy> |
+|2.8.0|2.8.0.post4|Python 3.11|Atlas A2 series products|AArch64|openeuler|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.8.0.post4-910b-openeuler24.03-py3.11</copy> |
+|2.8.0|2.8.0.post4|Python 3.11|Atlas A3 series products|X86_64|ubuntu|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.8.0.post4-a3-ubuntu22.04-py3.11</copy> |
+|2.8.0|2.8.0.post4|Python 3.11|Atlas A3 series products|AArch64|openeuler|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.8.0.post4-a3-openeuler24.03-py3.11</copy> |
+|2.7.1|2.7.1.post4|Python 3.11|Atlas inference products|X86_64|ubuntu|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.7.1.post4-310p-ubuntu22.04-py3.11</copy> |
+|2.7.1|2.7.1.post4|Python 3.11|Atlas inference products|AArch64|openeuler|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.7.1.post4-310p-openeuler24.03-py3.11</copy> |
+|2.7.1|2.7.1.post4|Python 3.11|Atlas A2 series products|X86_64|ubuntu|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.7.1.post4-910b-ubuntu22.04-py3.11</copy> |
+|2.7.1|2.7.1.post4|Python 3.11|Atlas A2 series products|AArch64|openeuler|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.7.1.post4-910b-openeuler24.03-py3.11</copy> |
+|2.7.1|2.7.1.post4|Python 3.11|Atlas A3 series products|X86_64|ubuntu|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.7.1.post4-a3-ubuntu22.04-py3.11</copy> |
+|2.7.1|2.7.1.post4|Python 3.11|Atlas A3 series products|AArch64|openeuler|9.0.0|Installing with Docker| <copy>docker pull quay.io/ascend/torch-npu:2.7.1.post4-a3-openeuler24.03-py3.11</copy> |
 
 > [!NOTE]
 >

@@ -84,7 +84,7 @@ torch-npu-test-<ARCH>-cann<CHIP>-py<PYTHON_VERSION>-torch<PYTORCH_VERSION>
 |------|--------|
 | IMAGE_TYPE | builder, test |
 | ARCH | x86_64, aarch64 |
-| CHIP | A1 (Ascend 910), A2 (Ascend 910b), A3 (仅 test) |
+| CHIP | A1（Atlas训练系列产品）, A2（Atlas A2系列产品）, A3（Atlas A3系列产品，仅 test） |
 | PYTHON_VERSION | 3.10 (仅 test) |
 | PYTORCH_VERSION | 2.13.0, master |
 
@@ -100,10 +100,10 @@ Builder 镜像支持以下 Python 版本（由基座镜像提供）：
 
 Test 镜像仅使用系统 Python 3.10。
 
-## CANN 芯片映射
+## 产品系列与 CANN 版本对应关系
 
-| CANN_CHIP | 芯片 | CANN 版本 |
+| 芯片代号 | 产品系列 | CANN 版本 |
 |-----------|------|----------|
-| A1 | Ascend 910 | 9.1.0-beta.3 |
-| A2 | Ascend 910b | 9.1.0-beta.3 |
-| A3 | Ascend A3 | 9.1.0-beta.3 |
+| A1 | Atlas训练系列产品 | 9.1.0-beta.3 |
+| A2 | Atlas A2系列产品 | 9.1.0-beta.3 |
+| A3 | Atlas A3系列产品 | 9.1.0-beta.3 |
