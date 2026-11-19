@@ -7,9 +7,7 @@ The files in that directory use several different shapes:
     ``nodes`` as a list of plain nodeid strings
     (cann/device/temporary ``*_grouped.json``);
   * the dtype file, whose nodeids live one level deeper under
-    ``groups[].canns[].nodes``;
-  * ``blacklist_logs.json``, a ``log -> count`` map that contains no nodeids
-    and is therefore skipped.
+    ``groups[].canns[].nodes``.
 
 This script walks every ``*.json`` file, collects every string found under a
 ``nodes`` key (accepting either a bare string or a ``{"nodeid": ...}`` object),

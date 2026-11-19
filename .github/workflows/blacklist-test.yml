@@ -10,8 +10,7 @@ name: Blacklist Test (a3/a5)
 #
 # Blacklist source: .github/config/blacklist_testccases/. All *.json files in
 # that directory are flattened in one pass into a single pure nodeid list
-# (the files use several shapes: groups[].nodes, groups[].canns[].nodes, and
-# the log->count blacklist_logs.json which is skipped as it holds no nodeids).
+# (the files use several shapes: groups[].nodes, groups[].canns[].nodes).
 #
 # The summary job then lists, per platform, the nodeids that passed / were
 # skipped / errored with "No testcase in XML" — all removal candidates.

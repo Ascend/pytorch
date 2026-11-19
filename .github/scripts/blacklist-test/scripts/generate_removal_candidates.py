@@ -100,31 +100,15 @@ def load_flatten_module():
     return module
 
 
-def load_blacklist_logs(config_dir):
-    """Return the log fragments recorded in blacklist_logs.json.
-
-    The file maps ``log -> count`` (it contains no nodeids); we only need the
-    fragment strings as the candidate pool to match against actual errors.
-    """
-    path = Path(config_dir) / "blacklist_logs.json"
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return []
-    if not isinstance(data, dict):
-        return []
-    return [key for key in data.keys() if key]
-
-
 def build_log_mismatch(log_map, statuses, messages, all_logs):
     """Return mismatches whose recorded log does NOT appear in the error.
 
     Only nodeids that are still failing (status failed/error) with a real error
     message are considered. The ``log`` may hold several ';'-joined fragments;
     the nodeid is flagged when NONE of them appear in the message. Each flagged
-    entry carries the recorded ``log`` plus any fragment from
-    ``blacklist_logs.json`` that DOES appear in the message (the up-to-date
-    error signature, if any).
+    entry carries the recorded ``log`` plus any fragment collected from the
+    blacklist groups' ``log`` fields that DOES appear in the message (the
+    up-to-date error signature, if any).
     """
     mismatched = []
     for nodeid in sorted(log_map):
@@ -154,7 +138,7 @@ def build_log_mismatch(log_map, statuses, messages, all_logs):
 def build_report(reports_root, config_dir):
     flatten = load_flatten_module()
     log_map = flatten.collect_log_map(config_dir)
-    all_logs = load_blacklist_logs(config_dir)
+    all_logs = sorted({log for log in log_map.values() if log})
 
     platforms = {}
     counts = {}
