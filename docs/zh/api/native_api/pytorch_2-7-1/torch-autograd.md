@@ -1518,7 +1518,6 @@
 
 <div style="margin-left: 2em">
 
-<!-- npu="910b,A3" id260 -->
 <a class="method_anchor" id="torch_autograd_graph_Node_name"></a>
 
 > <font size="3">name()</font>
@@ -1528,7 +1527,6 @@
 **原生文档**：[Node.name](https://pytorch.org/docs/2.7/generated/torch.autograd.graph.Node.name.html)
 
 **产品支持情况**：
-<!-- end id260 -->
 
 <!-- npu="910b" id166 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1536,10 +1534,11 @@
 <!-- npu="A3" id167 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id167 -->
+<!-- npu="950" id168 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id168 -->
 
-<!-- npu="910b,A3" id261 -->
 </div>
-<!-- end id261 -->
 
 <!-- npu="910b,A3" id262 -->
 <a class="method_anchor" id="torch_autograd_graph_Node_metadata"></a>

@@ -1489,7 +1489,6 @@ with torch.autograd.profiler.profile(use_device="npu", use_kineto=False) as prof
 
 <div style="margin-left: 2em">
 
-<!-- npu="910b,A3" id251 -->
 <a class="method_anchor" id="torch_autograd_graph_Node_name"></a>
 
 > <font size="3">name()</font>
@@ -1499,7 +1498,6 @@ with torch.autograd.profiler.profile(use_device="npu", use_kineto=False) as prof
 **原生文档**：[Node.name](https://pytorch.org/docs/2.9/generated/torch.autograd.graph.Node.name.html)
 
 **产品支持情况**：
-<!-- end id251 -->
 
 <!-- npu="910b" id166 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1507,10 +1505,11 @@ with torch.autograd.profiler.profile(use_device="npu", use_kineto=False) as prof
 <!-- npu="A3" id167 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id167 -->
+<!-- npu="950" id168 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id168 -->
 
-<!-- npu="910b,A3" id252 -->
 </div>
-<!-- end id252 -->
 
 <!-- npu="910b,A3" id253 -->
 <a class="method_anchor" id="torch_autograd_graph_Node_metadata"></a>
