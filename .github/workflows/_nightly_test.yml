@@ -50,11 +50,6 @@ on:
         type: string
         default: 'quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly'
         description: Docker image for running tests
-      report_to_upstream:
-        required: false
-        type: boolean
-        default: false
-        description: Whether to report test status to upstream dashboard
       hw_classification:
         required: false
         type: string
@@ -94,7 +89,7 @@ on:
         required: false
         type: string
         default: 'linux-aarch64-a3-2'
-        description: Runner label for runs-on and upstream job-name reporting.
+        description: Runner label for runs-on.
       device_env:
         required: false
         type: string
@@ -245,7 +240,6 @@ jobs:
       matrix_json: ${{ matrix.matrix_json }}
       max_workers: ${{ matrix.max_workers }}
       docker_image: ${{ inputs.docker_image }}
-      report_to_upstream: ${{ inputs.report_to_upstream }}
       runner_label: ${{ matrix.runner_label }}
       device_env: ${{ inputs.device_env }}
       patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 }}

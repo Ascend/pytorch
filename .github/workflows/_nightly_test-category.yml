@@ -56,16 +56,11 @@ on:
         type: string
         default: 'quay.io/kerer/pytorch:torch-npu-test-aarch64-cann-a3-py3.10-torch-nightly'
         description: Docker image for running tests
-      report_to_upstream:
-        required: false
-        type: boolean
-        default: false
-        description: Whether to report test status to upstream dashboard
       runner_label:
         required: false
         type: string
         default: 'linux-aarch64-a3-8'
-        description: Runner label for runs-on and upstream job-name reporting.
+        description: Runner label for runs-on.
       device_env:
         required: false
         type: string
@@ -157,7 +152,6 @@ jobs:
     runs-on: ${{ inputs.runner_label }}
     timeout-minutes: 1200
     permissions:
-      id-token: write
       contents: read
     defaults:
       run:
@@ -194,25 +188,6 @@ jobs:
             *)           PREFIX="reg" ;;
           esac
           echo "prefix=${PREFIX}" >> "$GITHUB_OUTPUT"
-
-      # Python version is read from the image itself (the conda env on
-      # PATH), never hardcoded: this workflow is shared by callers on
-      # py3.10 and py3.11 images. Used only by the upstream job-name
-      # labels below.
-      - name: Compute Python version
-        id: pyver
-        run: |
-          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-          echo "label=py${PYVER}" >> "$GITHUB_OUTPUT"
-          echo "Image python: $(python3 --version)"
-
-      - name: Report test in_progress
-        if: ${{ inputs.report_to_upstream }}
-        continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
-        with:
-          status: in_progress
-          job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, ${{ steps.pyver.outputs.label }})
 
       - name: Compute tarball names
         id: sha
@@ -662,49 +637,3 @@ jobs:
           name: error-logs-${{ steps.prefix.outputs.prefix }}-${{ matrix.shard }}
           path: error-logs/
           retention-days: 7
-
-      - name: Report test completed
-        id: report_test_completed
-        if: always() && inputs.report_to_upstream
-        continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
-        with:
-          status: completed
-          conclusion: ${{ steps.parse_results.outputs.parse_ok == 'true' && steps.parse_results.outputs.total_failed == '0' && 'success' || 'failure' }}
-          job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, ${{ steps.pyver.outputs.label }})
-          max-time: 60
-          test-results: >-
-            {
-              "passed": ${{ steps.parse_results.outputs.passed }},
-              "failed": ${{ steps.parse_results.outputs.total_failed }},
-              "skipped": ${{ steps.parse_results.outputs.skipped }},
-              "total": ${{ steps.parse_results.outputs.total }}
-            }
-
-      # The completion report above is best-effort (continue-on-error) and
-      # occasionally fails on a transient OIDC token mint timeout, which
-      # would silently drop the report to the upstream dashboard. Retry
-      # once after 30s when the first attempt failed. NOTE: this job does
-      # not check out this repository, so the sleep must be a plain run
-      # step and the retry re-invokes the remote action directly — a
-      # local composite action cannot be resolved here.
-      - name: Wait 30s before report retry
-        if: always() && inputs.report_to_upstream && steps.report_test_completed.outcome == 'failure'
-        run: sleep 30
-
-      - name: Retry report test completed
-        if: always() && inputs.report_to_upstream && steps.report_test_completed.outcome == 'failure'
-        continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
-        with:
-          status: completed
-          conclusion: ${{ steps.parse_results.outputs.parse_ok == 'true' && steps.parse_results.outputs.total_failed == '0' && 'success' || 'failure' }}
-          job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, ${{ steps.pyver.outputs.label }})
-          max-time: 60
-          test-results: >-
-            {
-              "passed": ${{ steps.parse_results.outputs.passed }},
-              "failed": ${{ steps.parse_results.outputs.total_failed }},
-              "skipped": ${{ steps.parse_results.outputs.skipped }},
-              "total": ${{ steps.parse_results.outputs.total }}
-            }

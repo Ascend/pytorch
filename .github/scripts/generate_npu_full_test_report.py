@@ -662,7 +662,7 @@ def main():
                 category_parts.append(f"{cat_name}: {count}")
         categories_str = ", ".join(category_parts) if category_parts else "none"
         selection_content = (
-            f"扫描发现 {total_scanned} 个测试文件 ({categories_str})"
+            f"Scanned {total_scanned} test files ({categories_str})"
         )
     else:
         # Fallback to original selection mode display
@@ -687,7 +687,7 @@ def main():
         ["Shards", f"{received_reports} / {expected_reports} reported"],
         ["Selection", selection_content],
         [
-            "实际执行用例",
+            "Executed cases",
             (
                 f"{totals['total']} total; {totals['passed']} passed; {totals['failed']} failed; "
                 f"{totals['errors']} errors; {totals['skipped']} skipped; "
@@ -700,7 +700,7 @@ def main():
         planned_parts = [f"{cat}: {count}" for cat, count in planned_cases_by_category.items() if count > 0]
         planned_str = ", ".join(planned_parts) if planned_parts else "none"
         overview_rows.append([
-            "规划用例总数",
+            "Planned cases (total)",
             f"{planned_total_cases} ({planned_str})",
         ])
     if disabled_filtered_count > 0:
@@ -726,10 +726,10 @@ def main():
 
     # Add case-level statistics table if available
     if cases_results:
-        markdown_lines.extend(["", "## 用例级执行统计"])
+        markdown_lines.extend(["", "## Case-level Execution Statistics"])
         markdown_lines.extend(
             render_table(
-                ["Shard", "总用例", "通过", "失败", "错误", "跳过", "超时", "Duration"],
+                ["Shard", "Total", "Passed", "Failed", "Errors", "Skipped", "Timeout", "Duration"],
                 [
                     [
                         f"{row['shard']}",
@@ -807,7 +807,7 @@ def main():
                 key=lambda x: (-x["case_count"], x["file"])
             )
 
-            markdown_lines.extend(["", "## 测试文件结果汇总"])
+            markdown_lines.extend(["", "## Test File Results Summary"])
 
             file_rows = []
             for fs in sorted_files:
@@ -840,7 +840,7 @@ def main():
 
             markdown_lines.extend(
                 render_table(
-                    ["测试文件", "分片", "规划用例", "通过", "失败", "错误", "跳过", "超时", "失败率"],
+                    ["File", "Shard", "Planned", "Passed", "Failed", "Errors", "Skipped", "Timeout", "Fail rate"],
                     file_rows,
                 )
             )

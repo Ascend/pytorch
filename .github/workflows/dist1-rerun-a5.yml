@@ -246,7 +246,6 @@ jobs:
       matrix_json: ${{ format('[{0}]', matrix.shard) }}
       max_workers: '1'
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.10-torch-master-cann9.2.0-20260910200430-202609230925-00b993fc
-      report_to_upstream: false
       runner_label: linux-amd64-a5-8
       device_env: privateuse1,cpu
       # Wheels are downloaded from the dedicated Guiyang bucket: fresh

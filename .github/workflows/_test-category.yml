@@ -189,10 +189,14 @@ jobs:
       - name: Report test in_progress
         if: ${{ inputs.report_to_upstream }}
         continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@4f888bf3a45147b2da804135d3cbcf985a4c6d08
         with:
           status: in_progress
           job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, ${{ steps.pyver.outputs.label }})
+          # Run summary page (public): rendered as the "Artifacts" link on
+          # the upstream HUD job row (same target as the relay-derived
+          # workflow_run_url "Run" button).
+          artifact-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           max-time: 60
 
       - name: Compute tarball names
@@ -574,11 +578,12 @@ jobs:
         id: report_test_completed
         if: always() && inputs.report_to_upstream
         continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@4f888bf3a45147b2da804135d3cbcf985a4c6d08
         with:
           status: completed
           conclusion: ${{ steps.parse_results.outputs.parse_ok == 'true' && steps.parse_results.outputs.total_failed == '0' && 'success' || 'failure' }}
           job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, ${{ steps.pyver.outputs.label }})
+          artifact-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           max-time: 60
           test-results: >-
             {
@@ -602,11 +607,12 @@ jobs:
       - name: Retry report test completed
         if: always() && inputs.report_to_upstream && steps.report_test_completed.outcome == 'failure'
         continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
+        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@4f888bf3a45147b2da804135d3cbcf985a4c6d08
         with:
           status: completed
           conclusion: ${{ steps.parse_results.outputs.parse_ok == 'true' && steps.parse_results.outputs.total_failed == '0' && 'success' || 'failure' }}
           job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, ${{ steps.pyver.outputs.label }})
+          artifact-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           max-time: 60
           test-results: >-
             {

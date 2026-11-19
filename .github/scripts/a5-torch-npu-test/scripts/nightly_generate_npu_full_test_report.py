@@ -744,7 +744,7 @@ def main():
         dist_files = file_discovery_stats["distributed_files"]
         reg_files = file_discovery_stats["regular_files"]
         selection_content = (
-            f"扫描发现 {total_scanned} 个测试文件 "
+            f"Scanned {total_scanned} test files "
             f"(distributed: {dist_files}, regular: {reg_files})"
         )
     else:
@@ -772,7 +772,7 @@ def main():
         ["Shards", f"{received_reports} / {expected_reports} reported"],
         ["Selection", selection_content],
         [
-            "实际执行用例",
+            "Executed cases",
             (
                 f"{totals['total']} total; {totals['passed']} passed; {totals['failed']} failed; "
                 f"{totals['errors']} errors; {totals['skipped']} skipped; "
@@ -783,7 +783,7 @@ def main():
     # Add planned cases count row if available
     if planned_total_cases > 0:
         overview_rows.append([
-            "规划用例总数",
+            "Planned cases (total)",
             f"{planned_total_cases} (distributed: {planned_dist_cases}, regular: {planned_reg_cases})",
         ])
     if disabled_filtered_count > 0:
@@ -809,10 +809,10 @@ def main():
 
     # Add case-level statistics table if available
     if cases_results:
-        markdown_lines.extend(["", "## 用例级执行统计"])
+        markdown_lines.extend(["", "## Case-level Execution Statistics"])
         markdown_lines.extend(
             render_table(
-                ["Shard", "总用例", "通过", "失败", "错误", "跳过", "超时", "Duration"],
+                ["Shard", "Total", "Passed", "Failed", "Errors", "Skipped", "Timeout", "Duration"],
                 [
                     [
                         f"{row['shard']}",
@@ -900,7 +900,7 @@ def main():
                 key=lambda x: (-x["case_count"], x["file"])
             )
 
-            markdown_lines.extend(["", "## 测试文件结果汇总"])
+            markdown_lines.extend(["", "## Test File Results Summary"])
 
             file_rows = []
             for fs in sorted_files:
@@ -930,7 +930,7 @@ def main():
 
             markdown_lines.extend(
                 render_table(
-                    ["测试文件", "分片", "规划用例", "通过", "失败", "错误", "跳过", "超时", "失败率"],
+                    ["File", "Shard", "Planned", "Passed", "Failed", "Errors", "Skipped", "Timeout", "Fail rate"],
                     file_rows,
                 )
             )

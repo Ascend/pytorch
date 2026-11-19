@@ -9,7 +9,7 @@ errored / timed out but a later isolated round recovered it. Cases that were
 retried and STILL failed are real failures, not flaky, and stay in the main
 report bodies.
 
-    - Non-empty result: appends a "## 不稳定用例 (Flaky Cases)" section to
+    - Non-empty result: appends a "## Flaky Cases (Retry-recovered)" section to
       --markdown and writes a "flaky_summary" block into --json (merged into
       the existing object, never replacing it), so the main report and the
       step summary both carry the flaky list.
@@ -26,7 +26,7 @@ import sys
 from pathlib import Path
 from typing import Dict, List
 
-FLAKY_HEADING = "## 不稳定用例 (Flaky Cases)"
+FLAKY_HEADING = "## Flaky Cases (Retry-recovered)"
 # Only a genuine first-attempt failure counts; the retry machinery only ever
 # retries these three statuses anyway (mirrors RETRY_STATUSES in
 # retry_failed_cases.py).
@@ -85,9 +85,9 @@ def build_markdown_section(flaky: List[Dict]) -> str:
         "",
         FLAKY_HEADING,
         "",
-        f"- 共 {len(flaky)} 条：首轮失败、重试后通过（不稳定用例），不计入最终失败。",
+        f"- {len(flaky)} case(s): failed on the first attempt, passed after retry (flaky); not counted as final failures.",
         "",
-        "| # | nodeid | 首轮状态 | 重试轮次 |",
+        "| # | nodeid | First Attempt | Retries |",
         "|---|--------|----------|----------|",
     ]
     for index, case in enumerate(flaky, start=1):

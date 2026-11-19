@@ -20,16 +20,11 @@ on:
         type: string
         default: 'master'
         description: The torch_npu repository branch, tag, or SHA to build
-      report_to_upstream:
-        required: false
-        type: boolean
-        default: true
-        description: Whether to report CI status to upstream dashboard
       runner_label:
         required: false
         type: string
         default: 'linux-aarch64-a3-4'
-        description: Runner label for runs-on and upstream job-name reporting.
+        description: Runner label for runs-on.
       docker_image:
         required: false
         type: string
@@ -103,24 +98,12 @@ jobs:
   fetch:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write  # Required by cross-repo-ci-relay-callback to obtain an OIDC token
       contents: read
     outputs:
       resolved_sha: ${{ steps.resolve.outputs.sha }}
       resolved_short: ${{ steps.resolve.outputs.short }}
       source_tarball: ${{ steps.resolve.outputs.source_tarball }}
     steps:
-      # Step 0: Report fetch in_progress to upstream. No continue-on-error,
-      # so an OIDC failure aborts the pipeline early (before any source
-      # download/packaging work is done).
-      - name: Report fetch in_progress
-        if: ${{ inputs.report_to_upstream }}
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
-        with:
-          status: in_progress
-          job-name: ubuntu-latest / fetch (pytorch)
-          max-time: 60
-
       - name: Checkout upstream PyTorch
         uses: actions/checkout@v6
         with:
@@ -251,36 +234,6 @@ jobs:
           echo "Upload failed after 2 attempts"
           exit 1
 
-      # Report fetch completed: conclusion follows the job's real outcome,
-      # including the cache-hit case where packaging/upload are skipped on
-      # purpose.
-      - name: Report fetch completed
-        id: report_fetch_completed
-        if: always() && inputs.report_to_upstream
-        continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
-        with:
-          status: completed
-          conclusion: ${{ job.status == 'success' && 'success' || 'failure' }}
-          job-name: ubuntu-latest / fetch (pytorch)
-          max-time: 60
-
-      # Same retry pattern as the build job's completion report below: the
-      # relay occasionally fails on a transient OIDC token mint timeout.
-      - name: Wait 30s before report retry
-        if: always() && inputs.report_to_upstream && steps.report_fetch_completed.outcome == 'failure'
-        run: sleep 30
-
-      - name: Retry report fetch completed
-        if: always() && inputs.report_to_upstream && steps.report_fetch_completed.outcome == 'failure'
-        continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
-        with:
-          status: completed
-          conclusion: ${{ job.status == 'success' && 'success' || 'failure' }}
-          job-name: ubuntu-latest / fetch (pytorch)
-          max-time: 60
-
   # ======================================================================
   # Job 2: Build PyTorch + torch_npu on self-hosted ARM64 runner. The
   # PyTorch source (submodules included) comes from the OBS tarball
@@ -290,7 +243,6 @@ jobs:
     needs: fetch
     runs-on: ${{ inputs.runner_label }}
     permissions:
-      id-token: write
       contents: read
     defaults:
       run:
@@ -316,23 +268,13 @@ jobs:
       # PATH), never hardcoded: this workflow is shared by callers on
       # py3.10 images (device-full-test) and py3.11 images (nightly,
       # nightly-a3, nightly-a5, collect-only). Feeds the torch_npu build
-      # (--python=) and the upstream job-name labels.
+      # (--python=).
       - name: Compute Python version
         id: pyver
         run: |
           PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           echo "version=${PYVER}" >> "$GITHUB_OUTPUT"
-          echo "label=py${PYVER}" >> "$GITHUB_OUTPUT"
           echo "Image python: $(python3 --version)"
-
-      # Step 0: Report build in_progress to upstream (same job as completed)
-      - name: Report build in_progress
-        if: ${{ inputs.report_to_upstream }}
-        continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
-        with:
-          status: in_progress
-          job-name: ${{ inputs.runner_label }} / build (pytorch, torch-npu, ${{ steps.pyver.outputs.label }})
 
       # Step 1a: Check out torch_npu and resolve its SHA BEFORE downloading
       # the PyTorch source or building, so the wheels tarball name (which
@@ -936,41 +878,4 @@ jobs:
             echo "| torch_npu wheels | \`${{ steps.wheels_name.outputs.torchnpu_wheels_tarball }}\` |"
             echo "| torch_npu cache | ${{ steps.wheels_cache.outputs.torchnpu_hit == 'true' && 'HIT (torch_npu reused from OBS)' || 'MISS (built in this run)' }} |"
           } >> "$GITHUB_STEP_SUMMARY"
-
-      # Step 8: Report build completed to upstream (same job as in_progress)
-      - name: Report build completed
-        id: report_build_completed
-        if: always() && inputs.report_to_upstream
-        continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
-        with:
-          status: completed
-          # job.status reflects every mandatory step (wheels upload or the
-          # full build chain) including the cache-hit case where the build
-          # steps are skipped on purpose.
-          conclusion: ${{ job.status == 'success' && 'success' || 'failure' }}
-          job-name: ${{ inputs.runner_label }} / build (pytorch, torch-npu, ${{ steps.pyver.outputs.label }})
-
-      # The completion report above is best-effort (continue-on-error) and
-      # occasionally fails on a transient OIDC token mint timeout, which
-      # would silently drop the report to the upstream dashboard. Retry
-      # once after 30s when the first attempt failed. NOTE: this job does
-      # not check out this repository, so the sleep must be a plain run
-      # step and the retry re-invokes the remote action directly — a
-      # local composite action cannot be resolved here.
-      - name: Wait 30s before report retry
-        if: always() && inputs.report_to_upstream && steps.report_build_completed.outcome == 'failure'
-        run: sleep 30
-
-      - name: Retry report build completed
-        if: always() && inputs.report_to_upstream && steps.report_build_completed.outcome == 'failure'
-        continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@fb6a1fce9cf9689c395708258317daca817281dc
-        with:
-          status: completed
-          # job.status reflects every mandatory step (wheels upload or the
-          # full build chain) including the cache-hit case where the build
-          # steps are skipped on purpose.
-          conclusion: ${{ job.status == 'success' && 'success' || 'failure' }}
-          job-name: ${{ inputs.runner_label }} / build (pytorch, torch-npu, ${{ steps.pyver.outputs.label }})
 

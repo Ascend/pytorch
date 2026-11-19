@@ -86,7 +86,7 @@ on:
         required: false
         type: string
         default: 'linux-aarch64-a3-8'
-        description: Runner label for runs-on and upstream job-name reporting.
+        description: Runner label for runs-on.
       device_env:
         required: false
         type: string
@@ -191,7 +191,6 @@ jobs:
   collect:
     runs-on: ${{ inputs.runner_label }}
     permissions:
-      id-token: write
       contents: read
     defaults:
       run:
