@@ -7072,14 +7072,27 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter_tensor_coalesced
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::barrier(const c10d::BarrierOptions& opts)
 {
     std::vector<at::Device> devices;
-    if (usedDeviceIdxs_.empty()) {
+    if (!opts.device_ids.empty()) {
+        // Validate the original integer before narrowing to DeviceIndex.
+        const int64_t requested = opts.device_ids[0];
+        const auto numNPUs = static_cast<int64_t>(c10_npu::device_count());
+        TORCH_CHECK(
+            requested >= 0 && requested < numNPUs,
+            "Invalid device_ids[0] for barrier: ",
+            requested,
+            ", expected 0 <= device_id < ",
+            numNPUs,
+            DIST_ERROR(ErrCode::VALUE));
+        devices.push_back(at::Device(c10::DeviceType::PrivateUse1, static_cast<c10::DeviceIndex>(requested)));
+    } else if (getBoundDeviceId().has_value()) {
+        devices.push_back(getBoundDeviceId().value());
+    } else if (usedDeviceIdxs_.empty()) {
         auto numNPUs = c10_npu::device_count();
         int16_t deviceIdx = static_cast<int16_t>(rank_ % std::max(static_cast<int>(numNPUs), 1));
         devices.push_back(at::Device(c10::DeviceType::PrivateUse1));
     } else {
-        for (auto usedDeviceIdx : usedDeviceIdxs_) {
-            devices.push_back(at::Device(c10::DeviceType::PrivateUse1, usedDeviceIdx));
-        }
+        // Use the lowest previously used device index for the barrier.
+        devices.emplace_back(c10::DeviceType::PrivateUse1, *usedDeviceIdxs_.begin());
     }
 
     std::vector<at::Tensor> barrierTensors;
