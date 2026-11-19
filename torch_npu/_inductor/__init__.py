@@ -155,6 +155,10 @@ def _load_dvm_backend():
 
     _initialize_dvm()
     from .dvm import mlir_fusion
+
+    # Imports are cached across backend switches; publish the DVM codegen and its
+    # cache UUID on every activation, not only on the first module import.
+    mlir_fusion.register_dvm_codegen_backend()
     has_triton = torch_npu.utils._dynamo.has_triton()
     if has_triton:
         from torch.nn.attention import flex_attention

@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import List, Optional, Union
 
@@ -257,6 +258,8 @@ class NpuDvmScheduling(SIMDScheduling):
 
     def _dump_fx_graph_for_fallback(self, mlir_kernel, device, graph_hash):
         """Cache the FX model for fallback execution and online accuracy checks."""
+        from torch_npu._inductor.dvm.fx_asset import _recoverable_resource_error
+
         cache_root = os.getenv("TORCHINDUCTOR_CACHE_DIR")
         dump_path = os.path.join(
             cache_root,
@@ -265,9 +268,18 @@ class NpuDvmScheduling(SIMDScheduling):
             graph_hash
         )
 
-        if not os.path.exists(dump_path):
-            os.makedirs(dump_path, exist_ok=True)
-            to_folder(mlir_kernel._gm, dump_path, graph_hash=graph_hash, module_name=graph_hash)
+        try:
+            if not os.path.exists(dump_path):
+                os.makedirs(dump_path, exist_ok=True)
+                to_folder(mlir_kernel._gm, dump_path, graph_hash=graph_hash, module_name=graph_hash)
+        except (MemoryError, OSError, RuntimeError) as error:
+            if not _recoverable_resource_error(error):
+                raise
+            # The graph-owned asset (or the live graph module) supplies the runtime
+            # state. Keep the normal debug output, but resource exhaustion here must
+            # not undo a successful persistence bypass. Other NPU backends keep
+            # their original path.
+            logging.getLogger(__name__).warning("DVM FX debug dump skipped after resource error: %s", error)
 
     def codegen_node_schedule(self, kernel_features: SIMDKernelFeatures, nodes):
         node_schedule = kernel_features.node_schedule
@@ -356,7 +368,14 @@ class NpuDvmScheduling(SIMDScheduling):
         return scheduling
 
     def define_kernel(self, src_code, mlir_kernel, traced_graph):
-        kernel_key = (src_code, _kernel_layout_key(mlir_kernel))
+        from torch_npu._inductor.dvm.fx_asset import register_fx_asset
+
+        # Graph text does not contain get_attr values. Include the constant archive
+        # in deduplication, otherwise equal-shaped constants can share the wrong FX.
+        fx_asset_id = None
+        if mlir_kernel.dvm_codegen is None:
+            fx_asset_id = register_fx_asset(mlir_kernel._gm, V.graph)
+        kernel_key = (src_code, _kernel_layout_key(mlir_kernel), fx_asset_id)
         wrapper = V.graph.wrapper_code
 
         if kernel_key in wrapper.src_to_kernel:
@@ -380,7 +399,10 @@ class NpuDvmScheduling(SIMDScheduling):
                 mlir_kernel.dvm_codegen is None
                 or kernel_name in dvm_config.force_fallback_kernel_names
             ):
+                if fx_asset_id is None:
+                    fx_asset_id = register_fx_asset(mlir_kernel._gm, V.graph)
                 kernel_meta = {
+                    "npu_fx_asset_id": fx_asset_id,
                     "device_str": current_device.type,
                     "device_index": current_device.index,
                     "num_outputs": mlir_kernel.num_outputs,
@@ -425,8 +447,10 @@ class NpuDvmScheduling(SIMDScheduling):
                 compile_wrapper.writeline(func_name)
 
                 if dvm_config.online_acc_comp:
+                    fx_asset_id = register_fx_asset(mlir_kernel._gm, V.graph)
                     compile_wrapper.writeline(
                         f"{kernel_name}._acc_meta = {{"
+                        f"'npu_fx_asset_id': {fx_asset_id!r}, "
                         f"'traced_graph_hash': {traced_graph_hash!r}, "
                         "'traced_graph_cache': 'traced_graph_cache', "
                         f"'device_index': {current_device.index}, "
@@ -693,6 +717,17 @@ def _patch_lowering():
     npu_lowering.make_reduction = _make_reduction
 
 
+def register_dvm_codegen_backend():
+    """Publish the DVM codegen together with its cache UUID pass."""
+    from torch_npu._inductor.compile_options import register_npu_backend
+    from torch_npu._inductor.dvm.persistence import DvmCacheIdentity
+
+    register_npu_backend(
+        NpuDvmScheduling, NpuDvmWrapperCodeGen,
+        device_custom_pass=DvmCacheIdentity(),
+    )
+
+
 class DvmMlirFusionPatch:
     _enabled = False
 
@@ -717,9 +752,11 @@ class DvmMlirFusionPatch:
         _disable_addmm_fusion_for_dvm()
         if dvm_config.enable_matmul_fusion:
             patch_dvm_matmul_template_fusion()
-        from torch_npu._inductor.compile_options import register_npu_backend
+        register_dvm_codegen_backend()
+        from torch_npu._inductor.dvm.persistence import record_initialization
 
-        register_npu_backend(NpuDvmScheduling, NpuDvmWrapperCodeGen)
+        # Snapshot the policies that only take effect once, at activation.
+        record_initialization()
         DvmMlirFusionPatch._enabled = True
 
 

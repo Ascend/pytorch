@@ -24,6 +24,7 @@ from torch_npu._compat.inductor import (
 )
 
 
+log = logging.getLogger(__name__)
 use_jit_script = False
 
 
@@ -140,6 +141,23 @@ class _NpuBackendEnvScope:
             os.environ["TORCHINDUCTOR_NPU_BACKEND"] = self._old_env
 
 
+class _NpuBackendScope(_NpuBackendEnvScope):
+    """Prepare a backend-bound compile or restore through the versioned hooks."""
+
+    def __enter__(self):
+        super().__enter__()
+        try:
+            from torch_npu._compat.inductor import (
+                compat_prepare_inductor_backend_for_call,
+            )
+
+            compat_prepare_inductor_backend_for_call(self.backend)
+        except BaseException:
+            self._restore_backend_env()
+            raise
+        return self
+
+
 def patch_inductor_wrapper():
     from torch import _TorchCompileInductorWrapper
 
@@ -175,6 +193,9 @@ def patch_inductor_wrapper():
         # returns, and hashing them imports Ascend Triton backend packages.
         patch_triton_target_no_device_init()
         _lazy_dynamo_setup()
+        from torch_npu.dynamo._package_compat import install as install_package_compat
+
+        install_package_compat()
         if self.config.get(compat_compile_option("enable_shape_handling"), False):
             _patch_shape_handling()
         backend = _resolve_npu_backend_from_wrapper(self)
@@ -196,25 +217,69 @@ def patch_inductor_wrapper():
 
         compat_prepare_dvm_backend_on_wrapper_init(backend)
 
-    def new_call(self, model_, inputs_):
-        backend = _resolve_npu_backend_from_wrapper(self)
-        with _NpuBackendEnvScope(backend):
-            from torch_npu._compat.inductor import (
-                compat_prepare_inductor_backend_for_call,
-            )
+    def new_call(self, model_, inputs_, *, config_patches=None):
+        from torch_npu.dynamo._package_compat.context import (
+            backend_request_scope, npu_devices,
+        )
 
-            compat_prepare_inductor_backend_for_call(backend)
+        options = {**self.config, **(config_patches or {})}
+        backend = _resolve_npu_backend(
+            options.get(
+                compat_compile_option("npu_backend"), options.get("npu_backend")
+            )
+        )
+        with backend_request_scope(backend, isolate=True), _NpuBackendScope(backend):
             if backend == "ascendc":
                 from torch_npu.dynamo._deterministic_guard import (
                     install_npu_deterministic_level_guard,
                 )
 
                 install_npu_deterministic_level_guard()
+
+            def _compile_dvm(wrapper, gm, inputs, devices):
+                # The producer identity is DVM state: importing it here loads the
+                # DVM backend, which must only happen for a confirmed request.
+                from torch_npu._inductor.dvm.persistence import (
+                    CompileRequest, bind_inner_compile, make_context, request_scope,
+                )
+
+                # wrapper is FXRT's copy when the fxrt option is on.
+                request = CompileRequest({**wrapper.config, **(config_patches or {})})
+                context = make_context(devices, request=request)
+                if not context.persistable:
+                    # Identity unavailable: a later process could not key the
+                    # artifacts either.
+                    log.info("NPU persistent cache bypass: %s", context.reason)
+                from torch._inductor.compile_fx import compile_fx, compile_fx_inner
+
+                with request_scope(context):
+                    # Bind only this NPU request, without replacing global
+                    # compile_fx. AOT may invoke inner_compile later for a
+                    # deferred backward.
+                    return compile_fx(
+                        gm, inputs,
+                        inner_compile=bind_inner_compile(compile_fx_inner, context),
+                        config_patches=request.options,
+                        compile_region_name=wrapper.name,
+                    )
+
+            # Only a DVM compile with an NPU target owns NPU artifacts. Resolve
+            # the devices here, before FX/AOT hashing, so the identity is part
+            # of the keys.
+            if backend == "dvm" and (devices := npu_devices(inputs_, module=model_)):
+                compile_fn = functools.partial(_compile_dvm, devices=devices)
+            else:
+                # src_call takes config_patches as keyword-only; bind it because
+                # compile_fn is invoked with three positional arguments.
+                compile_fn = functools.partial(src_call, config_patches=config_patches)
+
             if self.config.get("fxrt", False):
+                # FXRT compiles through its own wrapper copy, so it has to wrap
+                # whichever compilation this call resolved to.
                 from torch_npu.fxrt.fx_wrapper import _compile_inductor_with_fxrt
 
-                return _compile_inductor_with_fxrt(src_call, self, model_, inputs_)
-            return src_call(self, model_, inputs_)
+                return _compile_inductor_with_fxrt(compile_fn, self, model_, inputs_)
+            return compile_fn(self, model_, inputs_)
 
     _TorchCompileInductorWrapper.__call__ = new_call
     _TorchCompileInductorWrapper.__init__ = new_init
@@ -479,7 +544,10 @@ def _run_dynamo_setup_step(name, setup):
     """Keep successful setup steps idempotent when a later step fails."""
     if name in _COMPLETED_DYNAMO_SETUP_STEPS:
         return
-    setup()
+    if setup() is False:
+        # False means "not ready yet, retry later" (e.g. install() while
+        # torch._inductor is still initializing). None is plain success.
+        return
     _COMPLETED_DYNAMO_SETUP_STEPS.add(name)
 
 
@@ -637,6 +705,10 @@ def _lazy_dynamo_setup():
     # torch._dynamo.optimize instead. No-op on torch >= 2.15.
     from torch_npu._compat.dynamo import compat_patch_dynamo_optimize
     compat_patch_dynamo_optimize()
+
+    from torch_npu.dynamo._package_compat import install as install_package_compat
+
+    _run_dynamo_setup_step("compile_package", install_package_compat)
 
 
 @run_once

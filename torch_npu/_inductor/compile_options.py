@@ -22,7 +22,8 @@ install_config_module(sys.modules[__name__])
 
 
 def register_npu_backend(
-    scheduling, wrapper_codegen, cpp_wrapper_codegen=None, backend_config=None
+    scheduling, wrapper_codegen, cpp_wrapper_codegen=None, backend_config=None,
+    device_custom_pass=None,
 ):
     """Register the npu codegen backend and its device config.
 
@@ -33,6 +34,11 @@ def register_npu_backend(
     routing, and backend_config is registered under its own module name so
     the FX cache key snapshot and the out-of-process config transport (both
     per-module upstream) keep covering it.
+
+    device_custom_pass: optional CustomGraphModulePass whose UUID joins the
+    FX/AOT cache keys (e.g. the DVM compile-package identity pass). It is
+    stored independently from device_custom_config, so both channels keep
+    working together.
     """
     # import inside the function: install_config_module above moves
     # module-level values of config types into _config, which would delete
@@ -56,5 +62,6 @@ def register_npu_backend(
         scheduling,
         wrapper_codegen,
         cpp_wrapper_codegen,
+        device_custom_pass=device_custom_pass,
         device_custom_config=device_custom_config,
     )

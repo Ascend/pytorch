@@ -240,6 +240,13 @@ class MetaCompiler:
 
     def _load_traced_graph_model(self) -> torch.nn.Module:
         meta = self.kernel_meta or {}
+        if "npu_fx_asset_id" in meta:
+            from torch_npu._inductor.dvm.fx_asset import load_fx_asset
+
+            # The asset is graph-owned and persisted before the wrapper is
+            # imported. Keep the restored module on the launcher so a late
+            # fallback has real state instead of a cache dump that may be gone.
+            return load_fx_asset(meta["npu_fx_asset_id"])
         traced_graph_hash = meta.get("traced_graph_hash")
         if not traced_graph_hash:
             raise RuntimeError("traced_graph_hash missing, cannot build FX fallback")
@@ -265,7 +272,18 @@ class MetaCompiler:
         return Model()
 
     def register_fx_fallback(self, kernel_meta) -> None:
-        model = self._load_traced_graph_model()
+        from torch_npu.dynamo._package_compat.format import PackageCompatibilityError
+
+        try:
+            model = self._load_traced_graph_model()
+        except PackageCompatibilityError as error:
+            # The cached FX entry outlived its assets (partial cache cleanup or
+            # corruption); a fresh compile rebuilds both.
+            raise PackageCompatibilityError(
+                f"{error} (kernel {self.kernel_name}); the cached FX entry "
+                "outlived its assets. Remove the TORCHINDUCTOR_CACHE_DIR "
+                "contents and run again: a fresh compile rebuilds both."
+            ) from error
         num_outputs = kernel_meta.get("num_outputs", 0)
         module_call = self._fx_graph_call_factory(model, num_outputs)
         self.register_launcher(
