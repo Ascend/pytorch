@@ -1050,6 +1050,97 @@ class TestShmToProfConfContext(TestCase):
         self.assertTrue(call_mock.call_args[0][0].get("NPU_MONITOR_START"))
         self.assertTrue(any("expect dict" in t for t in _log_texts(log_mock)))
 
+    @staticmethod
+    def _dyno_monitor_cfg(trace_id):
+        return {"is_valid": True, "NPU_MONITOR_START": True,
+                "REQUEST_TRACE_ID": trace_id}
+
+    def test_dyno_monitor_configs_limited_per_call(self):
+        from torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor import (
+            DynamicProfilerMonitor, MAX_CONFIG_QUEUE_SIZE)
+        cfg_list = [self._dyno_monitor_cfg(f"dyno{i}")
+                    for i in range(MAX_CONFIG_QUEUE_SIZE + 3)]
+        monitor = self._shm_payload(cfg_list)
+        with patch.object(DynamicProfilerMonitor, "_call_dyno_monitor") as call_mock, \
+                patch.object(DynamicProfilerUtils, "out_log") as log_mock:
+            result = monitor.shm_to_prof_conf_context()
+        self.assertEqual([], result)
+        self.assertEqual(MAX_CONFIG_QUEUE_SIZE, call_mock.call_count)
+        dispatched_ids = [call[0][0]["REQUEST_TRACE_ID"]
+                          for call in call_mock.call_args_list]
+        self.assertEqual(
+            [f"dyno{i}" for i in range(MAX_CONFIG_QUEUE_SIZE)], dispatched_ids)
+        drop_logs = [t for t in _log_texts(log_mock)
+                     if "Dynamic monitor config queue is full" in t]
+        self.assertEqual(1, len(drop_logs))
+        self.assertIn(f"limit {MAX_CONFIG_QUEUE_SIZE}", drop_logs[0])
+        self.assertIn("drop 3 config(s)", drop_logs[0])
+        for i in range(MAX_CONFIG_QUEUE_SIZE, MAX_CONFIG_QUEUE_SIZE + 3):
+            self.assertIn(f"dyno{i}", drop_logs[0])
+        consume_logs = [t for t in _log_texts(log_mock)
+                        if t.startswith("Consumed ")]
+        self.assertEqual(
+            [f"Consumed {MAX_CONFIG_QUEUE_SIZE} dyno monitor config(s)."],
+            consume_logs)
+
+    def test_dyno_monitor_exact_limit_not_dropped(self):
+        from torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor import (
+            DynamicProfilerMonitor, MAX_CONFIG_QUEUE_SIZE)
+        cfg_list = [self._dyno_monitor_cfg(f"dyno{i}")
+                    for i in range(MAX_CONFIG_QUEUE_SIZE)]
+        monitor = self._shm_payload(cfg_list)
+        with patch.object(DynamicProfilerMonitor, "_call_dyno_monitor") as call_mock, \
+                patch.object(DynamicProfilerUtils, "out_log") as log_mock:
+            monitor.shm_to_prof_conf_context()
+        self.assertEqual(MAX_CONFIG_QUEUE_SIZE, call_mock.call_count)
+        self.assertFalse(any("Dynamic monitor config queue is full" in t
+                             for t in _log_texts(log_mock)))
+
+    def test_dyno_monitor_limit_is_per_call(self):
+        from torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor import (
+            DynamicProfilerMonitor, MAX_CONFIG_QUEUE_SIZE)
+        first = [self._dyno_monitor_cfg(f"first{i}")
+                 for i in range(MAX_CONFIG_QUEUE_SIZE + 2)]
+        monitor = self._shm_payload(first)
+        second = [self._dyno_monitor_cfg(f"second{i}") for i in range(2)]
+        second_time_bytes = struct.pack(
+            "<I", struct.unpack("<I", monitor.t_bytes)[0] + 5)
+        with patch.object(DynamicProfilerMonitor, "_call_dyno_monitor") as call_mock, \
+                patch.object(DynamicProfilerUtils, "out_log"):
+            monitor._shm_obj.read_bytes.side_effect = [
+                monitor.t_bytes,
+                ConfigContext.profiler_cfg_json_to_bytes(first),
+            ]
+            monitor.shm_to_prof_conf_context()
+            monitor._shm_obj.read_bytes.side_effect = [
+                second_time_bytes,
+                ConfigContext.profiler_cfg_json_to_bytes(second),
+            ]
+            monitor.shm_to_prof_conf_context()
+        self.assertEqual(MAX_CONFIG_QUEUE_SIZE + 2, call_mock.call_count)
+        dispatched_ids = [call[0][0]["REQUEST_TRACE_ID"]
+                          for call in call_mock.call_args_list]
+        self.assertEqual(
+            [f"first{i}" for i in range(MAX_CONFIG_QUEUE_SIZE)]
+            + ["second0", "second1"], dispatched_ids)
+
+    def test_dyno_monitor_limit_independent_of_regular_configs(self):
+        from torch_npu.profiler._dynamic_profiler._dynamic_profiler_monitor import (
+            DynamicProfilerMonitor, MAX_CONFIG_QUEUE_SIZE)
+        cfg_list = []
+        for i in range(MAX_CONFIG_QUEUE_SIZE):
+            cfg_list.append(self._cfg_dict(f"reg{i}"))
+            cfg_list.append(self._dyno_monitor_cfg(f"dyno{i}"))
+        monitor = self._shm_payload(cfg_list)
+        with patch.object(DynamicProfilerMonitor, "_call_dyno_monitor") as call_mock, \
+                patch.object(DynamicProfilerUtils, "out_log") as log_mock:
+            result = monitor.shm_to_prof_conf_context()
+        self.assertEqual([f"reg{i}" for i in range(MAX_CONFIG_QUEUE_SIZE)],
+                         [ctx.trace_id() for ctx in result])
+        self.assertEqual(MAX_CONFIG_QUEUE_SIZE, call_mock.call_count)
+        self.assertFalse(any("Dynamic monitor config queue is full" in t
+                             for t in _log_texts(log_mock)))
+
     def test_decode_failure_retries_same_timestamp(self):
         monitor = self._shm_payload([self._cfg_dict("t1")], broken=True)
         init_time = monitor._cur_time
@@ -1290,11 +1381,11 @@ class TestDynamicProfileConfigQueue(TestCase):
 
     def test_queue_full_rejects_newest_and_can_retry(self):
         with patch.object(DynamicProfilerUtils, "out_log") as log_mock:
-            for i in range(self.dp_inst.MAX_CONFIG_QUEUE_SIZE):
+            for i in range(dp.MAX_CONFIG_QUEUE_SIZE):
                 self.dp_inst._append_cfg_ctxs([self._make_ctx(f"t{i}")])
             self.dp_inst._append_cfg_ctxs([self._make_ctx("t5")])
             self.assertEqual(
-                [f"t{i}" for i in range(self.dp_inst.MAX_CONFIG_QUEUE_SIZE)],
+                [f"t{i}" for i in range(dp.MAX_CONFIG_QUEUE_SIZE)],
                 self._queue_trace_ids(),
             )
             self.assertEqual(1, self.dp_inst._rejected_cfg_count)
@@ -1302,7 +1393,7 @@ class TestDynamicProfileConfigQueue(TestCase):
             self.dp_inst._cfg_ctx_queue.pop(0)
             self.dp_inst._append_cfg_ctxs([self._make_ctx("t5")])
         self.assertEqual(
-            [f"t{i}" for i in range(1, self.dp_inst.MAX_CONFIG_QUEUE_SIZE)] + ["t5"],
+            [f"t{i}" for i in range(1, dp.MAX_CONFIG_QUEUE_SIZE)] + ["t5"],
             self._queue_trace_ids(),
         )
         self.assertTrue(
@@ -1312,7 +1403,7 @@ class TestDynamicProfileConfigQueue(TestCase):
 
     def test_rejected_configs_logged_as_one_aggregate_warning(self):
         with patch.object(DynamicProfilerUtils, "out_log") as log_mock:
-            for i in range(self.dp_inst.MAX_CONFIG_QUEUE_SIZE):
+            for i in range(dp.MAX_CONFIG_QUEUE_SIZE):
                 self.dp_inst._append_cfg_ctxs([self._make_ctx(f"ok{i}")])
             rejected = [self._make_ctx(f"drop{i}") for i in range(3)]
             self.dp_inst._append_cfg_ctxs(rejected)
@@ -1390,7 +1481,7 @@ class TestDynamicProfileConfigQueue(TestCase):
         self.dp_inst.cur_step = 100
         self.dp_inst.cfg_ctx = self._make_ctx("ready1", start_step=1000)
         with patch.object(DynamicProfilerUtils, "out_log"):
-            for i in range(self.dp_inst.MAX_CONFIG_QUEUE_SIZE):
+            for i in range(dp.MAX_CONFIG_QUEUE_SIZE):
                 self.dp_inst._append_cfg_ctxs(
                     [self._make_ctx(f"stale{i}", start_step=1)])
             self.dp_inst._append_cfg_ctxs(

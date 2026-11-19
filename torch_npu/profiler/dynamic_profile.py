@@ -13,7 +13,10 @@ from ..utils._path_manager import PathManager
 from .analysis.prof_common_func._utils import no_exception_func
 from .analysis.prof_common_func._file_manager import FileManager
 from ._dynamic_profiler._dynamic_profiler_utils import DynamicProfilerUtils
-from ._dynamic_profiler._dynamic_profiler_monitor import DynamicProfilerMonitor
+from ._dynamic_profiler._dynamic_profiler_monitor import (
+    DynamicProfilerMonitor,
+    MAX_CONFIG_QUEUE_SIZE,
+)
 from ._dynamic_profiler._dynamic_profiler_config_context import ConfigContext
 from ._dynamic_profiler._dynamic_monitor_proxy import PyDynamicMonitorProxySingleton
 
@@ -29,7 +32,6 @@ __all__ = [
 @Singleton
 class _DynamicProfile:
     RECORD_TIME_STEP = 10
-    MAX_CONFIG_QUEUE_SIZE = 5
 
     def __init__(self) -> None:
         self.prof = None
@@ -108,7 +110,7 @@ class _DynamicProfile:
             if not ctx.start() and self.cur_step > ctx.start_step():
                 expired_trace_ids.append(trace_id or "N/A")
                 continue
-            if len(self._cfg_ctx_queue) >= self.MAX_CONFIG_QUEUE_SIZE:
+            if len(self._cfg_ctx_queue) >= MAX_CONFIG_QUEUE_SIZE:
                 self._rejected_cfg_count += 1
                 rejected_trace_ids.append(trace_id or "N/A")
                 continue
@@ -122,7 +124,7 @@ class _DynamicProfile:
                 DynamicProfilerUtils.LoggerLevelEnum.WARNING)
         if rejected_trace_ids:
             DynamicProfilerUtils.out_log(
-                f"Config queue is full (limit {self.MAX_CONFIG_QUEUE_SIZE}), "
+                f"Config queue is full (limit {MAX_CONFIG_QUEUE_SIZE}), "
                 f"reject {len(rejected_trace_ids)} config(s), "
                 f"trace ids = {rejected_trace_ids[:10]}",
                 DynamicProfilerUtils.LoggerLevelEnum.WARNING)
