@@ -43,7 +43,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id3 -->
 
-<!-- npu="910b,A3" id653 -->
+<!-- npu="910b,A3,950" id653 -->
 <a class="method_anchor" id="torch_optim_Optimizer_add_param_group"></a>
 
 > <font size="3">add_param_group()</font>
@@ -61,8 +61,11 @@
 <!-- npu="A3" id5 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id5 -->
+<!-- npu="950" id6 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id6 -->
 
-<!-- npu="910b,A3" id654 -->
+<!-- npu="910b,A3,950" id654 -->
 </div>
 <!-- end id654 -->
 
