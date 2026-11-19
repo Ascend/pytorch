@@ -162,6 +162,20 @@
 
 <div style="margin-left: 2em">
 
+**原生文档**：[torch.autograd.forward_ad.UnpackedDualTensor](https://pytorch.org/docs/2.9/generated/torch.autograd.forward_ad.UnpackedDualTensor.html)
+
+**产品支持情况**：
+
+<!-- npu="910b" id272 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id272 -->
+<!-- npu="A3" id273 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id273 -->
+<!-- npu="950" id274 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id274 -->
+
 <a class="method_anchor" id="torch_autograd_forward_ad_UnpackedDualTensor_primal"></a>
 
 > <font size="3">primal</font>
