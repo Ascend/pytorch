@@ -104,6 +104,23 @@ jobs:
                   else:
                       print(f"    {name}: {kind}: {count}")
               files = [f"{config_dir}/{name}" for name, _kind, _count in stats]
+
+              # Subtract the cases that passed on this platform from the flat
+              # union. platform_passed_diff.json records, per platform, the
+              # nodeids that passed there (passed_a3 / passed_a5); removing
+              # them yields that platform's actual blacklist.
+              diff_path = pathlib.Path(
+                  ".github/config/blacklist_testccases/platform_passed_diff.json"
+              )
+              if diff_path.exists():
+                  diff_data = json.loads(diff_path.read_text(encoding="utf-8"))
+                  passed = set(diff_data.get(f"passed_{platform}", []) or [])
+                  before = len(nodeids)
+                  nodeids = [n for n in nodeids if n not in passed]
+                  print(
+                      f"    removed {before - len(nodeids)} passed nodeids "
+                      f"for {platform}"
+                  )
           else:
               spec = importlib.util.spec_from_file_location(
                   "collect_all_cases", ".github/scripts/collect_all_cases.py"
