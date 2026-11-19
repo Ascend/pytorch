@@ -13,11 +13,17 @@ NPUGraph是一种在Eager Mode（单算子执行模式）下使用的静态图�
 
 3. **更新（Update）**：对于需要动态参数（如序列长度）的算子（如FlashAttention），NPUGraph通过专用的update机制在重放前刷新参数值，无需重新捕获整张图。该机制由[_npugraph_handlers](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/torch_npu-npu_npugraph_handlers.md)中的算子Handler自动管理，用户通过`auto_dispatch_capture=True`启用。
 
+    在<term>Ascend 950PR&950DT系列产品</term>场景下，支持**tiling下沉**的算子还可以通过另一种方式处理序列长度变化。Tiling用于决定如何将算子的计算任务分配给设备上的各个计算核。采用tiling下沉后，依赖序列长度的任务切分计算会在设备侧执行，并成为捕获图的一部分。每次重放时，设备从NPU张量中读取当前的实际长度，重新计算任务分配，因此这类算子无需通过graph update机制刷新参数。
+
+    例如，CANN的`cann_ops_transformer`扩展提供了`flash_attn_metadata`和`flash_attn`接口。将两个调用一起捕获到同一张图中：`flash_attn_metadata`在设备侧AI CPU上生成任务切分信息（metadata），`flash_attn`使用该信息执行注意力计算。重放前，只需将新的实际长度写入已有的NPU张量，无需设置`auto_dispatch_capture=True`，也无需调用图更新接口。具体用法见下方[通过tiling下沉使用FlashAttention](#示例通过tiling下沉使用flashattention)，参数及约束请参见CANN的[FlashAttention接口文档](https://gitcode.com/cann/ops-transformer/blob/master/attention/flash_attn/docs/torchapi_flash_attn.md)。
+
+    该方式仅适用于支持tiling下沉的算子及配置。重放时，张量形状、数据类型、内存地址和静态属性仍需保持不变；可以变化的是算子支持的输入张量内容，例如实际序列长度。
+
 ### 核心优势
 
 图重放机制通过牺牲动态图执行的灵活性，换取显著的CPU开销降低：
 
-1. **固定计算图结构**：参数与内核在捕获阶段确定后不再变更，重放时无需重复进行参数校验、内核选择等操作。
+1. **固定计算图结构**：内核序列和依赖关系在捕获阶段确定。对于支持变化的输入值，可以通过张量拷贝或上述update机制进行更新，而图结构保持不变。重放时无需在Host侧重复进行参数校验、内核选择等操作。
 2. **高效执行流程**：重放时直接调用底层启动接口，将整个图任务批量提交至NPU，跳过CPU端多层调度开销。
 
 NPUGraph的优势可以通过下图展示：
@@ -198,3 +204,102 @@ def main():
 if __name__ == "__main__":
     main()
 ```
+
+### 示例：通过tiling下沉使用FlashAttention
+
+本示例将`flash_attn_metadata`和`flash_attn`一起捕获，并使用不同的实际KV序列长度重放同一张图。K/V张量始终保留128个token的容量，NPU张量`seqused_kv`指定当前重放时每个batch样本实际使用的token数量。
+
+请在该算子支持的<term>Ascend 950PR&950DT系列产品</term>上运行示例，使用版本匹配的PyTorch、torch_npu和提供`FlashAttnMetadata`、`FlashAttn`算子的CANN环境，并按照[安装说明](https://gitcode.com/cann/ops-transformer/blob/master/torch_extension/README.md)安装`cann_ops_transformer`扩展。
+
+```python
+import torch
+import torch_npu
+import cann_ops_transformer
+
+
+@torch.no_grad()
+def main():
+    torch_npu.npu.set_device(0)
+    batch_size, q_len, kv_capacity = 2, 1, 128
+    num_heads_q, num_heads_kv, head_dim = 8, 2, 128
+
+    # 保留这些张量，每次重放都复用同一块内存。
+    q = torch.randn(
+        batch_size, q_len, num_heads_q, head_dim,
+        dtype=torch.bfloat16, device="npu",
+    )
+    k = torch.randn(
+        batch_size, kv_capacity, num_heads_kv, head_dim,
+        dtype=torch.bfloat16, device="npu",
+    )
+    v = torch.randn_like(k)
+    seqused_q = torch.full(
+        (batch_size,), q_len, dtype=torch.int32, device="npu",
+    )
+    seqused_kv = torch.full(
+        (batch_size,), kv_capacity, dtype=torch.int32, device="npu",
+    )
+
+    # 两个算子必须使用一致的序列长度、布局和掩码配置。
+    params = dict(
+        seqused_q=seqused_q,
+        seqused_kv=seqused_kv,
+        max_seqlen_q=q_len,
+        max_seqlen_kv=kv_capacity,
+        mask_mode=0,
+        win_left=-1,
+        win_right=-1,
+        layout_q="BSND",
+        layout_kv="BSND",
+        layout_out="BSND",
+    )
+
+    def attention():
+        metadata = cann_ops_transformer.ops.flash_attn_metadata(
+            num_heads_q, num_heads_kv, head_dim,
+            batch_size=batch_size,
+            **params,
+        )
+        out, _ = cann_ops_transformer.ops.flash_attn(
+            q, k, v,
+            metadata=metadata,
+            softmax_scale=head_dim ** -0.5,
+            return_softmax_lse=False,
+            **params,
+        )
+        return out
+
+    # 捕获前先预热，完成扩展首次调用时的编译和初始化。
+    stream = torch_npu.npu.Stream()
+    stream.wait_stream(torch_npu.npu.current_stream())
+    with torch_npu.npu.stream(stream):
+        for _ in range(3):
+            attention()
+    torch_npu.npu.synchronize()
+
+    graph = torch_npu.npu.NPUGraph()
+    with torch_npu.npu.graph(graph, stream=stream):
+        graph_out = attention()
+
+    for lengths in ([32, 64], [96, 128]):
+        # 修改张量内容，保持捕获时的内存地址不变。
+        new_lengths = torch.tensor(lengths, dtype=torch.int32, device="npu")
+        seqused_kv.copy_(new_lengths)
+
+        # 重放时，设备先生成metadata，再执行注意力计算。
+        graph.replay()
+
+        # 使用相同的输入和实际长度，与eager执行结果进行比较。
+        eager_out = attention()
+        torch_npu.npu.synchronize()
+        torch.testing.assert_close(graph_out, eager_out, rtol=1e-2, atol=1e-2)
+        print(f"KV实际长度为{lengths}：图重放结果与eager执行结果一致")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+关键是将**metadata生成和注意力计算一起捕获**。如果只在捕获前生成一次metadata，实际长度变化后，图中的任务切分信息仍会保持原值。本示例在每次重放时都会在设备侧重新生成metadata，并将其交给注意力算子使用，无需重新执行Python的`attention()`函数。
+
+实际长度必须在已分配的序列容量范围内。需要使用新的Q/K/V数据时，与`seqused_kv`一样，在重放前将数据拷贝到已有张量中。如果修改张量形状，或修改布局、掩码模式等静态配置，则需要重新捕获。示例中的eager调用和结果比较仅用于验证，正常的重放循环中无需保留。
