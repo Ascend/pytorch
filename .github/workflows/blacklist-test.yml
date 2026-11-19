@@ -658,10 +658,10 @@ jobs:
         with:
           ref: ci-test
 
-      - name: Flatten grouped blacklist to nodeids
+      - name: Flatten blacklist_testccases to nodeids
         run: |
-          python3 .github/scripts/blacklist-test/scripts/flatten_grouped_testcases.py \
-            --input .github/config/disabled_testcases_grouped.json \
+          python3 .github/scripts/blacklist-test/scripts/flatten_blacklist_testccases.py \
+            --config-dir .github/config/blacklist_testccases \
             --output grouped-nodeids.txt
 
       - name: Upload flattened nodeid list
