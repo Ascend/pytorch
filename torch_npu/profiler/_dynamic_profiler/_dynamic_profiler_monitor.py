@@ -18,6 +18,7 @@ from ._dynamic_profiler_utils import DynamicProfilerUtils
 
 MAX_RETRY_CONFIGS = 64
 MAX_PENDING_CONFIGS = 64
+MAX_CONFIG_QUEUE_SIZE = 5
 
 
 def _shm_payload_fits(cfg_list: list, time_bytes: bytes, max_size: int) -> bool:
@@ -95,6 +96,8 @@ class DynamicProfilerMonitor:
         self._cur_time = shm_cfg_change_time
         self._consume_seq.value += 1
         cfg_ctx_list = []
+        dyno_cfg_count = 0
+        dropped_dyno_trace_ids = []
         cfg_dict_list = json_data if isinstance(json_data, list) else [json_data]
         for cfg_dict in cfg_dict_list:
             if not isinstance(cfg_dict, dict):
@@ -106,7 +109,11 @@ class DynamicProfilerMonitor:
                 cfg_ctx = ConfigContext(cfg_dict)
                 if cfg_ctx.valid():
                     if cfg_ctx.is_dyno_monitor():
+                        if dyno_cfg_count >= MAX_CONFIG_QUEUE_SIZE:
+                            dropped_dyno_trace_ids.append(cfg_dict.get("REQUEST_TRACE_ID", "N/A"))
+                            continue
                         self._call_dyno_monitor(cfg_dict)
+                        dyno_cfg_count += 1
                         continue
                     cfg_ctx_list.append(cfg_ctx)
             except Exception as ex:
@@ -114,6 +121,16 @@ class DynamicProfilerMonitor:
                     f"Skip invalid config context, trace id = "
                     f"{cfg_dict.get('REQUEST_TRACE_ID', 'N/A')}, error: {str(ex)}",
                     DynamicProfilerUtils.LoggerLevelEnum.ERROR)
+        if dyno_cfg_count:
+            DynamicProfilerUtils.out_log(
+                f"Consumed {dyno_cfg_count} dyno monitor config(s).",
+                DynamicProfilerUtils.LoggerLevelEnum.INFO)
+        if dropped_dyno_trace_ids:
+            DynamicProfilerUtils.out_log(
+                f"Dynamic monitor config queue is full (limit {MAX_CONFIG_QUEUE_SIZE}), "
+                f"drop {len(dropped_dyno_trace_ids)} config(s), "
+                f"trace ids = {dropped_dyno_trace_ids[:10]}",
+                DynamicProfilerUtils.LoggerLevelEnum.WARNING)
         self.prof_cfg_context = cfg_ctx_list
         return cfg_ctx_list
 
