@@ -193,6 +193,28 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_attention_flex_attention_BlockMask_full_q_indices"></a>
+
+> <font size="3">full_q_indices</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.attention.flex_attention.BlockMask.full_q_indices](https://docs.pytorch.org/docs/2.13/nn.attention.flex_attention.html#torch.nn.attention.flex_attention.BlockMask.full_q_indices)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1035 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id1035 -->
+<!-- npu="A3" id1036 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id1036 -->
+<!-- npu="950" id1037 -->
+- <term>Ascend 950PR系列产品</term>：支持
+<!-- end id1037 -->
+
+</div>
+
 <a class="method_anchor" id="torch_nn_attention_flex_attention_BlockMask_kv_indices"></a>
 
 > <font size="3">kv_indices</font>
