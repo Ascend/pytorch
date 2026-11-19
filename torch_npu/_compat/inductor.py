@@ -605,7 +605,6 @@ def compat_global_compile_option(key: str):
 # CAN REMOVE when legacy spellings are dropped.
 _LEGACY_COMPILE_OPTIONS = {
     "npu_backend": "npu.npu_backend",
-    "fxrt": "npu.fxrt",
     "enable_shape_handling": "npu.enable_shape_handling",
     "shape_handling_configs": "npu.shape_handling_configs",
     "shape_handling_dict": "npu.shape_handling_dict",
@@ -642,13 +641,6 @@ def compat_inject_legacy_compile_options():
             self._config["npu_backend"] = _ConfigEntry(
                 Config(default="default", value_type=str),
                 name="npu_backend",
-            )
-
-        if "fxrt" not in ori_dict:
-            ori_dict["fxrt"] = False
-            self._config["fxrt"] = _ConfigEntry(
-                Config(default=False, value_type=bool),
-                name="fxrt",
             )
 
         if "enable_shape_handling" not in ori_dict:

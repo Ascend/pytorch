@@ -24,6 +24,7 @@ os.environ["TORCH_DEVICE_BACKEND_AUTOLOAD"] = ORG_AUTOLOAD
 from torch_npu.utils._dynamo import (
     _dynamo_register_interface_for_device,
     _inject_inductor_npu_backend_config,
+    _register_inductor_fxrt_config,
 )
 from .utils import patch_cse_rand_ops, patch_device_supports_tma, patch_is_gpu
 # All backends need npu/cpu/mps device_op_overrides.
@@ -425,3 +426,4 @@ def _load_backend():
 
 _load_backend()
 _inject_inductor_npu_backend_config()
+_register_inductor_fxrt_config()

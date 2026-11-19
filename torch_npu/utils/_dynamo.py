@@ -152,8 +152,11 @@ def patch_inductor_wrapper():
         # initialization until its stream-recovery semantics is confirmed.
         options = compat_translate_compile_options(options)
         if options:
-            # torch 2.15+ without pytorch#194998 validates the config table
-            # directly, so entries must exist before src_init.
+            if "fxrt" in options and not _register_inductor_fxrt_config():
+                if options["fxrt"] is not False:
+                    raise RuntimeError("FXRT configuration is unavailable with this PyTorch version.")
+                options = {key: value for key, value in options.items() if key != "fxrt"}
+            # Inductor validates its options during wrapper initialization.
             _inject_inductor_npu_backend_config()
         with _NpuBackendEnvScope(
             _resolve_npu_backend(
@@ -161,10 +164,10 @@ def patch_inductor_wrapper():
             )
         ):
             src_init(self, mode, options, dynamic, name)
-        fxrt = compat_global_compile_option("fxrt")
-        if fxrt:
+        inductor_config = sys.modules.get("torch._inductor.config")
+        if getattr(inductor_config, "fxrt", False):
             # Capture the active setting while preserving explicit compile options.
-            self.config.setdefault(compat_compile_option("fxrt"), fxrt)
+            self.config.setdefault("fxrt", True)
         # Keep this hook outside torch_npu._inductor, whose import initializes the backend.
         from torch_npu.utils._triton import patch_triton_target_no_device_init
 
@@ -207,7 +210,7 @@ def patch_inductor_wrapper():
                 )
 
                 install_npu_deterministic_level_guard()
-            if self.config.get(compat_compile_option("fxrt"), False):
+            if self.config.get("fxrt", False):
                 from torch_npu.fxrt.fx_wrapper import _compile_inductor_with_fxrt
 
                 return _compile_inductor_with_fxrt(src_call, self, model_, inputs_)
@@ -580,6 +583,26 @@ def register_npu_graphsafe_rng():
     register_graphsafe_rng_device_type("npu")
 
 
+def _register_inductor_fxrt_config():
+    """Register the optional FXRT setting without blocking other Inductor users."""
+    try:
+        from torch._inductor import config
+
+        if "fxrt" in config._config:
+            return True
+        from torch.utils._config_module import Config, _ConfigEntry
+
+        entry = _ConfigEntry(Config(default=False, value_type=bool), name="fxrt")
+        # Validate cache invalidation before publishing the new entry.
+        config._hash_dirty_var.set(True)
+        config._mark_get_dict_dirty("fxrt")
+        config._config["fxrt"] = entry
+        return True
+    except Exception:
+        logging.getLogger(__name__).debug("FXRT configuration registration failed", exc_info=True)
+        return False
+
+
 @run_once
 def _inject_inductor_npu_backend_config():
     """torch without pytorch#194998: install the get_config_copy injection
@@ -680,6 +703,10 @@ def patch_symbolic_shapes_api_compatibility():
 
 def add_dynamo_methods():
     patch_has_triton()
+
+    # Inductor sets TORCH_WARM_POOL=0 for workers that restore config snapshots.
+    if os.getenv("TORCH_WARM_POOL") == "0":
+        _register_inductor_fxrt_config()
 
     from torch_npu.dynamo import _install_lazy_torchair
 

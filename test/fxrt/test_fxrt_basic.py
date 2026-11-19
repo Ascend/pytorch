@@ -89,8 +89,8 @@ assert not torch_npu.npu.is_initialized()
 
     @parametrize("configuration", ("options", "patch", "assignment"))
     def test_inductor_fxrt_config_is_captured(self, configuration):
+        from torch._inductor import config
         from torch._inductor.codegen.common import device_codegens
-        from torch_npu._compat.inductor import compat_global_compile_option, namespaced_compile_options
         from torch_npu.fxrt.fx_wrapper import FxrtFxWrapper
 
         def model(x):
@@ -103,11 +103,7 @@ assert not torch_npu.npu.is_initialized()
                 model, backend="inductor", fullgraph=True, options={"fxrt": True}
             )
         else:
-            if namespaced_compile_options():
-                from torch_npu._inductor import compile_options as config
-            else:
-                import torch_npu._inductor  # noqa: F401
-                from torch._inductor import config
+            import torch_npu._inductor  # noqa: F401
 
             if configuration == "patch":
                 with config.patch({"fxrt": True}):
@@ -135,7 +131,67 @@ assert not torch_npu.npu.is_initialized()
             # Check that compilation restored the original codegen.
             self.assertIs(device_codegens["npu"], previous_codegen)
         # Check that the FXRT setting returned to its default.
-        self.assertIs(compat_global_compile_option("fxrt"), False)
+        self.assertIs(config.fxrt, False)
+
+    @parametrize("failure", ("entry", "cache"))
+    def test_inductor_fxrt_config_failure_preserves_plain_inductor(self, failure):
+        probe = r'''
+import sys
+from unittest import mock
+
+import torch
+import torch_npu
+from torch._inductor import config
+from torch.utils import _config_module
+
+assert "fxrt" not in config._config
+original_entry = _config_module._ConfigEntry
+original_mark_dirty = type(config)._mark_get_dict_dirty
+
+def make_entry(*args, **kwargs):
+    if kwargs.get("name") == "fxrt":
+        raise TypeError("Simulated config entry API change")
+    return original_entry(*args, **kwargs)
+
+def mark_dirty(self, name):
+    if self is config and name == "fxrt":
+        raise AttributeError("Simulated config cache API change")
+    return original_mark_dirty(self, name)
+
+target, name, replacement = (
+    (_config_module, "_ConfigEntry", make_entry)
+    if sys.argv[1] == "entry"
+    else (type(config), "_mark_get_dict_dirty", mark_dirty)
+)
+
+def model(x):
+    return torch.mm(x, x)
+
+x = torch.randn(8, 8, device="npu")
+expected = model(x)
+with mock.patch.object(target, name, replacement):
+    for options in (
+        None,
+        {"max_autotune": False},
+        {"fxrt": False},
+        {"fxrt": False, "max_autotune": False},
+    ):
+        compiled = torch.compile(model, backend="inductor", options=options, fullgraph=True)
+        torch.testing.assert_close(compiled(x), expected)
+        torch._dynamo.reset()
+    assert "fxrt" not in config.get_config_copy()
+    assert "torch_npu.fxrt" not in sys.modules
+    try:
+        torch.compile(model, backend="inductor", options={"fxrt": True})
+    except RuntimeError as error:
+        assert "FXRT configuration is unavailable" in str(error), str(error)
+    else:
+        raise AssertionError("FXRT must report the unsupported configuration API")
+'''
+        proc = subprocess.run(
+            [sys.executable, "-c", probe, failure], capture_output=True, text=True, check=False
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
 
 
 instantiate_parametrized_tests(TestFxrtBasic)
