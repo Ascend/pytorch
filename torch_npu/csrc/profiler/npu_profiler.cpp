@@ -1,3 +1,7 @@
+#include <map>
+#include <mutex>
+
+#include <c10/core/Allocator.h>
 #include <c10/util/Exception.h>
 #include <torch/csrc/profiler/util.h>
 #include <torch/csrc/profiler/api.h>
@@ -445,8 +449,62 @@ void reportMarkDataToNpuProfiler(uint32_t category, const std::string& msg, uint
       static_cast<int64_t>(Utils::GetClockTime()), category, correlation_id, Utils::GetTid(), Utils::GetPid(), msg));
 }
 
+namespace {
+
+struct MemoryTotals {
+  int64_t allocated = 0;
+  int64_t reserved = 0;
+};
+
+struct DeviceMemoryTotals {
+  MemoryTotals caching;
+  MemoryTotals workspace;
+
+  void update(MemoryComponentType component, int64_t allocated, int64_t reserved) {
+    auto& totals = component == MemoryComponentType::CACHING_ALLOCATOR ? caching : workspace;
+    totals = {allocated, reserved};
+  }
+};
+
+struct ProfilerMemoryStats {
+  std::mutex mutex;
+  std::map<int8_t, DeviceMemoryTotals> devices;
+};
+
+ProfilerMemoryStats& memoryStats() {
+  static ProfilerMemoryStats stats;
+  return stats;
+}
+
+} // namespace
+
 void reportMemoryDataToNpuProfiler(const MemoryUsage& data) {
   if (!ProfilerMgr::GetInstance()->ReportMemEnable().load()) {
+    if (!c10::memoryProfilingEnabled()) {
+      return;
+    }
+    auto& stats = memoryStats();
+    std::lock_guard<std::mutex> lock(stats.mutex);
+    auto& totals = stats.devices[data.device_index];
+    const auto component = static_cast<MemoryComponentType>(data.component_type);
+    const auto data_type = static_cast<MemoryDataType>(data.data_type);
+    // Workspace backing allocations only change reserved bytes. Report its
+    // logical allocations/frees, and skip Caching's delayed block-free events.
+    const bool report_to_native =
+        (data_type == MemoryDataType::MEMORY_MALLOC || data_type == MemoryDataType::MEMORY_FREE) &&
+        (component != MemoryComponentType::WORKSPACE_ALLOCATOR || data.total_allocated != totals.workspace.allocated);
+    // Reading the other allocator here would acquire its lock and can deadlock.
+    // Changes outside native memory profiling and Caching reservation-only
+    // changes are reflected once that allocator reports through this branch.
+    totals.update(component, data.total_allocated, data.total_reserved);
+    if (report_to_native) {
+      c10::reportMemoryUsageToProfiler(
+          reinterpret_cast<void*>(data.ptr),
+          data.alloc_size,
+          totals.caching.allocated + totals.workspace.allocated,
+          totals.caching.reserved + totals.workspace.reserved,
+          c10::Device(static_cast<c10::DeviceType>(data.device_type), data.device_index));
+    }
     return;
   }
   int64_t stream_id = 0;
