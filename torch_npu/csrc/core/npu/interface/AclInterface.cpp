@@ -130,6 +130,7 @@ TORCH_NPU_LOAD_FUNC(aclrtGetErrorVerbose)
 TORCH_NPU_LOAD_FUNC(aclrtRepairError)
 TORCH_NPU_LOAD_FUNC(aclrtGetDeviceInfo)
 TORCH_NPU_LOAD_FUNC(aclrtMemset)
+TORCH_NPU_LOAD_FUNC(aclrtMemsetAsync)
 TORCH_NPU_LOAD_FUNC(aclmdlRICaptureThreadExchangeMode)
 TORCH_NPU_LOAD_FUNC(aclrtGetLogicDevIdByUserDevId)
 
@@ -1862,6 +1863,17 @@ aclError AclrtMemSet(void *devPtr, size_t maxCount, int32_t value, size_t count)
     }
     TORCH_CHECK(func, "Failed to find function aclrtMemset", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(devPtr, maxCount, value, count);
+}
+
+aclError AclrtMemSetAsync(void *devPtr, size_t maxCount, int32_t value, size_t count, aclrtStream stream)
+{
+    typedef aclError (*AclrtMemSetAsync)(void *, size_t, int32_t, size_t, aclrtStream);
+    static AclrtMemSetAsync func = nullptr;
+    if (func == nullptr) {
+        func = (AclrtMemSetAsync) TORCH_NPU_GET_FUNC(aclrtMemsetAsync);
+    }
+    TORCH_CHECK(func, "Failed to find function aclrtMemsetAsync", PTA_ERROR(ErrCode::NOT_FOUND));
+    return func(devPtr, maxCount, value, count, stream);
 }
 
 aclError AclmdlRICaptureThreadExchangeMode(aclmdlRICaptureMode* mode)

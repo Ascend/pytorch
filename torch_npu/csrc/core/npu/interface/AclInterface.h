@@ -390,5 +390,7 @@ aclError AclrtGetLogicDevIdByUserDevId(const int32_t userDevid, int32_t *const l
 
 aclError AclrtMemSet(void *devPtr, size_t maxCount, int32_t value, size_t count);
 
+aclError AclrtMemSetAsync(void *devPtr, size_t maxCount, int32_t value, size_t count, aclrtStream stream);
+
 } // namespace acl
 } // namespace c10_npu
