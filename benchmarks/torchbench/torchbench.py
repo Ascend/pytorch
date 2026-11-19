@@ -302,8 +302,8 @@ NPU_MLIR_NO_ACLGRAPH = set(_NPU_NO_ACLGRAPH_MODELS)
 
 
 NPU_BATCH_SIZE = {
-    "alexnet": 64,
-    "dcgan": 64,
+    "alexnet": 4096,
+    "dcgan": 4096,
     "lennard_jones": 4096,
     "nvidia_deeprecommender": 256,
 }

@@ -2,6 +2,7 @@ import gc
 import logging
 import os
 import sys
+from functools import cache
 
 import torch
 import torch.nn as nn
@@ -905,6 +906,37 @@ def _patch_model_fambench_xlmr():
             torch.load = _load_orig
 
     fxlrm.Model.__init__ = _fambench_xlmr_init_new
+
+
+@register_patch("lennard_jones")
+@cache
+def _patch_lennard_jones():
+    """Use a 4096-wide MLP for the Lennard-Jones workload on NPU."""
+    from torchbenchmark.models.lennard_jones import Model
+
+    original_init = Model.__init__
+
+    def init(self, *args, **kwargs):
+        original_init(self, *args, **kwargs)
+        if torch.device(self.device).type != "npu":
+            return
+
+        self.model = nn.Sequential(
+            nn.Linear(1, 4096),
+            nn.Tanh(),
+            nn.Linear(4096, 4096),
+            nn.Tanh(),
+            nn.Linear(4096, 4096),
+            nn.Tanh(),
+            nn.Linear(4096, 4096),
+            nn.Tanh(),
+            nn.Linear(4096, 1),
+        ).to(self.device)
+        self.optimizer = torch.optim.Adam(
+            self.model.parameters(), **self.optimizer.defaults
+        )
+
+    Model.__init__ = init
 
 
 def patch_model(model_name):
