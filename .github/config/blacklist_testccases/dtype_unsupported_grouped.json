@@ -4,8 +4,8 @@
     "source": "黑名单分类拆分.xlsx",
     "category": "device not supported",
     "group_key": "log",
-    "group_count": 144,
-    "total_nodes": 10667
+    "group_count": 146,
+    "total_nodes": 10800
   },
   "groups": [
     {
@@ -2625,7 +2625,9 @@
             "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace_nn_functional_linear_npu_uint8",
             "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_addmm_decomposed_npu_uint8",
             "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_addmm_npu_uint8",
-            "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_nn_functional_linear_npu_uint8"
+            "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_nn_functional_linear_npu_uint8",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_blas_alpha_beta_empty_npu_uint8",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_corner_cases_of_cublasltmatmul_npu_uint8"
           ]
         },
         {
@@ -3539,7 +3541,8 @@
             "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace_tensordot_npu_int16",
             "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_linalg_multi_dot_npu_int16",
             "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_mm_npu_int16",
-            "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_tensordot_npu_int16"
+            "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_tensordot_npu_int16",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_mm_empty_inputs_mixed_dtype_errors_npu"
           ]
         },
         {
@@ -3604,7 +3607,9 @@
             "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace_nn_functional_linear_npu_int16",
             "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_addmm_decomposed_npu_int16",
             "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_addmm_npu_int16",
-            "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_nn_functional_linear_npu_int16"
+            "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_nn_functional_linear_npu_int16",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_blas_alpha_beta_empty_npu_int16",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_corner_cases_of_cublasltmatmul_npu_int16"
           ]
         },
         {
@@ -3631,7 +3636,8 @@
             "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace_baddbmm_npu_int16",
             "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_inplace_baddbmm_npu_int16",
             "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace_baddbmm_npu_int16",
-            "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_baddbmm_npu_int16"
+            "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_baddbmm_npu_int16",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_baddbmm_input_dtypes_compatibility_npu_int16"
           ]
         },
         {
@@ -7207,7 +7213,9 @@
             "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace_nn_functional_linear_npu_int8",
             "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_addmm_decomposed_npu_int8",
             "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_addmm_npu_int8",
-            "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_nn_functional_linear_npu_int8"
+            "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_nn_functional_linear_npu_int8",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_blas_alpha_beta_empty_npu_int8",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_corner_cases_of_cublasltmatmul_npu_int8"
           ]
         },
         {
@@ -7473,7 +7481,8 @@
             "test/test_unary_ufuncs.py::TestUnaryUfuncsPRIVATEUSE1::test_reference_numerics_normal__refs_ceil_npu_int32",
             "test/test_unary_ufuncs.py::TestUnaryUfuncsPRIVATEUSE1::test_reference_numerics_normal_ceil_npu_int32",
             "test/test_unary_ufuncs.py::TestUnaryUfuncsPRIVATEUSE1::test_reference_numerics_small__refs_ceil_npu_int32",
-            "test/test_unary_ufuncs.py::TestUnaryUfuncsPRIVATEUSE1::test_reference_numerics_small_ceil_npu_int32"
+            "test/test_unary_ufuncs.py::TestUnaryUfuncsPRIVATEUSE1::test_reference_numerics_small_ceil_npu_int32",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_triangular_solve_out_errors_and_warnings_npu_float32"
           ]
         },
         {
@@ -7685,7 +7694,9 @@
             "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace_nn_functional_linear_npu_int32",
             "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_addmm_decomposed_npu_int32",
             "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_addmm_npu_int32",
-            "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_nn_functional_linear_npu_int32"
+            "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_nn_functional_linear_npu_int32",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_blas_alpha_beta_empty_npu_int32",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_corner_cases_of_cublasltmatmul_npu_int32"
           ]
         },
         {
@@ -7744,7 +7755,8 @@
             "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace_baddbmm_npu_int32",
             "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_inplace_baddbmm_npu_int32",
             "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace_baddbmm_npu_int32",
-            "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_baddbmm_npu_int32"
+            "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_baddbmm_npu_int32",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_baddbmm_input_dtypes_compatibility_npu_int32"
           ]
         },
         {
@@ -8106,7 +8118,11 @@
             "test/test_type_promotion.py::TestTypePromotionDevicePRIVATEUSE1::test_clamp_type_promotion_npu_bool_int32_bool",
             "test/test_type_promotion.py::TestTypePromotionDevicePRIVATEUSE1::test_clamp_type_promotion_npu_bool_int32_float32",
             "test/test_type_promotion.py::TestTypePromotionDevicePRIVATEUSE1::test_clamp_type_promotion_npu_bool_int32_float64",
-            "test/test_type_promotion.py::TestTypePromotionDevicePRIVATEUSE1::test_clamp_type_promotion_npu_bool_int32_int32"
+            "test/test_type_promotion.py::TestTypePromotionDevicePRIVATEUSE1::test_clamp_type_promotion_npu_bool_int32_int32",
+            "test/test_decomp.py::DecompOneOffTestsNPU::test_native_dropout_backward_opmath_npu_bfloat16",
+            "test/test_decomp.py::DecompOneOffTestsNPU::test_native_dropout_backward_opmath_npu_float16",
+            "test/test_maskedtensor.py::TestBasicsDeviceNPU::test_nn_unfold_npu",
+            "test/test_maskedtensor.py::TestBasicsDeviceNPU::test_unfold_npu"
           ]
         },
         {
@@ -8438,7 +8454,10 @@
             "test/test_unary_ufuncs.py::TestUnaryUfuncsPRIVATEUSE1::test_reference_numerics_normal__refs_ceil_npu_int64",
             "test/test_unary_ufuncs.py::TestUnaryUfuncsPRIVATEUSE1::test_reference_numerics_normal_ceil_npu_int64",
             "test/test_unary_ufuncs.py::TestUnaryUfuncsPRIVATEUSE1::test_reference_numerics_small__refs_ceil_npu_int64",
-            "test/test_unary_ufuncs.py::TestUnaryUfuncsPRIVATEUSE1::test_reference_numerics_small_ceil_npu_int64"
+            "test/test_unary_ufuncs.py::TestUnaryUfuncsPRIVATEUSE1::test_reference_numerics_small_ceil_npu_int64",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_matmul_small_brute_force_1d_Nd_npu_int64",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_matmul_small_brute_force_2d_Nd_npu_int64",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_matmul_small_brute_force_3d_Nd_npu_int64"
           ]
         },
         {
@@ -8559,7 +8578,9 @@
             "test/test_ops.py::TestCommonPRIVATEUSE1::test_noncontiguous_samples_nn_functional_linear_npu_int64",
             "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_addmm_decomposed_npu_int64",
             "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_addmm_npu_int64",
-            "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_nn_functional_linear_npu_int64"
+            "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_nn_functional_linear_npu_int64",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_blas_alpha_beta_empty_npu_int64",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_corner_cases_of_cublasltmatmul_npu_int64"
           ]
         },
         {
@@ -8591,7 +8612,8 @@
             "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_inplace_baddbmm_npu_int64",
             "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace_baddbmm_npu_int64",
             "test/test_ops.py::TestCommonPRIVATEUSE1::test_noncontiguous_samples_baddbmm_npu_int64",
-            "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_baddbmm_npu_int64"
+            "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_baddbmm_npu_int64",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_baddbmm_input_dtypes_compatibility_npu_int64"
           ]
         },
         {
@@ -8965,7 +8987,14 @@
             "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_norm_inf_npu_complex128",
             "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_norm_inf_npu_complex64",
             "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_norm_npu_complex128",
-            "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_norm_npu_complex64"
+            "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_norm_npu_complex64",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_norm_complex_old_npu",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_norm_dtype_npu_complex128",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_norm_dtype_npu_complex64",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_vector_norm_npu_complex128",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_vector_norm_npu_complex64",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_vector_norm_reduce_over_1D_vector_npu_complex128",
+            "test/test_linalg.py::TestLinalgDevicePRIVATEUSE1::test_vector_norm_reduce_over_1D_vector_npu_complex64"
           ]
         }
       ]
@@ -9176,7 +9205,8 @@
             "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_nn_functional_conv3d_npu_float64",
             "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_nn_functional_conv_transpose1d_npu_float64",
             "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_nn_functional_conv_transpose2d_npu_float64",
-            "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_nn_functional_conv_transpose3d_npu_float64"
+            "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_nn_functional_conv_transpose3d_npu_float64",
+            "test/nn/test_convolution.py::TestConvolutionNNDevicePRIVATEUSE1::test_conv1d_noncontiguous_weight_npu"
           ]
         }
       ]
@@ -9335,7 +9365,18 @@
             "test/test_type_promotion.py::TestTypePromotionDevicePRIVATEUSE1::test_clamp_type_promotion_npu_int32_float64_float64",
             "test/test_type_promotion.py::TestTypePromotionDevicePRIVATEUSE1::test_clamp_type_promotion_npu_int32_float64_int32",
             "test/test_type_promotion.py::TestTypePromotionDevicePRIVATEUSE1::test_clamp_type_promotion_npu_int32_int32_float64",
-            "test/test_type_promotion.py::TestTypePromotionDevicePRIVATEUSE1::test_mixed_type_backward_npu"
+            "test/test_type_promotion.py::TestTypePromotionDevicePRIVATEUSE1::test_mixed_type_backward_npu",
+            "test/test_reductions.py::TestReductionsDevicePRIVATEUSE1::test_logsumexp_integral_promotion_npu",
+            "test/test_sparse_csr.py::TestSparseCompressedDeviceNPU::test_to_dtype_SparseBSC_npu_bfloat16",
+            "test/test_sparse_csr.py::TestSparseCompressedDeviceNPU::test_to_dtype_SparseBSC_npu_bool",
+            "test/test_sparse_csr.py::TestSparseCompressedDeviceNPU::test_to_dtype_SparseBSC_npu_float16",
+            "test/test_sparse_csr.py::TestSparseCompressedDeviceNPU::test_to_dtype_SparseBSC_npu_float32",
+            "test/test_sparse_csr.py::TestSparseCompressedDeviceNPU::test_to_dtype_SparseBSC_npu_int16",
+            "test/test_sparse_csr.py::TestSparseCompressedDeviceNPU::test_to_dtype_SparseBSC_npu_int32",
+            "test/test_sparse_csr.py::TestSparseCompressedDeviceNPU::test_to_dtype_SparseBSC_npu_int64",
+            "test/test_sparse_csr.py::TestSparseCompressedDeviceNPU::test_to_dtype_SparseBSC_npu_int8",
+            "test/test_sparse_csr.py::TestSparseCompressedDeviceNPU::test_to_dtype_SparseBSC_npu_uint8",
+            "test/test_sparse_csr.py::TestSparseCompressedDeviceNPU::test_to_dtype_SparseBSR_npu_bfloat16"
           ]
         }
       ]
@@ -9640,7 +9681,43 @@
             "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace__foreach_log_npu_float64",
             "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace__foreach_reciprocal_npu_complex128",
             "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace__foreach_reciprocal_npu_complex64",
-            "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace__foreach_reciprocal_npu_float64"
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace__foreach_reciprocal_npu_float64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_inplace__foreach_log10_npu_complex128",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_inplace__foreach_log10_npu_complex64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_inplace__foreach_log10_npu_float64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_inplace__foreach_log1p_npu_complex128",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_inplace__foreach_log1p_npu_complex64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_inplace__foreach_log1p_npu_float64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_outplace__foreach_log10_npu_complex128",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_outplace__foreach_log10_npu_complex64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_outplace__foreach_log10_npu_float64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_outplace__foreach_log1p_npu_complex128",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_outplace__foreach_log1p_npu_complex64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_outplace__foreach_log1p_npu_float64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_inplace__foreach_log10_npu_complex128",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_inplace__foreach_log10_npu_complex64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_inplace__foreach_log10_npu_float64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_inplace__foreach_log1p_npu_complex128",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_inplace__foreach_log1p_npu_complex64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_inplace__foreach_log1p_npu_float64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace__foreach_log10_npu_complex128",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace__foreach_log10_npu_complex64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace__foreach_log10_npu_float64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace__foreach_log1p_npu_complex128",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace__foreach_log1p_npu_complex64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace__foreach_log1p_npu_float64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_inplace__foreach_log10_npu_complex128",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_inplace__foreach_log10_npu_complex64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_inplace__foreach_log10_npu_float64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_inplace__foreach_log1p_npu_complex128",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_inplace__foreach_log1p_npu_complex64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_inplace__foreach_log1p_npu_float64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace__foreach_log10_npu_complex128",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace__foreach_log10_npu_complex64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace__foreach_log10_npu_float64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace__foreach_log1p_npu_complex128",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace__foreach_log1p_npu_complex64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace__foreach_log1p_npu_float64"
           ]
         }
       ]
@@ -10127,7 +10204,10 @@
             "test/test_nn.py::TestNN::test_TransformerDecoderLayer_relu_activation",
             "test/test_nn.py::TestNN::test_TransformerEncoderLayer_gelu_activation",
             "test/test_nn.py::TestNN::test_TransformerEncoderLayer_relu_activation",
-            "test/test_nn.py::TestNN::test_Transformer_multilayer_coder"
+            "test/test_nn.py::TestNN::test_Transformer_multilayer_coder",
+            "test/test_maskedtensor.py::TestBasicsDeviceNPU::test_to_dtype_npu",
+            "test/test_reductions.py::TestReductionsDevicePRIVATEUSE1::test_result_dtype_masked_argmax_npu_float64",
+            "test/test_reductions.py::TestReductionsDevicePRIVATEUSE1::test_result_dtype_masked_argmin_npu_float64"
           ]
         }
       ]
@@ -11330,7 +11410,13 @@
             "test/test_ops.py::TestFakeTensorNPU::test_fake_autocast_to_npu_float32",
             "test/test_ops.py::TestFakeTensorNPU::test_fake_double_npu_float32",
             "test/test_ops.py::TestFakeTensorNPU::test_fake_float_power_npu_float32",
-            "test/test_ops.py::TestFakeTensorNPU::test_fake_to_npu_float32"
+            "test/test_ops.py::TestFakeTensorNPU::test_fake_to_npu_float32",
+            "test/test_ops.py::TestFakeTensorNPU::test_fake_autocast_double_FakeTensorMode_npu_float32",
+            "test/test_ops.py::TestFakeTensorNPU::test_fake_autocast_float_power_FakeTensorMode_npu_float32",
+            "test/test_ops.py::TestFakeTensorNPU::test_fake_autocast_to_FakeTensorMode_npu_float32",
+            "test/test_ops.py::TestFakeTensorNPU::test_fake_double_FakeTensorMode_npu_float32",
+            "test/test_ops.py::TestFakeTensorNPU::test_fake_float_power_FakeTensorMode_npu_float32",
+            "test/test_ops.py::TestFakeTensorNPU::test_fake_to_FakeTensorMode_npu_float32"
           ]
         }
       ]
@@ -12486,7 +12572,8 @@
             "test/test_type_promotion.py::TestTypePromotionDevicePRIVATEUSE1::test_clamp_type_promotion_npu_float32_float64_float32",
             "test/test_type_promotion.py::TestTypePromotionDevicePRIVATEUSE1::test_clamp_type_promotion_npu_float32_float64_float64",
             "test/test_type_promotion.py::TestTypePromotionDevicePRIVATEUSE1::test_clamp_type_promotion_npu_float32_float64_int32",
-            "test/test_type_promotion.py::TestTypePromotionDevicePRIVATEUSE1::test_clamp_type_promotion_npu_float32_int32_float64"
+            "test/test_type_promotion.py::TestTypePromotionDevicePRIVATEUSE1::test_clamp_type_promotion_npu_float32_int32_float64",
+            "test/test_sympy_utils.py::TestSympyInterpDevicePRIVATEUSE1::test_tensor_interp_fn_reciprocal_npu"
           ]
         },
         {
@@ -12515,7 +12602,9 @@
             "test/test_ops.py::TestMathBitsNPU::test_neg_conj_view_nn_functional_l1_loss_npu_complex128",
             "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_nn_functional_l1_loss_npu_complex128",
             "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_gradgrad_nn_functional_l1_loss_npu_complex128",
-            "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_nn_functional_l1_loss_npu_complex128"
+            "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_nn_functional_l1_loss_npu_complex128",
+            "test/test_ops_fwd_gradients.py::TestFwdGradientsPRIVATEUSE1::test_fn_fwgrad_bwgrad_nn_functional_l1_loss_npu_complex128",
+            "test/test_ops_fwd_gradients.py::TestFwdGradientsPRIVATEUSE1::test_forward_mode_AD_nn_functional_l1_loss_npu_complex128"
           ]
         }
       ]
@@ -12559,7 +12648,27 @@
             "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_sub_npu_int32",
             "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_sub_npu_int64",
             "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_sub_npu_int8",
-            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_sub_npu_uint8"
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_sub_npu_uint8",
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_add_npu_bfloat16",
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_add_npu_bool",
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_add_npu_float16",
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_add_npu_float32",
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_add_npu_float64",
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_add_npu_int16",
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_add_npu_int32",
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_add_npu_int64",
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_add_npu_int8",
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_add_npu_uint8",
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_mul_npu_bfloat16",
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_mul_npu_bool",
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_mul_npu_float16",
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_mul_npu_float32",
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_mul_npu_float64",
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_mul_npu_int16",
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_mul_npu_int32",
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_mul_npu_int64",
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_mul_npu_int8",
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_mul_npu_uint8"
           ]
         }
       ]
@@ -12864,7 +12973,11 @@
             "test/test_indexing.py::TestIndexingDevicePRIVATEUSE1::test_index_select_npu_float8_e4m3fnuz",
             "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_eye_npu_float8_e4m3fnuz",
             "test/test_torch.py::TestTorchDeviceTypePRIVATEUSE1::test_item_npu_float8_e4m3fnuz",
-            "test/test_unary_ufuncs.py::TestUnaryUfuncsPRIVATEUSE1::test_isinf_isfinite_float8_npu_float8_e4m3fnuz"
+            "test/test_unary_ufuncs.py::TestUnaryUfuncsPRIVATEUSE1::test_isinf_isfinite_float8_npu_float8_e4m3fnuz",
+            "test/test_fake_tensor.py::PropagateRealTensorsTestFakeTensorDeviceNPU::test_index_with_cpu_indices_propagate_real_tensors_npu_float8_e4m3fnuz",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_outplace_eye_npu_float8_e4m3fnuz",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace_eye_npu_float8_e4m3fnuz",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace_eye_npu_float8_e4m3fnuz"
           ]
         }
       ]
@@ -12881,7 +12994,11 @@
             "test/test_indexing.py::TestIndexingDevicePRIVATEUSE1::test_index_select_npu_float8_e5m2fnuz",
             "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_eye_npu_float8_e5m2fnuz",
             "test/test_torch.py::TestTorchDeviceTypePRIVATEUSE1::test_item_npu_float8_e5m2fnuz",
-            "test/test_unary_ufuncs.py::TestUnaryUfuncsPRIVATEUSE1::test_isinf_isfinite_float8_npu_float8_e5m2fnuz"
+            "test/test_unary_ufuncs.py::TestUnaryUfuncsPRIVATEUSE1::test_isinf_isfinite_float8_npu_float8_e5m2fnuz",
+            "test/test_fake_tensor.py::PropagateRealTensorsTestFakeTensorDeviceNPU::test_index_with_cpu_indices_propagate_real_tensors_npu_float8_e5m2fnuz",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_outplace_eye_npu_float8_e5m2fnuz",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace_eye_npu_float8_e5m2fnuz",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace_eye_npu_float8_e5m2fnuz"
           ]
         }
       ]
@@ -13135,7 +13252,19 @@
           "issue": "https://gitcode.com/Ascend/pytorch/issues/5160",
           "nodes": [
             "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_autodiff__foreach_exp_inplace_npu_complex128",
-            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_autodiff__foreach_exp_inplace_npu_float64"
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_autodiff__foreach_exp_inplace_npu_float64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_inplace__foreach_exp_npu_complex128",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_inplace__foreach_exp_npu_complex64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_inplace__foreach_exp_npu_float64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_inplace__foreach_exp_npu_complex128",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_inplace__foreach_exp_npu_complex64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_inplace__foreach_exp_npu_float64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_inplace__foreach_exp_npu_complex128",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_inplace__foreach_exp_npu_complex64",
+            "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_inplace__foreach_exp_npu_float64",
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_parity__foreach_exp_fastpath_inplace_npu_complex128",
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_parity__foreach_exp_fastpath_inplace_npu_complex64",
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_parity__foreach_exp_fastpath_inplace_npu_float64"
           ]
         }
       ]
@@ -13250,7 +13379,9 @@
           "cann": "",
           "issue": "https://gitcode.com/Ascend/pytorch/issues/5202",
           "nodes": [
-            "test/test_ops.py::TestCommonPRIVATEUSE1::test_errors_gather_npu"
+            "test/test_ops.py::TestCommonPRIVATEUSE1::test_errors_gather_npu",
+            "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_float_power_exceptions_npu",
+            "test/test_type_promotion.py::TestTypePromotionDevicePRIVATEUSE1::test_ternary_out_promotion_npu"
           ]
         }
       ]
@@ -13755,6 +13886,34 @@
           "issue": "https://gitcode.com/Ascend/pytorch/issues/5415",
           "nodes": [
             "test/test_torch.py::TestTorchDeviceTypePRIVATEUSE1::test_zero_dtypes_without_fill_kernel_npu_bits8"
+          ]
+        }
+      ]
+    },
+    {
+      "log": "input must be half, float, int32 or bfloat16",
+      "category": "device not supported",
+      "reason": "acl not supported",
+      "canns": [
+        {
+          "cann": "",
+          "issue": "https://gitcode.com/Ascend/pytorch/issues/5160, https://gitcode.com/Ascend/pytorch/issues/5415",
+          "nodes": [
+            "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_parity__foreach_sub_fastpath_inplace_npu_bool"
+          ]
+        }
+      ]
+    },
+    {
+      "log": "expected dtype Float but got dtype Long",
+      "category": "device not supported",
+      "reason": "dtype not supported",
+      "canns": [
+        {
+          "cann": "",
+          "issue": "https://gitcode.com/Ascend/pytorch/issues/5202",
+          "nodes": [
+            "test/test_ops.py::TestCommonPRIVATEUSE1::test_out_stack_npu_float32"
           ]
         }
       ]
