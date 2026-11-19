@@ -10,7 +10,7 @@ FSDP2（fully_shard API）是PyTorch推荐的新版实现，支持逐层分片�
 
 此外，FSDP2可与张量并行（TP）、流水线并行（PP）等策略灵活组合，满足不同规模模型的训练需求，同时支持分布式checkpoint实现训练状态的保存与恢复。
 
-如需系统了解FSDP/FSDP2的设计与用法，建议从[PyTorch FSDP示例教程](https://docs.pytorch.org/tutorials/intermediate/FSDP_tutorial.html)入手掌握标准实践，接口细节可通过[API 文档](https://docs.pytorch.org/docs/2.14/distributed.fsdp.fully_shard.html)查阅。
+如需系统了解FSDP/FSDP2的设计与用法，建议从[PyTorch FSDP示例教程](https://docs.pytorch.org/tutorials/intermediate/FSDP_tutorial.html)入手掌握标准实践，接口细节可通过[API 文档](https://docs.pytorch.org/docs/2.15/distributed.fsdp.fully_shard.html)查阅。
 
 ## 使用场景
 
@@ -18,11 +18,11 @@ FSDP2（fully_shard API）是PyTorch推荐的新版实现，支持逐层分片�
 
 ## 使用指导
 
-在TorchNPU上使用FSDP2时，只需将通信后端设为`hccl`，用法与PyTorch原生FSDP2一致，`import torch_npu`时会通过补丁机制进行自动适配，用户无需修改原有代码逻辑。
+在TorchNPU上使用FSDP2时，只需将通信后端设为`hccl`，其余用法与PyTorch原生FSDP2一致，`import torch_npu`时会通过补丁机制进行自动适配，用户无需修改除设备相关调用外的原有代码逻辑。
 
 ## 使用样例
 
-以下示例使用torch.nn.Sequential构建一个4层Linear的简单模型，使用FSDP2的fully_shard API在TorchNPU上训练5个epoch。模型参数、梯度和优化器状态被分片存储在各NPU芯片上，以降低单卡显存占用。假设代码为train.py，通过`torchrun train.py`进行启动。
+以下示例使用torch.nn.Sequential构建一个4层Linear的简单模型，使用FSDP2的fully_shard API在TorchNPU上训练5个step。模型参数、梯度和优化器状态被分片存储在各NPU芯片上，以降低单卡显存占用。假设代码文件为train_fsdp.py，通过执行`torchrun train_fsdp.py`启动。
 
 ```python
 import torch

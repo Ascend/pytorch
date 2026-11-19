@@ -10,7 +10,7 @@ DDP的核心机制依靠`torch.distributed`提供的集合通信能力，通过`
 
 此外，DDP支持通过分布式checkpoint实现训练状态保存与恢复，并且可以灵活与张量并行（TP）、流水线并行（PP）等并行策略进行组合。
 
-如需系统了解DDP的设计与用法，建议从[PyTorch 官方DDP示例教程](https://docs.pytorch.org/tutorials/intermediate/ddp_tutorial.html)入手掌握标准实践，接口细节可通过[API 文档](https://docs.pytorch.org/docs/2.14/generated/torch.nn.parallel.DistributedDataParallel.html)查阅，若需深入了解底层同步机制，可进一步阅读[开发者笔记](https://docs.pytorch.org/docs/2.14/notes/ddp.html)。
+如需系统了解DDP的设计与用法，建议从[PyTorch 官方DDP示例教程](https://docs.pytorch.org/tutorials/intermediate/ddp_tutorial.html)入手掌握标准实践，接口细节可通过[API 文档](https://docs.pytorch.org/docs/2.15/generated/torch.nn.parallel.DistributedDataParallel.html)查阅，若需深入了解底层同步机制，可进一步阅读[开发者笔记](https://docs.pytorch.org/docs/2.15/notes/ddp.html)。
 
 ## 使用场景
 
@@ -22,7 +22,7 @@ DDP的核心机制依靠`torch.distributed`提供的集合通信能力，通过`
 
 ## 使用样例
 
-以下示例使用`torch.nn.Linear`作为本地模型，用DDP封装，在NPU设备上运行一次前向传播、一次反向传播和一次优化器步骤。模型参数更新之后，所有进程上的模型会完全相同。注释中展示了从GPU设备迁移到NPU设备需要修改的地方。假设代码为`train.py`，通过`python train.py`进行启动。
+以下示例使用`torch.nn.Linear`作为本地模型，用DDP封装，在NPU设备上运行一次前向传播、一次反向传播和一次优化器步骤。模型参数更新之后，所有进程上的模型会完全相同。注释中展示了从GPU设备迁移到NPU设备需要修改的地方。假设代码文件为train_ddp.py，通过执行`python train_ddp.py`启动。
 
 ```python
 import torch

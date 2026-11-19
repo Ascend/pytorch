@@ -4,6 +4,8 @@
 - [并行策略](./parallelism_strategy/_menu_parallelism_strategy.md)
   - [DDP并行策略](./parallelism_strategy/ddp_introduction.md)
   - [FSDP分片并行策略](./parallelism_strategy/fsdp_introduction.md)
+  - [TP并行策略](./parallelism_strategy/tp_introduction.md)
+  - [PP并行策略](./parallelism_strategy/pp_introduction.md)
 - [分布式启动与容错](./startup_and_fault_tolerance/_menu_startup_and_fault_tolerance.md)
   - [torch\_npu\_run](./startup_and_fault_tolerance/torch_npu_run.md)
 - [通信策略](./communication_strategy/_menu_communication_strategy.md)
