@@ -224,12 +224,6 @@ else()
   endif()
 endif()
 
-
-if (DEFINED BUILD_LIBTORCH)
-  add_compile_definitions(BUILD_LIBTORCH)
-endif()
-
-
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/torch_npu/csrc/aten)
 include_directories(${PROJECT_SOURCE_DIR}/torch_npu/csrc/inductor)
@@ -261,20 +255,14 @@ set(FRAMEWORK_SRCS)
 set(LOGGING_SRCS)
 set(INDUCTOR_SRCS)
 set(DIST_SRCS)
-
-if (NOT DEFINED BUILD_LIBTORCH)
-  set(FLOP_SRCS)
-  set(NPU_SRCS)
-  set(PROF_SRCS)
-  set(IPC_SRCS)
-  set(UTILS_SRCS)
-  set(SAN_SRCS)
-  set(AFD_SRCS)
-endif()
-
-if (DEFINED BUILD_LIBTORCH)
-  set(NPU_CPP_LIBS_SRCS)
-endif()
+set(FLOP_SRCS)
+set(NPU_SRCS)
+set(PROF_SRCS)
+set(IPC_SRCS)
+set(UTILS_SRCS)
+set(SAN_SRCS)
+set(AFD_SRCS)
+set(NPU_CPP_LIBS_SRCS)
 
 add_subdirectory(${TORCHNPU_ROOT}/aten)
 add_subdirectory(${TORCHNPU_ROOT}/core)
@@ -284,19 +272,13 @@ add_subdirectory(${TORCHNPU_ROOT}/logging)
 add_subdirectory(${TORCHNPU_ROOT}/custom_dtype)
 add_subdirectory(${TORCHNPU_ROOT}/inductor)
 add_subdirectory(${TORCHNPU_ROOT}/distributed)
-
-if (NOT DEFINED BUILD_LIBTORCH)
-  add_subdirectory(${TORCHNPU_ROOT}/npu)
-  add_subdirectory(${TORCHNPU_ROOT}/profiler)
-  add_subdirectory(${TORCHNPU_ROOT}/ipc)
-  add_subdirectory(${TORCHNPU_ROOT}/utils)
-  add_subdirectory(${TORCHNPU_ROOT}/sanitizer)
-  add_subdirectory(${TORCHNPU_ROOT}/afd)
-endif()
-
-if (DEFINED BUILD_LIBTORCH)
-  add_subdirectory(${TORCHNPU_ROOT}/libs)
-endif()
+add_subdirectory(${TORCHNPU_ROOT}/npu)
+add_subdirectory(${TORCHNPU_ROOT}/profiler)
+add_subdirectory(${TORCHNPU_ROOT}/ipc)
+add_subdirectory(${TORCHNPU_ROOT}/utils)
+add_subdirectory(${TORCHNPU_ROOT}/sanitizer)
+add_subdirectory(${TORCHNPU_ROOT}/afd)
+add_subdirectory(${TORCHNPU_ROOT}/libs)
 
 set(OPS_PLUGIN_SRCS)
 # Add subdirectory of op-plugin
@@ -325,11 +307,57 @@ if (DEFINED BUILD_TENSORPIPE)
   set(BUILD_SHARED_LIBS OFF)
 endif()
 
+
+set(CPP_SRCS ${ATEN_SRCS} ${INDUCTOR_SRCS} ${CORE_SRCS} ${OPS_PLUGIN_SRCS} ${DIST_SRCS} ${FLOP_SRCS} ${CUS_DTYPE_SRCS} ${LOGGING_SRCS} ${FRAMEWORK_SRCS} ${NPU_SRCS} ${PROF_SRCS} ${IPC_SRCS} ${UTILS_SRCS} ${SAN_SRCS} ${AFD_SRCS} ${NPU_CPP_LIBS_SRCS})
+
+# --- Python/C++ source split ---
+# Files moved out of the core source list into the torch_npu_python target.
+# Keep this list explicit: any new binding file defaults to the python target,
+# while files required by core TUs must stay in the core list
+set(TORCH_NPU_PYTHON_SRCS
+    ${TORCHNPU_ROOT}/npu/Module.cpp
+    ${TORCHNPU_ROOT}/npu/Stream.cpp
+    ${TORCHNPU_ROOT}/npu/Event.cpp
+    ${TORCHNPU_ROOT}/npu/Graph.cpp
+    ${TORCHNPU_ROOT}/npu/npurt.cpp
+    ${TORCHNPU_ROOT}/npu/DataParallelComm.cpp
+    ${TORCHNPU_ROOT}/npu/Stress_detect.cpp
+    ${TORCHNPU_ROOT}/npu/NpuSleep.cpp
+    ${TORCHNPU_ROOT}/npu/lazy_fusion.cpp
+    ${TORCHNPU_ROOT}/profiler/init.cpp
+    ${TORCHNPU_ROOT}/profiler/python/combined_traceback.cpp
+    ${TORCHNPU_ROOT}/profiler/profiler_python.cpp
+    ${TORCHNPU_ROOT}/ipc/StorageSharing.cpp
+    ${TORCHNPU_ROOT}/utils/TensorType.cpp
+    ${TORCHNPU_ROOT}/utils/AutocastMode.cpp
+    ${TORCHNPU_ROOT}/afd/Init.cpp
+    ${TORCHNPU_ROOT}/afd/ScheduleContext.cpp
+    ${TORCHNPU_ROOT}/distributed/Init.cpp
+    ${TORCHNPU_ROOT}/distributed/rpc/init.cpp
+    ${TORCHNPU_ROOT}/distributed/PythonDebugAdapter.cpp
+    ${TORCHNPU_ROOT}/utils/PythonGilAdapter.cpp
+    ${TORCHNPU_ROOT}/utils/PythonOomAdapter.cpp
+    ${TORCHNPU_ROOT}/custom_dtype/Init.cpp
+    ${TORCHNPU_ROOT}/flopcount/Init.cpp
+    ${TORCHNPU_ROOT}/logging/Init.cpp
+    ${TORCHNPU_ROOT}/core/npu/NPURecoveryBindings.cpp
+    ${TORCHNPU_ROOT}/npu/MemPool.cpp
+    ${TORCHNPU_ROOT}/aten/python_functions_0.cpp
+    ${TORCHNPU_ROOT}/aten/python_functions_1.cpp
+    ${TORCHNPU_ROOT}/sanitizer/PyCallbackTrigger.cpp
+    ${TORCHNPU_ROOT}/utils/LazyInit.cpp
+    ${TORCHNPU_ROOT}/inductor/aoti_runner/pybind.cpp
+    ${TORCHNPU_ROOT}/inductor/aoti_package/shape_handling.cpp
+    ${TORCHNPU_ROOT}/inductor/dvm/pybind_api.cpp
+    ${TORCHNPU_ROOT}/inductor/mlir/cpp_common.cpp
+    ${TORCHNPU_ROOT}/inductor/mlir/mlir_binding.cpp
+    ${TORCHNPU_ROOT}/inductor/static_launcher/runtime.cpp
+    ${TORCHNPU_ROOT}/inductor/static_launcher/fast_launcher.cpp
+    ${TORCHNPU_ROOT}/inductor/static_launcher/bindings.cpp
+    ${PROJECT_SOURCE_DIR}/torch_npu/_inductor/experimental/python_wrapper_fast_launch/csrc/bindings.cpp)
+
 if (DEFINED BUILD_LIBTORCH)
-  set(CPP_SRCS ${ATEN_SRCS} ${INDUCTOR_SRCS} ${CORE_SRCS} ${OPS_PLUGIN_SRCS} ${DIST_SRCS} ${FLOP_SRCS} ${CUS_DTYPE_SRCS} ${FRAMEWORK_SRCS} ${LOGGING_SRCS} ${NPU_CPP_LIBS_SRCS} )
-else()
-# Compile code with pybind11
-  set(CPP_SRCS ${ATEN_SRCS} ${INDUCTOR_SRCS} ${CORE_SRCS} ${OPS_PLUGIN_SRCS} ${DIST_SRCS} ${FLOP_SRCS} ${CUS_DTYPE_SRCS} ${LOGGING_SRCS} ${FRAMEWORK_SRCS} ${NPU_SRCS} ${PROF_SRCS} ${IPC_SRCS} ${UTILS_SRCS} ${SAN_SRCS} ${AFD_SRCS})
+  list(REMOVE_ITEM CPP_SRCS ${TORCH_NPU_PYTHON_SRCS})
 endif()
 
 add_library(${PLUGIN_NAME} SHARED ${CPP_SRCS})
@@ -373,28 +401,27 @@ endif()
 
 target_link_libraries(${PLUGIN_NAME} PUBLIC torch torch_cpu c10 fmt::fmt-header-only)
 
-if (NOT DEFINED BUILD_LIBTORCH)
-  set(ATEN_THREADING "OMP" CACHE STRING "ATen parallel backend")
-  message(STATUS "Using ATen parallel backend: ${ATEN_THREADING}")
-  if ("${ATEN_THREADING}" STREQUAL "OMP")
-    target_compile_definitions(${PLUGIN_NAME} PUBLIC "-DAT_PARALLEL_OPENMP=1")
-  elseif ("${ATEN_THREADING}" STREQUAL "NATIVE")
-    target_compile_definitions(${PLUGIN_NAME} PUBLIC "-DAT_PARALLEL_NATIVE=1")
-  elseif ("${ATEN_THREADING}" STREQUAL "TBB")
-    target_compile_definitions(${PLUGIN_NAME} PUBLIC "-DAT_PARALLEL_NATIVE_TBB=1")
-  else()
-    message(FATAL_ERROR "Unknown ATen parallel backend: ${ATEN_THREADING}")
-  endif()
+set(ATEN_THREADING "OMP" CACHE STRING "ATen parallel backend")
+message(STATUS "Using ATen parallel backend: ${ATEN_THREADING}")
+if ("${ATEN_THREADING}" STREQUAL "OMP")
+  target_compile_definitions(${PLUGIN_NAME} PUBLIC "-DAT_PARALLEL_OPENMP=1")
+elseif ("${ATEN_THREADING}" STREQUAL "NATIVE")
+  target_compile_definitions(${PLUGIN_NAME} PUBLIC "-DAT_PARALLEL_NATIVE=1")
+elseif ("${ATEN_THREADING}" STREQUAL "TBB")
+  target_compile_definitions(${PLUGIN_NAME} PUBLIC "-DAT_PARALLEL_NATIVE_TBB=1")
+else()
+  message(FATAL_ERROR "Unknown ATen parallel backend: ${ATEN_THREADING}")
+endif()
 
+target_compile_options(${PLUGIN_NAME} PRIVATE "-DC10_BUILD_MAIN_LIB")
+
+if (NOT DEFINED BUILD_LIBTORCH)
   include(GNUInstallDirs)
-  target_compile_options(${PLUGIN_NAME} PRIVATE "-DC10_BUILD_MAIN_LIB")
   install(TARGETS ${PLUGIN_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif()
 
-if (NOT DEFINED BUILD_LIBTORCH)
-  add_subdirectory(${TORCHNPU_ROOT}/toolkit)
-  target_link_libraries(${PLUGIN_NAME} PUBLIC npu_profiler)
-endif()
+add_subdirectory(${TORCHNPU_ROOT}/toolkit)
+target_link_libraries(${PLUGIN_NAME} PUBLIC npu_profiler)
 
 if (DEFINED BUILD_GTEST)
   enable_testing()
