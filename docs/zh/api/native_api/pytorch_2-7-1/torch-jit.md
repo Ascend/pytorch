@@ -558,6 +558,30 @@
 
 </div>
 
+<a class="method_anchor" id="torch_jit_ScriptModule_get_extra_state"></a>
+
+> <font size="3">get_extra_state()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.jit.ScriptModule.get_extra_state](https://pytorch.org/docs/2.7/generated/torch.jit.ScriptModule.html#torch.jit.ScriptModule.get_extra_state)
+
+**产品支持情况**：
+
+<!-- npu="910b" id73 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id73 -->
+<!-- npu="A3" id74 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id74 -->
+<!-- npu="950" id75 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id75 -->
+
+**限制与说明**：默认方法会抛出异常。所测自定义方法通过 `@torch.jit.export` 导出后可直接调用；经 `torch.jit.save()` / `torch.jit.load()` 后，所测示例直接调用会触发 PyTorch 默认异常，该行为在 CPU 和 NPU 上一致。
+
+</div>
+
 <a class="method_anchor" id="torch_jit_ScriptModule_get_parameter"></a>
 
 > <font size="3">get_parameter()</font>
@@ -578,7 +602,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id78 -->
 
-**限制与说明**：`input`仅支持fp32
+**限制与说明**：通过 `torch.jit.script()` 得到的 `RecursiveScriptModule` 不支持调用此方法；所测示例经 `torch.jit.save()` / `torch.jit.load()` 后得到的 `RecursiveScriptModule` 也不支持调用，该行为在 CPU 和 NPU 上一致。
 
 </div>
 
@@ -602,13 +626,13 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id81 -->
 
-**限制与说明**：`input`仅支持fp32
+**限制与说明**：通过 `torch.jit.script()` 得到的 `RecursiveScriptModule` 不支持调用此方法；所测示例经 `torch.jit.save()` / `torch.jit.load()` 后得到的 `RecursiveScriptModule` 也不支持调用，该行为在 CPU 和 NPU 上一致。
 
 </div>
 
 <a class="method_anchor" id="torch_jit_ScriptModule_graph"></a>
 
-> <font size="3">graph()</font>
+> <font size="3">graph</font>
 
 <div style="margin-left: 2em">
 
