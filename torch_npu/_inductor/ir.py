@@ -1,69 +1,12 @@
 #!/usr/bin/env python3
-from collections.abc import Callable, Sequence
-from typing_extensions import Never
 
-from sympy import Expr, Integer
+from sympy import Integer
 
 import torch
 from torch._inductor import config
 from torch._inductor.codegen.common import BackendFeature
-from torch._inductor.ir import log, Reduction, ReductionHint, Scatter, sympy_product
-from torch._inductor.utils import ir_dataclass
-from torch._inductor.virtualized import ops, V
-
-@ir_dataclass
-class IndexputTemplate(Scatter):
-    boundary: int | None = None
-
-    def store_output(
-        self,
-        output_name: str | None,
-        indexer: Callable[[Sequence[Expr]], Never],
-        store_vars: Sequence[Expr],
-    ) -> None:
-        loader = self.make_loader()
-        if output_name is None:
-            output_name = "unnamed"
-        output_indexer = self.output_indexer(store_vars)
-        indirect_indexer = None
-        for var in output_indexer:
-            if str(var).startswith("indirect"):
-                indirect_indexer = var
-                break
-
-        return ops.indexput_template(
-            output_name,
-            indexer(output_indexer),
-            loader(store_vars),
-            indirect_indexer,
-            self.boundary,
-        )
-
-
-class ScatterTemplate(Scatter):
-    def store_output(
-        self,
-        output_name: str | None,
-        indexer: Callable[[Sequence[Expr]], Never],
-        store_vars: Sequence[Expr],
-    ) -> None:
-        loader = self.make_loader()
-        if output_name is None:
-            output_name = "unnamed"
-        output_indexer, boundary = self.output_indexer(store_vars)
-        indirect_indexer = None
-        for var in output_indexer:
-            if str(var).startswith("indirect"):
-                indirect_indexer = var
-                break
-
-        return ops.scatter_template(
-            output_name,
-            indexer(output_indexer),
-            loader(store_vars),
-            indirect_indexer,
-            int(boundary),
-        )
+from torch._inductor.ir import Reduction, ReductionHint, sympy_product
+from torch._inductor.virtualized import V
 
 
 def reduction_split_factor(reduction_ranges):

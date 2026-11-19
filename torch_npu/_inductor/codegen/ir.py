@@ -5,9 +5,8 @@ from typing import cast
 import sympy
 
 import torch
-from torch._inductor import sizevars
 from torch._inductor.ir import FloorDiv, ModularIndexing
-from torch._inductor.loop_body import CaptureIndexing, LoopBody, MemoryUsageType
+from torch._inductor.loop_body import LoopBody
 from torch._inductor.utils import has_free_symbols, sympy_index_symbol, sympy_subs
 from torch._inductor.virtualized import V
 from torch.utils._sympy.functions import PythonMod
@@ -15,7 +14,7 @@ from torch.utils._sympy.value_ranges import IntInfinity, ValueRangeError, ValueR
 
 from ..config import inductor_indirect_memory_mode, is_ascend950, log
 from .triton import NPUIndexTritonKernel
-from .triton_utils import get_indirect_mem_var, get_indirect_var, NPUKernelType
+from .triton_utils import get_indirect_var, NPUKernelType
 
 
 def detect_flattened_dims(kernel, index):
@@ -1826,27 +1825,14 @@ def generate_indirect_replacements(self):
     find { indirect0 : index0 }
     """
     node_map = {}
-    indirect_node_map = {}
     for node in self.root_block.graph.nodes:
         node_map[node.name] = node
-        index_select_var = get_indirect_mem_var(node.name)
-        if index_select_var:
-            indirect_var = node.args[4]
-            if indirect_var in indirect_node_map:
-                indirect_node = indirect_node_map[indirect_var]
-                indirect_node.meta["indirect_template"] = True
-            indirect_var_symbol = sympy_index_symbol(indirect_var)
-            origin_index = self.indirect_replacements.get(indirect_var_symbol, "")
-            if "indirect" in str(origin_index):
-                node.meta["multi_indirect_index"] = True
-            continue
         indirect_var = get_indirect_var(node.name)
         if indirect_var is None:
             continue
         indirect_var_symbol = sympy_index_symbol(indirect_var)
         if inductor_indirect_memory_mode:
             V.kernel.npu_kernel_type = define_npu_kernel_type(self)
-        indirect_node_map[indirect_var] = node
 
         load_index = get_indirect_index(self, node, node_map)
         if load_index is None:
@@ -1854,89 +1840,6 @@ def generate_indirect_replacements(self):
 
         origin_index = self.indexing[load_index]
         self.indirect_replacements[indirect_var_symbol] = origin_index
-
-
-def loop_body_block_index_select(
-    self,
-    name: str,
-    index: sympy.Expr,
-    indirect_var,
-    set_indirect,
-    bound,
-    index_select_type,
-):
-    index = self._simplify(index)
-    index = self._add_index(index, MemoryUsageType.LOAD, buffer_name=name)
-    return self._inner.index_select(
-        name, index, indirect_var, str(set_indirect), bound, index_select_type
-    )
-
-
-def simplify_indexing_index_select(
-    self,
-    name: str,
-    index: sympy.Expr,
-    indirect_var,
-    set_indirect,
-    bound,
-    index_select_type,
-):
-    return self._inner.index_select(
-        name,
-        self._simplify(index),
-        indirect_var,
-        str(set_indirect),
-        bound,
-        index_select_type,
-    )
-
-
-def loop_body_block_gather_template(
-    self, name: str, index: sympy.Expr, indirect_var, set_indirect, index_boundary
-):
-    index = self._simplify(index)
-    index = self._add_index(index, MemoryUsageType.LOAD, buffer_name=name)
-    return self._inner.gather_template(
-        name, index, indirect_var, str(set_indirect), index_boundary
-    )
-
-
-def simplify_indexing_gather_template(
-    self, name: str, index: sympy.Expr, indirect_var, set_indirect, index_boundary
-):
-    return self._inner.gather_template(
-        name, self._simplify(index), indirect_var, str(set_indirect), index_boundary
-    )
-
-
-def loop_body_block_indexput_template(self, name, index, value, indirect_var, boundary):
-    index = self._simplify(index)
-    index = self._add_index(index, MemoryUsageType.STORE, buffer_name=name)
-    return self._inner.indexput_template(
-        name, index, value, str(indirect_var), boundary
-    )
-
-
-def simplify_indexing_indexput_template(
-    self, name, index, value, indirect_var, boundary
-):
-    return self._inner.indexput_template(
-        name, self._simplify(index), value, str(indirect_var), boundary
-    )
-
-
-def loop_body_block_scatter_template(self, name, index, value, indirect_var, boundary):
-    index = self._simplify(index)
-    index = self._add_index(index, MemoryUsageType.STORE, buffer_name=name)
-    return self._inner.scatter_template(name, index, value, str(indirect_var), boundary)
-
-
-def simplify_indexing_scatter_template(
-    self, name, index, value, indirect_var, boundary
-):
-    return self._inner.scatter_template(
-        name, self._simplify(index), value, str(indirect_var), boundary
-    )
 
 
 def patch_loop_body():
@@ -2028,15 +1931,3 @@ def patch_fixed_indexer():
         return indexer
 
     torch_ir._fixed_indexer = _fixed_indexer_no_skip
-
-
-def patch_indexing():
-    # todo: move patch function to loop_body.py and _sizevars.py
-    CaptureIndexing.index_select = loop_body_block_index_select
-    sizevars.SimplifyIndexing.index_select = simplify_indexing_index_select
-    CaptureIndexing.gather_template = loop_body_block_gather_template
-    sizevars.SimplifyIndexing.gather_template = simplify_indexing_gather_template
-    CaptureIndexing.indexput_template = loop_body_block_indexput_template
-    sizevars.SimplifyIndexing.indexput_template = simplify_indexing_indexput_template
-    CaptureIndexing.scatter_template = loop_body_block_scatter_template
-    sizevars.SimplifyIndexing.scatter_template = simplify_indexing_scatter_template
