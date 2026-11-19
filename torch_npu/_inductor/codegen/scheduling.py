@@ -546,7 +546,7 @@ class NPUTritonScheduling(TritonScheduling):
                 V.graph.removed_buffers |= subkernel.removed_buffers
                 V.graph.inplaced_to_remove |= subkernel.inplaced_to_remove
             kernel_name, _ = self.define_kernel(src_code, [combo_kernel_node], kernel, None)
-            self.codegen_comment([combo_kernel_node], kernel_name)
+            self.codegen_comment(combo_kernel_node.snodes, kernel_name)
             log.debug("ComboKernels: generated kernel %s.", kernel_name)
             kernel.call_kernel(kernel_name)
 

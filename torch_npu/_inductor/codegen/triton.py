@@ -1927,6 +1927,16 @@ class NPUIndexTritonKernel(TritonKernel):
                         break
         return dtype
 
+    def _kernel_cost_meta(self) -> dict[str, Any]:
+        metadata = {}
+        if config.benchmark_kernel or config.profile_bandwidth or config.benchmark_combo_kernel:
+            metadata["kernel_num_gb"] = self.estimate_kernel_num_bytes() / 1e9
+        if config.benchmark_kernel or config.benchmark_combo_kernel:
+            flops = self.estimate_flops()
+            if flops is not None:
+                metadata["kernel_flop"] = flops
+        return metadata
+
     def create_inductor_meta(self):
         mutated_args = set()  # noqa: set_linter
         for mutation in self.mutations:
@@ -2474,6 +2484,7 @@ class NPUIndexTritonKernel(TritonKernel):
             "signature": triton_meta_signature,
             "device": DeviceProperties.create(V.graph.get_current_device_or_throw()),
             "constants": {},
+            **TritonKernel.triton_meta_common(),
             # special config for NPU, specify compile target
             "mix_mode": "aiv",
         }
@@ -2486,10 +2497,7 @@ class NPUIndexTritonKernel(TritonKernel):
         self.triton_meta = triton_meta
         self.inductor_meta = inductor_meta
         self._disable_grouped_autotune_if_unsupported(inductor_meta)
-        num_gb = None
-        if config.benchmark_kernel or config.profile_bandwidth:
-            num_gb = self.estimate_kernel_num_bytes() / 1e9
-            inductor_meta["kernel_num_gb"] = num_gb
+        inductor_meta.update(self._kernel_cost_meta())
 
         self.gen_numel_args(signature, triton_meta, triton_meta_signature, argdefs)
 
@@ -2563,7 +2571,7 @@ class NPUIndexTritonKernel(TritonKernel):
             code.splice(self.body)
 
         if config.benchmark_kernel:
-            code.splice(self.codegen_kernel_benchmark(num_gb))
+            code.splice(self.codegen_kernel_benchmark(inductor_meta.get("kernel_num_gb")))
 
         return code.getvalue()
 
@@ -3127,6 +3135,16 @@ class NPUIndexTritonKernel(TritonKernel):
 
         return len(self.tiling_axis)
 
+    def _reduction_store_index(self, index_str):
+        # reduction_resize promotes a scalar reduction to a one-element tensor
+        # when the emitted tensor rank is one. Match that block-shaped value
+        # even for persistent reductions whose output index is a scalar loop.
+        if self.numof_reduction_axis() > 1 and (
+            not self.persistent_reduction or self.triton_tensor_ndim() == 1
+        ):
+            return f"{index_str} + tl.arange(0, 1)"
+        return index_str
+
     #  indexing.mask_str is None , see varmean_test.py
     def store_reduction(self, name: str, index: sympy.Expr, value: CSEVariable):
         if not self.inside_reduction:
@@ -3152,9 +3170,8 @@ class NPUIndexTritonKernel(TritonKernel):
         else:
             if not isinstance(indexing, IndexingOptions):
                 raise RuntimeError("assert isinstance(indexing, IndexingOptions)")
-            line = f"tl.store({var} + ({indexing.index_str} ), {value}, {indexing.mask_str})"
-            if self.numof_reduction_axis() > 1 and not self.persistent_reduction:
-                line = f"tl.store({var} + ({indexing.index_str} + tl.arange(0,1) ), {value}, {indexing.mask_str})"
+            index_str = self._reduction_store_index(indexing.index_str)
+            line = f"tl.store({var} + ({index_str}), {value}, {indexing.mask_str})"
             self.post_loop_store.writeline(DeferredLine(name, line))
 
     # apply new var in case dim are permuted/broadcast
@@ -3216,9 +3233,8 @@ class NPUIndexTritonKernel(TritonKernel):
                 name, selected_indexing, block_ptr, value, other
             )
         elif mode is None:
+            index_str = self._reduction_store_index(index_str)
             line = f"tl.store({var} + ({index_str}), {value_str}, {mask_str})"
-            if self.numof_reduction_axis() > 1 and not self.persistent_reduction:
-                line = f"tl.store({var} + ({index_str} + tl.arange(0,1) ), {value_str}, {selected_indexing.mask_str})"
 
         elif mode == "atomic_add":
             line = f"tl.atomic_add({var} + ({index_str}), {value_str}, {selected_indexing.mask_str})"
@@ -4320,6 +4336,7 @@ class NPUIndexTritonKernel(TritonKernel):
         dim = self.reduction_dim()
         acc_type = triton_acc_type(src_dtype)
         torch_acc_type = upcast_acc_dtype(src_dtype)
+        index_dtype = self.features.select_index_dtype() if reduction_type in arg_types else None
         if use_contiguous_sum_layout:
             result_shape = [
                 "1" if axis.name[0] == "r" else size
@@ -4331,14 +4348,16 @@ class NPUIndexTritonKernel(TritonKernel):
         result_masks = {var for var in masks if var[0] != "r"}  # noqa: set_linter
         result_var: Any
         if reduction_type in arg_with_value_types:
+            assert index_dtype is not None
             result_var = (
                 self.cse.newvar(dtype=torch_acc_type, shape=tuple(result_shape)),
-                self.cse.newvar(dtype=torch.int64, shape=tuple(result_shape)),
+                self.cse.newvar(dtype=index_dtype, shape=tuple(result_shape)),
             )
             for var in result_var:
                 var.mask_vars = result_masks
         else:
-            result_dtype = torch.int64 if reduction_type in arg_index_types else torch_acc_type
+            result_dtype = index_dtype if reduction_type in arg_index_types else torch_acc_type
+            assert result_dtype is not None
             result_var = self.cse.newvar(dtype=result_dtype, shape=tuple(result_shape))
             result_var.mask_vars = result_masks
         cond_expr = " & ".join(masks)
@@ -4425,6 +4444,8 @@ class NPUIndexTritonKernel(TritonKernel):
 
             if reduction_type in arg_types | {"max", "min"}:
                 if reduction_type in arg_types:
+                    assert index_dtype is not None
+                    index_type = self.dtype_to_str(index_dtype)
                     if logical_index is not None:
                         # Non-contiguous input: use the loader-computed
                         # logical row-major index instead of the axis-derived
@@ -4432,8 +4453,8 @@ class NPUIndexTritonKernel(TritonKernel):
                         accumulator_index = str(
                             self.cse.generate(
                                 self.compute,
-                                f"({str(logical_index)}).to(tl.int64)",
-                                dtype=torch.int64,
+                                f"({str(logical_index)}).to({index_type})",
+                                dtype=index_dtype,
                                 shape=masked_value.shape,
                             )
                         )
@@ -4444,12 +4465,12 @@ class NPUIndexTritonKernel(TritonKernel):
                             reduce_axis
                         )
                         broadcast_string = (
-                            f"tl.broadcast_to({reduce_axis.symbol()}.reshape({reshape_str}), "
+                            f"tl.broadcast_to({reduce_axis.symbol()}.to({index_type}).reshape({reshape_str}), "
                             f"{masked_value}.shape)"
                         )
                         accumulator_index = str(
                             self.cse.generate(
-                                self.compute, broadcast_string, dtype=torch.int64, shape=masked_value.shape,
+                                self.compute, broadcast_string, dtype=index_dtype, shape=masked_value.shape,
                             )
                         )
                     root_op = arg_root_ops[reduction_type]
@@ -4613,20 +4634,23 @@ class NPUIndexTritonKernel(TritonKernel):
                 )
 
             if reduction_type in arg_types:
+                assert index_dtype is not None
+                index_type = self.dtype_to_str(index_dtype)
                 accumulator_index = f"_{result_prefix}_index"
-                long_max = torch.iinfo(torch.int64).max
                 self.prefix.writeline(
-                    f"{accumulator_index} = tl.full({self.dense_size_str()}, {long_max}, tl.int64)"
+                    f"{accumulator_index} = tl.full({self.dense_size_str()}, "
+                    f"{torch.iinfo(index_dtype).max}, {index_type})"
                 )
                 root_op = arg_root_ops[reduction_type]
                 # Non-contiguous input: combine with the loader-computed
                 # logical row-major index; fall back to the axis-derived
                 # physical index otherwise
                 index_arg = (
-                    f"({str(logical_index)}).to(tl.int64)"
+                    str(logical_index)
                     if logical_index is not None
                     else get_reduction_axis().name
                 )
+                index_arg = f"({index_arg}).to({index_type})"
 
                 self.compute.splice(
                     f"""\

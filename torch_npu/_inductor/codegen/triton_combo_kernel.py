@@ -276,7 +276,8 @@ class NPUComboKernel(ComboKernel):
             "constants": {
                 signature[index].name: 1 for index in equal_1_arg_indices(signature)
             },
-            "mix_mode": "aiv"
+            **TritonKernel.triton_meta_common(),
+            "mix_mode": "aiv",
         }
 
         triton_meta["configs"] = [config_of(signature)]
@@ -289,11 +290,20 @@ class NPUComboKernel(ComboKernel):
         # rather than a member's cached grouped plan.
         inductor_meta["runtime_block_arg_names"] = tuple(self.block_args)
         inductor_meta["mutated_arg_names"] = mutated_args
+        # Match the upstream graph policy for inference, backward and training-forward graphs.
+        inductor_meta["optimize_mem"] = V.graph.is_inference or V.graph.is_backward
         dispatch = self.dispatch_class
         assert dispatch is not None
         inductor_meta["grid_type"] = dispatch.grid_expr.__name__
         inductor_meta["combo_grid_meta"] = self.combo_grid_meta()
         inductor_meta["combo_subkernel_meta"] = self.autotune_subkernel_meta()
+
+        sub_metas = [sub._kernel_cost_meta() for sub in self.sub_kernels]
+        self._kernel_num_gb = sum(meta.get("kernel_num_gb") or 0 for meta in sub_metas)
+        if config.benchmark_kernel or config.profile_bandwidth:
+            inductor_meta["kernel_num_gb"] = self._kernel_num_gb
+        if config.benchmark_kernel:
+            inductor_meta["kernel_flop"] = sum(meta.get("kernel_flop") or 0 for meta in sub_metas)
 
         sub_kernel = selected_kernel
         if heuristics == "foreach":
@@ -537,7 +547,7 @@ class NPUComboKernel(ComboKernel):
                 code.splice("pass")
 
         if config.benchmark_combo_kernel:
-            code.splice(self.codegen_kernel_benchmark(num_gb=0))
+            code.splice(self.codegen_kernel_benchmark(num_gb=self._kernel_num_gb))
 
         # Deferred stores must see the subkernels' removed buffers.
         # Keep this state local until every partition passes validation.

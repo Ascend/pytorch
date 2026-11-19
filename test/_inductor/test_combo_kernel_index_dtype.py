@@ -18,6 +18,7 @@ class TestComboKernelIndexDtype(unittest.TestCase):
         sub.features = NPUKernelFeatures([], numel)
         sub._index_dtype = sub.features.select_index_dtype()
         sub.create_inductor_meta = lambda: {}
+        sub._kernel_cost_meta = lambda: {}
         return sub
 
     def _combo_size_signature(self, subs, numel):
@@ -48,6 +49,7 @@ class TestComboKernelIndexDtype(unittest.TestCase):
         shape_env = ShapeEnv()
         graph = SimpleNamespace(
             sizevars=SizeVarAllocator(shape_env),
+            is_inference=True, is_backward=False,
             get_current_device_or_throw=lambda: torch.device("npu:0"),
         )
         with V.set_graph_handler(graph):
@@ -77,6 +79,7 @@ class TestComboKernelIndexDtype(unittest.TestCase):
             (("tl.int64",), "i64"),
         ):
             subs = [SimpleNamespace(index_dtype=dtype, create_inductor_meta=lambda: {},
+                                    _kernel_cost_meta=lambda: {},
                                     _disable_grouped_autotune=lambda *args: None)
                     for dtype in dtypes]
             kernel = SimpleNamespace(
@@ -90,6 +93,7 @@ class TestComboKernelIndexDtype(unittest.TestCase):
             with (
                 V.set_graph_handler(SimpleNamespace(
                     sizevars=SizeVarAllocator(),
+                    is_inference=True, is_backward=False,
                     get_current_device_or_throw=lambda: torch.device("npu:0"))),
                 patch("torch_npu._inductor.codegen.triton_combo_kernel.DeviceProperties.create",
                       return_value=SimpleNamespace(type="npu")),
