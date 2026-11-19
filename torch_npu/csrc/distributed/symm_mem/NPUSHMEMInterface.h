@@ -46,6 +46,16 @@ void Shmem_putmem_on_stream(void* dst, void* src, size_t elem_size, int32_t pe, 
 
 void Shmem_getmem_on_stream(void* dst, void* src, size_t elem_size, int32_t pe, aclrtStream stream);
 
+void Aclshmem_putmem_nbi(void* dst, void* src, size_t elem_size, int32_t pe);
+
+void Aclshmem_getmem_nbi(void* dst, void* src, size_t elem_size, int32_t pe);
+
+void Aclshmem_quiet(void);
+
+bool Aclshmem_quiet_exist();
+
+void Aclshmemx_quiet_on_stream(aclrtStream stream);
+
 bool Aclshmem_finalize_exist();
 
 int Aclshmem_finalize(void);

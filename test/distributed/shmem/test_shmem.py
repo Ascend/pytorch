@@ -30,6 +30,24 @@ def _shmem_available() -> bool:
         return False
 
 
+# Highest heap byte carved by the ptp tests in this process: stale cache lines
+# below it shadow RMA reads, so later receive buffers carve above this mark.
+_heap_high_water = 0
+
+
+def _record_heap_high_water(*tensors) -> None:
+    global _heap_high_water
+    for tensor in tensors:
+        _heap_high_water = max(
+            _heap_high_water, tensor.data_ptr() + tensor.numel() * tensor.element_size()
+        )
+
+
+# Chunk size test_shmem_quiet_batch uses to wedge the reused low heap region;
+# must stay smaller than that test's smallest receive buffer (40MB).
+_WEDGE_CHUNK_BYTES = 32 * 1024 * 1024
+
+
 @instantiate_parametrized_tests
 @skipIf(not _shmem_available(), "CANN SHMEM is not available")
 class NPUSHMEMSymmetricMemoryTest(MultiProcContinuousTest):
@@ -84,6 +102,186 @@ class NPUSHMEMSymmetricMemoryTest(MultiProcContinuousTest):
         assert ret == 0, f"acl.rt.memcpy failed ret={ret}"
         torch.npu.current_stream().synchronize()
         return [int(v) for v in arr]
+
+    def _make_ptp_fixture(self, dtype, numel, value):
+        """Create one two-rank symmetric allocation filled with an identifiable value."""
+        group_name = dist.group.WORLD.group_name
+        symm_mem.enable_symm_mem_for_group(group_name)
+        tensor = symm_mem.empty(numel, dtype=dtype, device=self.device).fill_(value)
+        symm_mem.rendezvous(tensor, group=group_name)
+        return tensor
+
+    @skipIfUnsupportMultiNPU(2)
+    @parametrize("use_nbi", [False, True])
+    def test_shmem_ptp_one_directional(self, use_nbi: bool) -> None:
+        """Deterministic put/get content check on never-written receive buffers;
+        the nbi variant closes a mixed put+get batch with a single quiet."""
+        self._init_device()
+
+        rank = self.rank
+        peer = 1 - rank
+        group_name = dist.group.WORLD.group_name
+        symm_mem.enable_symm_mem_for_group(group_name)
+
+        # Larger than every earlier allocation: the first-fit heap carves from
+        # the untouched tail, so no reused-address cache lines shadow the reads.
+        f_numel = 16 * 1024 * 1024  # float32, 64MB
+        i_numel = 24 * 1024 * 1024  # int32, 96MB (distinct size: no reuse)
+        f_tensor = symm_mem.empty(f_numel, dtype=torch.float, device=self.device)
+        i_tensor = symm_mem.empty(i_numel, dtype=torch.int32, device=self.device)
+        symm_mem.rendezvous(f_tensor, group=group_name)
+        symm_mem.rendezvous(i_tensor, group=group_name)
+        _record_heap_high_water(f_tensor, i_tensor)
+
+        # rank 0 fills f (put source), rank 1 fills i (get source): each rank
+        # keeps one never-written buffer to receive the peer's RMA write.
+        if rank == 0:
+            f_tensor.fill_(3.25)
+        else:
+            i_tensor.fill_(-77)
+        dist.barrier(device_ids=[rank])
+
+        if rank == 0:
+            put_op = (
+                torch.ops.symm_mem.npushmem_put_nbi
+                if use_nbi
+                else torch.ops.symm_mem.npushmem_put
+            )
+            get_op = (
+                torch.ops.symm_mem.npushmem_get_nbi
+                if use_nbi
+                else torch.ops.symm_mem.npushmem_get
+            )
+            put_op(f_tensor, peer)
+            get_op(i_tensor, peer)
+            if use_nbi:
+                # Completion rests on quiet alone: a synchronize here would
+                # wait for the transfers and mask the guarantee it provides.
+                torch.ops.symm_mem.npushmem_quiet(f_tensor)
+            else:
+                # Blocking ops are stream-ordered; the quiet has no pending nbi.
+                torch.npu.synchronize()
+                torch.ops.symm_mem.npushmem_quiet(f_tensor)
+        dist.barrier(device_ids=[rank])
+
+        # Each side asserts the peer-landed buffer (cache miss, HBM truth) and
+        # its own filled source; a broken transfer fails on the peer's read.
+        torch.testing.assert_close(
+            f_tensor, torch.full((f_numel,), 3.25, dtype=torch.float, device=self.device)
+        )
+        torch.testing.assert_close(
+            i_tensor, torch.full((i_numel,), -77, dtype=torch.int32, device=self.device)
+        )
+        dist.barrier(device_ids=[rank])
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_shmem_quiet_batch(self) -> None:
+        """Per-buffer content check for the multi-op nbi + one-quiet model:
+        four distinct buffers per direction, each asserted by the receiver."""
+        dtype = torch.float
+        self._init_device()
+
+        rank = self.rank
+        peer = 1 - rank
+        group_name = dist.group.WORLD.group_name
+        symm_mem.enable_symm_mem_for_group(group_name)
+
+        # Fixed-size chunks wedge the reused low heap region so the buffers below
+        # carve from the never-written tail (mechanism: _WEDGE_CHUNK_BYTES).
+        wedge_chunks = []
+        while True:
+            chunk = symm_mem.empty(_WEDGE_CHUNK_BYTES, dtype=torch.uint8, device=self.device)
+            wedge_chunks.append(chunk)
+            if chunk.data_ptr() >= _heap_high_water:
+                break
+        numels = (10, 12, 14, 16)  # million elements: 40/48/56/64MB, distinct
+        a_tensors = [
+            symm_mem.empty(n * 1024 * 1024, dtype=dtype, device=self.device)
+            for n in numels
+        ]
+        b_tensors = [
+            symm_mem.empty(n * 1024 * 1024, dtype=dtype, device=self.device)
+            for n in numels
+        ]
+        for tensor in a_tensors + b_tensors:
+            symm_mem.rendezvous(tensor, group=group_name)
+        # The wedge must have pushed every buffer above the reused region.
+        self.assertGreaterEqual(a_tensors[0].data_ptr(), _heap_high_water)
+        self.assertGreaterEqual(b_tensors[0].data_ptr(), _heap_high_water)
+
+        # rank 0 fills the A set, rank 1 the B set: every read buffer was never
+        # written by its reader, and values are distinct per buffer/direction.
+        if rank == 0:
+            for i, tensor in enumerate(a_tensors):
+                tensor.fill_(1000 + i)
+        else:
+            for i, tensor in enumerate(b_tensors):
+                tensor.fill_(3000 + i)
+        dist.barrier(device_ids=[rank])
+
+        # Put batch: four submissions, one quiet, receiver asserts each buffer.
+        if rank == 0:
+            for tensor in a_tensors:
+                torch.ops.symm_mem.npushmem_put_nbi(tensor, peer)
+            torch.ops.symm_mem.npushmem_quiet(a_tensors[0])
+        dist.barrier(device_ids=[rank])
+        if rank == 1:
+            for i, tensor in enumerate(a_tensors):
+                torch.testing.assert_close(
+                    tensor,
+                    torch.full((tensor.numel(),), 1000 + i, dtype=dtype, device=self.device),
+                )
+        dist.barrier(device_ids=[rank])
+
+        # Get batch: four pulls, one quiet, puller asserts each buffer.
+        if rank == 0:
+            for tensor in b_tensors:
+                torch.ops.symm_mem.npushmem_get_nbi(tensor, peer)
+            torch.ops.symm_mem.npushmem_quiet(b_tensors[0])
+        dist.barrier(device_ids=[rank])
+        if rank == 0:
+            for i, tensor in enumerate(b_tensors):
+                torch.testing.assert_close(
+                    tensor,
+                    torch.full((tensor.numel(),), 3000 + i, dtype=dtype, device=self.device),
+                )
+        dist.barrier(device_ids=[rank])
+
+    @skipIfUnsupportMultiNPU(2)
+    @parametrize("op_name", ["npushmem_put", "npushmem_get"])
+    def test_negative_peer(self, op_name: str) -> None:
+        self._init_device()
+
+        tensor = self._make_ptp_fixture(torch.int32, 16, self.rank)
+        # rendezvous first so both ranks hit the checks symmetrically.
+        dist.barrier(device_ids=[self.rank])
+        op = getattr(torch.ops.symm_mem, op_name)
+        # peer validation is a host-side TORCH_CHECK before any submission.
+        with self.assertRaisesRegex(RuntimeError, "peer must be in range"):
+            op(tensor, -1)
+        with self.assertRaisesRegex(RuntimeError, "peer must be in range"):
+            op(tensor, 2)  # world_size == 2
+        dist.barrier(device_ids=[self.rank])
+
+    @skipIfUnsupportMultiNPU(2)
+    @parametrize("op_name", ["npushmem_put", "npushmem_get"])
+    def test_negative_contiguous(self, op_name: str) -> None:
+        self._init_device()
+
+        group_name = dist.group.WORLD.group_name
+        symm_mem.enable_symm_mem_for_group(group_name)
+        tensor = symm_mem.empty((4, 4), dtype=torch.int32, device=self.device)
+        symm_mem.rendezvous(tensor, group=group_name)
+        non_contig = tensor.t()
+
+        op = getattr(torch.ops.symm_mem, op_name)
+        # put- and get-family error messages are asserted separately.
+        op_label = "get op" if "get" in op_name else "put op"
+        with self.assertRaisesRegex(
+            RuntimeError, f"{op_label} currently supports contiguous"
+        ):
+            op(non_contig, 1 - self.rank)
+        dist.barrier(device_ids=[self.rank])
 
     @skipIfUnsupportMultiNPU(2)
     def test_alloc(self) -> None:

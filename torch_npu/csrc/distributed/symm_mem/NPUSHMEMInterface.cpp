@@ -23,6 +23,10 @@ TORCH_NPU_LOAD_FUNC(aclshmem_ptr)
 TORCH_NPU_LOAD_FUNC(aclshmem_finalize)
 TORCH_NPU_LOAD_FUNC(aclshmemx_putmem_on_stream)
 TORCH_NPU_LOAD_FUNC(aclshmemx_getmem_on_stream)
+TORCH_NPU_LOAD_FUNC(aclshmem_putmem_nbi)
+TORCH_NPU_LOAD_FUNC(aclshmem_getmem_nbi)
+TORCH_NPU_LOAD_FUNC(aclshmem_quiet)
+TORCH_NPU_LOAD_FUNC(aclshmemx_quiet_on_stream)
 TORCH_NPU_LOAD_FUNC(shmem_set_conf_store_tls)
 TORCH_NPU_LOAD_FUNC(shmem_set_attr)
 TORCH_NPU_LOAD_FUNC(shmem_get_uniqueid)
@@ -202,6 +206,59 @@ void Shmem_getmem_on_stream(void* dst, void* src, size_t elem_size, int32_t pe, 
   }
   TORCH_CHECK(func, "Failed to find function ", "aclshmemx_getmem_on_stream", PTA_ERROR(ErrCode::NOT_FOUND));
   func(dst, src, elem_size, pe, stream);
+}
+
+void Aclshmem_putmem_nbi(void* dst, void* src, size_t elem_size, int32_t pe) {
+  typedef void (*ShmemApiFunc)(void*, void*, size_t, int32_t);
+  static ShmemApiFunc func = nullptr;
+  if (func == nullptr) {
+    func = (ShmemApiFunc)TORCH_NPU_GET_FUNC(aclshmem_putmem_nbi);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclshmem_putmem_nbi", PTA_ERROR(ErrCode::NOT_FOUND));
+  func(dst, src, elem_size, pe);
+}
+
+void Aclshmem_getmem_nbi(void* dst, void* src, size_t elem_size, int32_t pe) {
+  typedef void (*ShmemApiFunc)(void*, void*, size_t, int32_t);
+  static ShmemApiFunc func = nullptr;
+  if (func == nullptr) {
+    func = (ShmemApiFunc)TORCH_NPU_GET_FUNC(aclshmem_getmem_nbi);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclshmem_getmem_nbi", PTA_ERROR(ErrCode::NOT_FOUND));
+  func(dst, src, elem_size, pe);
+}
+
+bool Aclshmem_quiet_exist() {
+  const static bool shmemApiFuncExist = []() -> bool {
+    try {
+      auto func = TORCH_NPU_GET_FUNC(aclshmem_quiet);
+      return func != nullptr;
+    } catch (...) {
+      // libshmem.so not exist
+      return false;
+    }
+  }();
+  return shmemApiFuncExist;
+}
+
+void Aclshmem_quiet(void) {
+  typedef void (*ShmemApiFunc)(void);
+  static ShmemApiFunc func = nullptr;
+  if (func == nullptr) {
+    func = (ShmemApiFunc)TORCH_NPU_GET_FUNC(aclshmem_quiet);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclshmem_quiet", PTA_ERROR(ErrCode::NOT_FOUND));
+  func();
+}
+
+void Aclshmemx_quiet_on_stream(aclrtStream stream) {
+  typedef void (*ShmemApiFunc)(aclrtStream);
+  static ShmemApiFunc func = nullptr;
+  if (func == nullptr) {
+    func = (ShmemApiFunc)TORCH_NPU_GET_FUNC(aclshmemx_quiet_on_stream);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclshmemx_quiet_on_stream", PTA_ERROR(ErrCode::NOT_FOUND));
+  func(stream);
 }
 
 void* Aclshmem_ptr(void* ptr, int pe) {
