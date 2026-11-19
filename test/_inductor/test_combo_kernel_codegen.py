@@ -338,7 +338,11 @@ class TestComboKernelCodegen(unittest.TestCase):
         combo.min_x_blocks_sub_kernel = Mock()
         combo.combo_grid_meta = Mock(return_value={"num_kernels": 2})
         combo.autotune_subkernel_meta = Mock(return_value=[])
-        graph = SimpleNamespace(get_current_device_or_throw=lambda: torch.device("npu"))
+        graph = SimpleNamespace(
+            get_current_device_or_throw=lambda: torch.device("npu"),
+            is_inference=True,
+            is_backward=False,
+        )
         with (
             V.set_graph_handler(graph),
             patch.object(combo_codegen.DeviceProperties, "create", return_value=None),
