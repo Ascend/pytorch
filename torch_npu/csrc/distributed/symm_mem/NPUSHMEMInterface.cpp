@@ -20,6 +20,7 @@ TORCH_NPU_LOAD_FUNC(aclshmemx_set_attr_uniqueid_args)
 TORCH_NPU_LOAD_FUNC(aclshmemx_init_attr)
 TORCH_NPU_LOAD_FUNC(aclshmem_malloc)
 TORCH_NPU_LOAD_FUNC(aclshmem_free)
+TORCH_NPU_LOAD_FUNC(aclshmem_barrier_all)
 TORCH_NPU_LOAD_FUNC(aclshmem_ptr)
 TORCH_NPU_LOAD_FUNC(aclshmem_finalize)
 TORCH_NPU_LOAD_FUNC(aclshmemx_putmem_on_stream)
@@ -163,6 +164,17 @@ void Aclshmem_free(void *ptr)
     TORCH_CHECK(shmem_free_func, "Failed to find function ",
         "aclshmem_free or shmem_free", PTA_ERROR(ErrCode::NOT_FOUND));
     return shmem_free_func(ptr);
+}
+
+void Aclshmem_barrier_all() {
+  typedef void (*ShmemApiFunc)(void);
+  static ShmemApiFunc shmem_barrier_all_func = nullptr;
+  if (shmem_barrier_all_func == nullptr) {
+    shmem_barrier_all_func = (ShmemApiFunc)TORCH_NPU_GET_FUNC(aclshmem_barrier_all);
+  }
+  TORCH_CHECK(
+      shmem_barrier_all_func, "Failed to find function ", "aclshmem_barrier_all", PTA_ERROR(ErrCode::NOT_FOUND));
+  shmem_barrier_all_func();
 }
 
 void Shmem_putmem_on_stream(void *dst, void *src, size_t elem_size, int32_t pe, aclrtStream stream)
