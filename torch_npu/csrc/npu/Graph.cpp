@@ -869,6 +869,17 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
           "begin_capture_to_if_node",
           torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::begin_capture_to_if_node),
           py::arg("scalar_npu_pred_tensor"))
+  // COMPAT(>= 2.14): Expose the NPUGraph WHILE capture bindings.
+#if TORCH_NPU_VERSION_GE(2, 14)
+      .def(
+          "begin_capture_to_while_node",
+          torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::begin_capture_to_while_node),
+          py::arg("scalar_npu_pred_tensor"))
+      .def(
+          "set_conditional_handle_for_current_node",
+          torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::set_conditional_handle_for_current_node),
+          py::arg("scalar_npu_pred_tensor"))
+#endif
       .def(
           "end_capture_to_conditional_node",
           torch::wrap_pybind_function_no_gil(&c10_npu::NPUGraph::end_capture_to_conditional_node));

@@ -13,6 +13,7 @@
 #include <acl/acl_base.h>
 #include <acl/acl_rt.h>
 #include <acl/super_kernel.h>
+#include "torch_npu/csrc/_compat/version.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/core/npu/interface/SkInterface.h"
 #include "torch_npu/csrc/core/npu/NPUGraphsUtils.h"
@@ -107,10 +108,16 @@ struct TORCH_NPU_API NPUGraph {
   void debug_dump(const std::string& debug_path);
   void super_kernel_optimize(const aclskOptions* options);
   void begin_capture_to_if_node(const at::Tensor& scalar_npu_pred_tensor);
+  // COMPAT(>= 2.14): NPUGraph WHILE capture entry points.
+#if TORCH_NPU_VERSION_GE(2, 14)
+  void begin_capture_to_while_node(const at::Tensor& scalar_npu_pred_tensor);
+  void set_conditional_handle_for_current_node(const at::Tensor& scalar_npu_pred_tensor);
+#endif
   void end_capture_to_conditional_node();
   void set_conditional_handle(aclmdlRICondHandle handle, const at::Tensor& scalar_npu_pred_tensor);
 
  private:
+  void begin_capture_to_conditional_node(const at::Tensor& pred, aclmdlRICondTaskType type);
   std::function<bool(aclrtStream)> create_allocate_filter() const;
   std::function<bool(aclrtStream)> create_child_allocate_filter(aclmdlRI child_model_ri) const;
 

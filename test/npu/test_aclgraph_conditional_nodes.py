@@ -2,7 +2,11 @@ import unittest
 
 import torch
 import torch.utils._pytree as pytree
-from torch_npu.npu._npugraph_conditional_nodes import NPUGraphCaptureControlFlowOpDispatchMode
+from torch_npu._compat.version import CURRENT_VERSION
+from torch_npu.npu._npugraph_conditional_nodes import (
+    ControlFlowOpWarmupDispatchMode,
+    NPUGraphCaptureControlFlowOpDispatchMode,
+)
 
 def _clone_leaf(x):
     if isinstance(x, torch.Tensor):
@@ -331,7 +335,7 @@ class TestACLGraphConditionalNodes(unittest.TestCase):
 
         with self.assertRaisesRegex(
             RuntimeError,
-            "RNG op during graph capture but generator is not registered",
+            r"RNG within data-dependent conditional nodes is not supported yet\.",
         ):
             with (
                 torch.npu.graph(graph, stream=side_stream),
@@ -562,6 +566,99 @@ class TestACLGraphConditionalNodes(unittest.TestCase):
                 NPUGraphCaptureControlFlowOpDispatchMode(),
             ):
                 torch.cond(pred, true_fn, false_fn, (x,))
+
+
+@unittest.skipUnless(CURRENT_VERSION >= (2, 14), "NPUGraph while_loop requires PyTorch 2.14 or newer")
+@unittest.skip("Conditional ModelRI RTS interfaces are unavailable in the current UT environment")
+class TestACLGraphWhileLoop(unittest.TestCase):
+    def setUp(self):
+        if not torch.npu.is_available():
+            self.skipTest("requires NPU")
+
+    def test_condition_update_requires_capture(self):
+        graph = torch.npu.NPUGraph()
+        with torch.npu.stream(torch.npu.Stream()), self.assertRaisesRegex(RuntimeError, "not capturing"):
+            graph.set_conditional_handle_for_current_node(torch.tensor(True, device="npu"))
+
+    def _check_while_replays(self, fn, cases):
+        acc = torch.ones((), device="npu", dtype=torch.int32)
+        original = acc.cpu()
+        limit = torch.zeros((), device=acc.device, dtype=torch.int32)
+        stream = torch.npu.Stream()
+        stream.wait_stream(torch.npu.current_stream())
+        graph = torch.npu.NPUGraph()
+        try:
+            with torch.npu.stream(stream), ControlFlowOpWarmupDispatchMode():
+                fn(acc, limit)
+            with torch.npu.graph(graph, stream=stream), NPUGraphCaptureControlFlowOpDispatchMode():
+                out_acc = fn(acc, limit)
+        except RuntimeError as error:
+            if "CondHandleCreate" in str(error) and "207000" in str(error):
+                self.skipTest(str(error))
+            raise
+
+        torch.npu.current_stream().wait_stream(stream)
+        for count, expected_acc in cases:
+            with self.subTest(count=count):
+                limit.fill_(count)
+                graph.replay()
+                torch.npu.synchronize()
+                torch.testing.assert_close(out_acc.cpu(), torch.as_tensor(expected_acc, dtype=acc.dtype))
+                torch.testing.assert_close(acc.cpu(), original)
+                self.assertEqual(limit.item(), count)
+
+    def test_while_replay_uses_runtime_condition(self):
+        def fn(acc, limit):
+            def body_fn(value, remaining):
+                return value + 1, remaining - 1
+
+            return torch.while_loop(lambda value, remaining: remaining > 0, body_fn, (acc, limit))[0]
+
+        self._check_while_replays(fn, ((3, 4), (0, 1), (5, 6)))
+
+    def test_while_nested_in_while(self):
+        def fn(acc, limit):
+            def body_fn(value, remaining):
+                def inner_body(inner_value, inner_remaining):
+                    return inner_value + 2, inner_remaining - 1
+
+                inner_count = torch.full_like(remaining, 2)
+                value, _ = torch.while_loop(
+                    lambda inner_value, inner_remaining: inner_remaining > 0,
+                    inner_body,
+                    (value, inner_count),
+                )
+                return value, remaining - 1
+
+            return torch.while_loop(lambda value, remaining: remaining > 0, body_fn, (acc, limit))[0]
+
+        self._check_while_replays(fn, ((3, 13), (0, 1), (5, 21)))
+
+    def test_while_nested_in_if(self):
+        def fn(acc, limit):
+            def true_fn(value, count):
+                def body_fn(current, remaining):
+                    return current + 2, remaining - 1
+
+                return torch.while_loop(lambda current, remaining: remaining > 0, body_fn, (value, count))[0]
+
+            def false_fn(value, count):
+                return value - count
+
+            return torch.cond(limit % 2 == 0, true_fn, false_fn, (acc, limit))
+
+        self._check_while_replays(fn, ((2, 5), (3, -2), (0, 1), (4, 9)))
+
+    def test_if_nested_in_while(self):
+        def fn(acc, limit):
+            def body_fn(value, step):
+                updated = torch.cond(step == 0, lambda a: a + 2, lambda a: a + 1, (value,))
+                return updated, step + 1
+
+            step = torch.zeros_like(limit)
+            return torch.while_loop(lambda value, step: step < limit, body_fn, (acc, step))[0]
+
+        self._check_while_replays(fn, ((3, 5), (0, 1), (5, 7)))
 
 
 if __name__ == "__main__":

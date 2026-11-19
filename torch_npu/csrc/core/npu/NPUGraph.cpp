@@ -23,12 +23,19 @@
 
 namespace c10_npu {
 
+namespace {
 static bool _npu_graphs_debug = false;
 static std::mutex _currently_capturing_graphs_mutex;
-static ska::flat_hash_map<CaptureId_t, NPUGraph*> _currently_capturing_graphs;
+struct CapturingGraph {
+  NPUGraph* graph;
+  // COMPAT(>= 2.14): Track the handle for WHILE body captures.
+#if TORCH_NPU_VERSION_GE(2, 14)
+  aclmdlRICondHandle while_handle = nullptr;
+#endif
+};
+static ska::flat_hash_map<CaptureId_t, CapturingGraph> _currently_capturing_graphs;
 static ska::flat_hash_set<NPUGraph*> _currently_capturing_accelerator_graphs;
 
-namespace {
 void register_accelerator_graph_capture(NPUGraph* graph) {
   std::lock_guard<std::mutex> lock(_currently_capturing_graphs_mutex);
   const auto inserted = _currently_capturing_accelerator_graphs.emplace(graph).second;
@@ -49,7 +56,7 @@ NPUGraph* get_currently_capturing_graph_locked() {
       "get_currently_capturing_graph() can be used only between capture_begin() and capture_end(). "
       "Did you use a stream without making it depend upon the original stream used for capture?",
       PTA_ERROR(ErrCode::PARAM));
-  return _currently_capturing_graphs.at(capture_id.value());
+  return _currently_capturing_graphs.at(capture_id.value()).graph;
 }
 
 aclmdlRICaptureMode get_acl_capture_mode(at::GraphCaptureMode capture_mode) {
@@ -325,7 +332,7 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode,
 
   {
     std::lock_guard<std::mutex> lock(_currently_capturing_graphs_mutex);
-    _currently_capturing_graphs.emplace(capture_id_, this);
+    _currently_capturing_graphs.emplace(capture_id_, CapturingGraph{this});
   }
 
   NPUGRAPH_LOGD(
@@ -452,6 +459,16 @@ void NPUGraph::reset() {
     {
       std::unique_lock<std::mutex> lock(_currently_capturing_graphs_mutex);
       _currently_capturing_graphs.erase(capture_id_);
+      // A nested capture abandoned before its end call can still be registered.
+      if (!conditional_model_ri_stack_.empty()) {
+        for (auto it = _currently_capturing_graphs.begin(); it != _currently_capturing_graphs.end();) {
+          if (it->second.graph == this) {
+            it = _currently_capturing_graphs.erase(it);
+          } else {
+            ++it;
+          }
+        }
+      }
     }
     for (auto& [generator_state, wholegraph_increments] : captured_generator_states_) {
       generator_state->remove_capture_state(capture_id_);
@@ -587,6 +604,32 @@ void NPUGraph::set_conditional_handle(aclmdlRICondHandle handle, const at::Tenso
 }
 
 void NPUGraph::begin_capture_to_if_node(const at::Tensor& scalar_npu_pred_tensor) {
+  begin_capture_to_conditional_node(scalar_npu_pred_tensor, ACL_MODEL_RI_COND_TYPE_IF);
+}
+
+// COMPAT(>= 2.14): NPUGraph WHILE capture entry points.
+#if TORCH_NPU_VERSION_GE(2, 14)
+void NPUGraph::set_conditional_handle_for_current_node(const at::Tensor& pred) {
+  // Submit the body predicate before recording its raw ACL memory operations.
+  auto stream = getCurrentNPUStream().stream();
+  TORCH_CHECK(stream != nullptr, "Failed to obtain the WHILE body stream.", PTA_ERROR(ErrCode::PTR));
+  auto capture_id = captureIdMayInitCtx(stream);
+  TORCH_CHECK(capture_id.has_value(), "The current stream is not capturing.", PTA_ERROR(ErrCode::PARAM));
+  std::lock_guard<std::mutex> lock(_currently_capturing_graphs_mutex);
+  auto it = _currently_capturing_graphs.find(*capture_id);
+  TORCH_CHECK(
+      it != _currently_capturing_graphs.end() && it->second.graph == this && it->second.while_handle != nullptr,
+      "The current stream must be capturing a WHILE body of this NPUGraph.",
+      PTA_ERROR(ErrCode::PARAM));
+  set_conditional_handle(it->second.while_handle, pred);
+}
+
+void NPUGraph::begin_capture_to_while_node(const at::Tensor& scalar_npu_pred_tensor) {
+  begin_capture_to_conditional_node(scalar_npu_pred_tensor, ACL_MODEL_RI_COND_TYPE_WHILE);
+}
+#endif
+
+void NPUGraph::begin_capture_to_conditional_node(const at::Tensor& scalar_npu_pred_tensor, aclmdlRICondTaskType type) {
   TORCH_CHECK(!has_graph_exec_, "This NPUGraph instance already owns a captured graph.", PTA_ERROR(ErrCode::PARAM));
 
   auto parent_stream = c10_npu::getCurrentNPUStream();
@@ -595,7 +638,7 @@ void NPUGraph::begin_capture_to_if_node(const at::Tensor& scalar_npu_pred_tensor
   NPU_CHECK_ERROR(c10_npu::acl::AclmdlRICaptureGetInfo(parent_stream, &status, &parent_model_ri));
   TORCH_CHECK(
       status == aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_ACTIVE,
-      "capture_begin() must be called before begin_capture_to_if_node().",
+      "capture_begin() must be called before capturing a conditional node.",
       PTA_ERROR(ErrCode::PARAM));
   TORCH_CHECK(
       parent_model_ri == (conditional_model_ri_stack_.empty() ? model_ri_ : conditional_model_ri_stack_.top()),
@@ -608,9 +651,9 @@ void NPUGraph::begin_capture_to_if_node(const at::Tensor& scalar_npu_pred_tensor
   set_conditional_handle(handle, scalar_npu_pred_tensor);
 
   aclmdlRI child_model_ri = nullptr;
-  aclmdlRICondTaskParams params;
+  aclmdlRICondTaskParams params{};
   params.handle = handle;
-  params.type = ACL_MODEL_RI_COND_TYPE_IF;
+  params.type = type;
   params.size = 1;
   params.modelRIArray = &child_model_ri;
   NPU_CHECK_ERROR(c10_npu::acl::AclmdlRIAddCondTask(params, parent_stream, 0));
@@ -656,7 +699,14 @@ void NPUGraph::begin_capture_to_if_node(const at::Tensor& scalar_npu_pred_tensor
   {
     std::unique_lock<std::mutex> lock(_currently_capturing_graphs_mutex);
     auto child_capture_id = c10_npu::captureIdFromModelRI(child_model_ri);
-    _currently_capturing_graphs.emplace(child_capture_id, this);
+    CapturingGraph capture{this};
+    // COMPAT(>= 2.14): Associate the WHILE handle with its body capture ID.
+#if TORCH_NPU_VERSION_GE(2, 14)
+    if (type == ACL_MODEL_RI_COND_TYPE_WHILE) {
+      capture.while_handle = handle;
+    }
+#endif
+    _currently_capturing_graphs.emplace(child_capture_id, capture);
   }
 }
 
