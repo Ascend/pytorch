@@ -5,7 +5,7 @@
     "category": "device not supported",
     "group_key": "log",
     "group_count": 146,
-    "total_nodes": 10800
+    "total_nodes": 10796
   },
   "groups": [
     {
@@ -133,8 +133,6 @@
             "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_masked_mean_npu_float64",
             "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_masked_std_npu_float64",
             "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_max_reduction_no_dim_npu_float64",
-            "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_nanquantile_npu_float32",
-            "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_nn_functional_conv_transpose2d_npu_bfloat16",
             "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_nn_functional_conv_transpose2d_npu_float16",
             "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_nn_functional_conv_transpose3d_npu_bfloat16",
             "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_nn_functional_conv_transpose3d_npu_float16",
@@ -148,7 +146,6 @@
             "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_nn_functional_interpolate_trilinear_npu_float64",
             "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_special_entr_npu_float64",
             "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_unflatten_npu_complex32",
-            "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_vsplit_npu_float64",
             "test/test_decomp.py::TestDecompPRIVATEUSE1::test_quick_core_backward_aminmax_npu_float64",
             "test/test_decomp.py::TestDecompPRIVATEUSE1::test_quick_core_backward_mvlgamma_mvlgamma_p_5_npu_float64",
             "test/test_decomp.py::TestDecompPRIVATEUSE1::test_quick_logsumexp_npu_complex64",
@@ -1062,7 +1059,6 @@
             "test/functorch/test_ops.py::TestOperatorsDevicePRIVATEUSE1::test_vmapvjp_nn_functional_conv_transpose3d_npu_float32",
             "test/functorch/test_ops.py::TestOperatorsDevicePRIVATEUSE1::test_vmapvjpvjp_nn_functional_conv_transpose2d_npu_float32",
             "test/functorch/test_ops.py::TestOperatorsDevicePRIVATEUSE1::test_vmapvjpvjp_nn_functional_conv_transpose3d_npu_float32",
-            "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_nn_functional_conv_transpose2d_npu_float32",
             "test/test_ops.py::TestCommonPRIVATEUSE1::test_noncontiguous_samples_nn_functional_conv_transpose2d_npu_float32",
             "test/test_ops.py::TestCommonPRIVATEUSE1::test_noncontiguous_samples_nn_functional_conv_transpose3d_npu_float32",
             "test/test_ops.py::TestCommonPRIVATEUSE1::test_variant_consistency_eager_nn_functional_conv_transpose2d_npu_float32",
