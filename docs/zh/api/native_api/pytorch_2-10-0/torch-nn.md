@@ -628,6 +628,30 @@
 
 </div>
 
+<a class="method_anchor" id="torch_nn_Module_mtia"></a>
+
+> <font size="3">mtia()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.Module.mtia](https://pytorch.org/docs/2.10/generated/torch.nn.Module.html#torch.nn.Module.mtia)
+
+**产品支持情况**：
+
+<!-- npu="910b" id1151 -->
+- <term>Atlas A2训练系列产品</term>：不支持
+<!-- end id1151 -->
+<!-- npu="A3" id1152 -->
+- <term>Atlas A3训练系列产品</term>：不支持
+<!-- end id1152 -->
+<!-- npu="950" id1153 -->
+- <term>Ascend 950DT系列产品</term>：不支持
+<!-- end id1153 -->
+
+**限制与说明**：Module.mtia() 为 MTIA 后端设备迁移接口，依赖张量侧 mtia() 后端实现
+
+</div>
+
 <a class="method_anchor" id="torch_nn_Module_named_buffers"></a>
 
 > <font size="3">named_buffers()</font>
