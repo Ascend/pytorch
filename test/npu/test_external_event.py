@@ -565,17 +565,16 @@ class TestExternalEvent(TestCase):
 
     @unittest.skipIf(skip_ipc_event_case, "IPC event is not supported by the current driver/CANN")
     def test_ipc_event_ex_api(self):
-        # Event(interprocess=True) is created through the Ex API path.
+        # Event(interprocess=True) is created through the Ex API path: creation,
+        # record, query and ipc_handle generation. In-process handle round-trip
+        # is driver-rejected (cross-process only); the cross-process semantics
+        # stay covered by test_ipc_event.py (multiprocessing).
         ev = torch.npu.Event(enable_timing=False, interprocess=True)
         ev.record()
         torch.npu.synchronize()
         self.assertTrue(ev.query())
         handle = ev.ipc_handle()
         self.assertIsInstance(handle, bytes)
-        # In-process IPC handle import is not supported by the driver: IPC
-        # handles are for cross-process use only. The cross-process
-        # semantics stay covered by test_ipc_event.py (multiprocessing).
-        self.skipTest("in-process IPC handle round-trip is not supported by the driver (cross-process only)")
 
     def test_profiler_event_smoke(self):
         # Smoke test: timing events and profiler mark work under an active
