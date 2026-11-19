@@ -184,6 +184,28 @@
 
 </div>
 
+<a class="method_anchor" id="torch_autograd_forward_ad_UnpackedDualTensor_count"></a>
+
+> <font size="3">count()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.forward_ad.UnpackedDualTensor.count](https://pytorch.org/docs/2.9/generated/torch.autograd.forward_ad.UnpackedDualTensor.html#torch.autograd.forward_ad.UnpackedDualTensor.count)
+
+**产品支持情况**：
+
+<!-- npu="910b" id269 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id269 -->
+<!-- npu="A3" id270 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id270 -->
+<!-- npu="950" id271 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id271 -->
+
+</div>
+
 </div>
 
 ## Functional higher level API
@@ -661,6 +683,28 @@
 
 </div>
 
+<a class="method_anchor" id="torch_autograd_function_InplaceFunction_mark_dirty"></a>
+
+> <font size="3">mark_dirty()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.function.InplaceFunction.mark_dirty](https://pytorch.org/docs/2.9/generated/torch.autograd.function.InplaceFunction.html#torch.autograd.function.InplaceFunction.mark_dirty)
+
+**产品支持情况**：
+
+<!-- npu="910b" id266 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id266 -->
+<!-- npu="A3" id267 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id267 -->
+<!-- npu="950" id268 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id268 -->
+
+</div>
+
 </div>
 
 ## Numerical gradient checking
@@ -770,6 +814,28 @@
 <!-- npu="950" id219 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id219 -->
+
+</div>
+
+<a class="method_anchor" id="torch_autograd_function_NestedIOFunction_save_for_forward"></a>
+
+> <font size="3">save_for_forward()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.function.NestedIOFunction.save_for_forward](https://pytorch.org/docs/2.9/generated/torch.autograd.function.NestedIOFunction.html#torch.autograd.function.NestedIOFunction.save_for_forward)
+
+**产品支持情况**：
+
+<!-- npu="910b" id263 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id263 -->
+<!-- npu="A3" id264 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id264 -->
+<!-- npu="950" id265 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id265 -->
 
 </div>
 
