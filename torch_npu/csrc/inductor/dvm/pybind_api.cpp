@@ -208,10 +208,12 @@ py::object TorchKernelPy::ViewLoad(py::object shape, py::object stride, DataType
     return ObjToPy(op);
 }
 
-py::object TorchKernelPy::GatherLoad(py::object shape, py::object index, DataTypePy type, int axis)
+py::object TorchKernelPy::GatherLoad(
+    py::object shape, py::object index, DataTypePy type, int axis, int gather_mode)
 {
     ShapeRef* shape_ref = SymIntArraytoShapeRef(shape);
-    auto op = kernel_.GatherLoad(nullptr, shape_ref, PyToObj(index), axis, type);
+    auto op = kernel_.GatherLoad(
+        nullptr, shape_ref, PyToObj(index), axis, type, static_cast<GatherMode>(gather_mode));
     loads_.emplace_back(op);
     return ObjToPy(op);
 }
@@ -534,12 +536,14 @@ py::object DynKernelPy::ViewLoad(py::object shape, py::object stride, DataTypePy
     return ObjToPy(op);
 }
 
-py::object DynKernelPy::GatherLoad(py::object shape, py::object index, DataTypePy type, int axis)
+py::object DynKernelPy::GatherLoad(
+    py::object shape, py::object index, DataTypePy type, int axis, int gather_mode)
 {
     auto shape_seq = shape.cast<py::sequence>();
     auto ref = GetDynLoadShapeRef(shape_seq.size());
     ShapeRef* shape_ref = &ref->shape;
-    auto op = kernel_.GatherLoad(nullptr, shape_ref, PyToObj(index), axis, type);
+    auto op = kernel_.GatherLoad(
+        nullptr, shape_ref, PyToObj(index), axis, type, static_cast<GatherMode>(gather_mode));
     loads_.emplace_back(op);
     return ObjToPy(op);
 }
