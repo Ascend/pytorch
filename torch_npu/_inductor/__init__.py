@@ -116,7 +116,10 @@ def _load_triton_backend():
 
     from . import codegen, config as npu_config
     from .async_compile import patch_async_compile
-    from .codecache import patch_get_cpp_wrapper_header
+    from .codecache import (
+        patch_aot_kernel_objects_collector,
+        patch_get_cpp_wrapper_header,
+    )
     from .choices import patch_inductor_choices
     from .export import patch_aot_load
     from .codegen._sizevars import patch_simplify
@@ -247,6 +250,7 @@ def _load_triton_backend():
     patch_inductor_choices()
     patch_algorithm_selector()
     patch_async_compile()
+    patch_aot_kernel_objects_collector()
     patch_scheduler()
     patch_npu_template_fx()
     patch_gen_common_triton_ext_imports()

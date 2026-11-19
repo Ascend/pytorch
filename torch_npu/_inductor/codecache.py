@@ -291,3 +291,18 @@ class CATLASSCodeCache:
         # skip dlclose() and avoid dangling CANN profiler callback pointers.
         wrapper = PersistentDLLWrapper(dst_file_path)
         return (wrapper, hash_key, source_code_path)
+
+
+def patch_aot_kernel_objects_collector() -> None:
+    """
+    patch collector.aot_kernels_o from CUDACodeCache to CATLASSCodeCache aot_kernels_o
+    """
+    from torch._inductor import codecache as community_codecache
+
+    for collector in vars(community_codecache).values():
+        if (
+            isinstance(collector, type)
+            and collector is not CATLASSCodeCache
+            and "aot_kernels_o" in vars(collector)
+        ):
+            collector.aot_kernels_o = CATLASSCodeCache.aot_kernels_o
