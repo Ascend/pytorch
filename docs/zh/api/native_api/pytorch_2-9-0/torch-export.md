@@ -454,6 +454,158 @@
 
 </div>
 
+### <code><i>class</i></code> torch.export.ExportedProgram
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.export.ExportedProgram](https://docs.pytorch.org/docs/2.9/export/api_reference.html#torch.export.ExportedProgram)
+
+**产品支持情况**：
+
+<!-- npu="910b" id16 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id16 -->
+<!-- npu="A3" id17 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id17 -->
+<!-- npu="950" id18 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id18 -->
+
+<a class="method_anchor" id="torch_export_ExportedProgram_buffers"></a>
+
+> <font size="3">buffers()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.export.ExportedProgram.buffers](https://docs.pytorch.org/docs/2.9/export/api_reference.html#torch.export.ExportedProgram.buffers)
+
+**产品支持情况**：
+
+<!-- npu="910b" id106 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id106 -->
+<!-- npu="A3" id107 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id107 -->
+<!-- npu="950" id108 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id108 -->
+
+</div>
+
+<a class="method_anchor" id="torch_export_ExportedProgram_module"></a>
+
+> <font size="3">module()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.export.ExportedProgram.module](https://docs.pytorch.org/docs/2.9/export/api_reference.html#torch.export.ExportedProgram.module)
+
+**产品支持情况**：
+
+<!-- npu="910b" id19 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id19 -->
+<!-- npu="A3" id20 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id20 -->
+<!-- npu="950" id21 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id21 -->
+
+</div>
+
+<a class="method_anchor" id="torch_export_ExportedProgram_named_buffers"></a>
+
+> <font size="3">named_buffers()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.export.ExportedProgram.named_buffers](https://docs.pytorch.org/docs/2.9/export/api_reference.html#torch.export.ExportedProgram.named_buffers)
+
+**产品支持情况**：
+
+<!-- npu="910b" id109 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id109 -->
+<!-- npu="A3" id110 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id110 -->
+<!-- npu="950" id111 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id111 -->
+
+</div>
+
+<a class="method_anchor" id="torch_export_ExportedProgram_named_parameters"></a>
+
+> <font size="3">named_parameters()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.export.ExportedProgram.named_parameters](https://docs.pytorch.org/docs/2.9/export/api_reference.html#torch.export.ExportedProgram.named_parameters)
+
+**产品支持情况**：
+
+<!-- npu="910b" id97 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id97 -->
+<!-- npu="A3" id98 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id98 -->
+<!-- npu="950" id99 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id99 -->
+
+</div>
+
+<a class="method_anchor" id="torch_export_ExportedProgram_parameters"></a>
+
+> <font size="3">parameters()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.export.ExportedProgram.parameters](https://docs.pytorch.org/docs/2.9/export/api_reference.html#torch.export.ExportedProgram.parameters)
+
+**产品支持情况**：
+
+<!-- npu="910b" id100 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id100 -->
+<!-- npu="A3" id101 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id101 -->
+<!-- npu="950" id102 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id102 -->
+
+</div>
+
+<a class="method_anchor" id="torch_export_ExportedProgram_run_decompositions"></a>
+
+> <font size="3">run_decompositions()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.export.ExportedProgram.run_decompositions](https://docs.pytorch.org/docs/2.9/export/api_reference.html#torch.export.ExportedProgram.run_decompositions)
+
+**产品支持情况**：
+
+<!-- npu="910b" id103 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id103 -->
+<!-- npu="A3" id104 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id104 -->
+<!-- npu="950" id105 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id105 -->
+
+</div>
+
+</div>
+
 ### <code><i>class</i></code> torch.export.ModuleCallSignature
 
 <div style="margin-left: 2em">

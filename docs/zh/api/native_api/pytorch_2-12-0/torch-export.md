@@ -396,6 +396,158 @@
 
 </div>
 
+### <code><i>class</i></code> torch.export.ExportedProgram
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.export.ExportedProgram](https://pytorch.org/docs/2.12/user_guide/torch_compiler/export/api_reference.html#torch.export.ExportedProgram)
+
+**产品支持情况**：
+
+<!-- npu="910b" id10 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id10 -->
+<!-- npu="A3" id11 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id11 -->
+<!-- npu="950" id12 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id12 -->
+
+<a class="method_anchor" id="torch_export_ExportedProgram_buffers"></a>
+
+> <font size="3">buffers()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.export.ExportedProgram.buffers](https://docs.pytorch.org/docs/2.12/user_guide/torch_compiler/export/api_reference.html#torch.export.ExportedProgram.buffers)
+
+**产品支持情况**：
+
+<!-- npu="910b" id100 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id100 -->
+<!-- npu="A3" id101 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id101 -->
+<!-- npu="950" id102 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id102 -->
+
+</div>
+
+<a class="method_anchor" id="torch_export_ExportedProgram_module"></a>
+
+> <font size="3">module()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.export.ExportedProgram.module](https://pytorch.org/docs/2.12/user_guide/torch_compiler/export/api_reference.html#torch.export.ExportedProgram.module)
+
+**产品支持情况**：
+
+<!-- npu="910b" id13 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id13 -->
+<!-- npu="A3" id14 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id14 -->
+<!-- npu="950" id15 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id15 -->
+
+</div>
+
+<a class="method_anchor" id="torch_export_ExportedProgram_named_buffers"></a>
+
+> <font size="3">named_buffers()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.export.ExportedProgram.named_buffers](https://pytorch.org/docs/2.12/user_guide/torch_compiler/export/api_reference.html#torch.export.ExportedProgram.named_buffers)
+
+**产品支持情况**：
+
+<!-- npu="910b" id103 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id103 -->
+<!-- npu="A3" id104 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id104 -->
+<!-- npu="950" id105 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id105 -->
+
+</div>
+
+<a class="method_anchor" id="torch_export_ExportedProgram_named_parameters"></a>
+
+> <font size="3">named_parameters()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.export.ExportedProgram.named_parameters](https://docs.pytorch.org/docs/2.12/user_guide/torch_compiler/export/api_reference.html#torch.export.ExportedProgram.named_parameters)
+
+**产品支持情况**：
+
+<!-- npu="910b" id91 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id91 -->
+<!-- npu="A3" id92 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id92 -->
+<!-- npu="950" id93 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id93 -->
+
+</div>
+
+<a class="method_anchor" id="torch_export_ExportedProgram_parameters"></a>
+
+> <font size="3">parameters()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.export.ExportedProgram.parameters](https://docs.pytorch.org/docs/2.12/user_guide/torch_compiler/export/api_reference.html#torch.export.ExportedProgram.parameters)
+
+**产品支持情况**：
+
+<!-- npu="910b" id94 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id94 -->
+<!-- npu="A3" id95 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id95 -->
+<!-- npu="950" id96 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id96 -->
+
+</div>
+
+<a class="method_anchor" id="torch_export_ExportedProgram_run_decompositions"></a>
+
+> <font size="3">run_decompositions()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.export.ExportedProgram.run_decompositions](https://pytorch.org/docs/2.12/user_guide/torch_compiler/export/api_reference.html#torch.export.ExportedProgram.run_decompositions)
+
+**产品支持情况**：
+
+<!-- npu="910b" id97 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id97 -->
+<!-- npu="A3" id98 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id98 -->
+<!-- npu="950" id99 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id99 -->
+
+</div>
+
+</div>
+
 ### <code><i>class</i></code> torch.export.exported_program.ModuleCallEntry
 
 <div style="margin-left: 2em">
