@@ -40,4 +40,4 @@ PyTorch的配置名称、默认值和兼容名称可能随版本变化，使用�
 | TorchNPU环境变量 | PyTorch对应配置 | 对比说明 |
 | --- | --- | --- |
 | [INDUCTOR_ASCEND_LOG_LEVEL](inductor/INDUCTOR_ASCEND_LOG_LEVEL.md) | `torch._inductor.config.log_level`（相关配置项） | PyTorch通过`torch._inductor.config.log_level`配置日志级别，无同名环境变量。TorchNPU通过此环境变量提供相关配置。 |
-| [TORCHINDUCTOR_NPU_BACKEND](inductor/TORCHINDUCTOR_NPU_BACKEND.md) | `torch._inductor.config`（相关配置） | PyTorch通过配置项控制后端行为，无同名环境变量。TorchNPU通过此变量选择NPU上的Inductor编译模式。 |
+| [TORCHINDUCTOR_NPU_BACKEND](inductor/TORCHINDUCTOR_NPU_BACKEND.md) | `torch._inductor.config`（相关配置项） | PyTorch通过配置项控制后端行为，无同名环境变量。TorchNPU通过此变量选择NPU上的Inductor编译模式。 |

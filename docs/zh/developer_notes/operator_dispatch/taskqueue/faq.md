@@ -44,7 +44,7 @@ export ASCEND_LAUNCH_BLOCKING=1
 对延迟敏感的关键路径，应避免频繁调用会触发队列清空的接口。若必须获取`aclrtStream`可以采用以下方法：
 
 - 使用`torch.npu._C._npu_getCurrentRawStreamNoWait`。
-- 使用显式调用 stream(false) 获取 aclrtStream，不触发TaskQueue清空：
+- 使用显式调用`stream(false)`获取`aclrtStream`，不触发TaskQueue清空：
 
     ```cpp
     // 通过stream(false) 获取aclrtStream，不触发TaskQueue清空
@@ -90,6 +90,6 @@ export ASCEND_LAUNCH_BLOCKING=1
 | `torch.npu._C._npu_getCurrentRawStreamNoWait` | 获取当前aclrt stream（不等待队列清空） |
 | `torch.npu.default_stream` | 获取默认流，返回的是NPUStream对象 |
 | `torch.npu.Event.record` | 事件记录 |
-| `torch.npu.Event.query` | 不会清空队列；若事件记录尚未完成下发，立即返回false，否则阻塞查询runtime事件状态 |
+| `torch.npu.Event.query` | 不会清空队列；若事件记录尚未完成下发，立即返回false，否则阻塞查询Runtime事件状态 |
 | `torch.npu.Event.synchronize` | 事件同步，不会清空队列，但是阻塞等待对应事件记录下发完成 |
 | `torch.npu.graphs.graph.__exit__` | aclgraph图捕获结束 |

@@ -16,10 +16,10 @@
 
 ## 使用指导
 
-通过PER\_STREAM\_QUEUE环境变量可配置是否开启一个stream一个task\_queue算子下发队列。
+通过PER\_STREAM\_QUEUE环境变量可配置是否开启一个Stream一个task\_queue算子下发队列。
 
-- 配置为“0”时，关闭一个stream一个task\_queue算子下发队列。
-- 配置为“1”时，开启一个stream一个task\_queue算子下发队列。
+- 配置为“0”时，关闭一个Stream一个task\_queue算子下发队列。
+- 配置为“1”时，开启一个Stream一个task\_queue算子下发队列。
 
 此环境变量默认配置为“0”。
 
@@ -35,5 +35,5 @@ export PER_STREAM_QUEUE=1
 - 该特性不支持[进程级在线恢复](https://gitcode.com/Ascend/mind-cluster/blob/master/docs/zh/scheduling/04_usage/05_fault_recovery/01_resumable_training/02_configuration/01_configuring_fault_handling_policies.md#%E9%85%8D%E7%BD%AE%E8%BF%9B%E7%A8%8B%E7%BA%A7%E5%9C%A8%E7%BA%BF%E6%81%A2%E5%A4%8D)的场景。
 - 开启此特性时，非默认流的TaskQueue的OOM不会立即触发内存快照。
 - 开启此特性时，多流情况下会有多个TaskQueue，对应多个线程，可能存在资源抢占，影响性能。
-- 开启此特性时，如果多流间存在Event交互，为了Event在二级流水保序下发，一级流水可能会有额外耗时，影响性能。
-- 开启此特性可能存在多个二级流水线程，不支持细粒度绑核功能。
+- 开启此特性时，如果多流间存在Event交互，为了保证Event在二级流水保序下发，一级流水可能会有额外耗时，影响性能。
+- 开启此特性时可能存在多个二级流水线程，不支持细粒度绑核功能。

@@ -6,7 +6,7 @@
 > <term>Ascend 950DT系列产品</term>暂不支持Python编译优化。
 <!-- end id2 -->
 
-Python从3.6及以上版本开始支持LTO（链接时优化）与PGO（剖面导向优化），可以在编译时开启。
+Python从3.6及以上版本开始支持LTO（链接时优化）与PGO（性能剖析引导优化），可以在编译时开启。
 
 1. 依赖安装。
 
@@ -53,7 +53,7 @@ Python从3.6及以上版本开始支持LTO（链接时优化）与PGO（剖面�
 
         如需使用conda进行环境管理，可参照[4](#li10673155619274)指定安装目录。
 
-    - 执行./configure --prefix=<Python要安装到的目录（绝对路径）> --with-lto --enable-optimizations
+    - 执行./configure --prefix=<Python要安装到的目录（绝对路径）> --with-lto --enable-optimizations。
     - 执行以下命令，进行编译。
 
         ```shell
@@ -72,4 +72,4 @@ Python从3.6及以上版本开始支持LTO（链接时优化）与PGO（剖面�
 
         在[3](#li2673165610272)编译的时候直接指定Python安装目录为该空环境所在目录，即下图中的environment location。安装成功后即可直接使用conda activate env_name激活环境。当前编译完成的bin目录下有python3和pip3可以直接使用，进入该Python环境的bin目录执行ln -s python3 python和ln -s pip3 pip命令，创建软链接，即可在当前conda环境使用python/pip。
 
-        ![](../../../figures/comp_opt_py_fig_01.png)
+        ![conda create创建空环境后的终端回显，标出environment location对应的Python安装目录路径](../../../figures/comp_opt_py_fig_01.png)

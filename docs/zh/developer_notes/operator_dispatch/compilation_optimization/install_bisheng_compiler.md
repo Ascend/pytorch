@@ -6,7 +6,7 @@
 
 ## 安装毕昇编译器
 
-1. 解压毕昇包。
+1. 解压毕昇编译器软件包。
 
     ```shell
     tar -xvf BiShengCompiler-4.1.0-aarch64-linux.tar.gz

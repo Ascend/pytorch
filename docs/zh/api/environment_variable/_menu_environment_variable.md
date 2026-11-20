@@ -19,7 +19,7 @@
   - [ACL_DEVICE_SYNC_TIMEOUT](device_management/ACL_DEVICE_SYNC_TIMEOUT.md)
   <!-- end id4 -->
   <!-- npu="950,A3,910b" id79 -->
-  - [(beta) ACL_STREAM_TIMEOUT](device_management/（beta）ACL_STREAM_TIMEOUT.md)
+  - [（beta）ACL_STREAM_TIMEOUT](device_management/（beta）ACL_STREAM_TIMEOUT.md)
   <!-- end id79 -->
   <!-- npu="950,A3,910b,910" id5 -->
   - [TORCH_NPU_DEVICE_CAPABILITY](device_management/TORCH_NPU_DEVICE_CAPABILITY.md)
@@ -114,7 +114,7 @@
   - [TORCH_HCCL_RANKS_PER_ROOT](collective_communication/TORCH_HCCL_RANKS_PER_ROOT.md)
   <!-- end id35 -->
   <!-- npu="A3" id36 -->
-  - [(beta) TORCH_HCCL_ZERO_COPY](collective_communication/（beta）TORCH_HCCL_ZERO_COPY.md)
+  - [（beta）TORCH_HCCL_ZERO_COPY](collective_communication/（beta）TORCH_HCCL_ZERO_COPY.md)
   <!-- end id36 -->
   <!-- npu="950,A3,910b,910,310p" id37 -->
   - [TORCH_HCCL_DESYNC_DEBUG](collective_communication/TORCH_HCCL_DESYNC_DEBUG.md)

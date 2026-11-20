@@ -12,7 +12,7 @@ Scalable RootInfo功能默认在满足使用条件时开启，每个root期望�
 
 当大规模集群中单root协商成为通信域初始化的性能瓶颈时，可以使用Scalable RootInfo分级建链，降低单个root处理的rank数量。
 
-该功能适用于默认全局 ProcessGroup 以及通过 `torch.distributed.new_group` 创建的非全局 ProcessGroup。分组规模基于当前 ProcessGroup 内的 rank 数量计算，而非全局 world size。
+该功能适用于默认全局ProcessGroup以及通过 `torch.distributed.new_group` 创建的非全局ProcessGroup。分组规模基于当前ProcessGroup内的rank数量计算，而非全局world size。
 
 ## 使用指导
 
@@ -47,7 +47,7 @@ export TORCH_HCCL_RANKS_PER_ROOT=-1
 ## 约束说明
 
 <!-- npu="A3,910b" id1 -->
-- 仅<term>Atlas A2训练系列产品</term>和<term>Atlas A3训练系列产品</term>支持Scalable RootInfo。其他型号使用原RootInfo路径；未设置`TORCH_HCCL_RANKS_PER_ROOT`时按默认值128处理，与显式设置正整数时一样，每个进程仅打印一次机型不支持Warning，且不以N大于R为前提。设置为“-1”时不打印机型不支持告警。
+- 仅<term>Atlas A2训练系列产品</term>和<term>Atlas A3训练系列产品</term>支持Scalable RootInfo。其他型号使用原RootInfo路径；未设置`TORCH_HCCL_RANKS_PER_ROOT`时按默认值128处理，与显式设置正整数时一样，每个进程仅打印一次机型不支持告警，且不以N大于R为前提。设置为“-1”时不打印机型不支持告警。
 <!-- end id1 -->
 - 需要配套使用包含`HcclGetRootInfoScalable`和`HcclCommInitRootInfoScalable`接口的CANN/HCCL版本。HCCL库可正常加载但缺少任一接口时，使用原RootInfo路径；HCCL库加载失败或分级接口调用失败时会报错，不会自动回退。
 - 该功能仅作用于RootInfo建链路径，不改变ranktable建链行为。配置有效的`RANK_TABLE_FILE`并选择ranktable路径时，不会进入Scalable RootInfo路径。

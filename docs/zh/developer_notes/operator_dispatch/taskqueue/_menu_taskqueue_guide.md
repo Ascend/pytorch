@@ -1,4 +1,4 @@
-# Taskqueue算子下发
+# TaskQueue算子下发
 
 - [TaskQueue并行下发](taskqueue_parallel_delivery.md)
 - [Stream级TaskQueue并行下发](stream_taskqueue_parallel_delivery.md)

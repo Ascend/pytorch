@@ -49,7 +49,7 @@
 |[TASK_QUEUE_ENABLE](op_execution/TASK_QUEUE_ENABLE.md)|通过此环境变量可配置task_queue算子下发队列是否开启和优化等级。|
 |[PER_STREAM_QUEUE](op_execution/PER_STREAM_QUEUE.md)|通过此环境变量可配置是否开启一个stream一个task_queue算子下发队列。|
 |[TORCH_NPU_FALLBACK_CPU_DISABLE](op_execution/TORCH_NPU_FALLBACK_CPU_DISABLE.md)|通过此环境变量可控制TorchNPU已纳管的隐式CPU fallback路径是否允许执行。|
-|[TORCH_NPU_USE_COMPATIBLE_IMPL](op_execution/TORCH_NPU_USE_COMPATIBLE_IMPL.md)|该环境变量用于控制API的实现是否与PyTorch原生社区完全对齐。|
+|[TORCH_NPU_USE_COMPATIBLE_IMPL](op_execution/TORCH_NPU_USE_COMPATIBLE_IMPL.md)|通过此环境变量可控制API的实现是否与PyTorch原生社区完全对齐。|
 |[TORCH_NPU_LEGACY_IMPL_LIST](op_execution/TORCH_NPU_LEGACY_IMPL_LIST.md)|通过此环境变量可指定需要使用旧版本实现的配置项。|
 
 ## 单算子编译与缓存
@@ -122,7 +122,7 @@
 | 环境变量名称 | 简介 |
 | --- | --- |
 |[TORCH_NPU_WARNING_DISABLE](alarm_message_printing/TORCH_NPU_WARNING_DISABLE.md)|通过此环境变量可配置是否打印TorchNPU的告警信息。|
-|[TORCH_NPU_DISABLED_WARNING](alarm_message_printing/TORCH_NPU_DISABLED_WARNING.md)|该环境变量已废弃，建议使用TORCH_NPU_WARNING_DISABLE替代。用于配置是否打印TorchNPU的告警信息。|
+|[TORCH_NPU_DISABLED_WARNING](alarm_message_printing/TORCH_NPU_DISABLED_WARNING.md)|该环境变量已废弃，建议使用TORCH_NPU_WARNING_DISABLE替代，用于配置是否打印TorchNPU的告警信息。|
 |[TORCH_NPU_COMPACT_ERROR_OUTPUT](alarm_message_printing/TORCH_NPU_COMPACT_ERROR_OUTPUT.md)|通过此环境变量可精简打印错误信息，开启后会将CANN内部调用栈、TorchNPU错误码等自定义报错信息转移到plog中，仅保留有效的错误说明，提高异常信息的可读性。|
 |[TORCH_NPU_LOGS](alarm_message_printing/TORCH_NPU_LOGS.md)|此环境变量用于配置TorchNPU新增模块的日志打印功能，为开发者在debugging场景下提供精准的调试定位能力。|
 |[TORCH_NPU_LOGS_FILTER](alarm_message_printing/TORCH_NPU_LOGS_FILTER.md)|此环境变量用于过滤TorchNPU日志输出内容，通过黑白名单机制筛选需要显示的日志信息，帮助开发者在大量日志中快速定位关键信息。|
@@ -146,7 +146,7 @@
 
 | 环境变量名称 | 简介 |
 | --- | --- |
-|[CPU_AFFINITY_CONF](performance_tuning/CPU_AFFINITY_CONF.md)|TorchNPU可以通过设置环境变量CPU_AFFINITY_CONF来开启粗/细粒度绑核。该配置能够避免线程间抢占，提高缓存命中，避免跨NUMA（非统一内存访问架构）节点的内存访问，减少任务调度开销，优化任务执行效率。|
+|[CPU_AFFINITY_CONF](performance_tuning/CPU_AFFINITY_CONF.md)|TorchNPU可以通过设置环境变量CPU_AFFINITY_CONF来开启粗/细粒度绑核。该配置能够避免线程间抢占，提高缓存命中，避免跨NUMA（非一致性内存访问）节点的内存访问，减少任务调度开销，优化任务执行效率。|
 |[TORCH_NPU_LAZY_FUSION](performance_tuning/TORCH_NPU_LAZY_FUSION.md)|通过此环境变量可开启DVM算子融合，对elementwise、激活函数等算子做跨算子融合，减少kernel launch和HBM搬运，加速训练和推理。|
 
 ### Profiler采集

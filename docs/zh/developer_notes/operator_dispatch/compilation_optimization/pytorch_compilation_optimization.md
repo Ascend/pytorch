@@ -110,7 +110,7 @@
                 > 
                 > 毕昇编译的PyTorch须与毕昇编译的TorchNPU配套使用，其他兼容性可参考[表1](compilation_optimization_introduction.md#custom-anchor)。
 
-            - 模型跑完之后，程序停止执行，在第一次编译时指定的对应目录下可以生成profraw格式文件。亦可通过在运行机器上配置环境变量LLVM\_PROFILE\_FILE指定profraw文件生成位置，参考命令中的%m允许在线合并profile数据，改为%p将按pid记录数据。
+            - 模型跑完之后，程序停止执行，在第一次编译时指定的对应目录下可以生成profraw格式文件，亦可通过在运行机器上配置环境变量LLVM\_PROFILE\_FILE指定profraw文件生成位置，参考命令中的%m允许在线合并profile数据，改为%p将按PID记录数据。
 
                 参考命令：
 

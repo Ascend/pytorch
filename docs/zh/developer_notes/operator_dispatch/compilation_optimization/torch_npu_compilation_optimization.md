@@ -26,7 +26,7 @@
 
     > [!NOTE]
     > 
-    > 使用毕昇编译TorchNPU之前需要先参照[PyTorch编译优化](pytorch_compilation_optimization.md)，用毕昇重新编译PyTorch并安装，然后再编译TorchNPU。
+    > 使用毕昇编译器编译TorchNPU之前需要先参照[PyTorch编译优化](pytorch_compilation_optimization.md)，用毕昇重新编译PyTorch并安装，然后再编译TorchNPU。
 
     - LTO优化
         1. 配置编译参数，设置环境变量。
@@ -52,7 +52,7 @@
             ```
 
     - LTO+PGO优化
-        - 一次编译（插桩编译）
+        - 一次编译（插桩编译）。
             - 配置编译参数，设置环境变量。
 
                 ```shell
@@ -98,7 +98,7 @@
 
             该命令可以合并/path/to/profile目录下所有的profraw文件，profile数据文件不受机器环境影响，可以迁移到其他机器上使用。
 
-        - 二次编译（使用Profile数据）
+        - 二次编译（使用Profile数据）。
 
             配置profdata文件：将前一步骤中生成的default.profdata文件拷贝到TorchNPU目录下。请将profdata文件命名为default.profdata。
 

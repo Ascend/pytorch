@@ -7,7 +7,7 @@
 `EXEC_NPU_CMD_EXT` 的工作流程分为四步：
 
 1. **获取stream**：宏内部调用 `c10_npu::getCurrentNPUStream().stream(false)` 获取 `aclrtStream`，不触发TaskQueue清空。该过程由宏托管，开发者无需手动调用。
-2. **封装lambda**：宏将算子调用与参数包成一个 `PROC_FUNC`（`std::function<int()>`），按值捕获所需变量。
+2. **封装lambda**：宏将算子调用与参数打包成一个 `PROC_FUNC`（`std::function<int()>`），按值捕获所需变量。
 3. **入队执行**：通过 `OpCommand::RunOpApiV2` 提交到TaskQueue队列，由算子下发线程调用lambda完成Host API调用。
 4. **回收管理**：宏内部负责捕获变量的生命周期管理，开发者无需关注。
 

@@ -14,7 +14,7 @@
 
 - “fatal error: 'filesystem' file not found.”
 
-    gcc版本过低，请执行命令gcc --version查询版本，并gcc 8以上版本，具体请参考[安装GCC](https://ubuntu.com/developers/docs/howto/gcc-setup/)。
+    gcc版本过低，请执行gcc --version命令查询版本，并升级至gcc 8及以上版本，具体请参考[安装GCC](https://ubuntu.com/developers/docs/howto/gcc-setup/)。
 
 - “Error while loading shared libraries: libomp.so: cannot open shared object file: No such file or directory.”
 
@@ -26,4 +26,4 @@
 
 - 运行时报错未定义符号，其中包含如basic\_string等字样。
 
-    可能是编译时C++11 abi不一致导致，建议查看PyTorch和TorchNPU的build目录下的compile\_commands.json文件，检查宏GLIBCXX\_USE\_CXX11\_ABI的值是否一致。若不一致，设置环境变量**export _GLIBCXX_USE_CXX11_ABI=0**，再重新编译PyTorch。
+    可能是编译时C++11 ABI不一致导致，建议查看PyTorch和TorchNPU的build目录下的compile\_commands.json文件，检查宏GLIBCXX\_USE\_CXX11\_ABI的值是否一致。若不一致，设置环境变量**export _GLIBCXX_USE_CXX11_ABI=0**，再重新编译PyTorch。

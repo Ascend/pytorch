@@ -22,7 +22,7 @@
 
 - expandable\_segments:<value\>，开启内存池扩展段功能，即虚拟内存特性。
 
-    默认为False。如果设置为True，此设置将指示缓存分配器创建特定的内存块分配，这些内存块后续可以扩展，以便能更好地处理内存使用中频繁变更使用内存大小的情况。如果设置为False，关闭内存池扩展段功能，使用原有的内存申请方式。
+    默认为False。如果设置为True，此设置将指示缓存分配器创建特定的内存块分配，这些内存块后续可以扩展，以便能更好地处理内存使用中频繁变更内存大小的情况。如果设置为False，关闭内存池扩展段功能，使用原有的内存申请方式。
 
 - base\_addr\_aligned\_kb:<value\>，内存基地址对齐粒度。
 
@@ -72,7 +72,7 @@
     >
     > segment\_size\_mb已废弃，建议使用large\_segment\_size\_mb。large\_segment\_size\_mb同时支持虚拟内存特性和非虚拟内存特性场景，功能更全面。
 
-- roundup\_power2\_divisions:<value\> 或 roundup\_power2\_divisions:\[<size1\>:<value1\>,<size2\>:<value2\>,...\]，将请求的分配大小向上舍入到最近的2的幂次分段，从而更高效地复用内存块。
+- roundup\_power2\_divisions:<value\>或roundup\_power2\_divisions:\[<size1\>:<value1\>,<size2\>:<value2\>,...\]，将请求的分配大小向上舍入到最近的2的幂次分段，从而更高效地复用内存块。
 
     不配置时分配大小会以512字节为单位向上对齐，这对较小的分配尺寸效果良好；对于较大的、尺寸相近的分配请求，这种策略可能效率低下。因为每个请求会被分配到不同大小的内存块中，导致这些内存块难以被复用，继而产生大量未被充分复用的内存块，浪费内存容量。
 
@@ -115,7 +115,7 @@
 
     取值为True或False，默认为False。默认或设置为False时，如果调用底层ACL接口分配内存失败则释放部分空闲内存并进行必要的Host-Device同步，然后尝试重新分配内存，该重试流程对性能有一定的影响。设置为True时，缓存分配器在调用底层ACL接口分配内存之前，先校验“当前进程已分配的内存大小+本次的申请大小”是否超出设备内存上限；超出则直接拒绝本次申请并抛出OutOfMemoryError异常，不再进入内存分配重试流程。
 
-    以下二种情况throw\_on\_npumalloc\_oom不生效：
+    以下两种情况throw\_on\_npumalloc\_oom不生效：
     - 使用环境变量PYTORCH\_NPU\_ALLOC\_CONF或PYTORCH\_ALLOC\_CONF配置per\_process\_memory\_fraction小于1.0。
     - 调用torch\_npu.npu.set\_per\_process\_memory\_fraction\(\)接口设置fraction小于1.0。
 
@@ -133,17 +133,17 @@
 
 - max\_non\_split\_rounding\_mb:<value\>，显存复用控制项，结合max\_split\_size\_mb控制显存块大小和复用。
 
-    取值为正整数，单位为MB，默认20M。显存块free后物理上不一定释放，假定保留给下次分配使用，该块保留的显存大小为A、max\_non\_split\_rounding\_mb为B、max\_split\_size\_mb为C，需要新分配一个内存D。
+    取值为正整数，单位为MB，默认20MB。显存块free后物理上不一定释放，假定保留给下次分配使用，该块保留的显存大小为A、max\_non\_split\_rounding\_mb为B、max\_split\_size\_mb为C，需要新分配一个内存D。
 
     当D大于C，计算A-D：
-    - 如果A-D小于等于B，则不需要重新分配，复用A；
+    - 如果A-D小于等于B，则不需要重新分配，复用A。
     - 如果A-D大于B，则需要重新分配新的显存。
 
     当D小于等于C，当前变量不生效。
 
-- release\_lock\_on\_npumalloc:<value\>，显存分配锁控制项，决策是否在分配显存时释放部分锁，控制的项保持与原生社区一致。
+- release\_lock\_on\_npumalloc:<value\>，显存分配锁控制项，决定是否在分配显存时释放部分锁，控制的项保持与原生社区一致。
 
-    取值为bool类型，True或False，默认为False。设置后，显存分配会释放部分锁，可缓解host计算开销压力，但是可能造成更多资源占用，自定义开发显存管理可能存在不兼容问题，需谨慎使用。
+    取值为bool类型，True或False，默认为False。设置后，显存分配会释放部分锁，可缓解Host计算开销压力，但是可能造成更多资源占用，自定义开发显存管理可能存在不兼容问题，需谨慎使用。
 
 > [!NOTE]  
 >
@@ -296,10 +296,10 @@ export PYTORCH_NPU_ALLOC_CONF="expandable_segments:False,mem_malloc_policy:huge_
     - 特性要求TorchNPU 26.0.0及以上版本、Ascend HDK 26.0.RC1及以上版本、CANN商用8.5.0及以上版本使用。
     - 与pin_memory_expandable_segments特性不支持同时配置。
 - multi_stream_lazy_reclaim使用注意事项：
-    - 特性要求在TorchNPU 7.3.0以上版本上使用。
+    - 特性要求在TorchNPU 7.3.0及以上版本上使用。
     - 该特性主要解决多流场景下，Host侧存在下发性能瓶颈时的系统效率问题。单流、少流场景或者非Host性能瓶颈时，该功能收益不大。
 - large\_segment\_size\_mb特性需在TorchNPU 26.1.0及以上版本、PyTorch 2.11.0及以上版本使用。
-- per\_process\_memory\_fraction特性需在TorchNPU 26.1.0及以上版本、PyTorch 2.10.0 及以上版本使用。
+- per\_process\_memory\_fraction特性需在TorchNPU 26.1.0及以上版本、PyTorch 2.10.0及以上版本使用。
 - throw\_on\_npumalloc\_oom特性需在TorchNPU 26.2.0及以上版本、PyTorch 2.13.0及以上版本使用。
 - pinned\_max\_round\_threshold\_mb和pinned\_max\_cached\_size\_mb特性需在TorchNPU 26.2.0及以上版本、PyTorch 2.13.0及以上版本使用。两者仅作用于默认（非expandable）pinned memory分配器路径。与pin\_memory\_expandable\_segments同时配置时，这两个阈值不生效，框架会输出一次告警提示，但进程仍可正常启动；如需启用这两个阈值，请将pin\_memory\_expandable\_segments设置为False。
 - 通过[PYTORCH_ALLOC_CONF](PYTORCH_ALLOC_CONF.md)环境变量配置缓存分配器参数，需在TorchNPU 26.2.0版本且PyTorch 2.10.0及以上版本使用。

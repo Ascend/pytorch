@@ -59,7 +59,7 @@
     | 数据类型 | 推荐捕获方式 | 生命周期说明 |
     |---------|-------------|------------|
     | [基础类型](#样例1基础类型捕获) | 值捕获 `[=]` | 拷贝到lambda闭包，生命周期安全 |
-    | [张量类型](#样例2张量类型捕获) | 传递裸指针（`data_ptr`） | 不延长tensor生命周期，内存由NPU内存池保障 |
+    | [张量类型](#样例2张量类型捕获) | 传递裸指针（`data_ptr`） | 不延长Tensor生命周期，内存由NPU内存池保障 |
     | [自定义数据](#样例3自定义类型捕获) | 智能指针（`std::shared_ptr`）值捕获 | 智能指针生命周期延长到lambda结束，自动析构 |
     | [显式管理类型](#样例4显式管理捕获) | 值捕获指针，手动释放| 在lambda内调用 `aclDestroyTensor` 等接口 |
 
@@ -97,7 +97,7 @@
 
 ### 完整调用示例
 
-使用 `stream(false)` 获取 `aclrtStream` 但不清空TaskQueue，配合 `OpCommand::RunOpApiV2` 将lambda正确入队。内核启动被封装在lambda中，通过正确的入队与出队确保执行顺序，避免与之前的任务乱序执行。
+使用 `stream(false)` 获取 `aclrtStream` 但不清空TaskQueue，配合 `OpCommand::RunOpApiV2` 将lambda正确入队。Kernel Launch被封装在lambda中，通过正确的入队与出队确保执行顺序，避免与之前的任务乱序执行。
 
 ```cpp
 at::Tensor ascendc_add_good(const at::Tensor &x, const at::Tensor &y)
