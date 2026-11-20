@@ -438,11 +438,6 @@ NPUStream NPUStream_fromInternals(const LeakyStreamInternals* ptr) {
 } // namespace
 
 bool NPUStream::query() const {
-  TORCH_CHECK(
-      !isExternalStreamId(this->id()),
-      "Cannot query external NPU stream status. "
-      "The caller must track stream completion externally.",
-      PTA_ERROR(ErrCode::NOT_SUPPORT));
   c10::DeviceGuard guard{stream_.device()};
   acl::aclrtStreamStatus status = acl::ACL_STREAM_STATUS_RESERVED;
   NPU_CHECK_ERROR(acl::AclrtStreamQuery(stream(), &status));
@@ -457,11 +452,6 @@ void NPUStream::validate() const {
 }
 
 void NPUStream::synchronize() const {
-  TORCH_CHECK(
-      !isExternalStreamId(this->id()),
-      "External NPU stream is not supported in NPUStream::synchronize. "
-      "The caller is responsible for synchronization of external streams.",
-      PTA_ERROR(ErrCode::NOT_SUPPORT));
   c10::DeviceGuard guard{stream_.device()};
   NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream()));
 }

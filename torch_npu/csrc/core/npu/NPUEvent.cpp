@@ -152,7 +152,6 @@ void NPUEvent::recordOnce(const NPUStream& stream) {
 }
 
 void NPUEvent::record(const NPUStream& stream) {
-  c10_npu::detail::checkNotExternalStream(stream, "NPUEvent::record");
   if (!is_created_) {
     createEvent(stream.device_index());
   }
@@ -225,7 +224,6 @@ void NPUEvent::record(const NPUStream& stream) {
 }
 
 void NPUEvent::block(const NPUStream& stream) {
-  c10_npu::detail::checkNotExternalStream(stream, "NPUEvent::block");
   if (is_created_) {
     if (use_native_external_) {
       // Native external path (align with cudaEventWaitExternal): symmetric to

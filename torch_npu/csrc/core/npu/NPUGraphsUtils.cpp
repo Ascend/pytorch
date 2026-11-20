@@ -41,19 +41,11 @@ std::optional<CaptureId_t> captureIdMayInitCtx(aclrtStream stream) {
 }
 
 CaptureStatus currentStreamCaptureStatusMayInitCtx() {
-  if (c10_npu::detail::isCurrentStreamExternal()) {
-    return CaptureStatus::None;
-  }
-
   auto s = c10_npu::getCurrentNPUStream();
   return captureStatusMayInitCtx(s.stream(false));
 }
 
 std::optional<CaptureId_t> currentStreamCaptureIdMayInitCtx() {
-  if (c10_npu::detail::isCurrentStreamExternal()) {
-    return std::nullopt;
-  }
-
   auto s = c10_npu::getCurrentNPUStream();
   return captureIdMayInitCtx(s.stream(false));
 }

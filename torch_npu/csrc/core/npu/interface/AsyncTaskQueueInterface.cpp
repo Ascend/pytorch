@@ -239,7 +239,6 @@ void EventTask::LaunchRecordTask(c10_npu::NPUStream npuStream, unsigned int flag
 }
 
 aclError LaunchRecordEventTask(aclrtEvent event, c10_npu::NPUStream npuStream, unsigned int flags) {
-  c10_npu::detail::checkNotExternalStream(npuStream, "LaunchRecordEventTask");
   EventTask recordTask(event);
   recordTask.LaunchRecordTask(npuStream, flags);
 #ifndef BUILD_LIBTORCH
@@ -294,7 +293,6 @@ void EventTask::LaunchWaitTask(c10_npu::NPUStream npuStream, unsigned int flags)
 }
 
 aclError LaunchWaitEventTask(aclrtEvent event, c10_npu::NPUStream npuStream, unsigned int flags) {
-  c10_npu::detail::checkNotExternalStream(npuStream, "LaunchWaitEventTask");
   EventTask waitTask(event);
   waitTask.LaunchWaitTask(npuStream, flags);
 #ifndef BUILD_LIBTORCH

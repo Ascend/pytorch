@@ -272,7 +272,6 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode,
   capture_mode_ = capture_mode;
 
   auto stream = c10_npu::getCurrentNPUStream();
-  c10_npu::detail::checkNotExternalStream(stream, "NPUGraph::capture_begin");
 
   TORCH_CHECK(
       stream != c10_npu::getDefaultNPUStream(),
@@ -349,8 +348,6 @@ void NPUGraph::capture_begin(MempoolId_t pool, aclmdlRICaptureMode capture_mode,
 void NPUGraph::capture_end() {
   NPUGRAPH_LOGD("NPUGRAPH Capture end");
   auto stream = c10_npu::getCurrentNPUStream();
-
-  c10_npu::detail::checkNotExternalStream(stream, "NPUGraph::capture_end");
 
   TORCH_CHECK(stream == capture_stream_, "Capture must end on the same stream it began on.");
 
@@ -491,6 +488,12 @@ void NPUGraph::reset() {
     }
     model_ri_ = nullptr;
     has_graph_exec_ = false;
+  }
+
+  // Releases conditional-node streams left behind by an unwound capture, after the graph is
+  // destroyed, in the order CUDAGraph::reset() uses. Mirrors pytorch/pytorch#185836.
+  while (!conditional_node_raw_streams_.empty()) {
+    conditional_node_raw_streams_.pop();
   }
   capture_id_ = std::numeric_limits<CaptureId_t>::max();
 }
@@ -675,7 +678,15 @@ void NPUGraph::begin_capture_to_conditional_node(const at::Tensor& scalar_npu_pr
   at::getHostAllocator(at::kPrivateUse1)->end_allocate_to_pool(mempool_id_);
   begin_allocate_to_pool(capture_dev_, mempool_id_, create_child_allocate_filter(child_model_ri));
 
-  auto child_stream = c10_npu::getStreamFromPool(false, capture_dev_);
+  // Self-created stream, not one from the shared rotating pool: the pool is finite and the root
+  // capture stream comes from it too, so deep enough nesting wraps around to a stream that is
+  // already capturing and AclmdlRICaptureToModelRIBegin fails with 107027.
+  // Mirrors pytorch/pytorch#185836.
+  aclrtStream raw_child_stream = nullptr;
+  NPU_CHECK_ERROR(
+      c10_npu::acl::AclrtCreateStreamWithConfig(&raw_child_stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
+  conditional_node_raw_streams_.emplace(raw_child_stream);
+  auto child_stream = c10_npu::getStreamFromExternal(raw_child_stream, capture_dev_);
   NPUGRAPH_LOGD(
       "NPUGRAPH Conditional capture to child modelRI: child_model_ri=%p, child_stream=%p, "
       "mempool_id=(%lu,%lu)",
@@ -743,6 +754,11 @@ void NPUGraph::end_capture_to_conditional_node() {
 
   conditional_node_streams_.pop();
   conditional_model_ri_stack_.pop();
+
+  // Destroys the stream created on the way in; its capture ended above.
+  // Mirrors pytorch/pytorch#185836.
+  TORCH_INTERNAL_ASSERT(!conditional_node_raw_streams_.empty(), "Missing raw stream for conditional node.");
+  conditional_node_raw_streams_.pop();
 
   c10_npu::NPUCachingAllocator::endAllocateToPool(capture_dev_, mempool_id_);
   at::getHostAllocator(at::kPrivateUse1)->end_allocate_to_pool(mempool_id_);

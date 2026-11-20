@@ -207,9 +207,6 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupLCCL::collective(
     PostProcess post,
     c10d::OpType opType) {
   const auto devices = getDeviceList(inputs);
-  for (const auto& device : devices) {
-    c10_npu::detail::checkCurrentStreamNotExternal(device.index(), "ProcessGroupLCCL::collective");
-  }
   auto key = getKeyFromDevices(devices);
   std::vector<at_npu::lccl::LcclComm> lcclComms;
   lcclComms = getLCCLComm(key, devices);

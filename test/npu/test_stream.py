@@ -1,9 +1,5 @@
 import contextlib
 import ctypes
-import os
-import subprocess
-import sys
-import tempfile
 
 import torch
 
@@ -166,6 +162,7 @@ class TestExternalStream(TestCase):
                 yield stream.value
             finally:
                 if stream.value:
+                    torch_npu.npu.synchronize()
                     ret = rt.npuStreamDestroy(stream.value)
                     self.assertEqual(int(ret), 0)
 
@@ -205,47 +202,165 @@ class TestExternalStream(TestCase):
             self.assertIsInstance(ext_stream, torch_npu.npu.Stream)
             self.assertIsInstance(ext_stream, torch_npu.npu.ExternalStream)
 
-    def test_external_stream_synchronize_restriction(self):
+    def test_external_stream_synchronize(self):
+        # synchronize() goes through NPUStream::stream(), which drains the host
+        # task queue before synchronizing the device stream, so the result is
+        # visible without an extra torch_npu.npu.synchronize().
         with self._get_external_stream() as stream_v:
             ext_stream = torch_npu.npu.ExternalStream(stream_v)
-            with self.assertRaisesRegex(RuntimeError, "NPUStream::synchronize"):
-                ext_stream.synchronize()
+            with torch_npu.npu.stream(ext_stream):
+                x = torch.ones(1024, device='npu')
+                y = x + 1
+            ext_stream.synchronize()
+            self.assertTrue(ext_stream.query())
+            self.assertEqual(y.sum().item(), 2 * x.numel())
 
-    def test_external_stream_query_restriction(self):
+    def test_external_stream_query(self):
         with self._get_external_stream() as stream_v:
             ext_stream = torch_npu.npu.ExternalStream(stream_v)
-            with self.assertRaisesRegex(RuntimeError, "Cannot query"):
-                ext_stream.query()
+            self.assertIsInstance(ext_stream.query(), bool)
+            with torch_npu.npu.stream(ext_stream):
+                torch.ones(1024, device='npu').add_(1)
+            ext_stream.synchronize()
+            self.assertTrue(ext_stream.query())
 
-    def test_external_stream_npu_stream_per_stream_queue_restriction(self):
-        env = os.environ.copy()
-        env["TASK_QUEUE_ENABLE"] = "1"
-        env["PER_STREAM_QUEUE"] = "1"
-        env.pop("ASCEND_LAUNCH_BLOCKING", None)
-        with tempfile.TemporaryDirectory() as tmp:
-            script = os.path.join(tmp, "ext_stream_psq.py")
-            with open(script, "w") as f:
-                f.write(
-                    "import ctypes\n"
-                    "import torch_npu\n"
-                    "rt = torch_npu.npu.npurt()\n"
-                    "stream = ctypes.c_void_p(0)\n"
-                    "ret = rt.npuStreamCreate(ctypes.addressof(stream))\n"
-                    "assert int(ret) == 0 and stream.value != 0\n"
-                    "ext = torch_npu.npu.ExternalStream(stream.value)\n"
-                    "try:\n"
-                    "    _ = ext.npu_stream\n"
-                    "    raise SystemExit('expected RuntimeError not raised')\n"
-                    "except RuntimeError as e:\n"
-                    "    assert 'not supported in NPUStream::stream()' in str(e), str(e)\n"
-                    "finally:\n"
-                    "    if stream.value:\n"
-                    "        rt.npuStreamDestroy(stream.value)\n"
-                )
-            r = subprocess.run([sys.executable, script], env=env,
-                               capture_output=True, text=True, timeout=180)
-        self.assertEqual(r.returncode, 0,
-                         f"subprocess failed:\nstdout:\n{r.stdout}\nstderr:\n{r.stderr}")
+    def test_external_stream_record_stream(self):
+        # A shifted view must protect the whole storage, even after its Python
+        # owners are deleted. Check allocator state without a timing-dependent
+        # assertion about whether the device has already finished the copy.
+        with self._get_external_stream() as stream_v:
+            ext = torch_npu.npu.ExternalStream(stream_v)
+            base = torch.full((4096,), 7.0, device="npu")
+            view = base[1:]
+            result = torch.empty_like(view)
+            ext.wait_stream(torch_npu.npu.current_stream())
+            with torch_npu.npu.stream(ext):
+                result.copy_(view)
+            view.record_stream(ext)
+            view.record_stream(ext)  # Repeated recording must be harmless.
+            ext.synchronize()
+
+            before = torch_npu.npu.memory_stats()
+            del base, view
+            after = torch_npu.npu.memory_stats()
+            freed = before["allocated_bytes.all.current"] - after["allocated_bytes.all.current"]
+            # free() records an event; malloc() processes it later. The block
+            # remains active in between, even if the event has already finished.
+            self.assertGreater(freed, 0)
+            self.assertEqual(after["active_bytes.all.current"], before["active_bytes.all.current"])
+            torch_npu.npu.synchronize()
+            self.assertEqual(result.cpu(), torch.full((4095,), 7.0))
+            # Retire allocator events while the external stream is still alive.
+            torch_npu.npu.empty_cache()
+
+    def test_external_stream_device_synchronize(self):
+        # Inspect pinned Host memory directly: copying a device result to CPU
+        # here would introduce another synchronization and could hide a missed
+        # drain of the shared task queue before device synchronization.
+        with self._get_external_stream() as stream_v:
+            ext = torch_npu.npu.ExternalStream(stream_v)
+            host = torch.zeros(4096, pin_memory=True)
+            with torch_npu.npu.stream(ext):
+                value = torch.ones(4096, device="npu")
+                for _ in range(16):
+                    value.add_(1)
+                host.copy_(value, non_blocking=True)
+            torch_npu.npu.synchronize()
+            self.assertEqual(host, torch.full((4096,), 17.0))
+            # The pinned allocator records an event when host is freed. The
+            # externally owned stream must remain alive until that is submitted.
+            del host
+            torch_npu.npu.synchronize()
+
+    def test_external_stream_event_record_and_block(self):
+        # NPUEvent::record / NPUEvent::block used to reject external streams.
+        # The cond child-stream path needs both, and CUDA draws no such
+        # distinction, so they now accept any stream.
+        with self._get_external_stream() as stream_v:
+            ext_stream = torch_npu.npu.ExternalStream(stream_v)
+            event = torch_npu.npu.Event()
+            with torch_npu.npu.stream(ext_stream):
+                x = torch.ones(1024, device='npu')
+                y = x + 1
+                event.record(ext_stream)
+            other = torch_npu.npu.Stream()
+            other.wait_event(event)
+            with torch_npu.npu.stream(other):
+                z = y + 1
+            torch_npu.npu.synchronize()
+            self.assertEqual(z.sum().item(), 3 * x.numel())
+
+            # The reverse direction: block *on* the external stream. This is the
+            # NPUEvent::block / LaunchWaitEventTask side of the same gate; the
+            # wait above only exercises record, because it blocks a pool stream.
+            back = torch_npu.npu.Event()
+            with torch_npu.npu.stream(other):
+                w = z + 1
+                back.record(other)
+            ext_stream.wait_event(back)
+            with torch_npu.npu.stream(ext_stream):
+                v = w + 1
+            ext_stream.synchronize()
+            self.assertEqual(v.sum().item(), 5 * x.numel())
+
+    def test_external_stream_capture_allocates_into_graph_pool(self):
+        # The consequence of the capture-status gate, not just its return value:
+        # the caching allocator asks currentStreamCaptureStatusMayInitCtx() to
+        # decide whether an allocation belongs to the graph's private pool. If an
+        # external capture stream reports "not capturing", the allocation lands in
+        # the default pool, which empty_cache() hands back to the driver while the
+        # graph can still be replayed.
+        def segment_pool_id_of(tensor):
+            storage = tensor.untyped_storage()
+            begin = storage.data_ptr()
+            end = begin + storage.nbytes()
+            for segment in torch_npu.npu.memory_snapshot():
+                seg_begin = segment["address"]
+                seg_end = seg_begin + segment["total_size"]
+                if seg_begin <= begin < seg_end and end <= seg_end:
+                    return segment["segment_pool_id"]
+            return None
+
+        with self._get_external_stream() as stream_v:
+            ext_stream = torch_npu.npu.ExternalStream(stream_v)
+            graph = torch_npu.npu.NPUGraph()
+            seed = torch.ones(1024, device='npu')
+            torch_npu.npu.synchronize()
+            with torch_npu.npu.stream(ext_stream):
+                graph.capture_begin()
+                captured = seed * 2
+                graph.capture_end()
+            ext_stream.synchronize()
+            self.assertEqual(segment_pool_id_of(captured), graph.pool())
+            self.assertNotEqual(segment_pool_id_of(seed), graph.pool())
+            graph.replay()
+            torch_npu.npu.synchronize()
+            self.assertEqual(captured.cpu(), torch.full((1024,), 2.0))
+            graph.reset()
+
+    def test_external_stream_reports_capture_status(self):
+        # currentStreamCaptureStatusMayInitCtx() used to return None for any
+        # external current stream. The allocator uses it to decide whether an
+        # allocation belongs to a graph pool, so a wrong answer during capture
+        # silently routes branch allocations to the default pool.
+        with self._get_external_stream() as stream_v:
+            ext_stream = torch_npu.npu.ExternalStream(stream_v)
+            self.assertFalse(torch_npu.npu.is_current_stream_capturing())
+            graph = torch_npu.npu.NPUGraph()
+            x = torch.ones(16, device='npu')
+            ext_stream.wait_stream(torch_npu.npu.current_stream())
+            with torch_npu.npu.stream(ext_stream):
+                graph.capture_begin()
+                captured = torch_npu.npu.is_current_stream_capturing()
+                x.add_(1)
+                graph.capture_end()
+            ext_stream.synchronize()
+            self.assertTrue(captured, "capture status must be visible on an external stream")
+            self.assertFalse(torch_npu.npu.is_current_stream_capturing())
+            graph.replay()
+            torch_npu.npu.synchronize()
+            self.assertEqual(x.cpu(), torch.full((16,), 2.0))
+            graph.reset()
 
     def test_external_stream_drains_default_repo(self):
         with self._get_external_stream() as stream_v:

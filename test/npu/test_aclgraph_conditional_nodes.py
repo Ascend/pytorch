@@ -60,6 +60,41 @@ class TestACLGraphConditionalNodes(unittest.TestCase):
 
         self.assertTreeEqual(replay_output, eager_output)
 
+    def test_cond_many_if_nodes_across_graphs(self):
+        """40 graphs with one conditional node each.
+
+        The stream pool holds 32 streams per device and serves them round-robin,
+        and the root capture stream comes from it too, so drawing a body stream
+        from the pool wraps around onto a stream that is already capturing and
+        AclmdlRICaptureToModelRIBegin fails with 107027.
+        Mirrors test_cuda_graph_many_if_nodes_across_graphs of
+        pytorch/pytorch#185836.
+        """
+        pred = torch.zeros((), dtype=torch.bool, device="npu")
+        x = torch.zeros((), device="npu")
+        for _ in range(40):
+            graph = torch.npu.NPUGraph()
+            with torch.npu.graph(graph):
+                graph.begin_capture_to_if_node(pred)
+                x.add_(1.0)
+                graph.end_capture_to_conditional_node()
+
+    def test_cond_many_if_nodes_in_one_graph(self):
+        """40 conditional nodes inside a single graph.
+
+        Same wrap-around as above, accumulated within one capture instead of
+        across captures. Mirrors test_cuda_graph_many_if_nodes_in_one_graph of
+        pytorch/pytorch#185836.
+        """
+        pred = torch.zeros((), dtype=torch.bool, device="npu")
+        x = torch.zeros((), device="npu")
+        graph = torch.npu.NPUGraph()
+        with torch.npu.graph(graph):
+            for _ in range(40):
+                graph.begin_capture_to_if_node(pred)
+                x.add_(1.0)
+                graph.end_capture_to_conditional_node()
+
     def test_cond_not_nested_true_and_false(self):
         def true_fn(x):
             return x.sin()
@@ -96,62 +131,106 @@ class TestACLGraphConditionalNodes(unittest.TestCase):
         self.check_bare_aclgraph(fn, (x, torch.tensor(True, device="npu")), expected_fn)
         self.check_bare_aclgraph(fn, (x, torch.tensor(False, device="npu")), expected_fn)
 
-    def test_cond_triply_nested(self):
-        def level3_true(x):
+    def test_cond_five_levels_nested(self):
+        """Five levels of nesting must capture and replay.
+
+        Depth only: five bodies plus the root capture draw six streams, far below
+        the pool's 32, so this does not exercise the wrap-around. That is what the
+        two tests below cover.
+        """
+
+        def level5_true(x):
             return x.sin()
 
-        def level3_false(x):
+        def level5_false(x):
             return x.cos()
 
-        def level2_true(x, p2):
-            return torch.cond(p2, level3_true, level3_false, (x,))
+        def level4_true(x, p4):
+            return torch.cond(p4, level5_true, level5_false, (x,))
 
-        def level2_false(x, p2):
-            return torch.cond(p2, lambda t: t + 1, lambda t: t - 1, (x,))
+        def level4_false(x, p4):
+            return torch.cond(p4, lambda t: t * 2, lambda t: t / 2, (x,))
 
-        def level1_true(x, p1, p2):
-            return torch.cond(p1, level2_true, level2_false, (x, p2))
+        def level3_true(x, p3, p4):
+            return torch.cond(p3, level4_true, level4_false, (x, p4))
 
-        def level1_false(x, p1, p2):
-            return torch.cond(p1, level2_false, level2_true, (x, p2))
+        def level3_false(x, p3, p4):
+            return torch.cond(p3, level4_false, level4_true, (x, p4))
 
-        def fn(x, p0, p1, p2):
-            return torch.cond(p0, level1_true, level1_false, (x, p1, p2))
+        def level2_true(x, p2, p3, p4):
+            return torch.cond(p2, level3_true, level3_false, (x, p3, p4))
 
-        def expected_level2_true(x, p2):
-            return level3_true(x) if _pred_to_bool(p2) else level3_false(x)
+        def level2_false(x, p2, p3, p4):
+            return torch.cond(p2, level3_false, level3_true, (x, p3, p4))
 
-        def expected_level2_false(x, p2):
-            return x + 1 if _pred_to_bool(p2) else x - 1
+        def level1_true(x, p1, p2, p3, p4):
+            return torch.cond(p1, level2_true, level2_false, (x, p2, p3, p4))
 
-        def expected_level1_true(x, p1, p2):
-            return expected_level2_true(x, p2) if _pred_to_bool(p1) else expected_level2_false(x, p2)
+        def level1_false(x, p1, p2, p3, p4):
+            return torch.cond(p1, level2_false, level2_true, (x, p2, p3, p4))
 
-        def expected_level1_false(x, p1, p2):
-            return expected_level2_false(x, p2) if _pred_to_bool(p1) else expected_level2_true(x, p2)
+        def fn(x, p0, p1, p2, p3, p4):
+            return torch.cond(p0, level1_true, level1_false, (x, p1, p2, p3, p4))
 
-        def expected_fn(x, p0, p1, p2):
-            return expected_level1_true(x, p1, p2) if _pred_to_bool(p0) else expected_level1_false(x, p1, p2)
+        def expected_level4_true(x, p4):
+            return level5_true(x) if _pred_to_bool(p4) else level5_false(x)
+
+        def expected_level4_false(x, p4):
+            return x * 2 if _pred_to_bool(p4) else x / 2
+
+        def expected_level3_true(x, p3, p4):
+            return expected_level4_true(x, p4) if _pred_to_bool(p3) else expected_level4_false(x, p4)
+
+        def expected_level3_false(x, p3, p4):
+            return expected_level4_false(x, p4) if _pred_to_bool(p3) else expected_level4_true(x, p4)
+
+        def expected_level2_true(x, p2, p3, p4):
+            return (
+                expected_level3_true(x, p3, p4)
+                if _pred_to_bool(p2)
+                else expected_level3_false(x, p3, p4)
+            )
+
+        def expected_level2_false(x, p2, p3, p4):
+            return (
+                expected_level3_false(x, p3, p4)
+                if _pred_to_bool(p2)
+                else expected_level3_true(x, p3, p4)
+            )
+
+        def expected_level1_true(x, p1, p2, p3, p4):
+            return (
+                expected_level2_true(x, p2, p3, p4)
+                if _pred_to_bool(p1)
+                else expected_level2_false(x, p2, p3, p4)
+            )
+
+        def expected_level1_false(x, p1, p2, p3, p4):
+            return (
+                expected_level2_false(x, p2, p3, p4)
+                if _pred_to_bool(p1)
+                else expected_level2_true(x, p2, p3, p4)
+            )
+
+        def expected_fn(x, p0, p1, p2, p3, p4):
+            return (
+                expected_level1_true(x, p1, p2, p3, p4)
+                if _pred_to_bool(p0)
+                else expected_level1_false(x, p1, p2, p3, p4)
+            )
+
+        def pred(value):
+            return torch.tensor(value, device="npu")
 
         x = torch.randn(4, device="npu")
         self.check_bare_aclgraph(
             fn,
-            (
-                x,
-                torch.tensor(True, device="npu"),
-                torch.tensor(True, device="npu"),
-                torch.tensor(False, device="npu"),
-            ),
+            (x, pred(True), pred(True), pred(True), pred(True), pred(False)),
             expected_fn,
         )
         self.check_bare_aclgraph(
             fn,
-            (
-                x,
-                torch.tensor(False, device="npu"),
-                torch.tensor(False, device="npu"),
-                torch.tensor(True, device="npu"),
-            ),
+            (x, pred(False), pred(False), pred(True), pred(False), pred(True)),
             expected_fn,
         )
 

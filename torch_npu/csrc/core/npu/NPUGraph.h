@@ -153,6 +153,36 @@ struct TORCH_NPU_API NPUGraph {
   std::stack<NPUStreamGuard> conditional_node_streams_;
   std::stack<aclmdlRI> conditional_model_ri_stack_;
 
+  // Raw aclrtStreams of conditional-node bodies: torch_npu creates them, so torch_npu destroys
+  // them -- on reset(), on destruction, and on any path that unwinds out of a capture.
+  // Mirrors OwnedCUDAStream of pytorch/pytorch#185836.
+  struct OwnedNPUStream {
+    aclrtStream stream = nullptr;
+    OwnedNPUStream() = default;
+    explicit OwnedNPUStream(aclrtStream s) : stream(s) {}
+    ~OwnedNPUStream() {
+      if (stream != nullptr) {
+        NPU_CHECK_WARN(c10_npu::acl::AclrtDestroyStreamForce(stream));
+      }
+    }
+    OwnedNPUStream(const OwnedNPUStream&) = delete;
+    OwnedNPUStream& operator=(const OwnedNPUStream&) = delete;
+    OwnedNPUStream(OwnedNPUStream&& other) noexcept : stream(other.stream) {
+      other.stream = nullptr;
+    }
+    OwnedNPUStream& operator=(OwnedNPUStream&& other) noexcept {
+      if (this != &other) {
+        if (stream != nullptr) {
+          NPU_CHECK_WARN(c10_npu::acl::AclrtDestroyStreamForce(stream));
+        }
+        stream = other.stream;
+        other.stream = nullptr;
+      }
+      return *this;
+    }
+  };
+  std::stack<OwnedNPUStream> conditional_node_raw_streams_;
+
   // Device where capture occurred. Right now, for simplicity, we require all
   // ops in a capture to run on the same device, but this is a limitation of
   // NPUGraph, not NPU itself. We can straightforwardly modify NPUGraph to

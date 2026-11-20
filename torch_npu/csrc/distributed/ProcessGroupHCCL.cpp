@@ -4885,9 +4885,6 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
   op_id_++;
 
   const auto devices = getDeviceList(inputs);
-  for (const auto& device : devices) {
-    c10_npu::detail::checkCurrentStreamNotExternal(device.index(), "ProcessGroupHCCL::collective");
-  }
   auto key = getKeyFromDevices(devices);
   HcclCommConfig config = createHcclCommConfigWithOptions();
   std::vector<std::shared_ptr<HCCLComm>> hcclComms = getHCCLComm(key, devices, HcclCommType::DEFAULT, &config);

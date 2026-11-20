@@ -118,7 +118,11 @@ class ExternalStream(Stream):
 
     .. note:: This class doesn't manage the stream life-cycle, it is the user
        responsibility to keep the referenced stream alive while this class is
-       being used.
+       being used. Tensors recorded on this stream with ``record_stream`` and
+       pinned Host buffers used for asynchronous copies can cause the allocator
+       to record events when they are released. Release these buffers and drain
+       their queued work before destroying the raw stream; synchronizing before
+       releasing the buffers is not sufficient.
 
     .. note:: ``priority`` and ``is_sync_launch`` must keep their defaults
        (``0``) when wrapping an external stream; passing non-default values
@@ -139,20 +143,6 @@ class ExternalStream(Stream):
 
         * - API
           - Description
-        * - ``synchronize()``
-          - Caller must synchronize the external stream externally.
-        * - ``query()``
-          - Caller must track stream completion externally.
-        * - ``record_event()`` / ``Event.record(ext)`` /
-            ``ExternalEvent.record(ext)``
-          - Event recording on an external stream is not supported.
-        * - ``wait_event(event)`` / ``wait_stream(stream)`` /
-            ``Event.wait(ext)`` / ``ExternalEvent.wait(ext)``
-          - Event waiting on an external stream is not supported.
-        * - ``Tensor.record_stream(ext)``
-          - Caching allocator stream tracking is not supported.
-        * - ``NPUGraph.capture_begin()`` / ``capture_end()``
-          - Graph capture on an external stream is not supported.
         * - ``graph_task_group_begin`` / ``end`` /
             ``graph_task_update_begin`` / ``end``
           - Graph task group APIs are not supported.
@@ -162,13 +152,13 @@ class ExternalStream(Stream):
           - Host callback launch is not supported.
         * - ``subscribe_report`` / ``unsubscribe_report``
           - Task report subscribe/unsubscribe is not supported.
-        * - ``LaunchRecordEventTask`` / ``LaunchWaitEventTask``
-          - Async task queue event ops are not supported.
 
-    The root cause: the NPU backend routes the above APIs through torch_npu's
-    internal ``AsyncTaskQueue`` (taskqueue), which only tracks streams it
-    created itself. An external stream is outside the taskqueue's tracking
-    scope. For full capabilities, use a torch_npu-managed ``Stream`` instead.
+    Stream synchronization/query, ordinary event record/wait, Tensor
+    ``record_stream``, graph capture, and HCCL/LCCL collectives accept external
+    streams. Hardware and runtime requirements of those operations still apply.
+    External streams use the shared task queue and do not own a per-stream
+    task queue. The per-stream task queue mode (``PER_STREAM_QUEUE=1``) remains
+    unsupported for external streams.
     """
 
     def __new__(cls, stream_ptr, device=None, **kwargs):
