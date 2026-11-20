@@ -6,7 +6,7 @@
 
 - **[分布式任务端口号被占用](port_number_distributed_task_in_use.md)**  
 
-- **[用于梯度计算的变量被inplace操作](variables_used_gradient_computation_modified_by_in-place_op.md)**  
+- **[用于梯度计算的变量被原地操作修改](variables_used_gradient_computation_modified_by_in-place_op.md)**  
 
 - **[调用不支持的算子](unsupported_op_called.md)**  
 

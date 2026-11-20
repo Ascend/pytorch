@@ -20,7 +20,7 @@
   - [通信算子传入非连续Tensor](troubleshooting_cases/communication_operator_transfers_Non-contiguous_tensors.md)
   - [调用算子参数校验失败](troubleshooting_cases/failed_verify_op_parameters.md)
   - [分布式任务端口号被占用](troubleshooting_cases/port_number_distributed_task_in_use.md)
-  - [用于梯度计算的变量被inplace操作](troubleshooting_cases/variables_used_gradient_computation_modified_by_in-place_op.md)
+  - [用于梯度计算的变量被原地操作修改](troubleshooting_cases/variables_used_gradient_computation_modified_by_in-place_op.md)
   - [调用不支持的算子](troubleshooting_cases/unsupported_op_called.md)
   - [HCCL超时](troubleshooting_cases/HCCL_timeout.md)
   - [算子调用报错](troubleshooting_cases/operator_called_error.md)
