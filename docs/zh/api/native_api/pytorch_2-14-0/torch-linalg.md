@@ -488,6 +488,31 @@
 
 </div>
 
+### torch.linalg.matrix_sqrth
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.linalg.matrix_sqrth](https://docs.pytorch.org/docs/2.14/generated/torch.linalg.matrix_sqrth.html#torch.linalg.matrix_sqrth)
+
+**产品支持情况**：
+
+<!-- npu="910b" id118 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id118 -->
+<!-- npu="A3" id119 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id119 -->
+<!-- npu="950" id120 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id120 -->
+
+**限制与说明**：
+
+- 仅支持float32（fp32）类型，不支持float64和复数类型。
+- 输入维度最多支持8维，其中7-8维仅Atlas A2训练系列产品和Atlas A3训练系列产品支持。
+
+</div>
+
 ### torch.linalg.matrix\_power
 
 <div style="margin-left: 2em">
