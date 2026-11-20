@@ -36,7 +36,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.nn.parallel.data_parallel](https://pytorch.org/docs/2.13/generated/torch.nn.parallel.data_parallel.html#torch.nn.parallel.data_parallel)
+**原生文档**：[torch.nn.parallel.data_parallel](https://docs.pytorch.org/docs/stable/generated/torch.nn.functional.torch.nn.parallel.data_parallel.html)
 
 **产品支持情况**：
 
