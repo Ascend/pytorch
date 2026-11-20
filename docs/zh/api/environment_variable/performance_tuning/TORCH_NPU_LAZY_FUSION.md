@@ -2,7 +2,7 @@
 
 ## 功能描述
 
-通过此环境变量可开启TorchNPU Eager模式下的DVM算子融合。DVM将多个相邻的小算子合并成单个融合kernel，减少kernel下发次数和中间张量的搬运，从而加速训练和推理。
+通过此环境变量可开启TorchNPU Eager模式下的DVM算子融合。DVM将多个相邻的小算子合并成单个融合算子，减少算子下发次数和中间张量的搬运，从而加速训练和推理。
 
 - 配置为“True”时：开启DVM算子融合。
 - 未配置或配置为“False”时：关闭DVM算子融合。
@@ -23,9 +23,9 @@ export TORCH_NPU_LAZY_FUSION=True
 
 ### 在脚本中按需开启融合
 
-环境变量需在 `import torch_npu` 前设置。开启环境变量后，可以在用户脚本中按代码区间控制无图融合。
+环境变量需在 `import torch_npu` 前设置。开启环境变量后，可以在用户脚本中按代码区间控制Eager模式下的DVM算子融合。
 
-例如，临时关闭某个代码段的无图融合，退出后恢复之前的状态：
+例如，临时关闭某个代码段的Eager模式下的DVM算子融合，退出后恢复之前的状态：
 
 ```python
 from torch_npu.npu import lazy_fusion
@@ -62,7 +62,7 @@ output = model(x)
 
 两种方式可混用：上下文退出时，将恢复进入前的状态（忽略上下文内部调用的 `set_enable()` 或 `set_disable()`）。
 
-- 环境变量是总开关；未开启环境变量时，`lazy_fusion.enabled()` 和 `lazy_fusion.set_enable()` 均不能单独开启无图融合。
+- 环境变量是总开关；未开启环境变量时，`lazy_fusion.enabled()` 和 `lazy_fusion.set_enable()` 均不能单独开启Eager模式下的DVM算子融合。
 - 上下文支持嵌套，正常退出或区间内发生异常退出时均恢复之前的状态。
 - 开关状态变化时会提交当前待融合图，避免算子跨越开启/关闭边界融合；接口不等待设备执行完成。
 - 开关是进程级的，应在代码区间边界调用，切换时不要并发构建融合图。

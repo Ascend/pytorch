@@ -18,6 +18,8 @@ PyTorch通过`torch._inductor.config.log_level`配置日志级别，TorchNPU通�
 
 ## 配置示例
 
+以下设置将 Ascend Inductor 的日志级别设为 `DEBUG`。
+
 ```bash
 export INDUCTOR_ASCEND_LOG_LEVEL=DEBUG
 ```

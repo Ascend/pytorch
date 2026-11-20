@@ -23,7 +23,7 @@ export PROF_CONFIG_PATH="/path/to/profiler_config_path"
     # 加载dynamic_profile模块
     from torch_npu.profiler import dynamic_profile as dp
     # 设置Profiling配置文件的路径
-    dp.init("profiler_config_path")
+    dp.init("/path/to/profiler_config_path")
     #...
     for step in steps:
         train_one_step()

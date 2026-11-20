@@ -53,7 +53,7 @@ export OOM_SNAPSHOT_PATH="/home/usr/"
 torch_npu.npu.memory._record_memory_history()
 
 run_your_code()
-torch_npu.npu.memory._dump_snapshot("my_snapshot.pickle")
+torch.npu.memory._dump_snapshot("my_snapshot.pickle")
 ```
 
 ## 事件时间戳

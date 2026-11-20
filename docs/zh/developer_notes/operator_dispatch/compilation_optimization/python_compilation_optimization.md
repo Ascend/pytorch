@@ -15,7 +15,7 @@ Python从3.6及以上版本开始支持LTO（链接时优化）与PGO（性能�
     - 在基于Fedora、RHEL、CentOS和其他dnf的系统上：
 
         ```shell
-        sudo dnf install gcc gcc-c++ gdb lzma glibc-devel libstdc++-devel openssl-devel \
+        sudo dnf install gcc gcc-c++ make gdb glibc-devel libstdc++-devel openssl-devel \
         readline-devel zlib-devel libffi-devel bzip2-devel xz-devel \
         sqlite sqlite-devel sqlite-libs libuuid-devel gdbm-libs perf \
         expat expat-devel mpdecimal python3-pip
