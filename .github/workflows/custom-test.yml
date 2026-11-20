@@ -44,6 +44,7 @@ on:
     paths:
       - '.github/workflows/custom-test.yml'
       - '.github/config/custom_test_cases'
+
   workflow_dispatch:
     inputs:
       platform:
