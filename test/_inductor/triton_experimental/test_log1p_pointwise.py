@@ -14,10 +14,8 @@ from torch_npu.utils._dynamo import register_inductor_npu
 register_inductor_npu()
 
 
-# The BCE decomposition lowers log1p through the TE override list; this pins the
-# pointwise op itself (values, and no silent relapse to an extern call)
-# independently of BCE, so the one-line GENERATE_LIST entry carries its own
-# evidence.
+# Pin log1p's pointwise path independently of the BCE decomposition: check
+# values and ensure it does not silently return to an extern call.
 class TestLog1pPointwise(TestCase):
     @torch._inductor.config.patch({
         "test_configs.runtime_triton_shape_assert": True,

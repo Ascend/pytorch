@@ -1,10 +1,7 @@
 # Copyright (c) 2026, Huawei Technologies Co., Ltd. All rights reserved.
 """Regression coverage for aten.log1p staying on the triton_experimental lowering.
 
-aten.log1p has a registered pointwise lowering, but the triton_experimental
-auto-fallback pass turns every registered lowering into an aclnn fallback
-unless the op appears in GENERATE_LIST. log1p was missing from that list, so
-graph mode emitted an aten fallback instead of a Triton kernel.
+aten.log1p must stay off the fallback blacklist and emit a Triton kernel.
 
 Keeping it on the Triton path needs an accurate log1p: CANN's vector
 ``libdevice.log1p`` is ``log(1 + x)`` with the addition already rounded to
@@ -22,7 +19,7 @@ pin both the emitted call and the accuracy at the two ends of the domain:
     1 / log1p(-0.0) is -inf rather than +inf (the compensated form is all
     +0 terms).
 
-The whitelist test runs without a device; the rest are NPU-gated.
+The policy test runs without a device; the rest are NPU-gated.
 """
 
 import json
@@ -40,7 +37,7 @@ from torch.testing._internal.common_utils import TestCase, run_tests
 
 import torch_npu  # noqa: F401
 import torch_npu._inductor  # noqa: F401
-from torch_npu._inductor.triton_experimental import lowering_override_list
+from torch_npu._inductor.triton_experimental import lowering_fallback_list
 
 aten = torch.ops.aten
 
@@ -69,8 +66,8 @@ LOG1P_CASES = torch.tensor(
 
 
 class TestLog1PGenerateList(TestCase):
-    def test_log1p_in_generate_list(self):
-        self.assertIn(aten.log1p, lowering_override_list.GENERATE_LIST)
+    def test_log1p_not_blacklisted(self):
+        self.assertFalse(lowering_fallback_list.is_lowering_fallback(aten.log1p.default))
 
     def _compiled_wrapper_code(self, fn, args):
         source_codes = []

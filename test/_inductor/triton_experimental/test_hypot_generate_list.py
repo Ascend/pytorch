@@ -1,15 +1,8 @@
 """Regression coverage for hypot staying on the triton_experimental lowering.
 
-aten.hypot has a registered pointwise lowering (torch_npu/_inductor/
-lowering_fx.py), but the triton_experimental auto-fallback pass makes every
-registered lowering a fallback unless its op appears in GENERATE_LIST. Before
-the fix hypot was missing from that list, so graph mode silently emitted an
-aten fallback instead of the libdevice.hypot Triton kernel and upcast
-counters saw 0 upcasts (issue #5002).
-
-The whitelist membership test runs without a device and guards the
-GENERATE_LIST entry; the compiled-path tests prove the wrapper compiles a
-triton kernel calling libdevice.hypot with no aten.hypot fallback call, and
+aten.hypot has a registered pointwise lowering. The blacklist must keep it on
+that lowering (issue #5002). The compiled-path tests prove the wrapper compiles
+a triton kernel calling libdevice.hypot with no aten.hypot fallback call, and
 a profiler test captures the kernel launch on device as runtime evidence.
 """
 
@@ -28,14 +21,17 @@ from torch.testing._internal.common_utils import TestCase, run_tests
 
 import torch_npu  # noqa: F401
 import torch_npu._inductor  # noqa: F401
-from torch_npu._inductor.triton_experimental import lowering_override_list
+from torch_npu._inductor.triton_experimental import lowering_fallback_list
 
 aten = torch.ops.aten
 
 
 class TestHypotGenerateList(TestCase):
-    def test_hypot_in_generate_list(self):
-        self.assertIn(aten.hypot, lowering_override_list.GENERATE_LIST)
+    def test_hypot_not_blacklisted(self):
+        self.assertFalse(lowering_fallback_list.is_lowering_fallback(aten.hypot))
+        self.assertFalse(
+            lowering_fallback_list.is_lowering_fallback(aten.hypot.default)
+        )
 
     def _compiled_wrapper_code(self, fn, args):
         source_codes = []

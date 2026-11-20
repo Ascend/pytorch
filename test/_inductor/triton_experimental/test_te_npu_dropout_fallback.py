@@ -31,7 +31,6 @@ import torch_npu._inductor  # noqa: F401
 from torch_npu._inductor.triton_experimental import (
     lowering,
     lowering_fallback_list,
-    lowering_override_list,
 )
 
 npu = torch.ops.npu
@@ -49,12 +48,13 @@ class TestTeDropoutExplicitFallbackList(TestCase):
         self.assertIn(DROPOUT, lowering_fallback_list.EXPLICIT_FALLBACK_LIST)
         self.assertIn(DROPOUT_BACKWARD, lowering_fallback_list.EXPLICIT_FALLBACK_LIST)
 
-    def test_dropout_not_also_in_generate_list(self):
-        # _npu_dropout used to sit in GENERATE_LIST, which only exempts an op
-        # from the blanket fallback; with no TE lowering that left it ownerless
-        # and the compile still failed. It must now live only in the explicit
-        # list (one home per op).
-        self.assertNotIn(npu._npu_dropout, lowering_override_list.GENERATE_LIST)
+    def test_dropout_does_not_require_an_existing_lowering(self):
+        # These private ops belong to the unconditional explicit list, since
+        # they need fallback registration even without an upstream lowering.
+        self.assertNotIn(str(DROPOUT), lowering_fallback_list.LOWERING_FALLBACK_NAMES)
+        self.assertNotIn(
+            str(DROPOUT_BACKWARD), lowering_fallback_list.LOWERING_FALLBACK_NAMES
+        )
 
     def test_registrar_reads_the_same_list_object(self):
         # A stale import location would register nothing in silence.

@@ -11,6 +11,7 @@ from torch.testing._internal.common_utils import TestCase, run_tests
 import torch_npu  # noqa: F401
 import torch_npu._inductor  # noqa: F401
 from torch_npu._inductor.triton_experimental import config as te_config
+from torch_npu._inductor.triton_experimental import device_props
 
 
 def pointwise_pair(x, y):
@@ -163,12 +164,12 @@ class TestTEComboKernel(TestCase):
             return torch._foreach_abs([a, b])
 
         inputs = tuple(torch.randn(1025, device="npu") for _ in range(4))
-        # TE phase one admits pointwise scheduler nodes only.  Foreach nodes
-        # remain correct through the regular fallback path until a dedicated
-        # foreach lowering is enabled.
+        # Float32 foreach ops lower to pointwise nodes; A5 disables TE Combo.
+        expected_combo = not device_props.is_a5()
         for fn, fn_inputs in ((binary, inputs), (unary, inputs[:2])):
-            code = self.assert_combo_result(fn, *fn_inputs, expected_combo=False)
-            self.assertNotIn("npu_triton_heuristics.foreach", code)
+            with self.subTest(fn=fn.__name__):
+                code = self.assert_combo_result(fn, *fn_inputs, expected_combo=expected_combo)
+                self.assertEqual("npu_triton_heuristics.foreach" in code, expected_combo)
 
     def test_mixed_shapes_and_noncontiguous_fall_back(self):
         x = torch.randn(1025, device="npu")

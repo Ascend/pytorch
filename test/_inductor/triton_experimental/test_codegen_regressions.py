@@ -18,13 +18,13 @@ from torch_npu._inductor.kernel import flex_attention as npu_flex_attention
 from torch_npu._inductor.triton_experimental import config as ncfg
 from torch_npu._inductor.triton_experimental import launcher_codegen
 from torch_npu._inductor.triton_experimental import lowering as experimental_lowering
-from torch_npu._inductor.triton_experimental import lowering_override_list
+from torch_npu._inductor.triton_experimental import lowering_fallback_list
 from torch_npu._inductor.triton_experimental.codegen import triton as npu_triton_codegen
 
 
 class TestCodegenRegressions(TestCase):
     def test_codegen_control_deps_keeps_upstream_lowering(self):
-        self.assertIn(control_deps, lowering_override_list.KEEP_UPSTREAM_LOWERING)
+        self.assertFalse(lowering_fallback_list.is_lowering_fallback(control_deps))
         make_fallback = mock.Mock()
         with (
             mock.patch.object(
@@ -33,6 +33,7 @@ class TestCodegenRegressions(TestCase):
             mock.patch.object(experimental_lowering, "decompositions", {}),
             mock.patch.object(experimental_lowering, "make_fallback", make_fallback),
             mock.patch.object(experimental_lowering, "FALLBACK_LIST", []),
+            mock.patch.object(experimental_lowering, "overwrite_lowering"),
         ):
             experimental_lowering._register_npu_inductor_fallbacks()
         self.assertNotIn(mock.call(control_deps), make_fallback.call_args_list)

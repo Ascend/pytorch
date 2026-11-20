@@ -19,10 +19,11 @@ import sympy
 from . import config as ncfg
 from . import device_props as _device_props
 from . import rescue_rules
-from .lowering_fallback_list import EXPLICIT_FALLBACK_LIST
-from .lowering_override_list import (
-    GENERATE_LIST,
-    KEEP_UPSTREAM_LOWERING,
+from .lowering_fallback_list import (
+    EXPLICIT_FALLBACK_LIST,
+    LOWERING_PRECISION_FALLBACK_DTYPES,
+    is_lowering_fallback,
+    is_precision_fallback,
 )
 import torch
 from torch._inductor.lowering import (
@@ -46,6 +47,7 @@ from torch._prims_common import get_computation_dtype
 from torch._inductor.virtualized import ops, V
 
 import torch._ops
+from torch.utils._pytree import tree_leaves
 
 log = logging.getLogger("torch._inductor")
 
@@ -85,30 +87,29 @@ def _register_softmax_aclnn_fallback():
 
 
 def _register_npu_inductor_fallbacks():
-    gen_set = set()
-    for fn in GENERATE_LIST:
-        gen_set.add(fn)
-        if isinstance(fn, torch._ops.OpOverloadPacket):
-            for overload in fn.overloads():
-                other_fn = getattr(fn, overload)
-                gen_set.add(other_fn)
-
-    # Ops whose upstream lowering we deliberately preserve (see above).
-    keep_set = set()
-    for fn in KEEP_UPSTREAM_LOWERING:
-        keep_set.add(fn)
-        if isinstance(fn, torch._ops.OpOverloadPacket):
-            for overload in fn.overloads():
-                keep_set.add(getattr(fn, overload))
-
-    for op in lowerings:
-        if op in keep_set:
+    # Only explicitly blacklisted operators are replaced. In particular, a new
+    # upstream lowering no longer needs a matching GENERATE_LIST entry.
+    packet_overloads_handled = set()
+    for op in list(lowerings):
+        if op in packet_overloads_handled:
             continue
-        if op not in decompositions and op not in gen_set and isinstance(
+        if op in decompositions or not isinstance(
             op, (torch._ops.OpOverloadPacket, torch._ops.OpOverload,
-                 torch._ops.HigherOrderOperator)):
+                 torch._ops.HigherOrderOperator)
+        ):
+            continue
+        if is_lowering_fallback(op):
             make_fallback(op)
             FALLBACK_LIST.append(op)
+        elif isinstance(op, torch._ops.OpOverloadPacket):
+            # A concrete blacklist entry must not replace its unlisted siblings.
+            # It may have no separate key in lowerings before registration.
+            for name in op.overloads():
+                overload = getattr(op, name)
+                if overload not in decompositions and is_lowering_fallback(overload):
+                    make_fallback(overload)
+                    FALLBACK_LIST.append(overload)
+                    packet_overloads_handled.add(overload)
 
     for op in EXPLICIT_FALLBACK_LIST:
         make_fallback(op)
@@ -165,9 +166,8 @@ overwrite_lowering(
         prims.convert_element_type,
         npu.npu_dtype_cast,
         npu.npu_dtype_cast_backward,
-        # #4932: the _npu_dtype_cast pair is in GENERATE_LIST (exempt from the
-        # blanket fallback) but had no lowering registered; route it through the
-        # same pointwise cast lowering as its npu_dtype_cast neighbours.
+        # #4932: register the private cast pair explicitly; neither upstream nor
+        # native fallback supplies the required pointwise lowering.
         npu._npu_dtype_cast,
         npu._npu_dtype_cast_backward,
     ],
@@ -387,8 +387,8 @@ overwrite_lowering(aten.slice_scatter, npu_slice_scatter, type_promotion_kind=No
 # proven aten path rather than a generated scatter kernel. Without the cast, fp16
 # self / fp32 values (check_model_gpu lowp downcasts inputs but not a graph-created
 # torch.ones()) reaches aten._index_put_impl_ unchanged and CANN rejects it
-# (aclnnIndexPutImpl EZ1001). KEEP_UPSTREAM_LOWERING (lowering_override_list.py)
-# lists these overloads so _register_npu_inductor_fallbacks does NOT clobber this
+# (aclnnIndexPutImpl EZ1001). The fallback blacklist leaves these overloads
+# untouched so _register_npu_inductor_fallbacks does NOT clobber this
 # custom lowering back into a bare make_fallback.
 from torch._inductor.lowering import (
     clone as _index_put_clone,
@@ -991,10 +991,32 @@ def _register_npu_inductor_fallbacks():  # noqa: F811
     overwrite_lowering(torch.ops.aten.index.Tensor, npu_index,
                        type_promotion_kind=None)
     _register_dtype_aware_triton_routing()
+    _register_precision_fallbacks()
 
 
-# erf/log1p stay out: they are pre-existing GENERATE_LIST members, so the
-# upstream triton lowering already serves every dtype there; routing them
+def _register_precision_fallbacks():
+    """Guard full-width values after fallback and dtype routing registration."""
+    for op, upstream in list(lowerings.items()):
+        if not isinstance(op, torch._ops.OpOverload):
+            continue
+        if is_lowering_fallback(op) or not is_precision_fallback(op):
+            continue
+        native = fallback_handler(op, add_to_fallback_set=False)
+
+        def guarded(*args, _upstream=upstream, _native=native, **kwargs):
+            for arg in tree_leaves((args, kwargs)):
+                dtype = arg if isinstance(arg, torch.dtype) else None
+                if hasattr(arg, "get_dtype"):
+                    dtype = arg.get_dtype()
+                if dtype in LOWERING_PRECISION_FALLBACK_DTYPES or isinstance(arg, complex):
+                    return _native(*args, **kwargs)
+            return _upstream(*args, **kwargs)
+
+        lowerings[op] = guarded
+
+
+# erf/log1p stay out of dtype-aware routing: their upstream triton lowerings
+# already serve every dtype; routing them
 # would divert fp32/f64 to extern and regress test_log1p_pointwise.
 _DTYPE_AWARE_TRITON_OPS = (
     "acos", "acosh", "asin", "asinh", "atan", "atan2", "atanh", "ceil",

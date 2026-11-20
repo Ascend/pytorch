@@ -11,6 +11,7 @@ import unittest
 
 import torch
 from torch import nn
+from torch._inductor.lowering import fallback_handler, lowerings
 from torch._inductor.utils import run_and_get_code
 
 import torch_npu  # noqa: F401
@@ -327,7 +328,7 @@ class TestTritonCppWrapper(unittest.TestCase):
                 q, k, v = self.qkv(x).chunk(3, dim=-1)
                 scores = torch.matmul(q, k.transpose(-2, -1)) * (32**-0.5)
                 probs = torch.softmax(scores, dim=-1)
-                return self.out(torch.matmul(probs, v)) + x
+                return self.out(torch.matmul(probs, v)) + x, torch.any(probs, dim=[-1], keepdim=True)
 
         model = TinyAttention().to("npu").eval()
         x = torch.randn(2, 8, 32, device="npu")
@@ -340,7 +341,10 @@ class TestTritonCppWrapper(unittest.TestCase):
                 "triton.autotune_at_compile_time": True,
             },
         )
-        actual, codes = run_and_get_code(compiled, x)
+        # Exercise the native shim independently of the default lowering policy.
+        op = torch.ops.aten.any.dims
+        with mock.patch.dict(lowerings, {op: fallback_handler(op, add_to_fallback_set=False)}):
+            actual, codes = run_and_get_code(compiled, x)
 
         torch.testing.assert_close(actual, expected, rtol=3e-3, atol=3e-3)
         self.assertTrue(any("cpp_wrapper_src" in code for code in codes))

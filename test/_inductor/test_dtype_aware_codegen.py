@@ -29,8 +29,8 @@ except (ImportError, RuntimeError):
 DEVICE = "npu"
 
 # Ops on the upstream triton lowering for f16/bf16 with the fp32 upcast: the
-# routing additions, erf/log1p (pre-existing GENERATE_LIST members on the same
-# lowering), and rsqrt (maybe_upcast_float32 added in the same fix). Each
+# routing additions, erf/log1p (existing TE lowerings on the same path), and
+# rsqrt (maybe_upcast_float32 added in the same fix). Each
 # entry keeps its own lambda so every op compiles in a distinct dynamo frame.
 UPCAST_OPS = {
     "acos": lambda a: torch.acos(a),

@@ -9,9 +9,8 @@ is not already in the ``lowerings`` table -- so the bulk fallback pass in
 any graph that emits a bare contiguous node fails with
 ``MissingOperatorWithoutDecomp`` (issue #4933: all six diag_embed opinfo dtype
 variants, whose decomposition chain ends in ``mask_tensor(...).contiguous()``).
-The fix registers ``npu_contiguous`` (delegating to ``npu_clone``) and lists
-``aten.contiguous`` in ``GENERATE_LIST`` so the bulk pass does not clobber that
-new lowering back into a fallback.  These tests pin the registration and check
+The fix registers ``npu_contiguous`` (delegating to ``npu_clone``). The fallback
+blacklist must preserve that lowering. These tests pin the registration and check
 the compiled diag_embed matches eager across the six reported dtypes.
 """
 
@@ -29,7 +28,7 @@ import torch_npu  # noqa: F401
 import torch_npu._inductor  # noqa: F401
 from torch_npu._inductor.triton_experimental import (
     lowering,
-    lowering_override_list,
+    lowering_fallback_list,
 )
 
 aten = torch.ops.aten
@@ -40,22 +39,14 @@ CONTIGUOUS = aten.contiguous.default
 
 
 class TestTeContiguousLoweringRegistration(TestCase):
-    def test_contiguous_listed_for_generation(self):
-        self.assertIn(aten.contiguous, lowering_override_list.GENERATE_LIST)
+    def test_contiguous_not_blacklisted(self):
+        self.assertFalse(lowering_fallback_list.is_lowering_fallback(aten.contiguous))
 
     def test_npu_contiguous_is_registered_as_a_lowering(self):
         self.assertIn(CONTIGUOUS, lowerings)
 
     def test_contiguous_is_exempted_from_the_bulk_fallback_pass(self):
-        # Re-implement the exemption invariant the bulk pass uses, instead of
-        # re-running the global pass (which would re-scan every lowering and
-        # append to the global FALLBACK_LIST -- order-dependent and polluting).
-        gen_set = set()
-        for fn in lowering_override_list.GENERATE_LIST:
-            gen_set.add(fn)
-            if isinstance(fn, torch._ops.OpOverloadPacket):
-                gen_set |= {getattr(fn, o) for o in fn.overloads()}
-        self.assertIn(CONTIGUOUS, gen_set)
+        self.assertFalse(lowering_fallback_list.is_lowering_fallback(CONTIGUOUS))
         self.assertNotIn(CONTIGUOUS, lowering.FALLBACK_LIST)
 
 
