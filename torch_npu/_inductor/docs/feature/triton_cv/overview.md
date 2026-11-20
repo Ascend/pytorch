@@ -1,94 +1,6 @@
-# TORCHINDUCTOR_MAX_AUTOTUNE_GEMM_BACKENDS （同社区）
-
-## 功能描述
-
-确认max autotune可尝试的后端有哪些，该环境变量与社区max autotune设置可尝试后端的环境变量一致。
-
-若想尝试Catlass的后端，请在该环境变量中配置上"CATLASS"。
-
-默认配置为TORCHINDUCTOR_MAX_AUTOTUNE_GEMM_BACKENDS="ATEN,TRITON,CPP", 此默认值为社区的默认配置。
-
-## 配置示例
-
-尝试在max autotune中使用ATEN和CATLASS的后端。
-
-```shell
-export TORCHINDUCTOR_MAX_AUTOTUNE_GEMM_BACKENDS="TRITON"
-```
-
-## 使用约束
-
-无
-
-## 支持的型号
-
-<term>Ascend 950DT系列产品</term>
-
-# TORCHINDUCTOR_MAX_AUTOTUNE （同社区）
-
-## 功能描述
-
-该环境变量用于控制是否开启max autotune功能，与社区一致。
-
-"0"为关闭，"1"为开启
-
-默认配置为TORCHINDUCTOR_MAX_AUTOTUNE="0"
-
-## 配置示例
-
-开启max autotune功能
-
-```shell
-export TORCHINDUCTOR_MAX_AUTOTUNE=1
-```
-
-关闭max autotune功能
-
-```shell
-export TORCHINDUCTOR_MAX_AUTOTUNE=0
-```
-
-## 使用约束
-
-无
-
-## 支持的设备
-
-<term>Ascend 950DT系列产品</term>
-
-# TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING （同社区）
-
-## 功能描述
-
-该环境变量与inductor整体的profiling环境变量保持一致，用于管理autotune过程中是否使用profiling。
-
-"0"为不使用profiling，"1"为使用profiling。
-
-默认配置为TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING="0"。
-
-## 配置示例
-
-开启autotune过程中的profiling
-
-```shell
-export TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING="1"
-```
-
-关闭autotune过程中的profiling
-
-```shell
-export TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING="0"
-```
-
-## 使用约束
-
-无
-
-## 支持的型号
-
-<term>Ascend 950DT系列产品</term>
-
 # Triton cv特性介绍
+
+环境变量配置请参见[Triton CV配置项](./triton_cv.md)。
 
 ## 特性简介
 
@@ -101,35 +13,26 @@ export TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING="0"
 ### Triton cv使用示例
 
 ```python
+import os
+os.environ["TORCHINDUCTOR_MAX_AUTOTUNE"] = "1"
+os.environ["TORCHINDUCTOR_MAX_AUTOTUNE_GEMM_BACKENDS"] = "TRITON,ATEN"
+os.environ["TORCH_COMPILE_DEBUG"] = "1"
+
 import torch
-import torch.nn.functional as F
-from torch._dynamo.testing import rand_strided
-from testutils import TestUtils
-from torch.testing._internal.common_utils import run_tests
 import torch_npu
 
-MM_SHAPES = [
-(200, 256, 256), ]
 
-_MAX_AUTOTUNE = os.environ.get("TORCHINDUCTOR_MAX_AUTOTUNE", "0") == "1"
-MODE_TAG = "maxautotune" if _MAX_AUTOTUNE else "noautotune"
+def forward_mm(a, b):
+    return torch.relu(torch.mm(a, b))
 
-def forward_mm(self, a, b):
-return torch.mm(a, b)
 
-#@unittest.skip("addmm triton template not yet supported in max_autotune")
-def test_mm(self):
-    for M, N, K in MM_SHAPES:
-        with self.subTest(M=M, N=N, K=K):
-            a = _t((M, K), stride=(K, 1))
-            b = _t((K, N), stride=(1, K))
-
-            eager_result = self.forward_mm(a, b)
-            self._run_both_modes(
-                self.forward_mm, (a, b),
-                profile_name=f"cv_mm_{M}x{N}x{K}",
-                eager_result=eager_result,
-            )
+a = torch.randn((200, 256), device="npu", dtype=torch.float16)
+b = torch.randn((256, 256), device="npu", dtype=torch.float16).transpose(0, 1)
+compiled_mm = torch.compile(forward_mm)
+result = compiled_mm(a, b)
+torch.npu.synchronize()
+torch.testing.assert_close(result, forward_mm(a, b), rtol=1e-2, atol=1e-2)
+print(result.shape)
 ```
 
 ### Triton cv应用效果
@@ -142,25 +45,24 @@ def test_mm(self):
 AUTOTUNE mm(200x256, 256x256)
 strides: [256, 1], [1, 256]
 dtypes: torch.float16, torch.float16
-triton_npu_persistent_mm_164 0.0034 ms 100.0% ACC_TYPE='tl.float32', ALLOW_TF32='False', BLOCK_K=128, BLOCK_M=128, BLOCK_N=64, EVEN_K=True, GROUP_M=2, NUM_BLOCKS=8, NUM_BLOCKS_M=2, NUM_BLOCKS_N=4, NUM_SMS=8, NUM_TILES_PER_PROGRAM=1, WIDTH=8, num_stages=2, num_warps=4
-triton_npu_triton_mm_14 0.0034 ms 99.8% ACC_TYPE='tl.float32', ALLOW_TF32='False', BLOCK_K=128, BLOCK_M=128, BLOCK_N=64, EVEN_K=True, GROUP_M=1, num_stages=2, num_warps=4
-triton_npu_persistent_mm_177 0.0034 ms 99.7% ACC_TYPE='tl.float32', ALLOW_TF32='False', BLOCK_K=128, BLOCK_M=128, BLOCK_N=64, EVEN_K=True, GROUP_M=2, NUM_BLOCKS=8, NUM_BLOCKS_M=2, NUM_BLOCKS_N=4, NUM_SMS=8, NUM_TILES_PER_PROGRAM=1, WIDTH=8, num_stages=2, num_warps=8
-triton_npu_persistent_mm_167 0.0034 ms 99.6% ACC_TYPE='tl.float32', ALLOW_TF32='False', BLOCK_K=128, BLOCK_M=128, BLOCK_N=64, EVEN_K=True, GROUP_M=2, NUM_BLOCKS=8, NUM_BLOCKS_M=2, NUM_BLOCKS_N=4, NUM_SMS=8, NUM_TILES_PER_PROGRAM=1, WIDTH=8, num_stages=3, num_warps=8
-triton_npu_persistent_mm_176 0.0034 ms 99.6% ACC_TYPE='tl.float32', ALLOW_TF32='False', BLOCK_K=128, BLOCK_M=128, BLOCK_N=64, EVEN_K=True, GROUP_M=2, NUM_BLOCKS=8, NUM_BLOCKS_M=2, NUM_BLOCKS_N=4, NUM_SMS=8, NUM_TILES_PER_PROGRAM=1, WIDTH=8, num_stages=2, num_warps=4
-triton_npu_triton_mm_22 0.0035 ms 99.5% ACC_TYPE='tl.float32', ALLOW_TF32='False', BLOCK_K=128, BLOCK_M=64, BLOCK_N=128, EVEN_K=True, GROUP_M=4, num_stages=3, num_warps=4
-triton_npu_persistent_mm_170 0.0035 ms 99.5% ACC_TYPE='tl.float32', ALLOW_TF32='False', BLOCK_K=128, BLOCK_M=128, BLOCK_N=64, EVEN_K=True, GROUP_M=2, NUM_BLOCKS=8, NUM_BLOCKS_M=2, NUM_BLOCKS_N=4, NUM_SMS=8, NUM_TILES_PER_PROGRAM=1, WIDTH=8, num_stages=2, num_warps=4
-triton_npu_persistent_mm_168 0.0035 ms 99.2% ACC_TYPE='tl.float32', ALLOW_TF32='False', BLOCK_K=128, BLOCK_M=128, BLOCK_N=64, EVEN_K=True, GROUP_M=2, NUM_BLOCKS=8, NUM_BLOCKS_M=2, NUM_BLOCKS_N=4, NUM_SMS=8, NUM_TILES_PER_PROGRAM=1, WIDTH=8, num_stages=4, num_warps=4
-triton_npu_persistent_mm_162 0.0035 ms 99.2% ACC_TYPE='tl.float32', ALLOW_TF32='False', BLOCK_K=128, BLOCK_M=128, BLOCK_N=64, EVEN_K=True, GROUP_M=2, NUM_BLOCKS=8, NUM_BLOCKS_M=2, NUM_BLOCKS_N=4, NUM_SMS=8, NUM_TILES_PER_PROGRAM=1, WIDTH=8, num_stages=4, num_warps=4
-triton_npu_persistent_mm_179 0.0035 ms 99.1% ACC_TYPE='tl.float32', ALLOW_TF32='False', BLOCK_K=128, BLOCK_M=128, BLOCK_N=64, EVEN_K=True, GROUP_M=2, NUM_BLOCKS=8, NUM_BLOCKS_M=2, NUM_BLOCKS_N=4, NUM_SMS=8, NUM_TILES_PER_PROGRAM=1, WIDTH=8, num_stages=3, num_warps=8
-SingleProcess AUTOTUNE benchmarking takes 48.6676 seconds and 349.0871 seconds precompiling for 462 choices
+triton_npu_triton_mm_25 0.0031 ms 100.0% ACC_TYPE='tl.float32', ALLOW_HF32=False, ALLOW_TF32='False', BLOCK_K=128, BLOCK_M=100, BLOCK_N=64, GROUP_M=2, MASKED_K=False, MASKED_M=False, MASKED_N=False, num_stages=3, num_warps=4
+triton_npu_triton_mm_22 0.0032 ms 98.1% ACC_TYPE='tl.float32', ALLOW_HF32=False, ALLOW_TF32='False', BLOCK_K=128, BLOCK_M=100, BLOCK_N=128, GROUP_M=2, MASKED_K=False, MASKED_M=False, MASKED_N=False, num_stages=3, num_warps=4
+triton_npu_persistent_mm_70 0.0032 ms 97.3% ACC_TYPE='tl.float32', ALLOW_HF32=False, ALLOW_TF32='False', BLOCK_K=128, BLOCK_M=100, BLOCK_N=64, GROUP_M=2, MASKED_K=False, MASKED_M=False, MASKED_N=False, NUM_BLOCKS=8, NUM_BLOCKS_M=2, NUM_BLOCKS_N=4, NUM_SMS=8, NUM_TILES_PER_PROGRAM=1, WIDTH=8, num_stages=3, num_warps=4
+triton_npu_triton_mm_23 0.0032 ms 97.1% ACC_TYPE='tl.float32', ALLOW_HF32=False, ALLOW_TF32='False', BLOCK_K=128, BLOCK_M=100, BLOCK_N=128, GROUP_M=2, MASKED_K=False, MASKED_M=False, MASKED_N=False, num_stages=4, num_warps=4
+triton_npu_persistent_mm_76 0.0032 ms 96.9% ACC_TYPE='tl.float32', ALLOW_HF32=False, ALLOW_TF32='False', BLOCK_K=128, BLOCK_M=50, BLOCK_N=128, GROUP_M=4, MASKED_K=False, MASKED_M=False, MASKED_N=False, NUM_BLOCKS=8, NUM_BLOCKS_M=4, NUM_BLOCKS_N=2, NUM_SMS=8, NUM_TILES_PER_PROGRAM=1, WIDTH=8, num_stages=3, num_warps=4
+triton_npu_persistent_mm_71 0.0032 ms 96.4% ACC_TYPE='tl.float32', ALLOW_HF32=False, ALLOW_TF32='False', BLOCK_K=128, BLOCK_M=100, BLOCK_N=64, GROUP_M=2, MASKED_K=False, MASKED_M=False, MASKED_N=False, NUM_BLOCKS=8, NUM_BLOCKS_M=2, NUM_BLOCKS_N=4, NUM_SMS=8, NUM_TILES_PER_PROGRAM=1, WIDTH=8, num_stages=4, num_warps=4
+triton_npu_persistent_mm_68 0.0032 ms 96.3% ACC_TYPE='tl.float32', ALLOW_HF32=False, ALLOW_TF32='False', BLOCK_K=128, BLOCK_M=100, BLOCK_N=128, GROUP_M=2, MASKED_K=False, MASKED_M=False, MASKED_N=False, NUM_BLOCKS=4, NUM_BLOCKS_M=2, NUM_BLOCKS_N=2, NUM_SMS=4, NUM_TILES_PER_PROGRAM=1, WIDTH=4, num_stages=4, num_warps=4
+triton_npu_persistent_mm_67 0.0032 ms 96.2% ACC_TYPE='tl.float32', ALLOW_HF32=False, ALLOW_TF32='False', BLOCK_K=128, BLOCK_M=100, BLOCK_N=128, GROUP_M=2, MASKED_K=False, MASKED_M=False, MASKED_N=False, NUM_BLOCKS=4, NUM_BLOCKS_M=2, NUM_BLOCKS_N=2, NUM_SMS=4, NUM_TILES_PER_PROGRAM=1, WIDTH=4, num_stages=3, num_warps=4
+triton_npu_persistent_mm_77 0.0032 ms 95.9% ACC_TYPE='tl.float32', ALLOW_HF32=False, ALLOW_TF32='False', BLOCK_K=128, BLOCK_M=50, BLOCK_N=128, GROUP_M=4, MASKED_K=False, MASKED_M=False, MASKED_N=False, NUM_BLOCKS=8, NUM_BLOCKS_M=4, NUM_BLOCKS_N=2, NUM_SMS=8, NUM_TILES_PER_PROGRAM=1, WIDTH=8, num_stages=4, num_warps=4
+triton_npu_triton_mm_32 0.0032 ms 95.7% ACC_TYPE='tl.float32', ALLOW_HF32=False, ALLOW_TF32='False', BLOCK_K=128, BLOCK_M=50, BLOCK_N=128, GROUP_M=4, MASKED_K=False, MASKED_M=False, MASKED_N=False, num_stages=4, num_warps=4
+SingleProcess AUTOTUNE benchmarking takes 1.2920 seconds and 2.5798 seconds precompiling for 91 choices
 Wxxx.708000 2317919 site-packages/torch/_inductor/debug.py:518] [0/0] model__0_inference_0 debug trace: xxx
-[xxx] [WARNING] [2317919] profiler.py: Incorrect schedule: Stop profiler while current state is RECORD which may result in incomplete parsed data.
-[xxx] [INFO] [2331382] profiler.py: Start parsing profiling data in sync mode at: xxx
-[xxx] [INFO] [2331391] profiler.py: CANN profiling data parsed in a total time of 0:00:02.020406
-[xxx] [INFO] [2331382] profiler.py: All profiling data parsed in a total time of 0:00:03.191598
+[xxx] [WARNING] [2725544] profiler.py: Incorrect schedule: Stop profiler while current state is RECORD which may result in incomplete parsed data.
+[xxx] [INFO] [2725544] profiler.py: Start parsing profiling data: xxx
+[xxx] [INFO] [2725544] profiler.py: SimpleProfilingAnalyzer parsed in a total time of 0:00:00.186119
 ```
 
-如上所示的示例中，表明了inductor正在对 (512, 256) x (256, 1024)的matmul操作进行autotune的过程
+日志显示，Inductor正在对形状为`(200, 256)`和`(256, 256)`的两个矩阵的乘法进行自动调优。
 
 #### 运行结果
 
@@ -185,6 +87,7 @@ from torch import device, empty_strided
 from torch._inductor.async_compile import AsyncCompile
 from torch._inductor.select_algorithm import extern_kernels
 from torch_npu._C import _npu_getCurrentRawStream as get_raw_stream
+from torch._C._dynamo.guards import copy_if_misaligned
 import triton
 import triton.language as tl
 from torch._inductor.runtime.triton_heuristics import start_graph, end_graph
@@ -208,20 +111,24 @@ reinterpret_tensor = torch._C._dynamo.guards._reinterpret_tensor
 alloc_from_pool = torch.ops.inductor._alloc_from_pool
 async_compile = AsyncCompile()
 empty_strided_p2p = torch._C._distributed_c10d._SymmetricMemory.empty_strided_p2p
+import torch_npu
+empty_strided_npu = torch_npu._C._empty_strided_npu
 
 
-
-# Topologically Sorted Source Nodes: [mm], Original ATen: [aten.mm]
+# Topologically Sorted Source Nodes: [mm, relu], Original ATen: [aten.mm, aten.relu]
 # Source node to ATen node mapping:
 #   mm => mm
+#   relu => relu
 # Graph fragment:
 #   %arg0_1 : Tensor "f16[200, 256][256, 1]npu:0" = PlaceHolder[target=arg0_1]
 #   %arg1_1 : Tensor "f16[256, 256][1, 256]npu:0" = PlaceHolder[target=arg1_1]
+#   %mm : Tensor "f16[200, 256][256, 1]npu:0" = PlaceHolder[target=mm]
 #   %mm : Tensor "f16[200, 256][256, 1]npu:0"[num_users=1] = call_function[target=torch.ops.aten.mm.default](args = (%arg0_1, %arg1_1), kwargs = {})
-#   return %mm
-# SchedulerNodes: [SchedulerNode(name='op0')]
+#   %relu : Tensor "f16[200, 256][256, 1]npu:0"[num_users=1] = call_function[target=torch.ops.aten.relu.default](args = (%mm,), kwargs = {})
+#   return %mm,%relu
+# SchedulerNodes: [SchedulerNode(name='op0'), SchedulerNode(name='op1')]
 
-triton_npu_persistent_mm = async_compile.triton('triton_npu_persistent_mm', '''
+triton_tem_fused_mm_relu_0 = async_compile.triton('triton_tem_fused_mm_relu_0', '''
 import triton
 import triton.language as tl
 
@@ -238,26 +145,23 @@ from torch_npu._inductor.runtime import triton_helpers
 from torch_npu._inductor.runtime.triton_helpers import libdevice, extension, math as tl_math
 
 @triton_heuristics.template(
-    num_stages=2,
+    num_stages=3,
     num_warps=4,
-    triton_meta={'signature': {'arg_A': '*fp16', 'arg_B': '*fp16', 'out_ptr0': '*fp16'}, 'device': DeviceProperties(type='npu', index=0, multi_processor_count=56, cc='Ascend950PR_9579', major=None, regs_per_multiprocessor=None, max_threads_per_multi_processor=None, max_threads_per_block=None, warp_size=None), 'constants': {}, 'configs': [{(0,): [['tt.divisibility', 16]], (1,): [['tt.divisibility', 16]], (2,): [['tt.divisibility', 16]]}]},
-    inductor_meta={'kernel_name': 'triton_npu_persistent_mm', 'backend_hash': '5E441DC75500F0E6F24AA8AF77F3CC84D6023DAB25962F4AF0DC791A6526EC37', 'assert_indirect_indexing': True, 'autotune_local_cache': True, 'autotune_pointwise': True, 'autotune_remote_cache': None, 'force_disable_caches': False, 'dynamic_scale_rblock': True, 'max_autotune': True, 'max_autotune_pointwise': False, 'min_split_scan_rblock': 256, 'spill_threshold': 16, 'store_cubin': False, 'deterministic': False, 'force_filter_reduction_configs': False, 'are_deterministic_algorithms_enabled': False, 'grid_type': 'FixedGrid', 'fixed_grid': ['_grid_0', '_grid_1', '_grid_2'], 'extra_launcher_args': ['_grid_0', '_grid_1', '_grid_2'], 'BLOCK_M': 128, 'BLOCK_N': 64},
+    triton_meta={'signature': {'arg_A': '*fp16', 'arg_B': '*fp16', 'out_ptr1': '*fp16'}, 'device': DeviceProperties(type='npu', index=0, multi_processor_count=56, cc='Ascend950PR_9579', major=None, regs_per_multiprocessor=None, max_threads_per_multi_processor=None, max_threads_per_block=None, warp_size=None), 'constants': {}, 'configs': [{(0,): [['tt.divisibility', 16]], (1,): [['tt.divisibility', 16]], (2,): [['tt.divisibility', 16]]}]},
+    inductor_meta={'kernel_name': 'triton_tem_fused_mm_relu_0', 'backend_hash': 'ACD81A46BCFF346FDD2860106A525F1D988E397114CE6CCE2A7D252E0034D2FD', 'assert_indirect_indexing': True, 'autotune_local_cache': True, 'autotune_pointwise': True, 'autotune_remote_cache': None, 'force_disable_caches': False, 'dynamic_scale_rblock': True, 'incremental_autotune': False, 'max_autotune': True, 'max_autotune_pointwise': False, 'min_split_scan_rblock': 256, 'spill_threshold': 16, 'store_cubin': False, 'deterministic': False, 'batch_invariant': False, 'force_filter_reduction_configs': False, 'mix_order_reduction_allow_multi_stages': True, 'dynamic_disable_pipelining': True, 'are_deterministic_algorithms_enabled': False, 'grid_type': 'FixedGrid', 'fixed_grid': ['_grid_0', '_grid_1', '_grid_2'], 'extra_launcher_args': ['_grid_0', '_grid_1', '_grid_2'], 'BLOCK_M': 100, 'BLOCK_N': 64},
 )
 @triton.jit
-def triton_npu_persistent_mm(arg_A, arg_B, out_ptr0):
-    BLOCK_M : tl.constexpr = 128
+def triton_tem_fused_mm_relu_0(arg_A, arg_B, out_ptr1):
+    BLOCK_M : tl.constexpr = 100
     BLOCK_N : tl.constexpr = 64
     BLOCK_K : tl.constexpr = 128
     GROUP_M : tl.constexpr = 2
-    NUM_BLOCKS_M : tl.constexpr = 2
-    NUM_BLOCKS_N : tl.constexpr = 4
-    NUM_BLOCKS : tl.constexpr = 8
-    WIDTH : tl.constexpr = 8
-    NUM_SMS : tl.constexpr = 8
-    NUM_TILES_PER_PROGRAM : tl.constexpr = 1
-    ALLOW_TF32 : tl.constexpr = False
+    ALLOW_HF32 : tl.constexpr = False
     ACC_TYPE : tl.constexpr = tl.float32
-    EVEN_K : tl.constexpr = True
+    MASKED_M : tl.constexpr = False
+    MASKED_N : tl.constexpr = False
+    MASKED_K : tl.constexpr = False
+    ALLOW_TF32 : tl.constexpr = False
     INDEX_DTYPE : tl.constexpr = tl.int32
     A = arg_A
     B = arg_B
@@ -273,44 +177,53 @@ def triton_npu_persistent_mm(arg_A, arg_B, out_ptr0):
     stride_bk = 1
     stride_bn = 256
 
-    start_pid = tl.program_id(0).to(INDEX_DTYPE)
+    # based on triton.ops.matmul
+    pid = tl.program_id(0).to(INDEX_DTYPE)
+    grid_m = (M + BLOCK_M - 1) // BLOCK_M
+    grid_n = (N + BLOCK_N - 1) // BLOCK_N
 
-    # Offsets shared across all tiles handled by this program
-    rk_init = tl.arange(0, BLOCK_K)
+    # re-order program ID for better L2 performance
+    # Use super-grouping (GROUP_M) for improved L2 cache hit rate
+    width = GROUP_M * grid_n
+    group_id = pid // width
+    group_size = min(grid_m - group_id * GROUP_M, GROUP_M)
+    pid_m = group_id * GROUP_M + (pid % group_size)
+    pid_n = (pid % width) // group_size
 
-    # Iterate over the tiles assigned to this program.
-    # NUM_TILES_PER_PROGRAM is a compile-time constant (= ceil(NUM_BLOCKS / NUM_SMS)).
-    for tile_iter in range(NUM_TILES_PER_PROGRAM):
-        tile_id = start_pid + tile_iter * NUM_SMS
-        if tile_id < NUM_BLOCKS:
-            # ---- Super-grouping tile reordering ----
-            # Map linear tile_id → (pid_m, pid_n) with diagonal traversal.
-            # WIDTH = GROUP_M * NUM_BLOCKS_N (compile-time constant).
-            group_id = tile_id // WIDTH
-            pid_m = group_id * GROUP_M + (tile_id % GROUP_M)
-            pid_n = (tile_id % WIDTH) // GROUP_M
+    tl.assume(pid_m >= 0)
+    tl.assume(pid_n >= 0)
 
-            rm = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
-            rn = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
+    rm = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
+    rn = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
 
-            # ---- K-loop: accumulate matmul ----
-            acc = tl.zeros((BLOCK_M, BLOCK_N), dtype=ACC_TYPE)
-            for k_start in range(0, K, BLOCK_K):
-                offs_k = k_start + rk_init
 
-                a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak))
-                b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn))
 
-                acc += tl.dot(a, b, allow_tf32=ALLOW_TF32, out_dtype=ACC_TYPE)
 
-            # ---- Store output (inductor generates epilogue suffix) ----
-            rm = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
-            rn = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
-            idx_m = rm[:, None]
-            idx_n = rn[None, :]
-            mask = (idx_m < M) & (idx_n < N)
-            xindex = idx_n + 256*idx_m
-            tl.store(out_ptr0 + (tl.broadcast_to(xindex, [BLOCK_M, BLOCK_N])), acc, mask)
+    offs_k = tl.arange(0, BLOCK_K)
+    acc = tl.zeros((BLOCK_M, BLOCK_N), dtype=ACC_TYPE)
+
+    for k_idx in range(0, tl.cdiv(K, BLOCK_K)):
+        offs_k = k_idx * BLOCK_K + tl.arange(0, BLOCK_K)
+
+
+        a = tl.load(A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak))
+
+
+        b = tl.load(B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn))
+
+        acc += tl.dot(a, b, out_dtype=ACC_TYPE)
+
+    # rm, rn, and m_mask are reused from above (no rematerialization).
+    idx_m = rm[:, None]
+    idx_n = rn[None, :]
+    mask = (idx_m < M) & (idx_n < N)
+
+    # inductor generates a suffix
+    xindex = idx_n + 256*idx_m
+    tmp0 = tl.full([1], 0, tl.int32)
+    tmp1 = triton_helpers.maximum(tmp0, acc)
+    tl.store(out_ptr1 + (tl.broadcast_to(xindex, [BLOCK_M, BLOCK_N])), tmp1, mask)
+    tl.store(out_ptr1 + (tl.broadcast_to(xindex, [BLOCK_M, BLOCK_N])), tmp1, mask)
 ''', device_str='npu')
 
 
@@ -332,29 +245,37 @@ class Runner:
         args.clear()
         with torch.npu.utils.device(0):
             torch.npu.set_device(0)
-            buf0 = empty_strided((200, 256), (256, 1), device='npu', dtype=torch.float16)
-            # Topologically Sorted Source Nodes: [mm], Original ATen: [aten.mm]
-            stream0 = get_raw_stream(0)
-            triton_npu_persistent_mm.run(arg0_1, arg1_1, buf0, 8, 1, 1, stream=stream0)
+            arg0_1 = copy_if_misaligned(arg0_1)
+            arg1_1 = copy_if_misaligned(arg1_1)
+            buf1 = empty_strided_npu((200, 256), (256, 1), torch.float16)
+            # Topologically Sorted Source Nodes: [mm, relu], Original ATen: [aten.mm, aten.relu]
+            raw_stream0 = get_raw_stream(0)
+            triton_tem_fused_mm_relu_0.run(arg0_1, arg1_1, buf1, 8, 1, 1, stream=raw_stream0)
             del arg0_1
             del arg1_1
-        return (buf0, )
+        return (buf1, )
 
 runner = Runner(partitions=[])
 call = runner.call
 recursively_apply_fns = runner.recursively_apply_fns
 
 
-def benchmark_compiled_module(times=10, repeat=10):
+def get_args():
     from torch._dynamo.testing import rand_strided
-    from torch._inductor.utils import print_performance
     arg0_1 = rand_strided((200, 256), (256, 1), device='npu:0', dtype=torch.float16)
     arg1_1 = rand_strided((256, 256), (1, 256), device='npu:0', dtype=torch.float16)
-    fn = lambda: call([arg0_1, arg1_1])
-    return print_performance(fn, times=times, repeat=repeat)
+    return [arg0_1, arg1_1]
+
+
+def benchmark_compiled_module(args, times=10, repeat=10):
+    from torch._inductor.utils import print_performance
+    fn = lambda: call(list(args))
+    return print_performance(fn, times=times, repeat=repeat, device='npu')
 
 
 if __name__ == "__main__":
     from torch._inductor.wrapper_benchmark import compiled_module_main
-    compiled_module_main('None', benchmark_compiled_module)
+    args = get_args()
+    compiled_module_main('None', lambda times, repeat: benchmark_compiled_module(args, times=times, repeat=repeat))
+
 ```
