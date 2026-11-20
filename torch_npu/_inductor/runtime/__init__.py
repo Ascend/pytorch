@@ -1,4 +1,5 @@
 from .autotune_cache import patch_load_cached_autotuning
+from .runtime_utils import patch_triton_config_to_hashable
 from .hints import patch_create_device_properties
 from .triton_helpers import *
 from .triton_heuristics import patch_triton_heuristics_cached_autotune

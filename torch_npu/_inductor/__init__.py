@@ -87,9 +87,13 @@ def _load_dvm_backend():
     from torch_npu.utils._dynamo import has_triton_ascend
     if has_triton_ascend():
         from .codegen.triton import patch_gen_common_triton_ext_imports, patch_triton_scheduling
-        from .runtime import patch_triton_heuristics_cached_autotune
+        from .runtime import (
+            patch_triton_config_to_hashable,
+            patch_triton_heuristics_cached_autotune,
+        )
         patch_gen_common_triton_ext_imports()
         patch_triton_scheduling()
+        patch_triton_config_to_hashable()
         patch_triton_heuristics_cached_autotune()
 
 
@@ -160,6 +164,7 @@ def _load_triton_backend():
     from .runtime import (
         patch_create_device_properties,
         patch_load_cached_autotuning,
+        patch_triton_config_to_hashable,
         patch_triton_heuristics_cached_autotune,
     )
     from .scheduler import patch_scheduler, patch_get_graph_partition_signature
@@ -260,6 +265,7 @@ def _load_triton_backend():
     patch_fixed_indexer()
     patch_triton_scheduling()
 
+    patch_triton_config_to_hashable()
     patch_create_device_properties()
     patch_load_cached_autotuning()
     patch_triton_heuristics_cached_autotune()

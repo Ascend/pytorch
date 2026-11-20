@@ -275,6 +275,15 @@ def do_bench_using_profiling_npu(fn, warmup=2, rep=10, grad_to_none=None, quanti
     return _summarize_statistics(torch.tensor(times), quantiles, return_mode)
 
 
+@dataclasses.dataclass(eq=False)
+class _BenchmarkConfig:
+    # Identity keys keep candidates that share one compiled launcher distinct.
+    config: Config
+    n_regs: int
+    n_spills: int
+    shared: int
+
+
 @dataclasses.dataclass
 class GridNpu(GridExpr):
     numels: List[str] = None
@@ -1640,7 +1649,17 @@ class NPUCachingAutotuner(CachingAutotuner):
                 self.candidate_plan = build_candidate_plan(
                     self.configs, getattr(self, "runtime_block_arg_names", ())
                 )
-            return self._benchmark_candidate_entries(*args, **kwargs)
+            timings = self._benchmark_candidate_entries(*args, **kwargs)
+            # The wrapper benchmark consumes launcher metadata, not candidate IDs.
+            return {
+                _BenchmarkConfig(
+                    config_from_dict(entry["candidate"]["full_config"]),
+                    entry["launcher"].n_regs,
+                    entry["launcher"].n_spills,
+                    entry["launcher"].shared,
+                ): timings[entry["candidate"]["candidate_id"]]
+                for entry in self.compiled_candidate_entries
+            }
 
 
     def _should_skip_autotune_for_determinism(self):
