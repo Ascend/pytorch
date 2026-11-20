@@ -736,7 +736,7 @@ if DEBUG:
     extra_compile_args += ['-O0', '-g']
     extra_link_args += ['-O0', '-g', '-Wl,-z,now']
 else:
-    extra_compile_args += ['-DNDEBUG']
+    extra_compile_args += ['-DNDEBUG', '-D_FORTIFY_SOURCE=2']
     extra_link_args += ['-Wl,-z,now']
 
 # valid manylinux tags
