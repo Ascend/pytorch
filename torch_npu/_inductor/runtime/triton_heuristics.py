@@ -926,6 +926,7 @@ class NPUCachingAutotuner(CachingAutotuner):
             options,
         )
         options = self.parse_triton_ascend_options(cfg_kwargs, options)
+        options["block_batching_factor"] = 1
 
         from triton.compiler.code_generator import ast_to_ttir
         from triton.compiler.compiler import make_backend
@@ -1138,6 +1139,8 @@ class NPUCachingAutotuner(CachingAutotuner):
             options = self.parse_triton_ascend_options(
                 {"enable_auto_blockify": True}, options
             )
+        # Disable block batching after applying template and autotune options.
+        options["block_batching_factor"] = 1
 
         compile_kwargs = {
             "target": target,
