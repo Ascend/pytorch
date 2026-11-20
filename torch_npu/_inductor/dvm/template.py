@@ -238,6 +238,7 @@ def _disable_addmm_fusion_for_dvm():
 
 
 def _register_dvm_mm_template_decompositions():
+    from ..decomposition import _matmul_backward_inductor
     from .decomp import _register_inductor_decomposition_safe
 
     def npu_linear(input, weight, bias=None):
@@ -260,6 +261,7 @@ def _register_dvm_mm_template_decompositions():
     for op, fn in (
         (torch.ops.npu.npu_linear.default, npu_linear),
         (torch.ops.npu.npu_linear_backward.default, npu_linear_backward),
+        (aten.matmul_backward.default, _matmul_backward_inductor),
     ):
         if (
             op in dvm_config.disable_decomp_list
