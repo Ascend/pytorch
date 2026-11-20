@@ -7549,6 +7549,12 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::barrier(const c10d::BarrierOpti
   return work;
 }
 
+void ProcessGroupHCCL::eagerConnectSingleDevice(at::Device device) {
+  const auto key = getKeyFromDevices({device});
+  TORCH_NPU_HCCL_LOGI("Eagerly connecting HCCL backend with device %s, key %s.", device.str().c_str(), key.c_str());
+  getHCCLComm(key, {device});
+}
+
 void ProcessGroupHCCL::startCoalescing() {
   coalescedDevice_.set_index(-1);
   coalescedComm_ = nullptr;

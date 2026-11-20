@@ -717,6 +717,8 @@ class C10_NPU_API ProcessGroupHCCL : public c10d::Backend {
     return std::string(HCCL_BACKEND_NAME);
   }
 
+  void eagerConnectSingleDevice(at::Device device) override;
+
   bool supportsCoalescing() const override {
     return true;
   }
