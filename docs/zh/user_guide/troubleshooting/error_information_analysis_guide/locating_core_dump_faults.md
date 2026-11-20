@@ -25,7 +25,7 @@
     > [!NOTE]
     >
     > - 以下命令需要root权限执行，请提前使用sudo或切换至root用户。
-    > - 请确保`{path_to_coredump}`目录已提前创建，否则coredump文件将无法生成。
+    > - 请确保`{path_to_coredump}`目录已提前创建，否则core dump文件将无法生成。
 
     ```bash
     # 临时修改生成的core dump文件的名称
@@ -45,20 +45,20 @@
     > - 默认情况下，未开启core文件配置，不会生成core dump文件。
     > - 如果为容器场景，请确保core dump文件产生的路径挂载在容器外，容器销毁后该文件仍然存在。
 
-## gdb调试core文件
+## GDB调试core文件
 
-gdb命令行调试主要针对core dump场景，执行脚本后会在当前目录下生成core dump文件，使用gdb调试该文件并打印堆栈，方法如下：
+GDB命令行调试主要针对core dump场景，执行脚本后会在前文设置的core dump文件存储目录下生成core dump文件，请进入对应目录或使用实际路径，使用GDB调试该文件并打印堆栈，方法如下：
 
 1. 参考[GDB官方文档](https://sourceware.org/gdb/)安装GDB。
 2. 调试core dump文件。
 
-    执行如下命令进入gdb模式，调试core dump文件。
+    执行如下命令进入GDB模式，调试core dump文件。
 
     ```bash
     gdb python3 core*.*    # core dump文件名请根据用户自己的设置修改
     ```
 
-    执行命令后，gdb工具将进入交互模式。此时可执行相关命令查看发生异常的代码、该函数、文件名和所在文件的行数，方便定位问题。
+    执行命令后，GDB工具将进入交互模式。此时可执行相关命令查看发生异常的代码、该函数、文件名和所在文件的行数，方便定位问题。
 
     > [!NOTE]
     >
@@ -68,10 +68,10 @@ gdb命令行调试主要针对core dump场景，执行脚本后会在当前目�
 
     ```gdb
     (gdb) bt        # 查看堆栈
-    (gdb) thread apply all bt     # 查看所有进程的堆栈
+    (gdb) thread apply all bt     # 查看所有线程的堆栈
     ```
 
     根据回显中的函数堆栈找到出错的位置。
 
     **图 1**  查看堆栈
-    ![](../../../figures/viewing_stack.png "查看堆栈")
+    ![gdb执行bt和thread apply all bt命令后输出的函数调用堆栈回显，用于定位出错位置](../../../figures/viewing_stack.png "查看堆栈")

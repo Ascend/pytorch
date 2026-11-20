@@ -2,7 +2,7 @@
 
 ## ERR\*\*001
 
-该错误码代表存在无效传参。“\*\*”表示不同模块，例如ERR00001，“ERR”后面的“00”代表PTA模块，ERR00001代表在PTA侧存在无效参数。
+该错误码表示存在无效传参。“\*\*”表示不同模块，例如ERR00001，“ERR”后面的“00”代表PTA模块，ERR00001代表在PTA侧存在无效参数。
 
 **Symptom**
 
@@ -18,7 +18,7 @@ Check if the input parameters are as expected.
 
 ## ERR\*\*002
 
-该错误码代表参数类型错误。“\*\*”表示不同模块，ERR01002代表在OPS算子侧存在错误的参数类型，ERR04002代表在profiling模块中存在错误的参数类型。
+该错误码代表参数类型错误。“\*\*”表示不同模块，ERR01002代表在OPS算子侧存在错误的参数类型，ERR04002代表在PROF模块中存在错误的参数类型。
 
 **Symptom**
 
@@ -162,7 +162,7 @@ System call returns some errors.
 
 **Solution**
 
-Submit an issue to request for support at  [https://gitcode.com/Ascend/pytorch/issues](https://gitcode.com/Ascend/pytorch/issues).
+Submit an issue to request for support at [https://gitcode.com/Ascend/pytorch/issues](https://gitcode.com/Ascend/pytorch/issues).
 
 ## ERR\*\*011
 
@@ -190,7 +190,7 @@ Submit an issue to request for support at  [https://gitcode.com/Ascend/pytorch/i
 
 **Symptom**
 
-\[%s\]. ERR00012 PTA permission error.
+\[%s\] ERR00012 PTA permission error.
 
 **Possible Cause**
 
@@ -225,7 +225,7 @@ Check CANN-related errors in logs and find the CANN Error Code.
 
 **Symptom**
 
-\[%s\] ERR02200 DIST call hccl api failed.
+\[%s\] ERR02200 DIST call HCCL API failed.
 
 **Possible Cause**
 
@@ -244,7 +244,7 @@ Check CANN-related errors in logs and find the CANN Error Code.
 
 **Symptom**
 
-\[%s\] ERR00300 PTA call ge api failed.
+\[%s\] ERR00300 PTA call GE API failed.
 
 **Possible Cause**
 
@@ -254,7 +254,7 @@ Calling the GE API returns some errors.
 
 Check CANN-related errors in logs and find the CANN Error Code.
 
-> [!NOTE]  
+> [!NOTE]
 > CANN软件相关报错的详细介绍请参见《[CANN 故障处理](https://gitcode.com/cann/docs/blob/9.2.0/docs/zh/troubleshooting/troubleshooting_intro.md)》。
 
 ## ERR\*\*999

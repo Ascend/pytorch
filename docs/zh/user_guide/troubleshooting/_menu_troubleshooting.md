@@ -1,7 +1,7 @@
 # 故障处理
 
 - [故障处理流程](troubleshooting_process.md)
-- [Error Code介绍](error_code_description/_menu_error_code_description.md)
+- [错误码介绍](error_code_description/_menu_error_code_description.md)
   - [使用说明](error_code_description/error_code_mechanism.md)
   - [错误码信息](error_code_description/error_code_information.md)
 
@@ -17,7 +17,7 @@
   - [Core Dump问题定位](error_information_analysis_guide/locating_core_dump_faults.md)
 
 - [故障案例集](troubleshooting_cases/_menu_troubleshooting_cases.md)
-  - [通信算子传入非连续tensor](troubleshooting_cases/communication_operator_transfers_Non-contiguous_tensors.md)
+  - [通信算子传入非连续Tensor](troubleshooting_cases/communication_operator_transfers_Non-contiguous_tensors.md)
   - [调用算子参数校验失败](troubleshooting_cases/failed_verify_op_parameters.md)
   - [分布式任务端口号被占用](troubleshooting_cases/port_number_distributed_task_in_use.md)
   - [用于梯度计算的变量被inplace操作](troubleshooting_cases/variables_used_gradient_computation_modified_by_in-place_op.md)

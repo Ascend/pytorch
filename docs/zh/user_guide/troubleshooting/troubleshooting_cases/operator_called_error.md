@@ -2,7 +2,7 @@
 
 ## 问题现象描述
 
-关键词"**Cannot find bin of op ...**"
+关键词“**Cannot find bin of op ...**”
 
 ```output
 Traceback (most recent call last):

@@ -4,8 +4,8 @@
 
 获取报错信息后可参考以下流程进行自助式问题分析，以便开发者快速定位并解决故障。
 
-**图 1**  报错信息分析流程  
-![](../../../../figures/error_information_analysis_process.png "报错信息分析流程")
+**图 1** 报错信息分析流程  
+![报错信息分析流程：先查看首报错，再按错误信息分类排查，最后查看plog日志辅助定位故障](../../../../figures/error_information_analysis_process.png "报错信息分析流程")
 
 1. 查看屏幕打印的错误信息，先查看首报错，再进一步根据具体信息分类进行查看，最后分析故障原因。
 2. 如果回显信息无法最终确定故障发生原因，可继续查看plog日志协助分析。
@@ -14,8 +14,8 @@
 
 本节以下图回显信息为例，介绍如何进行报错信息分析。
 
-**图 2**  回显信息示例  
-![](../../../../figures/example.png "回显信息示例")
+**图 2** 回显信息示例  
+![回显信息示例：屏幕打印的CANN错误码EZ3002报错内容，提示算子内核不支持及原因](../../../../figures/example.png "回显信息示例")
 
 1. 查看回显信息中的首报错。
 
@@ -27,8 +27,8 @@
 
 2. 查看Python调用栈和异常信息。
 
-    **图 3**  Python调用栈  
-    ![](../../../../figures/python_call_stack.png "Python调用栈")
+    **图 3** Python调用栈  
+    ![Python调用栈截图：调用npu.synchronize()后_npu_synchronize()失败，报错算子为ReduceAny](../../../../figures/python_call_stack.png "Python调用栈")
 
     屏幕中显示先调用`torch_npu.npu.synchronize()`，继而调用`torch_npu._C._npu_synchronize()`失败。异常信息显示报错时正在运行的算子是ReduceAny，可据此找到对应异常组件，如果没有明确错误指向，需继续查看后续调用。
 
@@ -42,10 +42,10 @@
 
 4. 另外，此处表明TorchNPU调用底层接口报错，还可以查看plog日志，根据日志中的首报错分析故障原因。
 
-    **图 4**  plog日志中查找报错组件  
-    ![](../../../../figures/locate_component_reports_error_plog.png "plog日志中查找报错组件")
+    **图 4** plog日志中查找报错组件  
+    ![plog日志截图：报错组件为ASCENDCL，报错算子为DynamicGRUV2，用于定位异常组件](../../../../figures/locate_component_reports_error_plog.png "plog日志中查找报错组件")
 
-    上述打印信息中的报错组件为ASCENDCL，报错信息为算子DynamicGRUV2，可据此找到对应异常组件，如果仍然不能根据报错信息明确故障组件，请提交[GitCode Issues](https://gitcode.com/Ascend/pytorch/issues)获取帮助。
+    上述打印信息中的报错组件为AscendCL，报错信息为算子DynamicGRUV2，可据此找到对应异常组件，如果仍然不能根据报错信息明确故障组件，请提交[GitCode Issues](https://gitcode.com/Ascend/pytorch/issues)获取帮助。
 
-> [!NOTE]  
+> [!NOTE]
 > 如果回显信息出现原生框架报错，请根据报错信息指向进行解决，如果涉及昇腾相关，可查看除此之外的昇腾首报错信息。

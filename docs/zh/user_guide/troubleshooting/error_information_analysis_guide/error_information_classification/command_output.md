@@ -9,18 +9,18 @@
 
 ## Python调用栈和异常信息
 
-Python报错时，会将当时的堆栈打印在屏幕上，用户可通过搜索关键字“Traceback”查看Python应用程序的堆栈。如果存在多个堆栈信息时，优先查看第一个Traceback，如[图1](#查看Python应用程序的堆栈信息)所示。
+Python报错时，会将当时的调用栈打印在屏幕上，用户可通过搜索关键字“Traceback”查看Python应用程序的调用栈。如果存在多个调用栈信息时，优先查看第一个Traceback，如[图1](#查看Python应用程序的调用栈信息)所示。
 
-**图 1**  查看Python应用程序的堆栈信息<a id="查看Python应用程序的堆栈信息"></a>  
-![](../../../../figures/viewing_stack_information_python_applications.png)
+**图1** 查看Python应用程序的调用栈信息<a id="查看Python应用程序的调用栈信息"></a>  
+![Python报错时屏幕打印的Traceback调用栈回显，末尾调用栈落在TorchNPU的set_autocast_enabled接口](../../../../figures/viewing_stack_information_python_applications.png)
 
 如上回显信息示例中，用户可以看到最后的调用栈在TorchNPU的`set_autocast_enabled`接口上，一般情况下您可以到[昇腾社区](https://gitcode.com/Ascend/pytorch/issues)提交issue获取帮助。
 
-若最后的调用栈在原生torch上，则可以顺着堆栈向上找与昇腾相关的堆栈，若整个堆栈没有昇腾相关的堆栈，则排查模型训练脚本本身是否有问题。
+若最后的调用栈在原生PyTorch上，则可以顺着调用栈向上找与昇腾相关的调用栈，若整个调用栈没有昇腾相关的调用栈，则排查模型训练脚本本身是否有问题。
 
 ## TorchNPU错误码
 
-在模型训练过程中，打印的错误码信息可能因场景、模式、故障原因的不同而有所区别。因此，需要结合具体的报错信息以及plog日志等共同定位，TorchNPU错误码相关详细介绍可参见[Error Code介绍](../../error_code_description/_menu_error_code_description.md)。
+在模型训练过程中，打印的错误码信息可能因场景、模式、故障原因的不同而有所区别。因此，需要结合具体的报错信息以及plog日志等共同定位，TorchNPU错误码相关详细介绍可参见[错误码介绍](../../error_code_description/_menu_error_code_description.md)。
 
 错误码在回显中的表示形式为：
 
@@ -32,12 +32,12 @@ Python报错时，会将当时的堆栈打印在屏幕上，用户可通过搜�
 
 例如，E10035错误码在手册中的表示形式为：
 
-E10035: \[PID:  _xxxxxx_\]  _时间戳_  The \[--dynamic\_batch\_size\], \[--dynamic\_image\_size\], or \[--dynamic\_dims\] argument has  \[%s\] profiles, which is less than the minimum \[%s\].
+E10035: \[PID: _xxxxxx_\]  _时间戳_  The \[--dynamic\_batch\_size\], \[--dynamic\_image\_size\], or \[--dynamic\_dims\] argument has  \[%s\] profiles, which is less than the minimum \[%s\].
 
 如[图2](#CANN软件错误码回显示例)所示，既有Python调用栈错误，又有TorchNPU错误码（ERR00100）以及CANN软件错误码（EZ3002）。用户可以从如下示例中看到CANN软件错误码在最前端，因此主要关注其报错信息。从报错信息中可以看到存在不支持的算子，一般情况下您可以获取日志后单击[Link](https://www.hiascend.com/support)联系技术支持。
 
-**图 2**  CANN软件错误码回显示例<a id="CANN软件错误码回显示例"></a>  
-![](../../../../figures/CANN_software_error_code.png "CANN软件错误码回显示例")
+**图2** CANN软件错误码回显示例<a id="CANN软件错误码回显示例"></a>  
+![混合错误回显示例：CANN软件错误码EZ3002位于最前端，其后为TorchNPU错误码ERR00100和Python调用栈](../../../../figures/CANN_software_error_code.png "CANN软件错误码回显示例")
 
 ## 原生框架报错信息
 

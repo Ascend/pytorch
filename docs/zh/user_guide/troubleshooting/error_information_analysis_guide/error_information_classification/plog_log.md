@@ -2,20 +2,20 @@
 
 应用程序运行完成后，默认可在“$HOME/ascend/log”下查看其应用类日志，如下图所示。
 
-**图 1**  应用类日志  
-![](../../../../figures/application_logs.png)
+**图 1** 应用类日志  
+![$HOME/ascend/log目录下的应用类日志文件，展示应用程序运行后生成的应用日志](../../../../figures/application_logs.png)
 
 其中，plog日志可在“$HOME/ascend/log/debug/plog”下查看，如下图所示。该路径下存放了Host侧运行应用程序产生的调试日志，主要包括compiler中各组件（如GE、FE、AI CPU、TBE、HCCL等）、Runtime中各组件（如AscendCL、GE、Runtime等）、AI框架（如TorchNPU）和Driver用户态日志。
 
-**图 2**  获取plog日志  
-![](../../../../figures/obtaining_plog_logs.png)
+**图 2** 获取plog日志  
+![$HOME/ascend/log/debug/plog目录下的Host侧调试日志列表，包含GE、HCCL等组件生成的plog文件](../../../../figures/obtaining_plog_logs.png)
 
 如[图3](#plog日志示例_HCCL)所示，用户可以从中查看日志级别（例如“ERROR”）和产生日志的模块名称（例如“HCCL”）。
 
-**图 3**  plog日志示例（HCCL）<a id="plog日志示例_HCCL"></a>  
-![](../../../../figures/plog_log_HCCL.png)
+**图 3** plog日志示例（HCCL）<a id="plog日志示例_HCCL"></a>  
+![plog日志内容示例，可见日志级别ERROR与产生日志的模块名HCCL](../../../../figures/plog_log_HCCL.png)
 
-**图 4**  plog日志示例（底层报错OOM）
+**图 4** plog日志示例（底层报错OOM）
 ![](../../../../figures/plog_log_OOM.png)
 
 > [!NOTE]

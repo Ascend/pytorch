@@ -2,7 +2,7 @@
 
 ## 问题现象描述
 
-关键字"Warning: CAUTION: The operator 'xxx' is not currently supported on the NPU backend and will fall back to run on the CPU. This may have performance implications. \(function npu\_cpu\_fallback\)"
+关键字“Warning: CAUTION: The operator 'xxx' is not currently supported on the NPU backend and will fall back to run on the CPU. This may have performance implications. \(function npu\_cpu\_fallback\)”
 
 ```text
 [W compiler_depend.ts:51] Warning: CAUTION: The operator 'aten::linalg_lstsq.out' is not currently supported on the NPU backend and will fall back to run on the CPU. This may have performance implications. (function npu_cpu_fallback)
@@ -17,7 +17,7 @@ RuntimeError: _copy_from_and_resize now only support copy with same size!
 
 当模型运行时，系统会打印该错误码“ERR01007”。
 
-调用了在NPU上还不支持的算子。
+原因在于模型调用了NPU尚不支持的算子，PyTorch因此将该算子回退到CPU上执行。
 
 ## 解决措施
 

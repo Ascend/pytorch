@@ -1,4 +1,4 @@
-# 通信算子传入非连续tensor
+# 通信算子传入非连续Tensor
 
 ## 问题现象描述
 
@@ -20,8 +20,8 @@ RuntimeError: Tensors must be contiguous
 
 ## 原因分析
 
-由于通信算子传入非连续tensor，导致启动分布式任务时报错，并打印错误码“ERR02002”。
+由于通信算子传入非连续Tensor，导致启动分布式任务时报错，并打印错误码“ERR02002”。
 
 ## 解决措施
 
-代码脚本可能存在问题。根据日志信息找到报错的代码行，检查输入数据的连续性。建议在调用通信算子前添加`.contiguous()`方法，例如：`input_tensor = input_tensor.contiguous()`，以保证通信算子传入的tensor是连续的。
+代码脚本可能存在问题。根据日志信息找到报错的代码行，检查输入数据的连续性。建议在调用通信算子前添加`.contiguous()`方法，例如：`input_tensor = input_tensor.contiguous()`，以保证通信算子传入的Tensor是连续的。

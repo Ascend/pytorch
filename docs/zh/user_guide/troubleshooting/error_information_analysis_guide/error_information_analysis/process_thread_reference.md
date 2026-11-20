@@ -19,14 +19,14 @@
 | intra-op线程池 | python3（与主线程同名） | torch | 算子内部并行计算线程池（矩阵乘法、卷积等CPU后端操作），可通过 `torch.set_num_threads(n)` 控制。import torch时创建，默认64线程。torchrun场景下自动设置 `OMP_NUM_THREADS=1`，线程池缩减为1。 |
 | CANN初始化线程 | AtraceMonitor | CANN | Ascend Trace监控线程，管理ATrace数据采集生命周期。因TorchNPU通过 `TORCH_DEVICE_BACKEND_AUTOLOAD` 自动加载，import torch即触发CANN初始化。 |
 | CANN初始化线程 | WatchdogMonitor | CANN | ACL Runtime看门狗线程，检测运行时异常（超时、hang）。import torch时创建。 |
-| CANN初始化线程 | PlogFlush | CANN | Plog日志异步刷盘线程，import torch时创建。可通过 `ASCEND_GLOBAL_LOG_LEVEL` 控制日志级别。 |
+| CANN初始化线程 | PlogFlush | CANN | Plog日志异步刷盘线程，import torch时创建，可通过 `ASCEND_GLOBAL_LOG_LEVEL` 控制日志级别。 |
 | ACL Runtime线程 | adx_data_dump_t | CANN | 调试数据dump线程。set_device时创建，每个设备一个。 |
 | ACL Runtime线程 | PlogReportRecv | CANN | Plog日志上报接收线程，收集并分发各组件日志。set_device时创建。 |
 | ACL Runtime线程 | TraceClientRecv | CANN | Trace客户端接收线程，接收并处理设备侧trace数据。set_device时创建。 |
 | ACL Runtime线程 | MONITOR_0 | CANN | 设备监控线程，监控设备健康状态、温度、功耗。线程名中数字对应设备编号，每个NPU一个。set_device时创建。 |
 | ACL Runtime线程 | REPORT_RAS | CANN | RAS硬件可靠性事件上报线程。set_device时创建。 |
 | ACL Runtime线程 | RT_RECYCLE | CANN | Runtime资源异步回收线程。set_device时创建。 |
-| TaskQueue线程 | acl_thread | TorchNPU | 二级流水TaskQueue的consumer线程，从host侧取task下发到NPU，每个设备一个。首次计算时创建。与环境变量 `TASK_QUEUE_ENABLE` 配合使用。 |
+| TaskQueue线程 | acl_thread | TorchNPU | 二级流水TaskQueue的consumer线程，从Host侧取task下发到NPU，每个设备一个。首次计算时创建。与环境变量 `TASK_QUEUE_ENABLE` 配合使用。 |
 | TaskQueue线程 | release_thread | TorchNPU | 与acl_thread配对，异步释放acl_thread中存放的event/tensor资源。首次计算时创建。 |
 | 算子编译线程 | AOE_RTKB | CANN | AOE Runtime Knowledge Base线程池（8线程），算子tiling策略搜索与缓存。非标量算子（如fp16 addmm）经aclop路径首次编译时创建；简单标量算子（如标量加法）不触发。 |
 
@@ -39,20 +39,20 @@
 | 多卡训练 | torchrun子进程 | torch | 每个NPU一个独立训练子进程（OS名 `python3`）。torchrun自动设 `OMP_NUM_THREADS=1`，intra-op线程池缩减。 |
 | 多卡训练 | hccl_watchdog_t | TorchNPU | HCCL通信看门狗，检测通信超时或进程挂起。`init_process_group(backend='hccl')` 时创建，每rank一个。 |
 | 多卡训练 | pt_tcpstore_uv | torch | TCPStore后台通信线程（libuv），TCP事件循环和进程间键值同步。分布式init时创建。 |
-| 多卡训练 | Hccl_HeartBeat | TorchNPU | HCCL心跳监控线程，独立于watchdog。首次集合通信时创建，每rank一个。 |
+| 多卡训练 | Hccl_HeartBeat | TorchNPU | HCCL心跳监控线程，独立于Watchdog。首次集合通信时创建，每rank一个。 |
 | 多卡训练 | HcclIntra_0 | CANN | HCCL节点内通信线程。首次集合通信时创建。 |
 | 多卡训练 | hccp_epoll | CANN | HCCL通信epoll事件循环线程。首次集合通信时创建。 |
 | 多卡训练 | hccp_connect | CANN | HCCL通信连接建立线程。首次集合通信时创建，连接建立后即刻销毁（短生命周期）。 |
 | 多卡训练 | Hccl_TopoDetect | CANN | HCCL拓扑检测线程。HCCL通信超时期间创建，用于检测集群拓扑连接状态。短生命周期。 |
 | 多卡训练 | CaffeTaskThread（×5） | TorchNPU | NPUEventManager线程池（5线程），NPU Event异步销毁和管理。大量Event操作或首次集合通信时触发。 |
 | 反向传播 | pt_autograd_0~7（×8） | torch | Autograd反向传播引擎线程池（8线程）。首次 `loss.backward()` 或 `torch.compile()` 时懒初始化，创建后永久驻留。 |
-| torch.compile | ThreadPoolExecutor（×128） | torch | Inductor异步编译线程池（Python `ThreadPoolExecutor`，128线程），并行处理kernel编译。首次编译时创建，不回收。线程名 `ThreadPoolExecutor-0_*`。 |
+| torch.compile | ThreadPoolExecutor（×128） | torch | Inductor异步编译线程池（Python `ThreadPoolExecutor`，128线程），并行处理Kernel编译。首次编译时创建，不回收。线程名 `ThreadPoolExecutor-0_*`。 |
 | torch.compile | AsyncCompile子进程（×32） | torch | Inductor编译worker子进程池（32进程），OS进程名 `python3`，命令行 `torch._inductor.compile_worker`。fork自父进程，需 `ps aux` 查看命令行确认。 |
 | torch.compile | TuningProcess子进程 | torch | Kernel参数自动调优子进程。max-autotune模式下触发，编译完成后不回收。 |
 | 算子编译 | AOE_RTKB（×8） | CANN | aclop路径TBE算子编译复用此线程池，不启动独立TBE编译子进程。 |
 | inter-op线程池 | python3（线程数增加） | torch | 算子间并行执行线程池（懒初始化）。ONNX导出、torch.compile等首次触发inter-op并行时创建，创建后不回收。默认256线程。 |
 | Profiling | NPUProfiler | TorchNPU | Profiler主控线程。profiling期间创建，结束后回收。 |
-| Profiling | MSVP_ProfTask / MSVP_Dev_\* / MSVP_Upld_\* / MSVP_ChanPool_0~7 | CANN (msprof) | msprof数据采集线程组：设备数据采集、上传、通道管理。profiling期间创建，结束后全部回收。 |
+| Profiling | MSVP_ProfTask / MSVP_Dev_\* / MSVP_Upld_\* / MSVP_ChanPool_0~7 | CANN (msProf) | msProf数据采集线程组：设备数据采集、上传、通道管理。profiling期间创建，结束后全部回收。 |
 | Profiling | Profiling解析子进程 | TorchNPU | profiling结束后通过 `subprocess.run` 调用 `msprof --export` / `msprof --analyze` 解析数据。 |
 | Profiling | DynamicProfilerMonitor子进程 | TorchNPU | 动态Profiler后台监控daemon子进程。设置 `DynamicProfilerUtils.CFG_CONFIG_PATH` 后启动。 |
 | 静默故障检测 | _async_detect / _tcp_comm_checksum_state | TorchNPU | ASD检测线程（daemon）：`_async_detect`（梯度异常检测）、`_tcp_comm_checksum_state`（分布式checksum）。OS级显示为 `python3`，需Python `threading.enumerate()` 查看。 |
@@ -102,7 +102,7 @@ for t in threading.enumerate():
 
 > [!NOTE]
 >
-> 部分C++层创建的线程（如 acl_thread、AOE_RTKB、CaffeTaskThread 等）在Python `threading.enumerate()` 中不可见，需通过 `/proc/<PID>/task/<TID>/comm` 查看。
+> 部分C++层创建的线程（如acl_thread、AOE_RTKB、CaffeTaskThread等）在Python `threading.enumerate()` 中不可见，需通过 `/proc/<PID>/task/<TID>/comm` 查看。
 
 ### top工具查看线程
 

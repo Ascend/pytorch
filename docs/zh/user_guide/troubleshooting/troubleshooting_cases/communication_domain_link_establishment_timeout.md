@@ -2,9 +2,9 @@
 
 ## 问题现象描述
 
-关键词"**Socket Timeout**"
+关键词“**Socket Timeout**”
 
-![](../../../figures/socket_timeout.png)
+![训练日志中打印的Socket Timeout错误信息截图，提示通信域建链超时](../../../figures/socket_timeout.png)
 
 ## 原因分析
 

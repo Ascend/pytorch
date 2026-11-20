@@ -1,4 +1,4 @@
-# 用于梯度计算的变量被inplace操作
+# 用于梯度计算的变量被原地操作修改
 
 ## 问题现象描述
 
@@ -19,10 +19,10 @@ RuntimeError: one of the variables needed for gradient computation has been modi
 
 ## 原因分析
 
-调用`torch.autograd.backward`或`torch.autograd.grad`等自动微分计算的过程中失败。
+调用`torch.autograd.backward`或`torch.autograd.grad`等进行自动微分计算的过程中失败。
 
 原地操作是指直接在原有张量上进行修改，而不创建新的副本。这样做会导致梯度无法正确计算，从而引发上述错误。
 
 ## 解决措施
 
-根据日志信息找到报错的代码行，将原地操作改为非原地操作。例如：将x += 2改为y = x + 2。
+根据日志信息找到报错的代码行，将原地操作改为非原地操作。例如：将`x += 2`改为`y = x + 2`。

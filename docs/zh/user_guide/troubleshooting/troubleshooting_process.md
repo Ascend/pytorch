@@ -4,20 +4,20 @@
 
 **故障处理总体流程主要包括以下环节：收集故障信息、分析故障原因、故障排除以及记录故障处理过程**。具体实施过程如[图1](#故障处理流程图)所示。
 
-**图 1**  故障处理流程<a id="故障处理流程图"></a>  
-![](../../figures/troubleshooting_process.png "故障处理流程")
+**图1**  故障处理流程<a id="故障处理流程图"></a> 
+![故障处理总体流程图：依次为收集故障信息、分析故障原因、故障排除、记录故障处理过程四个环节](../../figures/troubleshooting_process.png "故障处理流程")
 
 - 参考“错误码”处理
 
     关于CANN软件“错误码”的详细介绍，请参见《CANN 故障处理》的“[错误码参考](https://gitcode.com/cann/docs/blob/9.2.0/docs/zh/troubleshooting/error_code_desc.md)”章节。
 
-    关于TorchNPU插件“错误码”的详细介绍，请参见[Error Code介绍](error_code_description/_menu_error_code_description.md)。
+    关于TorchNPU插件“错误码”的详细介绍，请参见[错误码介绍](error_code_description/_menu_error_code_description.md)。
 
 - 收集故障信息
 
     故障信息是故障处理的重要依据，故障处理人员应尽可能多地收集故障信息，包括但不限于日志、环境信息等。
 
-    关于日志信息，一般采用自上而下的日志分析方法，根据业务流程逐步缩小到底层故障现象。
+    关于日志信息，一般采用自上而下的日志分析方法，根据业务流程逐步缩小范围到底层故障现象。
 
     关于日志级别的详细介绍，请参见《CANN 日志参考》中的“[设置日志级别](https://gitcode.com/cann/runtime/blob/9.2.0/docs/zh/log_ref/setting_log_levels.md)”章节。
 
@@ -33,12 +33,12 @@
 
 - 故障排除
 
-    故障排除是指根据不同的故障原因清除故障的过程。
+    故障排除是指根据不同的故障原因排除故障的过程。
 
 - 记录故障处理过程
 
     故障排除后应记录故障处理要点，给出针对此类故障的防范和改进措施，避免同类故障再次发生。
 
-> [!NOTE]  
+> [!NOTE]
 > 您也可以将故障处理案例分享到[开发者社区论坛](https://www.hiascend.com/forum/)，分享您的经验，供其他开发者参考，形成良性循环，丰富社区内容，实现共同受益。
 > 本文提供的故障处理步骤中涉及的第三方工具（如eseye u、Netron），均为举例，非必需工具，请根据您自己的实际情况参考使用或替换成其他类似工具。
