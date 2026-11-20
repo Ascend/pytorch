@@ -258,16 +258,20 @@ from torch._logging import set_logs
 set_logs(cudagraphs=True)
 
 
-@torch.compile(backend="inductor")
-def f(x):
-    return x.sin()
-
-
 x = torch.randn(4, 4, device="npu:0")
-# 使用 NPU Graph 捕获并回放，日志中会出现 NPUGRAPH Capture/Replay 事件。
-with torch.npu.graph():
-    y = f(x)
-    torch.npu.synchronize()
+graph = torch.npu.NPUGraph()
+warmup_stream = torch.npu.Stream()
+warmup_stream.wait_stream(torch.npu.current_stream())
+with torch.npu.stream(warmup_stream):
+    for _ in range(3):
+        x.sin()
+torch.npu.current_stream().wait_stream(warmup_stream)
+
+# 先捕获操作，再在图外回放并查看输出。
+with torch.npu.graph(graph):
+    y = x.sin()
+graph.replay()
+torch.npu.synchronize()
 print(y)
 ```
 
@@ -299,7 +303,7 @@ V7_MINIFIER_NPU=1 PYTHONPATH=child-site python repro.py
 ASCEND_LAUNCH_BLOCKING=1 python train.py
 ```
 
-下面的最小示例在 kernel 中产生 NaN，并通过 `TORCHINDUCTOR_NAN_ASSERTS` 触发断言。环境变量必须在导入 `torch` 之前设置：
+下面的最小示例在 kernel 中产生 NaN，并通过 `TORCHINDUCTOR_NAN_ASSERTS` 触发断言。在 NPU 上运行该示例前，按 [Inductor 后端](../../compilation_backend/inductor.md) 安装所选编译器模式的依赖。环境变量须在导入 `torch` 前设置：
 
 ```python
 import os

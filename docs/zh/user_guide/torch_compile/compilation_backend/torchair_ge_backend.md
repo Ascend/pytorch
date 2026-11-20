@@ -25,6 +25,8 @@ TorchAir-GE后端支持的编译选项（`compiler_config`参数）和详细使�
 
 ## 调用样例
 
+示例使用输入维度 128、隐藏层维度 256、输出维度 10 的 MLP。每批输入 32 条样本，重复前向计算以展示同形状输入的编译复用，输出形状为 `(32, 10)`。
+
 ```python
 import torch
 import torch_npu

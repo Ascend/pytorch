@@ -2,12 +2,12 @@
 
 ## 简介
 
-在不影响大模型训练性能和精度的前提下，能快速、稳定地发现错误。WatchDog监控进程，可显著提高使用HCCL的PyTorch分布式训练的可靠性。WatchDog本质上是通过捕获集合通信中出现的错误，从子进程抛出异常，停止主进程训练，来防止分布式训练被阻塞。
+在不影响大模型训练性能和精度的前提下，能快速、稳定地发现错误。WatchDog监控进程，可显著提高使用HCCL的PyTorch分布式训练的可靠性。WatchDog 在各 worker 中异步监控 HCCL 集合通信。发现错误后，可按异步错误处理模式报告错误、清理通信器或终止进程。
 
 **图 1** WatchDog工作示意图  
 ![WatchDog工作示意图：每个进程初始化process_group时拉起一个WatchDog线程，异步监控集合通信异常后抛出](../../figures/watchdog_working_principle.png)
 
-上图展示了WatchDog进程在分布式训练中如何工作。首先，WatchDog线程在每一个进程初始化process\_group时拉起，一个WatchDog线程监控一个进程中的process\_group。然后，WatchDog线程在workCleanupLoop子函数中异步监视集合通信异常，捕获到异常后在WatchDog主函数中将异常重新抛出，使得训练的主进程能感知到异常，从而快速结束训练任务。
+上图展示了WatchDog进程在分布式训练中如何工作。首先，WatchDog线程在每一个进程初始化process\_group时拉起，一个WatchDog线程监控一个进程中的process\_group。WatchDog 线程在 `workCleanupLoop` 中监视集合通信异常，依据下文的处理模式决定清理故障通信器或终止当前 worker。
 
 WatchDog不仅支持算子执行异常监测、通信超时监测、超时分析，还支持ERROR CQE检测。CQE检测是指检测Device网口通信链路情况，当通信链路异常时，通常反映为ERROR CQE。
 
@@ -21,10 +21,10 @@ WatchDog不仅支持算子执行异常监测、通信超时监测、超时分析
 
 TORCH\_HCCL\_ASYNC\_ERROR\_HANDLING取值情况：
 
-- 0：不开启异步错误处理。
-- 1：开启异步错误处理。
-
-当PyTorch版本为1.11.0时，默认值为0；当PyTorch版本大于等于2.1.0时，默认值为1。
+- 0：关闭异步错误处理。
+- 1：清理故障通信器并终止进程。
+- 2：清理故障通信器，保留进程。
+- 3（默认）：终止进程，跳过故障通信器清理。
 
 此环境变量使用详情请参考《环境变量》中的“[TORCH\_HCCL\_ASYNC\_ERROR\_HANDLING](../../api/environment_variable/collective_communication/TORCH_HCCL_ASYNC_ERROR_HANDLING.md)”章节。
 

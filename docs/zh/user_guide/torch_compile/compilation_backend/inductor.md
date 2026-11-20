@@ -145,6 +145,16 @@ stream0 = get_raw_stream(0)
 dvm_fused_add_mul_sum_0.run(arg4_1, s1, s0, s2, buf1, arg5_1, buf2, stream=stream0)
 ```
 
+当前源码提供 `DvmGraphFusionPatch` 上下文供图融合调试使用。对上例的 `op_calc` 和输入 `x`、`y`，可在上下文内执行编译和首次调用：
+
+```python
+from torch_npu._inductor.dvm.graph_fusion import DvmGraphFusionPatch
+
+with DvmGraphFusionPatch():
+    compiled = torch.compile(op_calc, backend="inductor", dynamic=False)
+    output = compiled(x, y)
+```
+
 **graph_fusion模式输出：**
 
 ```python
@@ -229,7 +239,7 @@ def call(self, args):
 `mode="reduce-overhead"` 是降低开销的优化策略，核心对应**NPUGraph Tree**的逻辑：
 
 - **动态形状路由**：管理多个有关联的NPUGraphs，让NPUGraph的优化收益能覆盖动态形状场景，而非仅局限于固定形状。
-- **子图内存优化**：优化段图场景多个子图的内存使用。
+- **子图内存优化**：优化图中断后多个子图的内存使用。
 - **工作原理**：在多次不同形状的输入下，Tree会缓存多个捕获的图版本，根据输入形状自动路由到最匹配的子图进行重放。
 
 更多详情可参见[CUDAGraph Trees](https://docs.pytorch.org/docs/stable/user_guide/torch_compiler/torch.compiler_cudagraph_trees.html)。

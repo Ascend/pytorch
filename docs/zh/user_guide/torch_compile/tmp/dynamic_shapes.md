@@ -20,7 +20,7 @@ PyTorch 提供自动动态、逐项标记、按 source 配置和强制静态等�
 
 - **torch._dynamo.mark_dynamic**：把指定张量的指定维度显式标记为动态。API 和参数与原生一致，可以阅读[控制 dynamic shape 的进阶选项](https://docs.pytorch.org/docs/2.15/user_guide/torch_compiler/compile/dynamic_shapes_advanced_control_options.html)了解用法。
 
-- **torch._dynamo.mark_unbacked**：用于数据依赖产生的、没有真实数据支撑的符号尺寸，通常配合 `torch._check` 使用。API 和参数与原生一致，输入 0 维空张量时需要 triton-ascend 大于等于 3.6.0。
+- **torch._dynamo.decorators.mark_unbacked**：用于数据依赖产生的、没有真实数据支撑的符号尺寸，通常配合 `torch._check` 使用。API 和参数与原生一致，输入 0 维空张量时需要 triton-ascend 大于等于 3.6.0。
 
 - **Dynamic Source List 与 Static Source List**：按 source 名称控制哪些输入或维度保持动态或静态。Static Source List 需要 PyTorch 2.15 及以上版本，配置语法与原生一致。可以阅读 [Dynamic Shapes 概览](https://docs.pytorch.org/docs/2.15/user_guide/torch_compiler/torch.compiler_dynamic_shapes.html) 了解优先级和示例。
 
@@ -132,7 +132,7 @@ compiled(bad_x, bad_x / 2)
 
 - **故障排查总览**：汇总常见问题类型和排查入口。可以阅读 [Troubleshooting Dynamic Shapes](https://docs.pytorch.org/docs/2.15/user_guide/torch_compiler/compile/dynamic_shapes_troubleshooting.html) 进行了解。
 
-- **TORCH_LOGS=dynamic 与 tlparse**：用 `TORCH_LOGS=dynamic` 观察符号创建和 Guard 添加，用 tlparse 分析编译产物和 specialize 原因。NPU 日志与社区日志的内容相同，但 NPU 输出省略了时间戳、进程号和源码路径，只保留 `[编译序号] create_symbol ...`、`[编译序号] eval ... [guard added]` 等事件。完整流程见[动态形状调试文档](https://docs.pytorch.org/docs/2.15/user_guide/torch_compiler/compile/dynamic_shapes_debugging_tlparse_torch_logs.html)。
+- **TORCH_LOGS=dynamic 与 tlparse**：用 `TORCH_LOGS=dynamic` 观察符号创建和 Guard 添加，用 tlparse 分析编译产物和 specialize 原因。下列 NPU 日志节选省略了时间戳、进程号和源码路径，重点展示 `[编译序号] create_symbol ...`、`[编译序号] eval ... [guard added]` 等事件。完整流程见[动态形状调试文档](https://docs.pytorch.org/docs/2.15/user_guide/torch_compiler/compile/dynamic_shapes_debugging_tlparse_torch_logs.html)。
 
 同一段 specialization 示例在社区与 NPU 上的日志对比如下：
 

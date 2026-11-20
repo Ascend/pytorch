@@ -29,7 +29,7 @@ PyTorch Dynamo（PyTorch的图捕获前端，负责将Python字节码转换为�
 | `DICT_VERSION` / `DICT_KEYS` / `DICT_KEYS_MATCH` / `DICT_CONTAINS` | HuggingFace `generation_config`、KV cache state dict、attention kwargs，每步version自增 |
 | `TYPE_MATCH` / `OPTIONAL_TENSOR` | `past_key_values=None`（prefill）↔ `tuple`（decode）、`attention_mask=None` ↔ Tensor |
 | `HASATTR` / `NOT_PRESENT_IN_GENERIC_DICT` | 特性开关、首次forward后才挂上的字段 |
-| `GRAD_MODE` / `TORCH_FUNCTION_STATE` / `DEFAULT_DEVICE` / `DETERMINISTIC_ALGORITHMS` / `AUTOCAST_STATE` / `FSDP_TRAINING_STATE` | 进程级一次性配置，但每个编译入口都会生成guard |
+| `GLOBAL_STATE` / `GRAD_MODE` / `TORCH_FUNCTION_STATE` / `DEFAULT_DEVICE` / `DETERMINISTIC_ALGORITHMS` / `AUTOCAST_STATE` / `FSDP_TRAINING_STATE` | 进程级一次性配置，但每个编译入口都会生成guard |
 
 原生PyTorch提供了`guard_filter_fn`编译选项，允许用户自定义过滤逻辑，选择性跳过不必要的guard。
 
@@ -153,25 +153,21 @@ model = MyModel().npu()  # 注意：此处MyModel仅为示例占位类，实际�
 compiled = torch.compile(model, options={"guard_filter_fn": npu_guard_filter})
 ```
 
-示例4：按变量名或属性过滤
+示例4：保留参与控制流判断的 guard
 
-对应表2中`TYPE_MATCH`/`OPTIONAL_TENSOR`类guard。当特定变量在prefill和decode阶段类型交替变化时，可按变量名精确过滤：
+当 `y` 在 `None` 和张量之间变化时，模型会执行不同分支。保留这个变量的 guard，使编译器能为不同分支生成适用的图。
 
 ```python
 import torch
 import torch_npu
 
-def filter_by_name(entries):
-    return [
-        not (entry.name == "y" and entry.value is None)
-        for entry in entries
-    ]
-
-@torch.compile(fullgraph=True, options={"guard_filter_fn": filter_by_name})
+@torch.compile(backend="aot_eager", fullgraph=True)
 def fn(x, y):
-    if y is not None:
-        x += y
-    return x
+    return x if y is None else x + y
+
+x = torch.ones(2, device="npu")
+torch.testing.assert_close(fn(x, None), x)
+torch.testing.assert_close(fn(x, x), 2 * x)
 ```
 
 示例5：过滤全局变量guard

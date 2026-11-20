@@ -2299,7 +2299,7 @@
 **限制与说明**：
 
 - `input`仅支持fp16，fp32
-- 输入`tensor`的元素个数不能超过10万
+- 输入`input`的元素个数不能超过10万
 
 </div>
 
@@ -2430,7 +2430,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id271 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，不支持double，complex64，complex128数据类型
+**限制与说明**： `input`仅支持bf16，fp16，fp32，不支持fp64，complex64，complex128数据类型
 
 </div>
 
@@ -2542,7 +2542,7 @@
 
 - 属性`mode`为constant时，`input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 - 属性`mode`非constant时，`input`仅支持fp16，fp32，fp64
-- 在输入`x`为六维以上时可能会出现性能下降
+- 在输入`input`为六维以上时可能会出现性能下降
 
 </div>
 
@@ -2571,7 +2571,7 @@
 - 不支持`scale_factor`
 
 <!-- npu="950" id322 -->
-- 在<term>Ascend 950DT系列产品</term>上，不支持`double`数据类型
+- 在<term>Ascend 950DT系列产品</term>上，不支持fp64数据类型
 <!-- end id322 -->
 
 </div>

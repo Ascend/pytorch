@@ -827,7 +827,7 @@
 
 <a class="method_anchor" id="torch_Tensor_ndim"></a>
 
-> <font size="3">ndim()</font>
+> <font size="3">ndim</font>
 
 <div style="margin-left: 2em">
 
@@ -4400,7 +4400,7 @@
 **限制与说明**：
 
 - `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
-- 当前NPU上部分接口暂不支持double类型，出于兼容性考虑默认返回fp32，后续完成支持后将正常返回fp64
+- 当前NPU上部分接口暂不支持fp64类型，出于兼容性考虑默认返回fp32，后续完成支持后将正常返回fp64
 - 可能回退至CPU执行
 
 </div>
@@ -5077,7 +5077,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id526 -->
 
-**限制与说明**： `self`仅支持double
+**限制与说明**： `self`仅支持fp64
 
 </div>
 
@@ -9930,7 +9930,7 @@
 
 <!-- npu="A3,910b" id1082 -->
 - 仅在<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>上，且同时满足以下条件时，启用NPU加速：
-  - `including_self`为True。
+  - `include_self`为True。
   - `reduce`为"sum"或"add"。
   - 输入数据类型为fp32。
 <!-- end id1082 -->

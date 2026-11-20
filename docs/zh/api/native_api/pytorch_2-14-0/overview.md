@@ -12,7 +12,7 @@
 
 本清单继承PyTorch 2.13.0版本的产品支持情况和限制说明，并依据2.14版本变更修正接口与链接。未收录的新接口不表示已完成昇腾NPU验证。
 
-- 2.14已移除`torch.qr`、`torch.Tensor.qr`、`torch.cholesky`和`torch.Tensor.cholesky`的实现，调用会报错。本清单移除原有的`torch.qr`条目；请使用`torch.linalg.qr`或`torch.linalg.cholesky`。`qr`的`some`参数需改为`mode`；Cholesky上三角结果可通过`torch.linalg.cholesky(A).mH`获取。
-- `torch.profiler.profile`和`torch.autograd.profiler.profile`已移除`use_cuda`参数，分别使用`activities`和`use_device`选择设备；`with_modules`参数已废弃，动态图模块跟踪请使用`with_stack=True`。
+- 2.14已移除`torch.qr`、`torch.Tensor.qr`、`torch.cholesky`和`torch.Tensor.cholesky`的实现，调用会报错。本清单移除原有的`torch.qr`条目；请使用`torch.linalg.qr`或`torch.linalg.cholesky`。`torch.linalg.qr` 通过 `mode="reduced"` 对应原 `some=True`，通过 `mode="complete"` 对应原 `some=False`；Cholesky上三角结果可通过`torch.linalg.cholesky(A).mH`获取。
+- `torch.profiler.profile`和`torch.autograd.profiler.profile`已移除`use_cuda`参数，分别使用`activities`和`use_device`选择设备；`with_modules` 用于记录受支持场景下的模块层级。`with_stack=True` 记录调用栈，可用来定位算子的调用位置。
 
 版本变更依据：[PyTorch 2.14发布说明](https://github.com/pytorch/pytorch/releases/tag/v2.14.0)。

@@ -60,4 +60,4 @@
 
 - expandable\_segments特性需在Ascend HDK 23.0.0及以上版本上使用。
 - torch.npu.memory.\_set\_allocator\_settings仅支持在PyTorch 2.6.0及以上版本使用。
-- torch.npu.memory.\_set\_allocator\_settings当前仅支持修改expandable\_segments属性。
+- 此处使用 `expandable_segments` 配置虚拟内存。运行时还可配置 `max_split_size_mb`、`max_non_split_rounding_mb`、`release_lock_on_npumalloc`、`throw_on_npumalloc_oom`、`per_process_memory_fraction`、`pinned_max_round_threshold_mb` 和 `pinned_max_cached_size_mb`。

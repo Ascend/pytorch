@@ -31,6 +31,6 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id3 -->
 
-**限制与说明**：`torch.utils.deterministic.fill_uninitialized_memory`默认值为True。设置`torch.use_deterministic_algorithms`开启确定性后，PyTorch行为是填充未初始化内存，而TorchNPU默认不填充。如需填充生效，需手动将`torch.utils.deterministic.fill_uninitialized_memory`设置为True
+**限制与说明**：读取 `torch.utils.deterministic.fill_uninitialized_memory` 时，PyTorch 的默认值为 True。TorchNPU 的设备填充开关默认关闭。要在 NPU 上启用填充，调用 `torch.use_deterministic_algorithms(True)` 并显式赋值 `torch.utils.deterministic.fill_uninitialized_memory = True`。
 
 </div>

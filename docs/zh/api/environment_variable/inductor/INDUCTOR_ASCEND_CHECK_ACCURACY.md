@@ -15,6 +15,8 @@ INDUCTOR_ASCEND_CHECK_ACCURACY是TorchNPU提供的精度校验工具，在torch.
 
 该环境变量由TorchNPU提供，PyTorch没有直接对应的环境变量。
 
+启用精度对比时，可通过 `INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL` 配置容差。用逗号分隔 `rtol=<相对容差>,atol=<绝对容差>`，值为非负浮点数，支持科学记数法。未指定的容差使用默认值。
+
 ## 配置示例
 
 示例一：启用精度校验工具，使用默认精度阈值配置
@@ -49,7 +51,7 @@ export INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL="rtol=1e-6,atol=1e-7"
 
 精度对比无异常时不打印额外信息。对比有异常时打印如下格式的告警：
 
-```bash
+```text
 CHECK ACCURACY FAILED! Kernel: <kernel_name>, Output idx: <idx>, Mismatched: <m>/<n> (<pct>%), Greatest Rel Diff: <rel>, Greatest Abs Diff: <abs>, rtol: <rtol>, atol: <atol>, dump_path: <path> 
 ```
 

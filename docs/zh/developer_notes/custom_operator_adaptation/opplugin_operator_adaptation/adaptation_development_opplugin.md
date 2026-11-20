@@ -14,7 +14,7 @@
 │   │   │   ├── AbsKernelNpu.cpp
 │   │   │   └── ...
 │   │   └── opapi                              # aclnn算子适配目录
-│   │       ├── AbsKernelNpuOpApi.cpp
+│   │       ├── AddmmKernelNpuOpApi.cpp
 │   │       └── ...
 │   ├── python
 │   │   └── meta
@@ -190,7 +190,7 @@ symint为PyTorch在v2.0及以上版本新增的数据类型，op\_plugin/config/
 
 #### 通用适配
 
-aclnn算子适配文件路径为：op\_plugin/ops/opapi/AbsKernelNpuOpApi.cpp，文件命名规范为算子名称+KernelNpuOpApi，算子名称首字母大写。具体步骤如下：
+通用 aclnn 适配文件放在 `op_plugin/ops/opapi/`。仓库中的 `AddmmKernelNpuOpApi.cpp` 是手写适配示例。下面的 Abs 片段演示如何编写适配代码，文件名为示意。具体步骤如下：
 
 1. 创建算子适配文件，引入依赖头文件，包括aclnn对外接口、算子声明、基础函数等。
 2. 算子接口适配实现，aclnn算子需定义在op_api命名空间中，实现函数出入参与torch api保持一致。
@@ -304,7 +304,7 @@ aclnn算子适配文件路径为：op\_plugin/ops/opapi/AbsKernelNpuOpApi.cpp，
 > [!NOTE]  
 >仅aclnn算子可使用此方法进行适配。
 
-结构化适配指通过在op\_plugin\_functions.yaml中进行配置，自动完成算子适配实现，自动生成的适配文件位于op\_plugin/ops/opapi/StructKernelNpuOpApi.cpp。
+结构化适配指通过在op\_plugin\_functions.yaml中进行配置，自动完成算子适配实现，自动生成的适配文件位于`op_plugin/ops/opapi/StructKernelNpuOpApi_*.cpp`。
 判断是否可结构化依据：opapi对应的aclnn算子与Aten IR的语义对齐，适配层除申请output tensor，无其他适配逻辑。
 
 yaml配置有以下两种方式，可根据实际情况进行选择。每个结构化适配的函数必须在op\_plugin\_functions.yaml中配置，具体实现如下：
@@ -363,7 +363,7 @@ yaml配置有以下两种方式，可根据实际情况进行选择。每个结�
         ```
 
     - name：输出结果涉及named tensor逻辑，可配置此字段，当前仅支持name和输入参数相同的配置，不涉及可忽略。
-    - exec：配置EXEC\_NPU\_CMD对应的参数，如果除aclnnname，其它参数顺序和Aten IR的顺序相同，可只配置aclnnname，如_aclnnAbs_。以abs为例，exec字段可以配置成下面两种方式：
+    - exec：配置EXEC\_NPU\_CMD对应的参数，如果除aclnnname，其它参数顺序和Aten IR的顺序相同，可只配置aclnnname，如`_aclnnAbs_`。以abs为例，exec字段可以配置成下面两种方式：
 
         ```yaml
         - func: abs.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)

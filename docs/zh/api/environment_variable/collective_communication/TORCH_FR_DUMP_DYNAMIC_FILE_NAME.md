@@ -21,8 +21,10 @@
 import os
 from pathlib import Path
 
+# 创建转储目录，并为每个全局 rank 生成独立的文件路径。
 trace_dir = Path("./trace_dir").resolve()
 trace_dir.mkdir(parents=True, exist_ok=True)
+# 动态模式直接使用下面的路径，写入时不再追加 rank 编号。
 os.environ["TORCH_FR_DUMP_DYNAMIC_FILE_NAME"] = "1"
 os.environ["TORCH_FR_DUMP_TEMP_FILE"] = str(
     trace_dir / f"comm_lib_trace_rank_{os.environ['RANK']}"

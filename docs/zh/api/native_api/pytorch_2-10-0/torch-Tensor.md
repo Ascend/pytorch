@@ -9597,7 +9597,7 @@
 
 <a class="method_anchor" id="torch_Tensor_retains_grad"></a>
 
-> <font size="3">retains_grad()</font>
+> <font size="3">retains_grad</font>
 
 <div style="margin-left: 2em">
 
@@ -9615,7 +9615,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1044 -->
 
-**限制与说明**： `self`仅支持fp32
+**说明**：此属性返回一个布尔值，表示非叶子张量是否会保留梯度。
 
 </div>
 

@@ -17,7 +17,7 @@ torch.compile包含如下核心组件：
 ### 接口原型
 
 ```python
-torch.compile(model, *, fullgraph=False, dynamic=None, backend="inductor",
+torch.compile(model=None, *, fullgraph=False, dynamic=None, backend="inductor",
               mode=None, options=None, disable=False)
 ```
 
@@ -25,15 +25,17 @@ torch.compile(model, *, fullgraph=False, dynamic=None, backend="inductor",
 
 | 参数 | 数据类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| model | nn.Module | 必填 | 待编译的模型 |
+| model | Callable 或 nn.Module | None | 待编译的函数、可调用对象或模型。用作装饰器时可省略。 |
 | fullgraph | bool | False | 是否强制整图编译 |
 | dynamic | bool | None | 是否启用动态shape编译 |
 | backend | str/Callable | `"inductor"` | 编译后端：`inductor`、`npugraphs`、`npugraph_ex`、`aot_eager`、`TorchAir-GE后端(Callable)` |
 | mode | str | None | 编译模式：`None`或`"reduce-overhead"`（仅`inductor`后端支持）|
-| options | dict | None | 编译选项|
+| options | dict | None | 后端选项字典。Inductor 示例为 `{"npu_backend": "dvm"}`。通过 `torch._inductor.list_options()` 查看原生 Inductor 选项。Dynamo 的 `guard_filter_fn` 选项可用于多个后端。|
 | disable | bool | False | 关闭torch.compile |
 
 更多参数详情可参见[torch.compile](https://docs.pytorch.org/docs/stable/generated/torch.compile.html)。
+
+例如，`torch.compile(model, backend="inductor", options={"npu_backend": "dvm"})` 选择 DVM 编译器。请按 [Inductor 后端](compilation_backend/inductor.md) 准备所选编译器的依赖。
 
 **编译后端说明**
 

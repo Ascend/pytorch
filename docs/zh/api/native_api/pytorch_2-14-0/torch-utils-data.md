@@ -382,7 +382,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id66 -->
 
-**限制与说明**：`data_source`仅支持int64
+**限制与说明**：基类保留 `data_source` 参数用于兼容旧代码。自定义采样器可自行管理数据集对象。
 
 </div>
 
@@ -404,7 +404,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id30 -->
 
-**限制与说明**： `data_source`仅支持fp32
+**限制与说明**：`data_source` 为实现 `__len__()` 的数据集或序列对象。
 
 </div>
 
@@ -426,7 +426,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id33 -->
 
-**限制与说明**： `data_source`仅支持fp32
+**限制与说明**：`data_source` 为实现 `__len__()` 的数据集或序列对象。
 
 </div>
 

@@ -1890,7 +1890,7 @@
 
 **限制与说明**：
 
-- `input`仅支持bf16，fp16，fp32，int32，int64
+- `input` 为索引张量，支持 int32、int64。`weight` 为嵌入权重，支持 bf16、fp16、fp32。
 - 属性`max_norm`仅支持非负值
 
 </div>
@@ -2294,7 +2294,7 @@
 **限制与说明**：
 
 - `input`仅支持fp16，fp32
-- 输入`tensor`的元素个数不能超过10万
+- 输入`input`的元素个数不能超过10万
 
 </div>
 
@@ -2537,7 +2537,7 @@
 
 - 属性`mode`为constant时，`input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 - 属性`mode`非constant时，`input`仅支持fp16，fp32，fp64
-- 在输入`x`为六维以上时可能会出现性能下降
+- 在输入`input`为六维以上时可能会出现性能下降
 
 </div>
 
