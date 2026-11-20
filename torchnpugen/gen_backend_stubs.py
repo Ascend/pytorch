@@ -1139,7 +1139,7 @@ def gen_npu_structured_native_functions(
 ) -> None:
     structured_groups = get_supported_structured_groups(grouped_native_functions, backend_index)
     includes = sorted({
-        f"#include <ATen/ops/{meta.name(g)}_meta.h>"
+        f"#include <ATen/ops/{g.root_name}_meta.h>"
         for g in structured_groups
     })
 
