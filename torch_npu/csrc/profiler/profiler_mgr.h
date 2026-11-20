@@ -3,6 +3,8 @@
 #include <atomic>
 #include <mutex>
 #include <map>
+#include <optional>
+#include <tuple>
 
 #include <acl/acl_prof.h>
 
@@ -44,6 +46,18 @@ class ProfilerMgr {
   void Start(const NpuTraceConfig& npu_config, bool cpu_trace);
   void Stop();
   void Finalize();
+  void PrepareAclprof(
+      const void* owner,
+      const std::string& root,
+      const std::string& traceId,
+      const NpuTraceConfig& config,
+      bool* acquired);
+  void StartAclprof(const void* owner);
+  void FinishAclprof(const void* owner = nullptr, bool* acquired = nullptr, bool complete = false);
+  using AclprofStartInfo = std::tuple<bool, int64_t, uint64_t, uint64_t>;
+  std::optional<std::pair<std::string, AclprofStartInfo>> GetCompletedAclprofWindow(
+      const std::string& root,
+      const std::string* traceId = nullptr);
   void Upload(std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data);
   void UploadWithLock(std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data);
   void UploadTraceEventData(std::unique_ptr<torch_npu::toolkit::profiler::PythonTracerFuncData> data);
@@ -111,6 +125,16 @@ class ProfilerMgr {
   std::atomic<int8_t> trace_level_;
   std::string path_;
   aclprofConfig* profConfig_;
+  const void* aclprofOwner_ = nullptr;
+  bool aclprofInitialized_ = false;
+  bool aclprofRunning_ = false;
+  bool aclprofComplete_ = false;
+  std::string aclprofRoot_;
+  std::string aclprofPath_;
+  std::string aclprofTraceId_;
+  uint64_t aclprofWindow_ = 0;
+  AclprofStartInfo aclprofStartInfo_;
+  std::mutex aclprofMutex_;
   torch_npu::toolkit::profiler::DataDumper dataReceiver_;
   torch_npu::toolkit::profiler::TraceDataDumper traceDataReceiver_;
   std::mutex reportDataMutex_;

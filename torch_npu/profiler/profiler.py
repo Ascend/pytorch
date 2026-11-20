@@ -18,6 +18,7 @@ from torch_npu._C._profiler import (
 )
 
 from ..utils._path_manager import PathManager
+from ._kineto_config import _custom_profiler_config
 from ._profiler_action_controller import ProfActionController
 from ._profiler_path_creator import ProfPathCreator
 from .analysis._npu_profiler import NpuProfiler
@@ -214,7 +215,33 @@ def tensorboard_trace_handler(
                 PathManager.remove_file_safety(temporary_path)
             print_warn_msg(str(error))
 
+    @no_exception_func()
+    def handle_aclprof(prof_inst) -> None:
+        from torch_npu._C._profiler import _get_completed_aclprof_window
+
+        completed = _get_completed_aclprof_window(handler_fn.prof_path, prof_inst.get_trace_id() or "")
+        if completed is None:
+            return
+        path, start_info = completed
+        payload = json.loads(_custom_profiler_config(prof_inst.experimental_config))
+        common = {key: getattr(prof_inst, key) for key in
+                  ("record_shapes", "profile_memory", "with_stack", "with_modules", "with_flops")}
+        common.update(activities=[Constant.NPU_ACTIVITIES], schedule={})
+        experimental = {f"_{key}": value for key, value in payload.items()
+                        if key not in ("backend", "output_path", "profile_memory", "record_shapes", "record_op_args")}
+        experimental.update(_profiler_level=payload.get("profiler_level", Constant.LEVEL0),
+                            _export_type=payload.get("export_type", [Constant.Text]), _data_simplification=True,
+                            _msprof_tx=payload.get("msprof_tx", False), record_op_args=payload["record_op_args"])
+        start_keys = (Constant.SyscntEable, Constant.SysCntFreq, Constant.StartCnt, Constant.StartMonotonic)
+        config = {Constant.COMMON_CONFIG: common, Constant.EXPERIMENTAL_CONFIG: experimental}
+        _ProfInterface._write_profiler_info(path, config, dict(zip(start_keys, start_info)))
+        if use_gzip:
+            archive_profile(path)
+
     def handler_fn(prof_inst) -> None:
+        if handler_fn._profile_ref is not None and handler_fn._profile_ref() is prof_inst:
+            handle_aclprof(prof_inst)
+            return
         futures = None
         if analyse_flag:
             futures = prof_inst.prof_if.analyse(async_mode=async_mode)
@@ -242,6 +269,10 @@ def tensorboard_trace_handler(
         else:
             archive_profile(prof_path)
 
+    handler_fn.prof_path = ProfPathCreator().get_prof_dir_path(unique=True)
+    handler_fn.analyse_flag = analyse_flag
+    handler_fn._npu_handler = True
+    handler_fn._profile_ref = None
     return handler_fn
 
 

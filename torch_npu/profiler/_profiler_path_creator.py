@@ -1,5 +1,6 @@
 import os
 import socket
+import uuid
 import shutil
 from datetime import datetime, timezone
 
@@ -51,7 +52,7 @@ class ProfPathCreator:
             return
         self.delete_prof_dir()
 
-    def create_prof_dir(self):
+    def get_prof_dir_path(self, *, unique=False):
         if not self._dir_path:
             dir_path = os.getenv(Constant.ASCEND_WORK_PATH, default=None)
             self._export_only_mode = self._export_only_mode and (dir_path is None)
@@ -69,10 +70,16 @@ class ProfPathCreator:
             self._worker_name or socket.gethostname(),
             str(os.getpid())
         )
+        if unique:
+            worker_name += "_" + uuid.uuid4().hex
         current_time = datetime.now(tz=timezone.utc).astimezone()
         span_name = "{}_{}_ascend_pt".format(worker_name, current_time.strftime("%Y%m%d%H%M%S%f")[:-3])
-        self._prof_path = os.path.join(dir_path, span_name)
-        PathManager.check_input_directory_path(self._prof_path)
+        prof_path = os.path.join(dir_path, span_name)
+        PathManager.check_input_directory_path(prof_path)
+        return prof_path
+
+    def create_prof_dir(self):
+        self._prof_path = self.get_prof_dir_path()
         PathManager.make_dir_safety(self._prof_path)
         PathManager.check_directory_path_writeable(self._prof_path)
         self.is_prof_inited = True
@@ -84,5 +91,5 @@ class ProfPathCreator:
         try:
             shutil.rmtree(self._prof_path)
         except Exception:
-            msg = f"Remove temporary profiling data saving path failed."
+            msg = "Remove temporary profiling data saving path failed."
             print_warn_msg(msg)

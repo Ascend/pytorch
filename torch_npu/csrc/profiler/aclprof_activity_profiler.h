@@ -25,6 +25,8 @@ namespace profiler {
 class TORCH_NPU_API AclprofActivityProfiler : public NPUActivityProfiler {
  public:
   explicit AclprofActivityProfiler(std::set<libkineto::ActivityType> activities);
+  ~AclprofActivityProfiler() override;
+  void configure(const libkineto::Config& config) override;
 
   const char* name() const override {
     return "aclprof";
@@ -41,6 +43,12 @@ class TORCH_NPU_API AclprofActivityProfiler : public NPUActivityProfiler {
   std::unique_ptr<libkineto::DeviceInfo> getDeviceInfo() override;
   std::vector<libkineto::ResourceInfo> getResourceInfos() override;
   std::unique_ptr<libkineto::CpuTraceBuffer> getTraceBuffer() override;
+
+ private:
+  void reportFailure(const char* stage, const char* reason) noexcept;
+  void cleanup() noexcept;
+  std::vector<std::string> errors_;
+  bool ownsNative_ = false;
 };
 
 } // namespace profiler

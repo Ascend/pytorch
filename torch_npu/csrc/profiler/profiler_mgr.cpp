@@ -1,5 +1,13 @@
 #include "torch_npu/csrc/profiler/profiler_mgr.h"
+
+#include <cerrno>
+#include <ctime>
+#include <iterator>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <unistd.h>
 #include "torch_npu/csrc/framework/interface/AclInterface.h"
+#include "torch_npu/csrc/framework/interface/LibAscendHal.h"
 #include "torch_npu/csrc/framework/interface/MsProfilerInterface.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
@@ -74,6 +82,8 @@ ProfilerMgr* ProfilerMgr::GetInstance() {
 }
 
 void ProfilerMgr::Init(const std::string& path, bool npu_trace) {
+  std::lock_guard<std::mutex> guard(aclprofMutex_);
+  TORCH_CHECK(aclprofOwner_ == nullptr, "ACLprof native capture owns the profiler");
   if (npu_trace) {
     at_npu::native::AclProfilingInit(path.c_str(), path.size());
     npu_trace_.store(true);
@@ -256,6 +266,8 @@ aclprofAicoreMetrics ProfilerMgr::PrepareProfilerAicMetrics(const NpuTraceConfig
 }
 
 void ProfilerMgr::Warmup(const NpuTraceConfig& npu_config, bool cpu_trace) {
+  std::lock_guard<std::mutex> guard(aclprofMutex_);
+  TORCH_CHECK(aclprofOwner_ == nullptr, "ACLprof native capture owns the profiler");
   if (npu_trace_.load()) {
     auto datatype_config = PrepareProfilerConfig(npu_config);
     auto aic_metrics = PrepareProfilerAicMetrics(npu_config);
@@ -289,6 +301,8 @@ void ProfilerMgr::Warmup(const NpuTraceConfig& npu_config, bool cpu_trace) {
 }
 
 void ProfilerMgr::Start(const NpuTraceConfig& npu_config, bool cpu_trace) {
+  std::lock_guard<std::mutex> guard(aclprofMutex_);
+  TORCH_CHECK(aclprofOwner_ == nullptr, "ACLprof native capture owns the profiler");
   if (npu_trace_.load()) {
     auto datatype_config = PrepareProfilerConfig(npu_config);
     auto aic_metrics = PrepareProfilerAicMetrics(npu_config);
@@ -330,6 +344,8 @@ void ProfilerMgr::Start(const NpuTraceConfig& npu_config, bool cpu_trace) {
 }
 
 void ProfilerMgr::Stop() {
+  std::lock_guard<std::mutex> guard(aclprofMutex_);
+  TORCH_CHECK(aclprofOwner_ == nullptr, "ACLprof native capture owns the profiler");
   if (report_enable_.load()) {
     StopDataReceiver();
     profile_memory_.store(false);
@@ -355,10 +371,152 @@ void ProfilerMgr::Stop() {
 }
 
 void ProfilerMgr::Finalize() {
+  std::lock_guard<std::mutex> guard(aclprofMutex_);
+  TORCH_CHECK(aclprofOwner_ == nullptr, "ACLprof native capture owns the profiler");
   if (npu_trace_.load()) {
     at_npu::native::AclProfilingFinalize();
   }
   npu_trace_.store(false);
+}
+
+namespace {
+constexpr char kAclprofIncomplete[] = "/.aclprof_incomplete";
+
+void checkAclprof(aclError result, const char* function) {
+  TORCH_CHECK(result == ACL_SUCCESS, function, " failed (CANN error ", result, ")");
+}
+} // namespace
+
+void ProfilerMgr::PrepareAclprof(
+    const void* owner,
+    const std::string& root,
+    const std::string& traceId,
+    const NpuTraceConfig& config,
+    bool* acquired) {
+  std::lock_guard<std::mutex> guard(aclprofMutex_);
+  aclprofComplete_ = false;
+  TORCH_CHECK(
+      aclprofOwner_ == nullptr && !npu_trace_ && !report_enable_ && profConfig_ == nullptr,
+      "Another profiler session owns native resources");
+  aclprofOwner_ = owner;
+  *acquired = true;
+  aclprofTraceId_ = traceId;
+  if (root != aclprofRoot_) {
+    aclprofRoot_ = root;
+    aclprofWindow_ = 0;
+  }
+  const auto hostnameLimit = sysconf(_SC_HOST_NAME_MAX);
+  TORCH_CHECK(hostnameLimit > 0, "Cannot get ACLprof worker name limit");
+  std::string hostname(static_cast<size_t>(hostnameLimit) + 1, '\0');
+  TORCH_CHECK(gethostname(hostname.data(), hostname.size()) == 0, "Cannot get ACLprof worker name, errno ", errno);
+  const auto hostnameLength = hostname.find('\0');
+  TORCH_CHECK(hostnameLength != std::string::npos, "ACLprof worker name is not null-terminated");
+  hostname.resize(hostnameLength);
+  timeval now{};
+  std::tm local{};
+  char date[sizeof("YYYYMMDDhhmmss")]{};
+  TORCH_CHECK(gettimeofday(&now, nullptr) == 0 && localtime_r(&now.tv_sec, &local), "Cannot get ACLprof output time");
+  TORCH_CHECK(
+      std::strftime(date, sizeof(date), "%Y%m%d%H%M%S", &local) == sizeof(date) - 1,
+      "Cannot format ACLprof output time");
+  constexpr int kMicrosecondsPerMillisecond = 1000;
+  auto millis = std::to_string(now.tv_usec / kMicrosecondsPerMillisecond);
+  millis.insert(0, sizeof("000") - 1 - millis.size(), '0');
+  const auto timestamp = date + millis;
+  TORCH_CHECK(Utils::CreateDir(root), "Cannot create ACLprof output root: ", root);
+  while (true) {
+    aclprofPath_ = root + "/" + hostname + "-" + std::to_string(++aclprofWindow_) + "_" + std::to_string(getpid()) +
+        "_" + timestamp + "_ascend_pt";
+    if (mkdir(aclprofPath_.c_str(), 0750) == 0) {
+      break;
+    }
+    TORCH_CHECK(errno == EEXIST, "Cannot create ACLprof output: ", aclprofPath_, ", errno ", errno);
+  }
+  TORCH_CHECK(
+      Utils::CreateFile(aclprofPath_ + kAclprofIncomplete), "Cannot mark incomplete ACLprof output: ", aclprofPath_);
+  // Even partial Init requires a Finalize attempt.
+  aclprofInitialized_ = true;
+  checkAclprof(at_npu::native::AclProfilingInit(aclprofPath_.c_str(), aclprofPath_.size()), "aclprofInit");
+  npu_trace_.store(true);
+  FeatureMgr::GetInstance()->Init();
+  const auto bits = PrepareProfilerConfig(config);
+  const auto metrics = PrepareProfilerAicMetrics(config);
+  int32_t device = 0;
+  checkAclprof(c10_npu::GetDevice(&device), "Get Device ID");
+  uint32_t devices[] = {static_cast<uint32_t>(device)};
+  profConfig_ = at_npu::native::AclProfilingCreateConfig(devices, std::size(devices), metrics, nullptr, bits);
+  TORCH_CHECK(profConfig_ != nullptr, "aclprofCreateConfig failed");
+  mstx_domain_include_ = config.mstx_domain_include;
+  mstx_domain_exclude_ = config.mstx_domain_exclude;
+  msprof_tx_.store(config.msprof_tx);
+}
+
+void ProfilerMgr::StartAclprof(const void* owner) {
+  std::lock_guard<std::mutex> guard(aclprofMutex_);
+  TORCH_CHECK(aclprofOwner_ == owner && profConfig_ != nullptr, "ACLprof ownership mismatch");
+  TORCH_CHECK(!aclprofRunning_, "ACLprof window has already started");
+  const auto syscntEnabled = at_npu::native::isSyscntEnable();
+  const auto freq = syscntEnabled ? at_npu::native::getFreq() : 100;
+  const auto startCnt = syscntEnabled ? Utils::getClockSyscnt() : 0;
+  aclprofStartInfo_ = {syscntEnabled, freq, startCnt, Utils::GetClockMonotonicRawNs()};
+  // A failed Start may be partial, so Stop must still be attempted.
+  aclprofRunning_ = true;
+  checkAclprof(at_npu::native::AclProfilingStart(profConfig_), "aclprofStart");
+  const auto ret = at_npu::native::AclProfilingRegisterDeviceCallback();
+  if (ret != ACL_ERROR_PROF_MODULES_UNSUPPORTED) {
+    checkAclprof(ret, "aclprofRegisterDeviceCallback");
+  }
+}
+
+// Retry only if the deployed CANN runtime permits it.
+void ProfilerMgr::FinishAclprof(const void* owner, bool* acquired, bool complete) {
+  std::lock_guard<std::mutex> guard(aclprofMutex_);
+  if (aclprofOwner_ == nullptr || (owner != nullptr && owner != aclprofOwner_)) {
+    if (acquired != nullptr) {
+      *acquired = false;
+    }
+    return;
+  }
+  msprof_tx_.store(false);
+  mstx_domain_include_.clear();
+  mstx_domain_exclude_.clear();
+  // Retain ownership at the first unconfirmed cleanup stage.
+  if (aclprofRunning_) {
+    checkAclprof(at_npu::native::AclProfilingStop(profConfig_), "aclprofStop");
+    aclprofRunning_ = false;
+  }
+  if (profConfig_ != nullptr) {
+    checkAclprof(at_npu::native::AclProfilingDestroyConfig(profConfig_), "aclprofDestroyConfig");
+    profConfig_ = nullptr;
+  }
+  if (aclprofInitialized_) {
+    checkAclprof(at_npu::native::AclProfilingFinalize(), "aclprofFinalize");
+    aclprofInitialized_ = false;
+  }
+  npu_trace_.store(false);
+  aclprofOwner_ = nullptr;
+  if (acquired != nullptr) {
+    *acquired = false;
+  }
+  if (complete) {
+    TORCH_CHECK(
+        unlink((aclprofPath_ + kAclprofIncomplete).c_str()) == 0,
+        "Cannot mark ACLprof output complete: ",
+        aclprofPath_,
+        ", errno ",
+        errno);
+    aclprofComplete_ = true;
+  }
+}
+
+std::optional<std::pair<std::string, ProfilerMgr::AclprofStartInfo>> ProfilerMgr::GetCompletedAclprofWindow(
+    const std::string& root,
+    const std::string* traceId) {
+  std::lock_guard<std::mutex> guard(aclprofMutex_);
+  if (!aclprofComplete_ || root != aclprofRoot_ || (traceId != nullptr && *traceId != aclprofTraceId_)) {
+    return std::nullopt;
+  }
+  return std::make_pair(aclprofPath_, aclprofStartInfo_);
 }
 
 void ProfilerMgr::StartDataReceiver(const std::string& fwk_path) {

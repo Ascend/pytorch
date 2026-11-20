@@ -39,6 +39,7 @@ class NPUActivityProfiler {
   virtual ~NPUActivityProfiler() = default;
 
   virtual const char* name() const = 0;
+  virtual void configure(const libkineto::Config&) {}
   virtual void start() = 0;
   virtual void stop() = 0;
   virtual std::vector<std::string> errors() = 0;
@@ -79,7 +80,9 @@ class TORCH_NPU_API NPUActivityProfilerFactory {
 
 class TORCH_NPU_API PrivateUse1ProfilerManager : public libkineto::IActivityProfilerSession {
  public:
-  explicit PrivateUse1ProfilerManager(std::unique_ptr<NPUActivityProfiler> profiler) : profiler_(std::move(profiler)) {}
+  explicit PrivateUse1ProfilerManager(std::unique_ptr<NPUActivityProfiler> profiler) : profiler_(std::move(profiler)) {
+    status_ = profiler_->status();
+  }
 
   void start() override;
   void stop() override;

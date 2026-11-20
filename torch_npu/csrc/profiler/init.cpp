@@ -13,6 +13,7 @@
 #include <torch/csrc/utils/pycfunction_helpers.h>
 
 #include "torch_npu/csrc/profiler/init.h"
+#include "torch_npu/csrc/profiler/profiler_mgr.h"
 #include "torch_npu/csrc/profiler/profiler_python.h"
 #include "torch_npu/csrc/profiler/profiler_api.h"
 #include "torch_npu/csrc/profiler/mstx_range.h"
@@ -136,6 +137,23 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject* unused) {
   m.def("_stop_profiler", stopNpuProfiler, py::call_guard<py::gil_scoped_release>());
   m.def("_disable_profiler_in_child_thread", disableProfilerInChildThread);
   m.def("_finalize_profiler", finalizeNpuProfiler, py::call_guard<py::gil_scoped_release>());
+  m.def(
+      "FinalizeAclprofBackend",
+      []() { ProfilerMgr::GetInstance()->FinishAclprof(); },
+      py::call_guard<py::gil_scoped_release>());
+  m.def(
+      "GetAclprofOutputPath",
+      [](const std::string& root) {
+        auto window = ProfilerMgr::GetInstance()->GetCompletedAclprofWindow(root);
+        return window ? std::move(window->first) : std::string{};
+      },
+      py::call_guard<py::gil_scoped_release>());
+  m.def(
+      "_get_completed_aclprof_window",
+      [](const std::string& root, const std::string& trace_id) {
+        return ProfilerMgr::GetInstance()->GetCompletedAclprofWindow(root, &trace_id);
+      },
+      py::call_guard<py::gil_scoped_release>());
   m.def("_get_freq", at_npu::native::getFreq);
   m.def("_get_syscnt_enable", at_npu::native::isSyscntEnable);
   m.def("_get_syscnt", torch_npu::toolkit::profiler::Utils::getClockSyscnt);

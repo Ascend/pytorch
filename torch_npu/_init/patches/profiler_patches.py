@@ -18,3 +18,10 @@ def apply_perf_dump_patch():
 def apply_metadata_sanitizer_patch():
     from torch_npu.profiler._add_metadata_sanitizer_patch import _apply_metadata_sanitizer_patch
     _apply_metadata_sanitizer_patch()
+
+
+@PatchManager.register_patch("profiler")
+def apply_native_entry_patch():
+    from torch_npu.profiler._add_native_entry_patch import _apply_native_entry_patch
+
+    _apply_native_entry_patch()

@@ -85,6 +85,49 @@ class TestActionController(TestCase):
             self.prof_if.stop_trace()
             mock_stop.assert_called_once()
 
+        from itertools import product
+        from torch_npu.profiler._profiler_action_controller import ProfActionController
+        from torch_npu.profiler.profiler import profile as LegacyProfile
+        from torch_npu.profiler.scheduler import ProfilerAction
+
+        stop_errors = (RuntimeError("stop failure"), KeyboardInterrupt(), SystemExit())
+        for stop_error, cleanup_error, public in product(stop_errors, (None, OSError("finalize failure")), (False, True)):
+            order = mock.Mock()
+            order.stop.side_effect, order.finalize.side_effect = stop_error, cleanup_error
+            with (
+                self.subTest(stop_error=stop_error, cleanup_error=cleanup_error, public=public),
+                mock.patch.multiple(self.namespace, _stop_profiler=order.stop, _finalize_profiler=order.finalize,
+                                    print_error_msg=mock.DEFAULT, ProfPathCreator=mock.DEFAULT) as patched,
+                mock.patch(self.namespace + ".ProfilerLogger.destroy"),
+                mock.patch.multiple(self.prof_if, _dump_profiler_info=mock.DEFAULT, _dump_metadata=mock.DEFAULT) as dump,
+                mock.patch("torch_npu.profiler.analysis.prof_common_func._utils.print_error_msg") as public_error,
+            ):
+                self.prof_if.activities = set()
+                ready = mock.Mock()
+                controller = ProfActionController(mock.Mock(), self.prof_if, ready)
+                legacy = mock.Mock(record_steps=False, action_controller=controller,
+                                   current_action=ProfilerAction.RECORD_AND_SAVE, execution_trace_observer=None)
+
+                def action():
+                    if public:
+                        return LegacyProfile.stop(legacy)
+                    return controller.transit_action(legacy.current_action, None)
+
+                if public and isinstance(stop_error, Exception):
+                    self.assertIsNone(action())
+                    public_error.assert_called_once_with("Call stop failed. Exception: stop failure")
+                else:
+                    with self.assertRaises(type(stop_error)) as raised:
+                        action()
+                    self.assertIs(raised.exception, stop_error)
+                    public_error.assert_not_called()
+                self.assertEqual([c[0] for c in order.mock_calls], ["stop", "finalize"])
+                ready.assert_not_called()
+                if cleanup_error:
+                    patched["print_error_msg"].assert_called_once_with("Profiler finalization failed: finalize failure")
+                else:
+                    dump["_dump_metadata"].assert_called_once()
+
     def test_start_and_stop_trace_with_flops_and_msprof_tx(self):
         self.prof_if.with_flops = True
         self.prof_if.experimental_config._msprof_tx = True

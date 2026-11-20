@@ -2,9 +2,10 @@ import json
 import pickle
 import unittest
 import warnings
-from unittest.mock import PropertyMock, patch
+from unittest.mock import Mock, PropertyMock, patch
 
 from torch._C._profiler import _ExperimentalConfig as KinetoExperimentalConfig
+from torch_npu.profiler import _kineto_config
 from torch_npu.profiler import _NPUExperimentalConfig
 from torch_npu.profiler.experimental_config import supported_ai_core_metrics
 from torch_npu.profiler.experimental_config import supported_profiler_level
@@ -76,9 +77,6 @@ class TestNPUExperimentalConfig(unittest.TestCase):
             restored = pickle.loads(pickle.dumps(value))
             self.assertEqual(restored.__getstate__(), value.__getstate__())
         self.assertEqual(str(pickle.loads(pickle.dumps(config))), payload)
-        # Newer PyTorch versions append unrelated fields after the custom config.
-        with patch.object(_NPUExperimentalConfig, "__getstate__", return_value=(*config.__getstate__(), False, False)):
-            self.assertEqual(str(config), payload)
 
     def test_str_uses_direct_attribute_without_serializing(self):
         config = _NPUExperimentalConfig()
@@ -91,14 +89,58 @@ class TestNPUExperimentalConfig(unittest.TestCase):
     def test_str_falls_back_when_attribute_is_unavailable(self):
         config = _NPUExperimentalConfig(backend="aclprof")
         payload = '{"backend":"aclprof"}'
-        # Emulate the older PyTorch state used when the direct attribute is unavailable.
-        legacy_state = ([], False, False, [], False, False, False, False, False, False, False, payload)
         with patch.object(_NPUExperimentalConfig, "custom_profiler_config", create=True,
                           new_callable=PropertyMock, side_effect=AttributeError):
-            with patch.object(_NPUExperimentalConfig, "__getstate__", return_value=legacy_state) as state:
-                self.assertEqual(str(config), payload)
-                state.assert_called_once_with()
+            for index in (0, 3):
+                def layout(raw):
+                    values = [payload, True, [], payload, 17]
+                    values[index] = raw
+                    return tuple(values)
+
+                class ReferenceConfig:
+                    def __init__(self, *, custom_profiler_config):
+                        self.state = layout(custom_profiler_config)
+
+                    def __getstate__(self):
+                        return self.state
+
+                    def __setstate__(self, state):
+                        self.state = state
+
+                state = layout(payload)
+                with self.subTest(index=index), \
+                        patch.object(_kineto_config, "ExperimentalConfig", ReferenceConfig), \
+                        patch.object(_NPUExperimentalConfig, "__getstate__", return_value=state):
+                    self.assertEqual(str(config), payload)
+                    converted = config.to_custom_profiler_config({"output_path": "/capture"})
+                    result = converted.__getstate__()
+                    self.assertEqual(result[:index] + result[index + 1:], state[:index] + state[index + 1:])
+                    self.assertEqual(json.loads(_kineto_config._custom_profiler_config(converted))["output_path"],
+                                     "/capture")
         self.assertEqual(str(pickle.loads(pickle.dumps(config))), payload)
+
+    def test_unreliable_custom_config_state_is_rejected(self):
+        def reference(*, custom_profiler_config):
+            return Mock(__getstate__=Mock(return_value=make_reference(custom_profiler_config)))
+
+        for make_reference, state in (
+            (lambda marker: {"config": marker}, {"config": "{}"}),
+            (lambda marker: (marker, marker), ("{}", "{}")),
+            (lambda marker: (False, "{}"), (False, '{"backend":"aclprof"}')),
+            (lambda marker: (False, marker), ("{}",)),
+            (lambda marker: (False, marker), [False, "{}"]),
+            (lambda marker: (False, marker), (False, None)),
+            (lambda marker: (False, marker), (0, "{}")),
+        ):
+            config = Mock(spec=["__getstate__"], __getstate__=Mock(return_value=state))
+            with self.subTest(state=state), patch.object(_kineto_config, "ExperimentalConfig", side_effect=reference):
+                with self.assertRaisesRegex(RuntimeError, "Incompatible PyTorch.*custom_profiler_config"):
+                    _kineto_config._custom_profiler_config(config)
+        with self.assertRaisesRegex(RuntimeError, "Incompatible PyTorch"):
+            _kineto_config._custom_profiler_config(Mock(custom_profiler_config=None))
+        with patch.object(_kineto_config, "ExperimentalConfig", side_effect=TypeError("unsupported argument")):
+            with self.assertRaisesRegex(RuntimeError, "Incompatible PyTorch"):
+                _kineto_config._custom_profiler_config(Mock(spec=["__getstate__"]))
 
     def test_json_escaping(self):
         backend = 'aclprof",\n"profiler_level":"Level2'

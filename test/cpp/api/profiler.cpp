@@ -115,10 +115,15 @@ TEST(NPUActivityProfilerFactoryTest, SelectsBackendAndPluginCreatesManager) {
   }
 
   NPUActivityProfilerPlugin plugin;
-  auto config = configWithBackend("aclprof");
+  auto config = configWithBackend("mspti");
   auto session = plugin.configure({libkineto::ActivityType::CONCURRENT_KERNEL}, *config);
   ASSERT_NE(session, nullptr);
   EXPECT_NE(dynamic_cast<PrivateUse1ProfilerManager*>(session.get()), nullptr);
+
+  config = configWithJson(R"({"backend":"aclprof","record_op_args":true})");
+  const auto activities = std::set<libkineto::ActivityType>{libkineto::ActivityType::CONCURRENT_KERNEL};
+  EXPECT_NO_THROW(NPUActivityProfilerFactory::create(activities, *config));
+  EXPECT_THROW(plugin.configure(activities, *config), c10::Error);
 }
 
 TEST(NPUActivityProfilerFactoryTest, ConfigurationMatrixAndRetention) {
@@ -197,12 +202,10 @@ TEST(NPUActivityProfilerFactoryTest, SessionConfigurationIsOwnedAndIndependent) 
   EXPECT_EQ(NPUActivityProfilerFactory::create({}, *empty), nullptr);
 
   NPUActivityProfilerPlugin plugin;
-  config = configWithJson(R"({"backend":"aclprof","profiler_level":"Level1","export_type":["db"]})");
+  config = configWithJson(R"({"backend":"mspti","profiler_level":"Level1","export_type":["db"]})");
   auto session = plugin.configure(0, 1, activities, *config);
   ASSERT_NE(dynamic_cast<PrivateUse1ProfilerManager*>(session.get()), nullptr);
-  session->start();
-  session->stop();
-  EXPECT_EQ(session->status(), libkineto::TraceStatus::PROCESSING);
+  EXPECT_EQ(session->status(), libkineto::TraceStatus::READY);
 }
 
 TEST(PrivateUse1ProfilerManagerTest, DelegatesLifecycleAndTrace) {
@@ -223,16 +226,17 @@ TEST(PrivateUse1ProfilerManagerTest, DelegatesLifecycleAndTrace) {
   EXPECT_EQ(backend->traces, 2);
 }
 
-TEST(AclprofActivityProfilerTest, SequentialStubSessionsAreIndependentAndEmpty) {
+TEST(AclprofActivityProfilerTest, UnpreparedSessionsPreserveErrorThroughStop) {
   for (int session = 0; session < 2; ++session) {
     auto config = configWithBackend("aclprof");
     auto profiler = NPUActivityProfilerFactory::create({libkineto::ActivityType::CONCURRENT_KERNEL}, *config);
     ASSERT_NE(profiler, nullptr);
     EXPECT_EQ(profiler->status(), libkineto::TraceStatus::READY);
     profiler->start();
-    EXPECT_EQ(profiler->status(), libkineto::TraceStatus::RECORDING);
+    EXPECT_EQ(profiler->status(), libkineto::TraceStatus::ERROR);
     profiler->stop();
-    EXPECT_EQ(profiler->status(), libkineto::TraceStatus::PROCESSING);
+    EXPECT_EQ(profiler->status(), libkineto::TraceStatus::ERROR);
+    EXPECT_FALSE(profiler->errors().empty());
     ::testing::NiceMock<MockActivityLogger> logger;
     EXPECT_CALL(logger, handleGenericActivity(::testing::_)).Times(0);
     profiler->processTrace(logger);

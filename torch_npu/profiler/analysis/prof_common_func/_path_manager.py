@@ -122,7 +122,8 @@ class ProfilerPathManager:
 
     @classmethod
     def get_profiler_path_list(cls, input_path: str) -> list:
-        if not os.path.isdir(input_path):
+        incomplete = ".aclprof_incomplete"
+        if not os.path.isdir(input_path) or os.path.lexists(os.path.join(input_path, incomplete)):
             return []
         if cls.get_fwk_path(input_path) or cls.get_cann_path(input_path):
             return [input_path]
@@ -130,7 +131,7 @@ class ProfilerPathManager:
         profiler_path_list = []
         for sub_dir in sub_dirs:
             sub_path = os.path.join(input_path, sub_dir)
-            if not os.path.isdir(sub_path):
+            if not os.path.isdir(sub_path) or os.path.lexists(os.path.join(sub_path, incomplete)):
                 continue
             if cls.get_fwk_path(sub_path) or cls.get_cann_path(sub_path):
                 profiler_path_list.append(sub_path)

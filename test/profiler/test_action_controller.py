@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 from torch_npu.profiler._profiler_action_controller import ProfActionController
 from torch_npu.profiler.profiler_interface import _ProfInterface
@@ -11,6 +11,7 @@ class TestActionController(TestCase):
     def setUp(self):
         self.prof_if = _ProfInterface()
         self.prof_if.init_trace = MagicMock(name='init_trace')
+        self.prof_if.warmup_trace = MagicMock(name='warmup_trace')
         self.prof_if.start_trace = MagicMock(name='start_trace')
         self.prof_if.stop_trace = MagicMock(name='stop_trace')
         self.prof_if.finalize_trace = MagicMock(name='finalize_trace')
@@ -40,6 +41,16 @@ class TestActionController(TestCase):
             [ProfilerAction.RECORD_AND_SAVE, None, [6, 7, 9, 10, 6, 1]],
             [None, None, [6, 7, 9, 10, 6, 1]],
         ]
+
+    def test_warmup_exit_actions(self):
+        for target, expected in (
+            (None, [call.finalize_trace(), call.delete_prof_dir()]),
+            (ProfilerAction.NONE, [call.start_trace(), call.stop_trace(), call.finalize_trace()]),
+        ):
+            session = MagicMock()
+            controller = ProfActionController(MagicMock(), session)
+            controller.transit_action(ProfilerAction.WARMUP, target)
+            self.assertEqual(session.mock_calls, expected)
 
     def test_transit_action(self):
         for prev, current, call_cnt_list in self.test_cases:

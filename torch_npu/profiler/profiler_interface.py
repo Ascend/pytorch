@@ -28,7 +28,7 @@ from torch_npu.utils.collect_env import get_cann_version, get_torch_npu_version
 from ._profiler_gc_detect import ProfGCDetector
 from ._profiler_path_creator import ProfPathCreator
 from .analysis._npu_profiler import NpuProfiler
-from .analysis.prof_common_func._constant import Constant, print_warn_msg
+from .analysis.prof_common_func._constant import Constant, print_error_msg, print_warn_msg
 from .analysis.prof_common_func._file_manager import FileManager
 from .analysis.prof_common_func._log import ProfilerLogger
 from .analysis.prof_common_func._utils import (
@@ -170,13 +170,20 @@ class _ProfInterface:
     def stop_trace(self):
         if not self._is_env_valid:
             return
-        if ProfilerActivity.NPU in self.activities:
-            torch.npu.synchronize()
-        if self.with_flops and self.experimental_config.tx_enabled:
-            FlopsHookManager.uninstall()
-        _stop_profiler()
-        self.stop_gc_detect()
-        _disable_event_record()
+        try:
+            if ProfilerActivity.NPU in self.activities:
+                torch.npu.synchronize()
+            if self.with_flops and self.experimental_config.tx_enabled:
+                FlopsHookManager.uninstall()
+            _stop_profiler()
+            self.stop_gc_detect()
+            _disable_event_record()
+        except BaseException:  # noqa: B036 - preserve stop failure after best-effort finalization
+            try:
+                self.finalize_trace()
+            except BaseException as error:  # noqa: B036 - preserve the primary failure
+                print_error_msg(f"Profiler finalization failed: {error}")
+            raise
 
     def finalize_trace(self):
         if not self._is_env_valid:
@@ -333,6 +340,10 @@ class _ProfInterface:
             Constant.StartCnt: self.start_cnt,
             Constant.StartMonotonic: self.start_monotonic,
         }
+        self._write_profiler_info(self.prof_path, config, start_info)
+
+    @staticmethod
+    def _write_profiler_info(prof_path, config, start_info):
         end_info = {
             Constant.FWK_END_TIME: time.time_ns(),
             Constant.FWK_END_MONOTONIC: time.monotonic_ns(),
@@ -354,10 +365,10 @@ class _ProfInterface:
         ):
             rank_id = torch.distributed.get_rank()
         if rank_id is None:
-            path = os.path.join(os.path.realpath(self.prof_path), "profiler_info.json")
+            path = os.path.join(os.path.realpath(prof_path), "profiler_info.json")
         else:
             path = os.path.join(
-                os.path.realpath(self.prof_path), f"profiler_info_{rank_id}.json"
+                os.path.realpath(prof_path), f"profiler_info_{rank_id}.json"
             )
             total_info["rank_id"] = rank_id
         FileManager.create_json_file_by_path(path, total_info, indent=4)

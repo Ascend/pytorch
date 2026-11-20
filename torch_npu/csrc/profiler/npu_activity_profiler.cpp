@@ -139,6 +139,7 @@ std::unique_ptr<libkineto::IActivityProfilerSession> NPUActivityProfilerPlugin::
   if (profiler == nullptr) {
     return nullptr;
   }
+  profiler->configure(config);
   return std::make_unique<PrivateUse1ProfilerManager>(std::move(profiler));
 }
 
