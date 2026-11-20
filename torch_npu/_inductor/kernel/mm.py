@@ -72,6 +72,7 @@ lazy_register_extern_choice = torch._inductor.kernel.mm.lazy_register_extern_cho
 aten_mm = torch._inductor.kernel.mm.aten_mm
 aten_addmm = torch._inductor.kernel.mm.aten_addmm
 mm_template = torch._inductor.kernel.mm.mm_template
+aten_mm_dtype = torch._inductor.kernel.mm.aten_mm_dtype
 
 
 # ---------------------------------------------------------------------------
@@ -2142,7 +2143,15 @@ def _is_col_major(size, stride) -> bool:
 
 def _register_npu_inductor_mm():
     @register_lowering(aten.mm, type_promotion_kind=None)
-    def tuned_mm(mat1, mat2, *, layout=None):
+    def tuned_mm(mat1, mat2, out_dtype=None, *, layout=None):
+
+        if out_dtype is not None:
+            m, n, k, layout, mat1, mat2 = mm_args(
+                mat1, mat2, layout=layout, out_dtype=out_dtype
+            )
+            return aten_mm_dtype.bind(
+                (mat1, mat2), layout, out_dtype=out_dtype
+            ).output_node()
 
         m, n, k, layout, mat1, mat2 = mm_args(mat1, mat2, layout=layout)
         name = "mm"
