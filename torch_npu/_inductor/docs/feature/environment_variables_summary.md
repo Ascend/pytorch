@@ -24,7 +24,7 @@ TorchNPU环境变量请参考《[TorchNPU环境变量参考](https://www.hiascen
 | 离散访存       |USE_STORE_IN_CAT| 用于控制Inductor针对cat融合的行为，当前默认为False                                                                                               |
 | 动态shape    |INDUCTOR_ASCEND_SYMBOLIC_GROUP_AUTOTUNE| 控制是否启用动态shape分组autotune（grouped autotune），开启后按shape特征将运行时shape划分到不同分组，每组使用代表shape进行一次autotune，默认值为0                                                                                            |
 | 动态shape    |INDUCTOR_ASCEND_SYMBOLIC_GROUP_TEMPLATES| 配置参与动态shape分组autotune的模板类型列表，多个模板以逗号分隔，默认值为"pointwise,reduction,persistent_reduction"                                                                          |
-| 动态shape    |INDUCTOR_ASCEND_SYMBOLIC_GROUP_MAX_BENCHMARK_MEMORY_RATIO| 控制动态shape分组autotune中分组benchmark显存占用预算的比例上限，超出预算时自动回退到普通autotune流程                                                                                 |
+| 动态shape    |INDUCTOR_ASCEND_SYMBOLIC_GROUP_MAX_BENCHMARK_MEMORY_RATIO| 控制动态shape分组autotune中分组benchmark显存占用预算的比例上限，预算值为NPU总显存乘以该比例，估算显存超过预算时自动回退到普通autotune流程。取值范围为(0.0, 1.0]，默认值为0.25，取值非法时按默认值处理 |
 | 自动Tiling优化 |FASTAUTOTUNE| 控制是否使用fast autotune，默认值为0                                                                                                       |
 | 自动Tiling优化 |INDUCTOR_ASCEND_AGGRESSIVE_AUTOTUNE| 控制是否启用batch profiler，默认值为0                                                                                                      |
 | 自动Tiling优化 |TORCHINDUCTOR_COMPILE_THREADS| 多进程编译进程数量，与社区保持一致，默认值为32                                                                                                                |
