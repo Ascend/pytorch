@@ -81,13 +81,10 @@ symint:
 - exposed：表示商用算子支持的版本，一般只用设置正向算子接口。
 - internal_format_opapi：表示支持昇腾亲和格式NZ数据分发到op_api算子调用的白名单机制。当前对于入参为昇腾亲和格式的数据默认被分发到acl_op调用；只有当算子显式添加internal_format_opapi字段并加入白名单后，才会将NZ格式数据分发到op_api调用路径。
 
-> [!NOTE]  
-> 如果存在某个算子适配有两个版本不一致，则需要两个都加上，如std.correction在PyTorch 1.11.0版本和PyTorch 2.1.0及以上版本的入参名称不同，则需要分开写成两个，通过version区分。<br>
+> [!NOTE]
+> 同一算子在不同版本的签名不同时，分别配置各签名及其版本范围。版本值须出现在本文所用仓库分支的 `all_version` 中。当前 `std.correction` 的配置为：
 >
 >```yaml
->  - func: std.correction(Tensor self, int[1]? dim, *, int? correction, bool keepdim=False) -> Tensor
->    acl_op: v1.11
->    op_api: v1.11
 >  - func: std.correction(Tensor self, int[1]? dim=None, *, Scalar? correction=None, bool keepdim=False) -> Tensor
 >    acl_op: [v2.1, newest]
 >    op_api: [v2.1, newest]
@@ -266,23 +263,7 @@ symint为PyTorch在v2.0及以上版本新增的数据类型，op\_plugin/config/
     #include "op_plugin/utils/op_api_common.h"
     namespace op_api {
     using npu_preparation = at_npu::native::OpPreparation;
-    // 1.11的函数入参和2.0及以上版本有区别，需要单独实现，因此用宏来控制
-    #if VERSION_BETWEEN(V1R11, V1R11)
-    at::Tensor embedding(const at::Tensor& weight, const at::Tensor& indices, int64_t padding_idx, bool scale_grad_by_freq, bool sparse)
-    {
-        DO_COMPATIBILITY(aclnnEmbedding, acl_op::embedding(weight, indices, padding_idx, scale_grad_by_freq, sparse));
-        // 计算输出tensor的size
-        auto output_size = op_infer::array_to_small_vector(indices.sizes());
-        output_size.emplace_back(weight.size(weight.dim() - 1));
-        // 构造NPU输出tensor
-        at::Tensor result = npu_preparation::apply_tensor_without_format(output_size, weight.options());
-        // 计算NPU输出结果
-        EXEC_NPU_CMD(aclnnEmbedding, weight, indices, result);
-        return result;
-    }
-    #endif
-
-    #if VERSION_BETWEEN(V2R0, VERSION_NEWEST)
+    #if VERSION_BETWEEN(V2R1, VERSION_NEWEST)
     at::Tensor embedding_symint(const at::Tensor& weight, const at::Tensor& indices, c10::SymInt padding_idx, bool scale_grad_by_freq, bool sparse)
     {
         DO_COMPATIBILITY(aclnnEmbedding, acl_op::embedding_symint(weight, indices, padding_idx, scale_grad_by_freq, sparse));
@@ -389,7 +370,7 @@ yaml配置有以下两种方式，可根据实际情况进行选择。每个结�
 
     ```yaml
       - func: abs(Tensor self) -> Tensor
-        op_api: [v1.11, newest]
+        op_api: all_version
         gen_opapi:
           structured_inherit: abs.out
     ```
@@ -490,21 +471,7 @@ aclop算子是早期的算子实现方式，不推荐使用。适配文件路径
     #include "op_plugin/AclOpsInterface.h"
     #include "op_plugin/utils/custom_functions/aclops/inner_compute.h"
     namespace acl_op {
-    // 1.11的函数入参和2.0及以上版本有区别，因此用宏来控制
-    #if VERSION_BETWEEN(V1R11, V1R11)
-    at::Tensor embedding(
-        const at::Tensor& weight,
-        const at::Tensor& indices,
-        int64_t padding_idx,
-        bool scale_grad_by_freq,
-        bool sparse)
-    {
-        return embedding_common_nocheck(weight, indices);
-    }
-    #endif
-
-    // 2.0及以上版本的代码都一致
-    #if VERSION_BETWEEN(V2R0, VERSION_NEWEST)
+    #if VERSION_BETWEEN(V2R1, VERSION_NEWEST)
     at::Tensor embedding_symint(
         const at::Tensor& weight,
         const at::Tensor& indices,

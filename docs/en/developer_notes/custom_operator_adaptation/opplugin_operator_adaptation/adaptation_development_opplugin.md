@@ -79,13 +79,10 @@ Parameters
 - `exposed`: Indicates the versions supported by commercial operators. Generally, only the forward operator interface needs to be set.
 - internal_format_opapi: Indicates a whitelist mechanism that supports dispatching data in the Ascend-friendly NZ format to op_api operator calls. Currently, data whose input parameters are in the Ascend-friendly format is dispatched to acl_op calls by default; only when an operator explicitly adds the internal_format_opapi field and is added to the whitelist will NZ-format data be dispatched to the op_api call path.
 
-> [!NOTE]  
-> If an operator adaptation has two versions with inconsistencies, you need to add both. For example, the parameter names of `std.correction` differ between PyTorch 1.11.0 and PyTorch 2.1.0 and later. In this case, you need to write them as two separate entries and distinguish them by `version`.<br>
+> [!NOTE]
+> If an operator signature differs across versions, configure each signature with its own version range. Use versions from `all_version` in the target branch. The current `std.correction` configuration is:
 >
 >```yaml
->  - func: std.correction(Tensor self, int[1]? dim, *, int? correction, bool keepdim=False) -> Tensor
->    acl_op: v1.11
->    op_api: v1.11
 >  - func: std.correction(Tensor self, int[1]? dim=None, *, Scalar? correction=None, bool keepdim=False) -> Tensor
 >    acl_op: [v2.1, newest]
 >    op_api: [v2.1, newest]
@@ -263,23 +260,7 @@ The adaptation file path for aclnn operators is `op_plugin/ops/opapi/AbsKernelNp
     #include "op_plugin/utils/op_api_common.h"
     namespace op_api {
     using npu_preparation = at_npu::native::OpPreparation;
-    // Function input parameters of 1.11 differ from those of 2.0 and later versions and need to be implemented separately, so macros are used to control them
-    #if VERSION_BETWEEN(V1R11, V1R11)
-    at::Tensor embedding(const at::Tensor& weight, const at::Tensor& indices, int64_t padding_idx, bool scale_grad_by_freq, bool sparse)
-    {
-        DO_COMPATIBILITY(aclnnEmbedding, acl_op::embedding(weight, indices, padding_idx, scale_grad_by_freq, sparse));
-        // Compute the size of the output tensor
-        auto output_size = op_infer::array_to_small_vector(indices.sizes());
-        output_size.emplace_back(weight.size(weight.dim() - 1));
-        // Construct the NPU output tensor
-        at::Tensor result = npu_preparation::apply_tensor_without_format(output_size, weight.options());
-        // Compute the NPU output result
-        EXEC_NPU_CMD(aclnnEmbedding, weight, indices, result);
-        return result;
-    }
-    #endif
-
-    #if VERSION_BETWEEN(V2R0, VERSION_NEWEST)
+    #if VERSION_BETWEEN(V2R1, VERSION_NEWEST)
     at::Tensor embedding_symint(const at::Tensor& weight, const at::Tensor& indices, c10::SymInt padding_idx, bool scale_grad_by_freq, bool sparse)
     {
         DO_COMPATIBILITY(aclnnEmbedding, acl_op::embedding_symint(weight, indices, padding_idx, scale_grad_by_freq, sparse));
@@ -386,7 +367,7 @@ There are two YAML configuration methods, and you can choose either based on the
 
     ```yaml
       - func: abs(Tensor self) -> Tensor
-        op_api: [v1.11, newest]
+        op_api: all_version
         gen_opapi:
           structured_inherit: abs.out
     ```
@@ -487,21 +468,7 @@ aclop operators are an earlier operator implementation method and are not recomm
     #include "op_plugin/AclOpsInterface.h"
     #include "op_plugin/utils/custom_functions/aclops/inner_compute.h"
     namespace acl_op {
-    // Function input parameters of 1.11 differ from those of 2.0 and later versions, so macros are used to control them
-    #if VERSION_BETWEEN(V1R11, V1R11)
-    at::Tensor embedding(
-        const at::Tensor& weight,
-        const at::Tensor& indices,
-        int64_t padding_idx,
-        bool scale_grad_by_freq,
-        bool sparse)
-    {
-        return embedding_common_nocheck(weight, indices);
-    }
-    #endif
-
-    // The code for 2.0 and later versions is consistent
-    #if VERSION_BETWEEN(V2R0, VERSION_NEWEST)
+    #if VERSION_BETWEEN(V2R1, VERSION_NEWEST)
     at::Tensor embedding_symint(
         const at::Tensor& weight,
         const at::Tensor& indices,

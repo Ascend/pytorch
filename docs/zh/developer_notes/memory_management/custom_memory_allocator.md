@@ -74,6 +74,4 @@ npu_tensor = torch.zeros(10, device='npu')
 
 - alloc\_fn\_name内存申请函数名必须与C/C++文件中函数名一致。
 - free\_fn\_name内存释放函数名必须与C/C++文件中函数名一致。
-<!-- npu="950" id1 -->
-- <term>Ascend 950DT系列产品</term>暂不支持自定义内存分配器特性。
-<!-- end id1 -->
+- 各产品的支持情况见 [NPUPluggableAllocator](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/torch-npu-npu-NPUPluggableAllocator.md) 的产品支持表。

@@ -44,6 +44,4 @@ The `alloc_fn_name` memory allocation function name must match the function name
 
 The `free_fn_name` memory deallocation function name must match the function name in the C/C++ file.
 
-<!-- npu="950" id1 -->
-<term>Ascend 950DT products</term> do not yet support the custom memory allocator feature.
-<!-- end id1 -->
+See the product support table for [NPUPluggableAllocator](https://gitcode.com/Ascend/op-plugin/blob/master/docs/en/custom_APIs/torch_npu-npu/torch-npu-npu-NPUPluggableAllocator.md).
