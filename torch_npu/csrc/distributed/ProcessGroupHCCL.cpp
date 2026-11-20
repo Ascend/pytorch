@@ -2222,6 +2222,9 @@ void ProcessGroupHCCL::addEphemeralTimeout(const std::chrono::milliseconds& time
 
 void ProcessGroupHCCL::checkHcclComms()
 {
+    // In NoHandling mode this communicator-level scan is skipped: error
+    // detection relies on the per-work checks in the watchdog loop (see
+    // WorkHCCL::checkAndSetException), and no abort/teardown is performed.
     if (asyncErrorHandling_ == NoHandling) {
         return;
     }
@@ -3918,7 +3921,9 @@ c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> ProcessGroupHCCL::initWork(
         bool isP2P = c10d::isP2POp(opType);
         // Ideally record every work that we enqueue, rather than every work we
         // create.
-        // - at the time of this PR we do not currently enqueue every created work
+        // - every work created outside blockingWait_ mode and graph capture is
+        //   enqueued via workEnqueue regardless of the async error handling mode
+        //   (aligned with ProcessGroupNCCL)
         // - but it is unsafe to steal refs to start/end cuda events from Works that
         //   may go out of scope before flight recorder has retired them,
         //   so we must ensure that any work that is initialized via initWork will
@@ -3976,7 +3981,12 @@ void ProcessGroupHCCL::workEnqueue(c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL
         }
         shelvesToUnstash_.clear();
     }
-    if (!terminateProcessGroup_.load()) {
+    // in blockingWait_ mode, we don't need watchdog thread, so no need to enqueue
+    // the work. Works are enqueued for all async error handling modes, including
+    // NoHandling, aligned with ProcessGroupNCCL: in NoHandling mode the watchdog
+    // still monitors enqueued works (errors and timeouts) without aborting
+    // communicators or tearing down the process.
+    if (!terminateProcessGroup_.load() && !blockingWait_) {
         std::lock_guard<std::mutex> lock(workMetaListMutex_);
         // Avoid view tensors to be processed in cleanup thread.
         // View tensors' destruction invokes autograd_meta, which
@@ -4773,7 +4783,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     for (const auto& output : outputs) {
         work->numelOut_ += static_cast<size_t>(output.numel());
     }
-    if (asyncErrorHandling_ != NoHandling && capture_status == c10_npu::CaptureStatus::None) {
+    if (capture_status == c10_npu::CaptureStatus::None) {
         workEnqueue(work);
     }
 
@@ -4987,7 +4997,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collectiveCoalesced(
     // multi-device per process is deprecated
     work->numelIn_ = static_cast<size_t>(inputs[0].numel());
     work->numelOut_ = static_cast<size_t>(outputs[0].numel());
-    if (asyncErrorHandling_ != NoHandling && capture_status == c10_npu::CaptureStatus::None) {
+    if (capture_status == c10_npu::CaptureStatus::None) {
         workEnqueue(work);
     }
 
@@ -5239,7 +5249,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::pointToPoint(
             // as multi-device per process is deprecated
             work->numelIn_ = work->numelOut_ = static_cast<size_t>(tensors[i].numel());
         }
-        if (asyncErrorHandling_ != NoHandling && capture_status == c10_npu::CaptureStatus::None) {
+        if (capture_status == c10_npu::CaptureStatus::None) {
             workEnqueue(work);
         }
     }
