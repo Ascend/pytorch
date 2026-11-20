@@ -1,4 +1,4 @@
-name: Build Job
+name: Build Torchair Job
 
 on:
   workflow_call:
@@ -30,8 +30,6 @@ jobs:
     runs-on: [ self-hosted, op_plugin, "${{ inputs.runs_on_arch }}", "${{ inputs.runs_on_spec }}" ]
     container:
       image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/${{ inputs.CP_DOCKER_IMG }}
-    outputs:
-      need_ut: ${{ steps.check_support.outputs.need_build }}
     steps:
       - name: checkout torch_npu
         uses: checkout

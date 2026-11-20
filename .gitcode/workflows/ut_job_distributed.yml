@@ -1,4 +1,4 @@
-name: UT Job
+name: UT Job Distribution
 
 on:
   workflow_call:

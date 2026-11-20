@@ -1,4 +1,4 @@
-name: UT Job
+name: UT Job Inductor
 
 on:
   workflow_call:

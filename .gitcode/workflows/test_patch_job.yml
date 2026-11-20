@@ -1,4 +1,4 @@
-name: UT Job
+name: Test Patch Job
 
 on:
   workflow_call:

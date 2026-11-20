@@ -244,7 +244,6 @@ stages:
               echo "img_x86_build=${!img_x86_var}"
               echo "img_arm_test=${!img_arm_var2}"
 
-
       check_inductor:
         name: check_inductor
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
@@ -287,6 +286,24 @@ stages:
         name: Build_arm
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
         uses: .gitcode/workflows/build_job.yml
+        with:
+          torch_branch: ${{ jobs.img_select.outputs.target_branch }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm_build }}
+          runs_on_arch: "arm"
+
+      Build_x86_libtorch:
+        name: Build_x86_libtorch
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
+        uses: .gitcode/workflows/build_libtorch_job.yml
+        with:
+          torch_branch: ${{ atomgit.event.pull_request.base.ref }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_x86_build }}
+          runs_on_arch: "x86"
+
+      Build_arm_libtorch:
+        name: Build_arm_libtorch
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
+        uses: .gitcode/workflows/build_libtorch_job.yml
         with:
           torch_branch: ${{ jobs.img_select.outputs.target_branch }}
           CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm_build }}
@@ -362,6 +379,14 @@ stages:
           TEST_RANK: "2"
           TEST_WORLD_SIZE: "2"
           runs_on_device: "910C=1"
+
+      UT_libtorch:
+        name: UT_libtorch
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
+        uses: .gitcode/workflows/ut_job_libtorch.yml
+        with:
+          torch_branch: ${{ atomgit.event.pull_request.base.ref }}
+          CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_arm_test }}
 
       UT_core_part_1:
         name: UT_core_part_1

@@ -1,0 +1,102 @@
+name: Build Libtorch Job
+
+on:
+  workflow_call:
+    inputs:
+      py_version:
+        required: false
+        type: string
+        default: ${{ '3.10' }}
+      pr_id:
+        required: false
+        type: string
+        default: ${{ atomgit.event.pull_request.number }}
+      CP_DOCKER_IMG:
+        required: true
+        type: string
+      torch_branch:
+        required: true
+        type: string
+        default: ${{ atomgit.event.pull_request.base.ref }}
+      runs_on_arch:
+        required: false
+        type: string
+        default: "x64"
+      runs_on_spec:
+        required: false
+        type: string
+        default: "cpu=32"
+
+jobs:
+  Compile:
+    name: Compile
+    select: selected_by_default
+    runs-on: [ self-hosted, op_plugin, "${{ inputs.runs_on_arch }}", "${{ inputs.runs_on_spec }}" ]
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/${{ inputs.CP_DOCKER_IMG }}
+    steps:
+      - name: Resolve python version
+        id: resolve_pyver
+        run: |
+          if [ "${{ inputs.torch_branch }}" = "master" ] || [ "${{ inputs.torch_branch }}" = "2.15.0" ]; then
+            echo "py_version=3.11" >> "$ATOMGIT_OUTPUT"
+          else
+            echo "py_version=${{ inputs.py_version }}" >> "$ATOMGIT_OUTPUT"
+          fi
+
+      - name: checkout torch_npu
+        uses: checkout
+        with:
+          ref: refs/merge-requests/${{ inputs.pr_id }}/merge
+          fetch-depth: 1
+          submodules: recursive
+          allow-unsafe-pr-checkout: true
+
+      - name: install torch
+        if: ${{ inputs.torch_branch == 'master' }}
+        run: |
+          ARCH="${{ inputs.runs_on_arch }}"
+          if [ "${ARCH}" = "x64" ] || [ "${ARCH}" = "x86" ]; then
+            TORCH_ARCH="x86_64"
+          elif [ "${ARCH}" = "arm64" ] || [ "${ARCH}" = "arm" ]; then
+            TORCH_ARCH="aarch64"
+          else
+            TORCH_ARCH="${ARCH}"
+          fi
+
+          torch_version=$(cat requirements.txt | grep torch== | cut -c 8-25)
+          nightly_date=${torch_version:10:8}
+          echo "torch_version=${torch_version}"
+          echo "nightly_date=${nightly_date}"
+
+          if [ ${#nightly_date} -ne 8 ]; then
+            ver=${torch_version:0:6}
+            url_base="https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/torch/v${ver}"
+          else
+            ver=${torch_version}
+            url_base="https://pytorch-package.obs.cn-north-4.myhuaweicloud.com/pta/torch/master/${nightly_date}"
+          fi
+
+          torch_url="${url_base}/torch-${ver}%2Bcpu-cp311-cp311-manylinux_2_28_${TORCH_ARCH}.whl"
+          echo "torch_url=${torch_url}"
+          pip"${{ steps.resolve_pyver.outputs.py_version }}" install $torch_url
+
+      - name: compile
+        run: |
+          git clone -b ${{ atomgit.event.repository.default_branch }} ${{ env.ATOMGIT_REPOSITORY_URL }} cie
+          source cie/.gitcode/scripts/ccache_env.sh
+          export CCACHE_BASEDIR="${ATOMGIT_WORKSPACE}"
+          export OMP_NUM_THREADS=32
+          export _GLIBCXX_USE_CXX11_ABI=1
+          pip"${{ steps.resolve_pyver.outputs.py_version }}" list
+          git submodule update --init --recursive --force
+          python"${{ steps.resolve_pyver.outputs.py_version }}" build_libtorch_npu.py
+          ls -al libtorch_npu/
+          ccache -p -V -s
+
+      - name: Upload artifact
+        uses: upload-artifact
+        with:
+          name: libtorch_npu-${{ inputs.torch_branch }}-${{ inputs.runs_on_arch }}
+          path: libtorch_npu/
+          overwrite: true
