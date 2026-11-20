@@ -25,7 +25,38 @@ __all__ = [
     "compat_global_compile_option",
     "compat_translate_compile_options",
     "compat_inject_legacy_compile_options",
+    "triton_prologue_loads_all_kwargs",
+    "install_triton_prologue_inputs_aliases",
+    "triton_prologue_inputs_kwargs",
+    "triton_prologue_inputs",
+    "make_multi_template_buffer",
+    "pop_compiled_triton_kernel_loader",
 ]
+
+
+# upstream pytorch#200491/#200492 added the inline-kernel handover context;
+# pytorch#200502 enabled module-level kernels by default on the 2.16 line.
+@compat_impl(key="pop_compiled_triton_kernel_loader", ge=(2, 16))
+def pop_compiled_triton_kernel_loader_upstream(kernel_name):
+    from torch._inductor.runtime import triton_heuristics
+
+    # Early 2.16 nightlies may predate the handover protocol.
+    context = getattr(triton_heuristics, "compiled_kernels_for_load", None)
+    compiled = context.get() if context is not None else None
+    # Consume before the caller loads the kernel: loading its source can
+    # re-enter the decorator while the wrapper's context is still active.
+    return compiled.pop(kernel_name, None) if compiled is not None else None
+
+
+@compat_impl(key="pop_compiled_triton_kernel_loader", lt=(2, 16))
+def pop_compiled_triton_kernel_loader_local(kernel_name):
+    """Older torch loads string kernels without a handover context."""
+    return None
+
+
+pop_compiled_triton_kernel_loader = compat_impl_container[
+    "pop_compiled_triton_kernel_loader"
+].resolve()
 
 
 # upstream pytorch#190615 added DeviceOpOverrides and DeviceInterface hooks
@@ -666,3 +697,132 @@ def compat_inject_legacy_compile_options():
         return ori_dict
 
     ConfigModule.get_config_copy = new_get_config_copy
+
+
+# upstream pytorch#00b578d (first in torch 2.16) reworked prologue fusion:
+#   * TritonTemplate / TritonTemplateKernel take `prologue_loads_all_named_inputs`
+#     instead of `prologue_loads_all_inputs`;
+#   * a template kernel keeps `load_input_fusion_allowed_inputs` /
+#     `load_input_fused_inputs` (+ store-output counterparts) instead of
+#     `prologue_supported_inputs` / `prologue_fused_inputs`;
+#   * Triton template buffers and callers take
+#     `load_input_fusion_allowed_inputs` / `store_output_fusion_allowed_inputs`
+#     instead of a single `allowed_prologue_inps`.
+# CAN REMOVE this block when MIN_SUPPORTED >= (2, 16).
+@compat_impl(key="triton_prologue_loads_all_kwargs", lt=(2, 16))
+def triton_prologue_loads_all_kwargs_local(prologue_loads_all_inputs: bool) -> dict:
+    return {"prologue_loads_all_inputs": prologue_loads_all_inputs}
+
+
+@compat_impl(key="triton_prologue_loads_all_kwargs", ge=(2, 16))
+def triton_prologue_loads_all_kwargs_upstream(prologue_loads_all_inputs: bool) -> dict:
+    return {"prologue_loads_all_named_inputs": prologue_loads_all_inputs}
+
+
+triton_prologue_loads_all_kwargs = compat_impl_container[
+    "triton_prologue_loads_all_kwargs"
+].resolve()
+
+
+@compat_impl(key="install_triton_prologue_inputs_aliases", lt=(2, 16))
+def install_triton_prologue_inputs_aliases_local(kernel) -> None:
+    """torch < 2.16: the kernel already exposes the pre-rename attributes."""
+    return
+
+
+@compat_impl(key="install_triton_prologue_inputs_aliases", ge=(2, 16))
+def install_triton_prologue_inputs_aliases_upstream(kernel) -> None:
+    """torch >= 2.16: alias the pre-rename prologue attributes so the NPU
+    template kernel code stays version agnostic.  The aliases share the
+    upstream OrderedSets, which upstream only mutates in place, so they stay
+    in sync (including `_finalize_fusion_allowed_inputs`'s ``-=`` trimming).
+    """
+    kernel.prologue_supported_inputs = kernel.load_input_fusion_allowed_inputs
+    kernel.prologue_fused_inputs = kernel.load_input_fused_inputs
+
+
+install_triton_prologue_inputs_aliases = compat_impl_container[
+    "install_triton_prologue_inputs_aliases"
+].resolve()
+
+
+@compat_impl(key="triton_prologue_inputs_kwargs", lt=(2, 16))
+def triton_prologue_inputs_kwargs_local(allowed_prologue_inps) -> dict:
+    return {"allowed_prologue_inps": allowed_prologue_inps}
+
+
+@compat_impl(key="triton_prologue_inputs_kwargs", ge=(2, 16))
+def triton_prologue_inputs_kwargs_upstream(allowed_prologue_inps) -> dict:
+    return {"load_input_fusion_allowed_inputs": allowed_prologue_inps}
+
+
+triton_prologue_inputs_kwargs = compat_impl_container[
+    "triton_prologue_inputs_kwargs"
+].resolve()
+
+
+# `None` means the object carries no prologue-fusion gating (e.g. an
+# ExternKernel caller), mirroring the historical ``hasattr`` check.
+@compat_impl(key="triton_prologue_inputs", lt=(2, 16))
+def triton_prologue_inputs_local(obj):
+    return getattr(obj, "allowed_prologue_inps", None)
+
+
+@compat_impl(key="triton_prologue_inputs", ge=(2, 16))
+def triton_prologue_inputs_upstream(obj):
+    return getattr(obj, "load_input_fusion_allowed_inputs", None)
+
+
+triton_prologue_inputs = compat_impl_container["triton_prologue_inputs"].resolve()
+
+
+# MultiTemplateBuffer.__init__ takes the split load/store fusion sets on
+#   torch >= 2.16 and a single allowed_prologue_inps set before that.  The
+#   upstream change is feature-probed instead of version-gated because 2.15
+#   nightlies in circulation predate the merge, and importing torch._inductor.ir
+#   at compat import time is too heavy for a compat_impl judgement.
+@functools.cache
+def multi_template_buffer_splits_fusion_sets() -> bool:
+    import inspect
+
+    import torch._inductor.ir as ir
+
+    return (
+        "store_output_fusion_allowed_inputs"
+        in inspect.signature(ir.MultiTemplateBuffer.__init__).parameters
+    )
+
+
+def make_multi_template_buffer(layout, input_nodes, choice_timings_fn, choices):
+    """Build an ir.MultiTemplateBuffer with the prologue-fusion sets the
+    installed torch expects.  We take the union of the allowed prologue inputs
+    from all choices; benchmark fusion then skips choices that don't support
+    the whole union.
+    """
+    import torch._inductor.ir as ir
+    from torch._inductor.select_algorithm import TritonTemplateCaller
+    from torch.utils._ordered_set import OrderedSet
+
+    if multi_template_buffer_splits_fusion_sets():
+        load_fusion_inputs: OrderedSet[str] = OrderedSet()
+        store_fusion_inputs: OrderedSet[str] = OrderedSet()
+        for choice in choices:
+            if isinstance(choice, TritonTemplateCaller):
+                load_fusion_inputs |= choice.load_input_fusion_allowed_inputs
+                store_fusion_inputs |= choice.store_output_fusion_allowed_inputs
+        return ir.MultiTemplateBuffer(
+            layout,
+            input_nodes,
+            choice_timings_fn,
+            choices,
+            load_fusion_inputs,
+            store_fusion_inputs,
+        )
+
+    prologue_inputs: OrderedSet[str] = OrderedSet()
+    for choice in choices:
+        if isinstance(choice, TritonTemplateCaller):
+            prologue_inputs |= getattr(choice, "allowed_prologue_inps", OrderedSet())
+    return ir.MultiTemplateBuffer(
+        layout, input_nodes, choice_timings_fn, choices, prologue_inputs
+    )

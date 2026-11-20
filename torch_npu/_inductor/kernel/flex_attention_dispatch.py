@@ -12,6 +12,10 @@ from torch._inductor.select_algorithm import (
     TritonTemplateCaller,
 )
 from torch._inductor.virtualized import V
+from torch_npu._compat.inductor import (
+    triton_prologue_inputs,
+    triton_prologue_inputs_kwargs,
+)
 from torch_npu._inductor.kernel.flex_attention_tasklist import (
     DKDV_TASKLIST_HELPER_SOURCE,
     FlexAttentionDkdvDispatchSpec,
@@ -183,7 +187,7 @@ class FlexAttentionDispatchTemplateBuffer(ir.TritonTemplateBuffer):
             inputs=inputs,
             make_kernel_render=make_kernel_render,
             mutated_inputs=mutated_inputs,
-            allowed_prologue_inps=allowed_prologue_inps,
+            **triton_prologue_inputs_kwargs(allowed_prologue_inps),
         )
         self.dispatch_plan = dispatch_plan
 
@@ -200,7 +204,7 @@ class FlexAttentionDispatchTemplateCaller(TritonTemplateCaller):
             make_kernel_render=self.make_kernel_render,
             dispatch_plan=self.dispatch_plan,
             mutated_inputs=self.mutated_inputs,
-            allowed_prologue_inps=self.allowed_prologue_inps,
+            allowed_prologue_inps=triton_prologue_inputs(self),
         )
         return ir.TensorBox.create(buffer)
 

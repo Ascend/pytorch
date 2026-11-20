@@ -6,8 +6,9 @@ The following table lists the software packages supported by the TorchNPU.
 
 | TorchNPU software package version | Current status |  Release time  | Follow-up status                              |    EOL Date    |
 |:---------------------------------:|:--------------:|:--------------:|:--------------------------------------------- |:--------------:|
+|              2.17.0               |    Planned     |  Unpublished   | Expected to be released in 2027/06            |       -        |
 |              2.16.0               |    Planned     |  Unpublished   | Expected to be released in 2027/03            |       -        |
-|              2.15.0               |    Planned     |  Unpublished   | Expected to be released in 2026/12            |       -        |
+|              2.15.0               |  development   |  Unpublished   | Expected to be released in 2026/12            |       -        |
 |              2.14.0               |  development   | 2026 / 10 / 15 | Expected to enter maintenance from 2027/04/15 |       -        |
 |              2.13.0               |  development   | 2026 / 10 / 15 | Expected to enter maintenance from 2027/04/15 |       -        |
 |              2.12.0               |  development   | 2026 / 07 / 26 | Expected to enter maintenance from 2027/01/26 |       -        |

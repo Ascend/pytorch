@@ -29,6 +29,7 @@ from torch.utils._ordered_set import OrderedSet
 
 from .codegen.catlass.catlass_kernel import CATLASSTemplateCaller
 from .config import is_ascend950, log as npu_log
+from torch_npu._compat.inductor import triton_prologue_inputs
 
 
 def _do_batch_profiling_for_fusion(ready_choices):
@@ -585,8 +586,9 @@ def patch_scheduler():
                 # Currently, persistent+TMA Triton template does not due to the TMA-based loads.
                 if (
                     not epilogue_fusion
-                    and hasattr(choice, "allowed_prologue_inps")
-                    and choice.allowed_prologue_inps != multi_node.allowed_prologue_inps
+                    and triton_prologue_inputs(choice) is not None
+                    and triton_prologue_inputs(choice)
+                    != triton_prologue_inputs(multi_node)
                 ):
                     continue
 

@@ -38,6 +38,7 @@ import torch
 import torch_npu  # noqa: F401
 
 from torch._inductor import config
+from torch_npu._compat.inductor import pop_compiled_triton_kernel_loader
 
 from torch._inductor.runtime.hints import (
     DeviceProperties,
@@ -1678,6 +1679,11 @@ def cached_autotune(
     In 2.7.1, uses AutotuneCache instead of manual file caching.
     """
     inductor_meta = {} if inductor_meta is None else inductor_meta
+    load_kernel = pop_compiled_triton_kernel_loader(inductor_meta.get("kernel_name"))
+    if load_kernel is not None:
+        kernel = load_kernel()
+        return lambda fn: kernel
+
     deterministic_reduction = heuristic_type in (HeuristicType.REDUCTION, HeuristicType.PERSISTENT_REDUCTION) and any(
         inductor_meta.get(key, False)
         for key in ("deterministic", "are_deterministic_algorithms_enabled", "force_filter_reduction_configs")

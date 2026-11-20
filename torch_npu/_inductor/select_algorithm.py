@@ -57,6 +57,14 @@ from torch._inductor.codegen.common import IndentedBuffer, RemovedArg
 from torch._inductor.exc import CppCompileError
 from torch.utils._ordered_set import OrderedSet
 
+from torch_npu._compat.inductor import (
+    install_triton_prologue_inputs_aliases,
+    make_multi_template_buffer,
+    triton_prologue_inputs,
+    triton_prologue_inputs_kwargs,
+    triton_prologue_loads_all_kwargs,
+)
+
 from .profiler import simple_trace_handler
 from .codegen.triton import NPUTritonKernel
 from . import config as npu_config
@@ -347,7 +355,7 @@ class NPUFlexAttentionDkdvTemplateBuffer(ir.TritonTemplateBuffer):
             inputs=inputs,
             make_kernel_render=make_kernel_render,
             mutated_inputs=mutated_inputs,
-            allowed_prologue_inps=allowed_prologue_inps,
+            **triton_prologue_inputs_kwargs(allowed_prologue_inps),
         )
         self.runtime_renderer_factory = runtime_renderer_factory
         self.dispatch_spec = dispatch_spec
@@ -373,7 +381,7 @@ class NPUFlexAttentionDkdvTemplateCaller(TritonTemplateCaller):
             runtime_renderer_factory=self.runtime_renderer_factory,
             dispatch_spec=self.dispatch_spec,
             mutated_inputs=self.mutated_inputs,
-            allowed_prologue_inps=self.allowed_prologue_inps,
+            allowed_prologue_inps=triton_prologue_inputs(self),
         )
         return ir.TensorBox.create(buffer)
 
@@ -461,8 +469,11 @@ class NPUTritonTemplate(TritonTemplate):
         """
         super().__init__(
             name, grid, source, debug,
-            prologue_loads_all_inputs=prologue_loads_all_inputs,
+            **triton_prologue_loads_all_kwargs(prologue_loads_all_inputs),
         )
+        # Keep the pre-2.16 spelling on the instance: upstream renamed the
+        # attribute to prologue_loads_all_named_inputs in torch 2.16.
+        self.prologue_loads_all_inputs = prologue_loads_all_inputs
         self.manual_output_buffer = manual_output_buffer
         self.npu_extra_name = npu_extra_name
         self.compile_options = compile_options or NPUTemplateCompileOption()
@@ -865,7 +876,9 @@ class NPUTritonTemplate(TritonTemplate):
             },
             mutated_inputs=mutated_inputs,
             workspace_arg=workspace_arg,
-            allowed_prologue_inps=kernel.prologue_supported_inputs.copy(),
+            **triton_prologue_inputs_kwargs(
+                kernel.prologue_supported_inputs.copy()
+            ),
             hint_override=hint_override,
             **caller_kwargs,
         )
@@ -983,12 +996,14 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
             epilogue_fn=epilogue_fn,
             subgraphs=subgraphs,
             workspace_arg=workspace_arg,
-            prologue_loads_all_inputs=prologue_loads_all_inputs,
+            **triton_prologue_loads_all_kwargs(prologue_loads_all_inputs),
             hint_override=hint_override,
             triton_meta=triton_meta,
             always_freeze_layout=always_freeze_layout,
             index_dtype_override=index_dtype_override,
         )
+        self.prologue_loads_all_inputs = prologue_loads_all_inputs
+        install_triton_prologue_inputs_aliases(self)
         self.manual_output_buffer = manual_output_buffer
         self.reset_to_zero_arg_names = reset_to_zero_arg_names
         self.compile_option_keys = compile_option_keys
@@ -1755,47 +1770,12 @@ def patch_algorithm_selector() -> None:
 
                     return timings
 
-            # We take the union of allowed prologue inputs from all choices,
-            # and, within benchmark fusion, don't allow prologue fusion for
-            # choices which dont support the whole union.
-            load_fusion_inputs: OrderedSet[str] = OrderedSet()
-            store_fusion_inputs: OrderedSet[str] = OrderedSet()
-            legacy_prologue: OrderedSet[str] = OrderedSet()
-            for c in choices:
-                if isinstance(c, TritonTemplateCaller):
-                    if hasattr(c, "load_input_fusion_allowed_inputs"):
-                        # compat: newer torch splits prologue gating into
-                        # load/store fusion sets on the choice
-                        load_fusion_inputs |= c.load_input_fusion_allowed_inputs
-                        store_fusion_inputs |= c.store_output_fusion_allowed_inputs
-                    else:
-                        # compat: torch trees without prologue-fusion choice attr
-                        legacy_prologue |= getattr(
-                            c, "allowed_prologue_inps", OrderedSet()
-                        )
-
-            if (
-                "store_output_fusion_allowed_inputs"
-                in inspect.signature(
-                    torch._inductor.ir.MultiTemplateBuffer.__init__
-                ).parameters
-            ):
-                multi_template = torch._inductor.ir.MultiTemplateBuffer(
-                    layout,
-                    input_nodes,
-                    get_timings,
-                    choices,
-                    load_fusion_inputs,
-                    store_fusion_inputs,
-                )
-            else:
-                multi_template = torch._inductor.ir.MultiTemplateBuffer(
-                    layout,
-                    input_nodes,
-                    get_timings,
-                    choices,
-                    legacy_prologue,
-                )
+            multi_template = make_multi_template_buffer(
+                layout,
+                input_nodes,
+                get_timings,
+                choices,
+            )
             if defer_epilogue_to_scheduler:
                 multi_template._npu_deferred_epilogue_compile_only = True
             return torch._inductor.ir.TensorBox.create(multi_template), None

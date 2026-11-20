@@ -22,6 +22,7 @@ import pickle
 import tempfile
 import weakref
 from contextlib import contextmanager, ExitStack, nullcontext
+from contextvars import ContextVar
 from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
@@ -35,6 +36,7 @@ from torch._dynamo.device_interface import get_interface_for_device
 from torch._dynamo.utils import counters
 from torch._functorch import config as functorch_config
 from torch._inductor import config
+from torch._inductor import runtime as inductor_runtime
 from torch._inductor.async_compile import AsyncCompile
 from torch._inductor.codecache import PyCodeCache
 from torch._inductor.runtime.hints import HeuristicType
@@ -49,6 +51,8 @@ from triton.compiler.compiler import CompiledKernel
 from triton.runtime import driver
 
 from torch_npu._inductor import config as npu_config
+from torch_npu._compat import _impl as compat_registry
+from torch_npu._compat import inductor as inductor_compat
 from torch_npu._inductor.triton_experimental.npu_triton_heuristics import (
     NPUCachingAutotuner,
 )
@@ -252,6 +256,85 @@ class TestTritonExperimentalStaticLauncherUnit(TestCase):
         result.kernel = SimpleNamespace(npubin_raw=npubin_raw)
         autotuner.compile_results = [result]
         return autotuner, result
+
+    @parametrize("version", [(2, 13), (2, 15), (2, 16), (2, 17)])
+    def test_inline_kernel_handover_version_dispatch(self, version):
+        point = compat_registry.compat_impl_container["pop_compiled_triton_kernel_loader"]
+        with mock.patch.object(compat_registry, "CURRENT_VERSION", version):
+            selected = point.resolve()
+        expected = (
+            inductor_compat.pop_compiled_triton_kernel_loader_upstream
+            if version >= (2, 16)
+            else inductor_compat.pop_compiled_triton_kernel_loader_local
+        )
+        self.assertIs(selected, expected)
+        if version < (2, 16):
+            context = SimpleNamespace(get=mock.Mock(side_effect=AssertionError("old torch must not probe the context")))
+            with mock.patch.object(inductor_runtime, "triton_heuristics",
+                                   SimpleNamespace(compiled_kernels_for_load=context)):
+                self.assertIsNone(selected("test_kernel"))
+            context.get.assert_not_called()
+
+    def test_inline_kernel_handover_consumes_once_without_mutating_metadata(self):
+        kernel = object()
+        metadata = {"kernel_name": "test_kernel", "mutated_arg_names": ["output"]}
+        context = ContextVar("test_inline_kernel_handover", default=None)
+        entries = {}
+
+        def load():
+            self.assertNotIn("test_kernel", entries)
+            self.assertEqual(metadata["mutated_arg_names"], ["output"])
+            return kernel
+
+        thunk = mock.Mock(side_effect=load)
+        entries["test_kernel"] = thunk
+        token = context.set(entries)
+        try:
+            with (
+                mock.patch.object(inductor_runtime, "triton_heuristics",
+                                  SimpleNamespace(compiled_kernels_for_load=context)),
+                mock.patch.object(npu_triton_heuristics, "pop_compiled_triton_kernel_loader",
+                                  inductor_compat.pop_compiled_triton_kernel_loader_upstream),
+                mock.patch.object(npu_triton_heuristics, "NPUCachingAutotuner",
+                                  side_effect=AssertionError("must reuse the existing kernel")),
+            ):
+                decorate = npu_triton_heuristics.cached_autotune(
+                    None, [], {}, HeuristicType.POINTWISE, inductor_meta=metadata,
+                )
+                self.assertIs(decorate(object()), kernel)
+                self.assertIs(decorate(object()), kernel)
+            thunk.assert_called_once_with()
+            self.assertEqual(metadata, {"kernel_name": "test_kernel", "mutated_arg_names": ["output"]})
+        finally:
+            context.reset(token)
+
+    @parametrize("handover", ["missing_api", "no_context", "empty", "unmatched"])
+    def test_inline_kernel_handover_falls_back(self, handover):
+        context = ContextVar("test_inline_kernel_fallback", default=None)
+        unused = mock.Mock(side_effect=AssertionError("unrelated kernel must not be loaded"))
+        entries = {"other_kernel": unused} if handover == "unmatched" else {}
+        upstream = SimpleNamespace() if handover == "missing_api" else SimpleNamespace(
+            compiled_kernels_for_load=context,
+        )
+        token = context.set(None if handover == "no_context" else entries)
+        try:
+            with (
+                mock.patch.object(inductor_runtime, "triton_heuristics", upstream),
+                mock.patch.object(npu_triton_heuristics, "pop_compiled_triton_kernel_loader",
+                                  inductor_compat.pop_compiled_triton_kernel_loader_upstream),
+                mock.patch.object(npu_triton_heuristics, "NPUCachingAutotuner") as construct,
+            ):
+                decorate = npu_triton_heuristics.cached_autotune(
+                    None, [triton.Config({})], {}, HeuristicType.POINTWISE,
+                    inductor_meta={"kernel_name": "test_kernel"},
+                )
+                self.assertIs(decorate(SimpleNamespace(fn=lambda: None)), construct.return_value)
+                construct.assert_called_once()
+            unused.assert_not_called()
+            if handover == "unmatched":
+                self.assertIs(entries["other_kernel"], unused)
+        finally:
+            context.reset(token)
 
     @config.patch("keep_static_cubin_raw", False)
     def test_prepare_for_caching_drops_npubin_raw_by_default(self):
@@ -1302,27 +1385,45 @@ class TestTritonExperimentalStaticLauncherIntegration(TestCase):
     @contextmanager
     def _observe_launch(self, *, static=True, restore=False):
         original_init = CompiledKernel._init_handles
-        original_triton = AsyncCompile.triton
         original_make_launchers = NPUCachingAutotuner._make_launchers
-        experimental_kernels = []
-        compile_results = []
-
-        def make_launchers(tuner):
-            # Inspect worker results in the parent instead of counting worker-local mocks.
-            compile_results.extend(tuner.compile_results)
-            for result in tuner.compile_results:
-                self.assertEqual(isinstance(result, NPUStaticTritonCompileResult), static)
-            return original_make_launchers(tuner)
+        launcher_cls = driver.active.launcher_cls
+        static_binding = torch_npu._C._StaticNpuLauncher
+        original_static_launch = static_binding._launch_kernel
+        experimental_launchers = []
+        launches = SimpleNamespace(static=0, ordinary=0)
 
         def initialize(kernel, *args, **kwargs):
             if static:
                 raise AssertionError("static path must not call _init_handles")
             return original_init(kernel, *args, **kwargs)
 
-        def compile_triton(compiler, kernel_name, source_code, *args, **kwargs):
-            if "npu_triton_heuristics" in source_code:
-                experimental_kernels.append(kernel_name)
-            return original_triton(compiler, kernel_name, source_code, *args, **kwargs)
+        def make_launchers(autotuner, *args, **kwargs):
+            result = original_make_launchers(autotuner, *args, **kwargs)
+            experimental_launchers.extend(
+                bool(getattr(launcher, "_is_static", False))
+                for launcher in autotuner.launchers
+            )
+            return result
+
+        def static_launch(*args, **kwargs):
+            result = original_static_launch(*args, **kwargs)
+            launches.static += 1
+            return result
+
+        def make_ordinary_launcher(*args, **kwargs):
+            launcher = launcher_cls(*args, **kwargs)
+            original_launch = launcher.launch
+
+            def ordinary_launch(*launch_args, **launch_kwargs):
+                result = original_launch(*launch_args, **launch_kwargs)
+                launches.ordinary += 1
+                return result
+
+            # The ordinary NPU path can bind the C extension's launch function
+            # directly, bypassing NPULauncher.__call__. FastLaunch is disabled
+            # by setUp, so this is also the actual ordinary launch boundary.
+            launcher.launch = ordinary_launch
+            return launcher
 
         with (
             mock.patch.object(triton, "compile", wraps=triton.compile) as compile_mock,
@@ -1330,10 +1431,10 @@ class TestTritonExperimentalStaticLauncherIntegration(TestCase):
                 CompiledKernel, "_init_handles", autospec=True, side_effect=initialize,
             ) as init_mock,
             mock.patch.object(
-                driver.active, "launcher_cls", wraps=driver.active.launcher_cls,
+                driver.active, "launcher_cls", side_effect=make_ordinary_launcher,
             ) as launcher_mock,
-            mock.patch.object(AsyncCompile, "triton", autospec=True, side_effect=compile_triton),
             mock.patch.object(NPUCachingAutotuner, "_make_launchers", make_launchers),
+            mock.patch.object(static_binding, "_launch_kernel", static_launch),
         ):
             if static:
                 launcher_mock.side_effect = AssertionError(
@@ -1345,13 +1446,19 @@ class TestTritonExperimentalStaticLauncherIntegration(TestCase):
                 )
             yield
 
-        # Positive evidence that compilation did not only select external ops.
-        self.assertTrue(experimental_kernels)
-        self.assertTrue(compile_results)
+        # Observe our backend after either string-based or inline codegen, and
+        # after cache recovery. Actual launch counts also cover instance fast_run
+        # closures, which bypass NPUCachingAutotuner.run after the first call.
+        self.assertTrue(experimental_launchers)
+        self.assertTrue(all(is_static == static for is_static in experimental_launchers))
         if static:
+            self.assertGreater(launches.static, 0)
+            self.assertEqual(launches.ordinary, 0)
             init_mock.assert_not_called()
             launcher_mock.assert_not_called()
         else:
+            self.assertGreater(launches.ordinary, 0)
+            self.assertEqual(launches.static, 0)
             self.assertGreater(init_mock.call_count, 0)
             self.assertGreater(launcher_mock.call_count, 0)
         if restore:

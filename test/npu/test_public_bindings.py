@@ -845,10 +845,12 @@ class TestPublicBindings(TestCase):
             if mod.startswith(
                 (
                     "torch._native.ops.linear_cross_entropy.fused_grad_logits_kernel",
+                    "torch._native.ops.norm.rmsnorm_kernels",
                     "torch._native.ops.reductions.kernel_coltile",
                     "torch._native.ops.reductions.kernel_general",
                     "torch._native.ops.reductions.kernel_rowtile",
                     "torch._native.ops.reductions.kernel_xcta",
+                    "torch._native.ops.reductions.ordered",
                     "torch._native.ops.reductions.tile",
                     "torch._native.ops.reductions.traits",
                 )
