@@ -434,7 +434,7 @@ aclop算子是早期的算子实现方式，不推荐使用。适配文件路径
             .Run(); 
         return result; 
     } 
-    } // namespace acl_op
+    } // anonymous namespace
     
     // abs api实现函数，名称唯一，参数与torch api一致。 
     at::Tensor abs(const at::Tensor& self)
@@ -540,7 +540,7 @@ aclop算子是早期的算子实现方式，不推荐使用。适配文件路径
   参数说明
   self (Tensor)：输入张量。
   perm (ListInt)：对应维度排列。
-  require_contiguous(Bool)：用户是否需要对输入Tensor做转连续。设置为False时，表示不对输入Tensor做转连续。用户明确输入Tensor为连续Tensor或转置Tensor时，才能设置为True。默认值为True。
+  require_contiguous (Bool)：用户是否需要对输入Tensor做转连续。设置为False时，表示不对输入Tensor做转连续。用户明确输入Tensor为连续Tensor或转置Tensor时，才能设置为True。默认值为True。
 
   示例
   >>> x = torch.randn(2, 3, 5).npu()

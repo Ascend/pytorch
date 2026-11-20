@@ -22,7 +22,7 @@ FSDP2（fully_shard API）是PyTorch推荐的新版实现，支持逐层分片�
 
 ## 使用样例
 
-以下示例使用torch.nn.Sequential构建一个4层Linear的简单模型，使用FSDP2的fully_shard API在TorchNPU上训练5个step。模型参数、梯度和优化器状态被分片存储在各NPU芯片上，以降低单卡显存占用。假设代码文件为train_fsdp.py，通过执行`torchrun train_fsdp.py`启动。
+以下示例使用torch.nn.Sequential构建一个4层Linear的简单模型，使用FSDP2的fully_shard API在TorchNPU上训练5个step。模型参数、梯度和优化器状态被分片存储在各NPU芯片上，以降低单卡显存占用。假设代码文件为train_fsdp.py，单机使用两张NPU时，通过`torchrun --nproc-per-node=2 train_fsdp.py`启动。
 
 ```python
 import torch
@@ -35,11 +35,12 @@ from torch.distributed.fsdp import fully_shard
 
 
 def main():
-    rank = int(os.environ["LOCAL_RANK"])
+    rank = int(os.environ["RANK"])
+    local_rank = int(os.environ["LOCAL_RANK"])
     world_size = int(os.environ["WORLD_SIZE"])
     # 改动：后端从 "nccl" 改为 "hccl"
     dist.init_process_group("hccl", rank=rank, world_size=world_size)
-    torch.npu.set_device(rank)
+    torch.npu.set_device(local_rank)
 
     layers = nn.ModuleList([nn.Linear(512, 512) for _ in range(4)])
     model = nn.Sequential(*layers).npu()

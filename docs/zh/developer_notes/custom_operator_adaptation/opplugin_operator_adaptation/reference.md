@@ -28,7 +28,8 @@
 TorchNPU算子操作基础接口可参见[OpPreparation.h接口头文件](https://gitcode.com/Ascend/pytorch/blob/master/torch_npu/csrc/framework/utils/OpPreparation.h)。常见接口如下：
 
 - **`at_npu::native::OpPreparation::apply_tensor`**  
-   - 功能：创建与输入张量属性（设备、数据类型、格式）一致的输出张量，适用于大多数算子的输出初始化。  
+   - 功能：创建与输入张量属性（设备、数据类型、格式）一致的输出张量，适用于大多数算子的输出初始化。
+   - 参数：rois是提供设备、数据类型和格式的输入张量，output_size是所需输出形状，各维大小须为非负整数。
    - 示例：  
 
      ```cpp
@@ -53,19 +54,19 @@ TorchNPU算子操作基础接口可参见[OpPreparation.h接口头文件](https:
 
 - **`copy_scalar_to_device`**  
    - 功能：将主机（CPU）上的标量值复制到设备（NPU），确保标量数据能在NPU计算中正确使用，解决跨设备数据访问问题。  
-   - 示例（参考逻辑）：  
+   - 示例（参考逻辑）：
 
      ```cpp
      at::Scalar scalar = 2.0f;
-     at::Tensor device_scalar = copy_scalar_to_device(scalar, input.device());
+     at::Tensor device_scalar = at_npu::native::OpPreparation::copy_scalar_to_device(scalar, input.scalar_type(), input.device());
      ```
 
 - **`binary_op_check`**  
    - 功能：校验二元算子的两个输入张量是否满足运算条件（如设备一致性、数据类型兼容性等），提前发现不合法输入并抛出异常。  
-   - 示例（参考逻辑）：  
+   - 示例（参考逻辑）：
 
      ```cpp
-     binary_op_check(input1, input2, "add");
+     at_npu::native::OpPreparation::binary_op_check(output, input1, input2, true);
      // 确保input1和input2在设备、数据类型等方面符合add算子的要求
      ```
 
@@ -94,12 +95,12 @@ TorchNPU算子操作基础接口可参见[OpPreparation.h接口头文件](https:
    - 示例：  
 
      ```cpp
-     TORCH_CHECK(src.is_sparse(), "add(sparse, dense) is not supported. Use add(dense, sparse) instead.", OPS_ERROR(ErrCode::VALUE));
+     TORCH_CHECK(!src.is_sparse(), "add(sparse, dense) is not supported. Use add(dense, sparse) instead.", OPS_ERROR(ErrCode::VALUE));
      ```
 
 - **`VERSION_BETWEEN`**  
    - 功能：根据NPU版本范围进行条件编译，仅在指定版本区间内生效，适配不同硬件版本特性差异（结合CMake版本判断逻辑）。  
-   - 示例（参考逻辑）：  
+   - 示例（参考逻辑）：
 
      ```cpp
      #if VERSION_BETWEEN(V2R1, VERSION_NEWEST)
@@ -109,7 +110,7 @@ TorchNPU算子操作基础接口可参见[OpPreparation.h接口头文件](https:
 
 - **`FLOP_COUNT`**  
    - 功能：统计算子的浮点运算次数（FLOPs），用于性能分析和优化。  
-   - 示例（参考逻辑）：  
+   - 示例（参考逻辑）：
 
      ```cpp
      FLOP_COUNT(FlopCounter::mm_flop, input, weight_t);

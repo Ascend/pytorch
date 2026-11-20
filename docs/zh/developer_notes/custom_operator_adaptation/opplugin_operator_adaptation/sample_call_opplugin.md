@@ -32,7 +32,7 @@
         ```yaml
         - func: npu_add_custom(Tensor x, Tensor y, *, Scalar alpha=1) -> Tensor
           op_api: v2.7
-        - func: npu_add_custom_backward(Tensor grad) -> (Tensor, Tensor)
+        - func: npu_add_custom_backward(Tensor grad, Scalar alpha) -> (Tensor, Tensor)
           op_api: v2.7
         ```
 
@@ -42,7 +42,7 @@
         custom: 
           - func: npu_add_custom(Tensor x, Tensor y, *, Scalar alpha=1) -> Tensor
             op_api: v2.7
-          - func: npu_add_custom_backward(Tensor grad) -> (Tensor, Tensor)
+          - func: npu_add_custom_backward(Tensor grad, Scalar alpha) -> (Tensor, Tensor)
             op_api: v2.7
         ```
 
@@ -56,7 +56,7 @@
 
         ```yaml
         - name: npu_add_custom(Tensor x, Tensor y, *, Scalar alpha=1) -> Tensor
-          x, y: npu_add_custom_backward(grad)
+          x, y: npu_add_custom_backward(grad, alpha)
           version: v2.7
         ```
 
@@ -65,11 +65,11 @@
         ```yaml
         backward: 
         - name: npu_add_custom(Tensor x, Tensor y, *, Scalar alpha=1) -> Tensor
-          x, y: npu_add_custom_backward(grad)
+          x, y: npu_add_custom_backward(grad, alpha)
           version: v2.7
         ```
 
-2. 提供以下两种方法对自定义算子进行代码适配，用户可根据实际情况进行选择：
+2. 正向接口可选择结构化或通用化适配。两种方式均需实现下文的反向接口。为简化示例，两个输入张量须具有相同形状。正向适配方法如下：
    - 在op\_plugin\_functions.yaml中进行结构化算子适配。
 
       > [!NOTE]  
@@ -84,20 +84,21 @@
                 size: x
                 dtype: x
               exec: aclnnAdd, x, y, alpha, out
-          - func: npu_add_custom_backward(Tensor grad) -> (Tensor, Tensor)
+          - func: npu_add_custom_backward(Tensor grad, Scalar alpha) -> (Tensor, Tensor)
             op_api: v2.7
         ```
 
    - 通用化算子适配。
-      1. 在op_plugin/ops/opapi目录下，创建AddCustomKernelNpuOpApi.cpp文件并实现算子适配主体函数npu\_add\_custom和npu\_add\_custom\_backward。其核心逻辑为调用EXEC\_NPU\_CMD接口，完成输出结果的计算，EXEC\_NPU\_CMD第一个入参格式为aclnn+Optype（算子类型），之后的参数分别为输入输出，由于add操作的反向计算相对简单，因此不需要调用算子进行计算。
+      1. 在op_plugin/ops/opapi目录下，创建AddCustomKernelNpuOpApi.cpp文件并实现算子适配主体函数npu\_add\_custom和npu\_add\_custom\_backward。其核心逻辑为调用EXEC\_NPU\_CMD接口，完成输出结果的计算，EXEC\_NPU\_CMD第一个入参格式为aclnn+Optype（算子类型），之后的参数分别为输入输出。反向接口根据alpha计算第二个输入的梯度。
 
           ```bash
           vi op_plugin/ops/opapi/AddCustomKernelNpuOpApi.cpp
           ```
 
-      2. 完成算子适配，完整的AddCustomKernelNpuOpApi.cpp文件如下：
+      2. 完成算子适配，选择结构化适配时，在AddCustomKernelNpuOpApi.cpp中保留反向接口及其所需的头文件和命名空间，正向接口由代码生成。完整文件如下：
 
           ```cpp
+          #include <ATen/ops/mul.h>
           #include "op_plugin/OpApiInterface.h"
           #include "op_plugin/utils/op_api_common.h"
           
@@ -117,13 +118,9 @@
           }
           
           // 反向接口
-          std::tuple<at::Tensor, at::Tensor> npu_add_custom_backward(const at::Tensor& grad)
+          std::tuple<at::Tensor, at::Tensor> npu_add_custom_backward(const at::Tensor& grad, const at::Scalar& alpha)
           {
-              // 构造输出tensor
-              at::Tensor result = npu_preparation::apply_tensor_without_format(grad);
-              result.copy_(grad);
-              // 计算输出结果
-              return {result, result};
+              return {grad, at::mul(grad, alpha)};
           }
           }  // namespace op_api
           ```
@@ -138,15 +135,15 @@
       _add_torch_npu_docstr(
           "npu_add_custom",
           """
-      torch_npu.npu_add_custom(self, other, alpha=1) -> Tensor
+      torch_npu.npu_add_custom(x, y, *, alpha=1) -> Tensor
 
       功能描述
       对两个张量执行自定义加法运算，支持对第二个输入张量进行系数缩放后再相加。支持FakeTensor模式。
 
       参数说明
-      self (Tensor) - 第一个输入张量。
-      other (Tensor) - 第二个输入张量，需与self的形状可广播。
-      alpha (float，默认值为1) - 应用于other的缩放系数，计算方式为self + alpha * other。
+      x (Tensor) - 第一个输入张量。
+      y (Tensor) - 第二个输入张量，须与x形状相同。
+      alpha (float，默认值为1) - 应用于y的缩放系数，计算方式为x + alpha * y。
 
       示例
       >>> x = torch.tensor([1.0, 2.0, 3.0]).npu()
@@ -178,7 +175,13 @@
             "op_api: torch_npu.npu_add_custom(*args, **kwargs)": {
               "version": ["v2.7"]
             },
-            "func: npu_add_custom(Tensor self, Tensor other, float alpha=1) -> Tensor": {
+            "func: npu_add_custom(Tensor x, Tensor y, *, Scalar alpha=1) -> Tensor": {
+              "version": ["v2.7"]
+            },
+            "op_api: torch_npu.npu_add_custom_backward(*args, **kwargs)": {
+              "version": ["v2.7"]
+            },
+            "func: npu_add_custom_backward(Tensor grad, Scalar alpha) -> (Tensor, Tensor)": {
               "version": ["v2.7"]
             }
           }
@@ -190,10 +193,10 @@
 
         ```python
         @impl(m, "npu_add_custom")
-        def npu_add_custom_meta(self, other, alpha=1):
+        def npu_add_custom_meta(x, y, *, alpha=1):
             # 模拟自定义加法的计算逻辑，用于FakeTensor模式
-            output = self + alpha * other
-            return torch.empty_like(output, dtype=self.dtype)
+            output = x + alpha * y
+            return torch.empty_like(output, dtype=x.dtype)
         ```
 
 ## 编译验证
@@ -224,15 +227,11 @@
 
           def test_add_custom_backward(self):
               length = [8, 2048]
-              x = torch.rand(length, device='cpu', dtype=torch.float16, requires_grad=True)
-              y = torch.rand(length, device='cpu', dtype=torch.float16, requires_grad=True)
-
-              output = torch_npu.npu_add_custom(x.npu(), y.npu()).cpu()
+              alpha = 0.5
               grad_output = torch.rand(length, device='cpu', dtype=torch.float16)
-
-              x_grad, y_grad = torch_npu.npu_add_custom_backward(grad_output.npu())
+              x_grad, y_grad = torch_npu.npu_add_custom_backward(grad_output.npu(), alpha)
               self.assertRtolEqual(x_grad.cpu(), grad_output)
-              self.assertRtolEqual(y_grad.cpu(), grad_output)
+              self.assertRtolEqual(y_grad.cpu(), alpha * grad_output)
 
       if __name__ == "__main__":
          run_tests()
