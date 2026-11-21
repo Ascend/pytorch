@@ -32,9 +32,10 @@ class TestSliceCatPassComposition(unittest.TestCase):
     def test_registration_order(self):
         names = [fn.__name__ for fns in ASCEND_CUSTOME_PASS_REGISTER[PassType.POST].values()
                  for fn in fns]
-        # DEFAULT_SHUT_DOWN_PASSES gates sink and MSC together.
-        # Cast packing is independent and remains enabled by default.
-        expected = PIPELINE if npu_config.enable_multi_slice_concat else PIPELINE[:1]
+        # Sink and MSC rewrite onto Ascend950-only operators, so they register by
+        # default there and SHUT_DOWN_FX_PASS_LIST is the only way to take them out.
+        # Cast packing is SoC independent and always registers.
+        expected = PIPELINE if npu_config.is_ascend950 else PIPELINE[:1]
         for fn in PIPELINE:
             self.assertEqual(names.count(fn.__name__), int(fn in expected), fn.__name__)
         positions = [names.index(fn.__name__) for fn in expected]
@@ -108,8 +109,8 @@ class TestSliceCatPassComposition(unittest.TestCase):
 
 
 @unittest.skipUnless(hasattr(torch, 'npu') and torch.npu.is_available(), 'requires NPU')
-@unittest.skipUnless(npu_config.enable_multi_slice_concat,
-                     'requires TORCHINDUCTOR_ENABLE_MULTI_SLICE_CONCAT=1 before import')
+@unittest.skipUnless(npu_config.is_ascend950,
+                     'sink and MSC only register on Ascend950; see ASCEND950_ONLY_PASSES')
 class TestSliceCatPassCompositionDevice(unittest.TestCase):
     def test_registered_pipeline_forward_and_backward(self):
         from contextlib import ExitStack

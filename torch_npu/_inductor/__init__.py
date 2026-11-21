@@ -240,14 +240,17 @@ def _load_triton_backend():
         _register_npu_inductor_mm()
         _register_npu_inductor_addmm()
         _register_npu_inductor_bmm()
-        _register_npu_inductor_grouped_mm()
-        if npu_config.enable_multi_slice_concat:
-            _register_npu_inductor_multi_slice_concat()
         from .kernel.index_reshape_index import (
             _register_npu_inductor_index_reshape_index,
         )
 
-        _register_npu_inductor_index_reshape_index()
+        # These lowerings back operators that only exist on Ascend950, and the
+        # passes that emit them are registered there only; see
+        # ASCEND950_ONLY_PASSES in register_custom_pass.
+        if npu_config.is_ascend950:
+            _register_npu_inductor_grouped_mm()
+            _register_npu_inductor_multi_slice_concat()
+            _register_npu_inductor_index_reshape_index()
 
     _register_npu_inductor_flex_attention()
 

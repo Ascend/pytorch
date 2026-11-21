@@ -6,8 +6,7 @@ from torch.utils._ordered_set import OrderedSet
 from ...config import (
     enable_fused_matmul_relu,
     enable_grad_matmul_transpose_opt,
-    enable_grouped_matmul_fusion,
-    enable_multi_slice_concat,
+    is_ascend950,
     log,
 )
 from ..utils.fx_pass_level import FxPassLevel, PassType
@@ -17,15 +16,24 @@ ASCEND_CUSTOME_PASS_REGISTER = {
     pass_type: {level: [] for level in FxPassLevel} for pass_type in PassType
 }
 
+# The slice-cat fusion and grouped_matmul_fusion_pass rewrite onto operators that
+# only exist on Ascend950, so they stay unregistered on older SoCs: there the graph
+# keeps the form it had before these passes were added.
+ASCEND950_ONLY_PASSES = (
+    "sink_pointwise_cat_pass",
+    "multi_slice_concat_pass",
+    "indexed_slice_concat_table_pass",
+    "grouped_matmul_fusion_pass",
+)
+
 # Passes that stay off until their config switch is set. A disabled pass is never
 # registered, so neither the inference nor the training path runs it.
+# On Ascend950 the passes above are on by default and SHUT_DOWN_FX_PASS_LIST is the
+# only way to turn them off.
 DEFAULT_SHUT_DOWN_PASSES = (
     (() if enable_fused_matmul_relu else ("fused_matmul_relu_pass",))
     + (() if enable_grad_matmul_transpose_opt else ("grad_matmul_transpose_opt_pass",))
-    + (() if enable_multi_slice_concat else
-       ("sink_pointwise_cat_pass", "multi_slice_concat_pass",
-        "indexed_slice_concat_table_pass"))
-    + (() if enable_grouped_matmul_fusion else ("grouped_matmul_fusion_pass",))
+    + (() if is_ascend950 else ASCEND950_ONLY_PASSES)
 )
 
 

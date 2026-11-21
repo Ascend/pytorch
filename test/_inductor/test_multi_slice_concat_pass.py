@@ -67,8 +67,8 @@ _W8_OFFSETS = (48025, 47595, 46868, 47890, 48779, 49346, 47769, 49082, 49180,
 _ALT_OFFSETS = (35098, 39296, 35470, 39913, 34648, 38647, 35842, 40530)
 _ALT_WIDTHS = (80, 80, 80, 80, 112, 112, 128, 128)
 
-_ENABLED = npu_config.enable_multi_slice_concat
-_NEEDS_FLAG = "needs TORCHINDUCTOR_ENABLE_MULTI_SLICE_CONCAT=1 (pass is registered by the flag)"
+_ENABLED = npu_config.is_ascend950
+_NEEDS_950 = "multi_slice_concat_pass only registers on Ascend950 (npu_ext::multi_slice_concat)"
 
 
 def _count(graph, target):
@@ -1129,9 +1129,9 @@ class TestMultiSliceConcatPass(TestUtils):
         self._assert_bitwise_equal(expected[1], actual[1], "other consumer of a shared slice")
 
     # ------------------------------------------------------------------
-    # end to end; needs the flag on, otherwise pass and lowering are not registered
+    # end to end; the pass and its lowering only exist on Ascend950
     # ------------------------------------------------------------------
-    @unittest.skipUnless(_ENABLED, _NEEDS_FLAG)
+    @unittest.skipUnless(_ENABLED, _NEEDS_950)
     @parametrize('rows', [200])
     @parametrize('dtype', ['float16'])
     @parametrize('dynamic', [False, True])
@@ -1161,7 +1161,7 @@ class TestMultiSliceConcatPass(TestUtils):
                 torch._dynamo.mark_dynamic(other, 0)
                 self._assert_bitwise_equal(fn(other), compiled(other), "dynamic batch artifact")
 
-    @unittest.skipUnless(_ENABLED, _NEEDS_FLAG)
+    @unittest.skipUnless(_ENABLED, _NEEDS_950)
     @parametrize('rows', [2])
     @parametrize('dtype', ['float16'])
     def test_compile_oversized_segment_falls_back(self, rows, dtype):
@@ -1186,7 +1186,7 @@ class TestMultiSliceConcatPass(TestUtils):
                 _kernel_source(codes[0], "arg_SRC0"),
                 "an oversized segment must not reach the template")
 
-    @unittest.skipUnless(_ENABLED, _NEEDS_FLAG)
+    @unittest.skipUnless(_ENABLED, _NEEDS_950)
     @parametrize('rows', [200])
     @parametrize('dtype', ['float16'])
     def test_compile_masked_end_to_end(self, rows, dtype):
@@ -1202,7 +1202,7 @@ class TestMultiSliceConcatPass(TestUtils):
             self._assert_bitwise_equal(fn(wide, mask), compiled(wide, mask), "masked artifact")
             self.assertGreater(stats["nodes"], 0, "masked segments were not rewritten")
 
-    @unittest.skipUnless(_ENABLED, _NEEDS_FLAG)
+    @unittest.skipUnless(_ENABLED, _NEEDS_950)
     @parametrize('rows', [200])
     @parametrize('dtype', ['float16'])
     def test_compile_aliased_masks_end_to_end(self, rows, dtype):
@@ -1234,7 +1234,7 @@ class TestMultiSliceConcatPass(TestUtils):
                                        "aliased masks artifact")
             self.assertGreater(stats["nodes"], 0, "aliased mask segments were not rewritten")
 
-    @unittest.skipUnless(_ENABLED, _NEEDS_FLAG)
+    @unittest.skipUnless(_ENABLED, _NEEDS_950)
     @parametrize('rows', [2, 200])
     @parametrize('dtype', ['float16'])
     def test_compile_epilogue_is_not_fused_away(self, rows, dtype):
