@@ -311,10 +311,14 @@ class NPUTritonKernelOverrides(TritonKernelOverrides):
 
         before_subblock_axis = V.kernel.current_subblock_axis
         current_subblock_axis = body.body.masked_indexing.get(current_subblock, {})
+        # get active axis name
+        active_axis_names = {str(sym) for sym in V.kernel.range_tree_nodes}
         V.kernel.current_subblock_axis = before_subblock_axis | current_subblock_axis
         if mask is not None:
             for sub_axis in current_subblock_axis:
-                mask = ops.logical_and(mask, sympy_index_symbol(sub_axis + "_mask"))
+                # filter non axis info
+                if sub_axis in active_axis_names:
+                    mask = ops.logical_and(mask, sympy_index_symbol(sub_axis + "_mask"))
         with V.kernel.mask_loads(mask, value=value) as new_mask:
             result = body()
         V.kernel.current_subblock_axis = before_subblock_axis
