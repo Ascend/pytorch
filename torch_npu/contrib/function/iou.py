@@ -227,7 +227,6 @@ def npu_ciou(boxes1,
         trans (Bool): Whether there is an offset
         is_cross (Bool): Whether there is a cross operation between box1 and box2.
         mode (int):  Select the calculation mode of diou.
-        atan_sub_flag (Bool): whether to pass the second value of the forward to the reverse.
 
     Returns:
         Tensor: IoU, sized [1, n].
