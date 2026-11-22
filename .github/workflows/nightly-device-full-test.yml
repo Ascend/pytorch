@@ -57,9 +57,6 @@ jobs:
       # Same dedicated Guiyang wheels bucket as the build job above.
       wheels_obs_endpoint: 'obs.cn-southwest-2.myhuaweicloud.com'
       wheels_obs_bucket: 'pytorch-torchnpu/7day-cache'
-      skip_list: |-
-        .github/config/disabled_testcases.json
-        .github/config/running_skiped_testcases.json
-        .github/config/unsupport_dtype_testcases.json
-        .github/config/unsupported_aclnn_testcases.json
+      skip_list: .github/config/blacklist_testccases
+      skip_list_platform: a3
 

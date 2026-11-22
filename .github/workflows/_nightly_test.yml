@@ -74,6 +74,11 @@ on:
           Path(s) (relative to repo root) to skip list files. Newline-separated
           for multiple files. When set, matching nodeids are removed after
           collection and before sharding.
+      skip_list_platform:
+        required: false
+        type: string
+        default: ''
+        description: 'Explicit skip-list platform: a3 or a5. Empty = no platform argument.'
       case_whitelist:
         required: false
         type: string
@@ -209,6 +214,7 @@ jobs:
       hw_classification: ${{ inputs.hw_classification }}
       full_scan: ${{ inputs.full_scan }}
       skip_list: ${{ inputs.skip_list }}
+      skip_list_platform: ${{ inputs.skip_list_platform }}
       case_whitelist: ${{ inputs.case_whitelist }}
       runner_label: ${{ inputs.runner_label }}
       device_env: ${{ inputs.device_env }}

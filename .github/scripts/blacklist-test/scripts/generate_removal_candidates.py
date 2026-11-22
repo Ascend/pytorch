@@ -90,8 +90,11 @@ def categorize(statuses, messages):
 
 
 def load_flatten_module():
-    """Import flatten_blacklist_testccases.py from this script's directory."""
-    script = Path(__file__).resolve().parent / "flatten_blacklist_testccases.py"
+    """Import flatten_blacklist_testccases.py from the repo config scripts dir."""
+    script = (
+        Path(__file__).resolve().parents[4]
+        / ".github/config/blacklist_testccases/scripts/flatten_blacklist_testccases.py"
+    )
     spec = importlib.util.spec_from_file_location(
         "flatten_blacklist_testccases", str(script)
     )

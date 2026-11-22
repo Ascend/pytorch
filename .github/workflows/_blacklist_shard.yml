@@ -1,8 +1,8 @@
 name: Blacklist Shard
 
-# Shards nodeids taken directly from the blacklist files (no collection).
-# With scope=all, the blacklist_testccases/ directory is first flattened into a
-# single pure nodeid list (the files use several different shapes), then split
+# Shards nodeids taken directly from the blacklist files (no collection). The
+# blacklist_testccases/ directory is first flattened into a single pure nodeid
+# list (the files use several different shapes), then split
 # into balanced shards uploaded in the format expected by
 # _nightly_test-category.yml ({"shard", "num_shards", "test_type", "cases"}).
 
@@ -13,14 +13,6 @@ on:
         required: true
         type: string
         description: 'Target platform: a3 or a5 (used for the category name)'
-      scope:
-        required: false
-        type: string
-        default: 'platform'
-        description: >-
-          'platform' (default) shards only the given platform's flat
-          blacklist; 'all' flattens blacklist_testccases/ into a single
-          nodeid list and shards that (used by the removal-candidate pipeline).
       num_shards:
         required: false
         type: string
@@ -66,7 +58,6 @@ jobs:
         id: build_shards
         env:
           PLATFORM: ${{ inputs.platform }}
-          SCOPE: ${{ inputs.scope }}
           NUM_SHARDS: ${{ inputs.num_shards }}
           CATEGORY: blacklist-${{ inputs.platform }}
         run: |
@@ -77,7 +68,6 @@ jobs:
           import pathlib
 
           platform = os.environ["PLATFORM"]
-          scope = os.environ.get("SCOPE", "platform")
           num_shards = int(os.environ["NUM_SHARDS"])
           category = os.environ["CATEGORY"]
 
@@ -86,57 +76,41 @@ jobs:
           if num_shards < 1:
               raise SystemExit(f"invalid num_shards: {num_shards}")
 
-          if scope == "all":
-              # Flatten the blacklist_testccases/ directory into a single pure
-              # nodeid list, handling every file format inside it in one pass.
-              flatten_spec = importlib.util.spec_from_file_location(
-                  "flatten_blacklist_testccases",
-                  ".github/scripts/blacklist-test/scripts/flatten_blacklist_testccases.py",
-              )
-              flatten = importlib.util.module_from_spec(flatten_spec)
-              flatten_spec.loader.exec_module(flatten)
+          # Flatten the blacklist_testccases/ directory into a single pure
+          # nodeid list, handling every file format inside it in one pass.
+          flatten_spec = importlib.util.spec_from_file_location(
+              "flatten_blacklist_testccases",
+              ".github/config/blacklist_testccases/scripts/flatten_blacklist_testccases.py",
+          )
+          flatten = importlib.util.module_from_spec(flatten_spec)
+          flatten_spec.loader.exec_module(flatten)
 
-              config_dir = ".github/config/blacklist_testccases"
-              nodeids, stats = flatten.collect_nodeids(config_dir)
-              for name, kind, count in stats:
-                  if kind == "nodes":
-                      print(f"    {name}: +{count} nodeids")
-                  else:
-                      print(f"    {name}: {kind}: {count}")
-              files = [f"{config_dir}/{name}" for name, _kind, _count in stats]
+          config_dir = ".github/config/blacklist_testccases"
+          nodeids, stats = flatten.collect_nodeids(config_dir)
+          for name, kind, count in stats:
+              if kind == "nodes":
+                  print(f"    {name}: +{count} nodeids")
+              else:
+                  print(f"    {name}: {kind}: {count}")
+          files = [f"{config_dir}/{name}" for name, _kind, _count in stats]
 
-              # Subtract the cases that passed on this platform from the flat
-              # union. platform_passed_diff.json records, per platform, the
-              # nodeids that passed there (passed_a3 / passed_a5); removing
-              # them yields that platform's actual blacklist.
-              diff_path = pathlib.Path(
-                  ".github/config/blacklist_testccases/platform_passed_diff.json"
+          # Subtract the cases that passed on this platform from the flat
+          # union. platform_passed_diff.json records, per platform, the
+          # nodeids that passed there (passed_a3 / passed_a5); removing
+          # them yields that platform's actual blacklist.
+          diff_path = pathlib.Path(
+              ".github/config/blacklist_testccases/conf/platform_passed_diff.json"
+          )
+          if diff_path.exists():
+              diff_data = json.loads(diff_path.read_text(encoding="utf-8"))
+              passed = set(diff_data.get(f"passed_{platform}", []) or [])
+              before = len(nodeids)
+              nodeids = [n for n in nodeids if n not in passed]
+              print(
+                  f"    removed {before - len(nodeids)} passed nodeids "
+                  f"for {platform}"
               )
-              if diff_path.exists():
-                  diff_data = json.loads(diff_path.read_text(encoding="utf-8"))
-                  passed = set(diff_data.get(f"passed_{platform}", []) or [])
-                  before = len(nodeids)
-                  nodeids = [n for n in nodeids if n not in passed]
-                  print(
-                      f"    removed {before - len(nodeids)} passed nodeids "
-                      f"for {platform}"
-                  )
-          else:
-              spec = importlib.util.spec_from_file_location(
-                  "collect_all_cases", ".github/scripts/collect_all_cases.py"
-              )
-              module = importlib.util.module_from_spec(spec)
-              spec.loader.exec_module(module)
-
-              files = [
-                  f".github/config/disabled_testcases_{platform}_all.json",
-                  ".github/config/unsupported_aclnn_testcases.json",
-                  ".github/config/unsupport_dtype_testcases.json",
-              ]
-              if platform == "a3":
-                  files.append(".github/config/temporary_skiped_testcases.json")
-              nodeids = sorted(module.load_skip_list(files, platform=platform))
-          print(f"[{platform}] {len(nodeids)} unique blacklist nodeids from {len(files)} files (scope={scope})")
+          print(f"[{platform}] {len(nodeids)} unique blacklist nodeids from {len(files)} files")
 
           out_dir = pathlib.Path("cases-shards")
           out_dir.mkdir(parents=True, exist_ok=True)

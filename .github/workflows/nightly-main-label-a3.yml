@@ -58,11 +58,8 @@ jobs:
       # collect/shard jobs download the wheels the build uploaded there.
       wheels_obs_endpoint: 'obs.cn-southwest-2.myhuaweicloud.com'
       wheels_obs_bucket: 'pytorch-torchnpu/7day-cache'
-      skip_list: |-
-        .github/config/disabled_testcases.json
-        .github/config/running_skiped_testcases.json
-        .github/config/unsupport_dtype_testcases.json
-        .github/config/unsupported_aclnn_testcases.json
+      skip_list: .github/config/blacklist_testccases
+      skip_list_platform: a3
       # Rewrites the installed triton-ascend backend's hardcoded
       # -std=c++17 to -std=c++20 and prebuilds npu_utils.so once per
       # shard container, working around the deterministic npu_utils

@@ -8,7 +8,6 @@
   },
   "groups": [
     {
-      "log": "",
       "category": "temporarily skipped",
       "reason": "acl not supported: aclnnInplaceIndexFill (DT_INT8)",
       "issue": "https://gitcode.com/Ascend/pytorch/issues/5067",
@@ -20,7 +19,6 @@
       ]
     },
     {
-      "log": "",
       "category": "temporarily skipped",
       "reason": "NPU sparse/CSR 稀疏算子实现不完整",
       "issue": "https://gitcode.com/Ascend/pytorch/issues/6026",
@@ -460,7 +458,6 @@
       ]
     },
     {
-      "log": "",
       "category": "temporarily skipped",
       "reason": "ATen算子未实现: Tensor.log_normal_;ATen算子未实现: aten::_sparse_log_softmax;ATen算子未实现: aten::_sparse_softmax;ATen算子未实现: aten::_sparse_sparse_matmul;ATen算子未实现: aten::empty_quantized;ATen算子未实现: aten::sparse_sampled_addmm;ATen算子未实现: aten::special_spherical_bessel_j0;ATen算子未实现: torch._foreach_lgamma;ATen算子未实现: torch._foreach_lgamma_;ATen算子未实现: torch.copysign;ATen算子未实现: torch.frexp;ATen算子未实现: torch.histogram;ATen算子未实现: torch.hypot;ATen算子未实现: torch.linalg.ldl_solve;ATen算子未实现: torch.linalg.lstsq;ATen算子未实现: torch.lobpcg;ATen算子未实现: torch.mode;ATen算子未实现: torch.ops.aten._dyn_quant_matmul_4bit;ATen算子未实现: torch.sparse.mm;ATen算子未实现: torch.sparse.sampled_addmm",
       "issue": "https://onebox.huawei.com/v/2490e37c86f9f6c499944b85ce5e053d?type=1&sheet=API支持数据",

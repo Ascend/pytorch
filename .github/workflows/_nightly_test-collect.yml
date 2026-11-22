@@ -66,11 +66,17 @@ on:
         type: string
         default: ''
         description: >-
-          Path(s) (relative to repo root) to skip list files. Newline-separated
-          for multiple files. When set, matching nodeids are removed after
-          collection and before sharding. When empty, no skip filtering is
-          applied. Supports JSONL, JSON {skip_nodeids:[...]}, JSON array,
-          and JSON {nodeid: {reason:...}} formats.
+          Path(s) (relative to repo root) to skip list files or blacklist
+          directories. Newline-separated for multiple paths. When set,
+          matching nodeids are removed after collection and before sharding.
+          Supports JSONL, JSON {skip_nodeids:[...]}, JSON array, and JSON
+          {nodeid: {reason:...}} files. Directories are flattened with
+          flatten_blacklist_testccases.py into a temporary JSON array.
+      skip_list_platform:
+        required: false
+        type: string
+        default: ''
+        description: 'Explicit skip-list platform: a3 or a5. Empty = no platform argument.'
       case_whitelist:
         required: false
         type: string
@@ -367,6 +373,10 @@ jobs:
             FULL_SCAN_ARG="--full-scan"
           fi
 
+          SKIP_LIST_PLATFORM='${{ inputs.skip_list_platform }}'
+          PLATFORM_ARG="${SKIP_LIST_PLATFORM:+--platform ${SKIP_LIST_PLATFORM}}"
+          echo "Skip-list platform: ${SKIP_LIST_PLATFORM:-<not set>}"
+
           SKIP_LIST_ARG=""
           SKIP_LIST_INPUT='${{ inputs.skip_list }}'
           if [ -n "${SKIP_LIST_INPUT}" ]; then
@@ -375,6 +385,14 @@ jobs:
               if [ -f "${FULL_PATH}" ]; then
                 SKIP_LIST_ARG="${SKIP_LIST_ARG} --skip-list ${FULL_PATH}"
                 echo "Skip list: ${skip_path}"
+              elif [ -d "${FULL_PATH}" ]; then
+                FLATTENED_PATH="${GITHUB_WORKSPACE}/$(basename "${skip_path}")_flattened.json"
+                python3 "${GITHUB_WORKSPACE}/ci-scripts/.github/config/blacklist_testccases/scripts/flatten_blacklist_testccases.py" \
+                  --config-dir "${FULL_PATH}" \
+                  --output "${FLATTENED_PATH}" \
+                  ${PLATFORM_ARG}
+                SKIP_LIST_ARG="${SKIP_LIST_ARG} --skip-list ${FLATTENED_PATH}"
+                echo "Skip list: ${skip_path} (flattened)"
               else
                 echo "WARNING: skip list file not found: ${FULL_PATH}"
               fi
@@ -392,13 +410,6 @@ jobs:
             CASE_WHITELIST_ARG="--case-whitelist ${WHITELIST_PATH}"
             echo "Case whitelist: ${CASE_WHITELIST_INPUT}"
           fi
-
-          PLATFORM_ARG=""
-          case '${{ inputs.docker_image }}' in
-            *cann-a5*) PLATFORM_ARG="--platform a5" ;;
-            *cann-a3*) PLATFORM_ARG="--platform a3" ;;
-          esac
-          echo "Skip-list platform: ${PLATFORM_ARG:-<not detected>}"
 
           python3 ${GITHUB_WORKSPACE}/ci-scripts/.github/scripts/collect_all_cases.py \
             --test-dir ${GITHUB_WORKSPACE}/pytorch/test \

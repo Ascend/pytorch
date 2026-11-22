@@ -351,7 +351,6 @@ jobs:
     secrets: inherit
     with:
       platform: a3
-      scope: all
       num_shards: ${{ inputs.num_shards || '4' }}
       artifact_name: cases-shards-a3
 
@@ -439,7 +438,6 @@ jobs:
     secrets: inherit
     with:
       platform: a5
-      scope: all
       num_shards: ${{ inputs.num_shards || '4' }}
       artifact_name: cases-shards-a5
 
@@ -614,32 +612,12 @@ jobs:
             removal-candidates.md
           retention-days: 30
 
-      - name: Generate blacklist report
-        if: always()
-        continue-on-error: true
-        run: |
-          python3 .github/scripts/blacklist-test/scripts/generate_blacklist_report.py \
-            --reports-root . \
-            --platform all \
-            --config-dir .github/config \
-            --output blacklist-report.md
-
-      - name: Upload blacklist report
-        if: always()
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: blacklist-report
-          path: blacklist-report.md
-          retention-days: 30
-
   # ==========================================================================
-  # Flatten the grouped blacklist (disabled_testcases_grouped.json) into a
-  # plain nodeid list, purely as a read-only companion to the grouped source.
-  # This does NOT feed any shard/test job: the shards read the full-union
-  # blacklist files (`scope: all`), not the grouped source. The flattened list
-  # is uploaded as an artifact so the grouped file can be diffed against the
-  # flat files easily.
+  # Flatten the grouped blacklist into a JSON nodeid array, purely as a
+  # read-only companion to the grouped source. This does NOT feed any shard/test
+  # job: the shards read the full-union blacklist files, not the
+  # grouped source. The flattened array is uploaded as an artifact so the
+  # grouped file can be diffed against the flat files easily.
   # ==========================================================================
   flatten-grouped:
     needs: validate
@@ -654,13 +632,13 @@ jobs:
 
       - name: Flatten blacklist_testccases to nodeids
         run: |
-          python3 .github/scripts/blacklist-test/scripts/flatten_blacklist_testccases.py \
+          python3 .github/config/blacklist_testccases/scripts/flatten_blacklist_testccases.py \
             --config-dir .github/config/blacklist_testccases \
-            --output grouped-nodeids.txt
+            --output grouped-nodeids.json
 
       - name: Upload flattened nodeid list
         uses: actions/upload-artifact@v4
         with:
           name: grouped-blacklist-nodeids
-          path: grouped-nodeids.txt
+          path: grouped-nodeids.json
           retention-days: 30
