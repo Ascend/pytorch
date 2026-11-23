@@ -13,9 +13,9 @@ INDUCTOR_ASCEND_CHECK_ACCURACY是TorchNPU提供的精度校验工具，在torch.
 >
 > 此环境变量开启时，Triton模式（`TORCHINDUCTOR_NPU_BACKEND="default"`）会自动将`torch._inductor.config.split_reductions`设置为`False`。
 
-该环境变量由TorchNPU提供，PyTorch没有直接对应的环境变量。
-
 启用精度对比时，可通过 `INDUCTOR_ASCEND_CHECK_ACCURACY_RTOL_ATOL` 配置容差。用逗号分隔 `rtol=<相对容差>,atol=<绝对容差>`，值为非负浮点数，支持科学记数法。未指定的容差使用默认值。
+
+该环境变量由TorchNPU提供，PyTorch没有直接对应的环境变量。
 
 ## 配置示例
 
