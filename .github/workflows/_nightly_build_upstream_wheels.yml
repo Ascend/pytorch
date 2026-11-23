@@ -142,6 +142,7 @@ jobs:
       resolved_short: ${{ steps.wheel_id.outputs.short }}
       torch_version: ${{ steps.wheel_id.outputs.version }}
       pytorch_wheels_tarball: ${{ steps.names.outputs.pytorch_wheels_tarball }}
+      pytorch_wheels_url: ${{ steps.names.outputs.pytorch_wheels_url }}
     steps:
       # Download the two upstream wheels. The URL filenames carry %2B for
       # the PEP 440 local tag; decode it so the tarball holds the real
@@ -213,6 +214,8 @@ jobs:
           TORCH_VERSION: ${{ steps.wheel_id.outputs.version }}
           UPSTREAM_SHORT: ${{ steps.wheel_id.outputs.short }}
           PYTHON_VERSION: ${{ inputs.python_version }}
+          WHEELS_ENDPOINT: ${{ inputs.wheels_obs_endpoint }}
+          WHEELS_BUCKET: ${{ inputs.wheels_obs_bucket }}
         run: |
           set -e
           WHEEL=$(ls torch-*.whl)
@@ -228,6 +231,23 @@ jobs:
 
           echo "source_tarball=${SOURCE_TARBALL}" >> "$GITHUB_OUTPUT"
           echo "pytorch_wheels_tarball=${PYTORCH_TARBALL}" >> "$GITHUB_OUTPUT"
+          # Anonymous download URL of the upstream wheels object, derived
+          # from the inputs (never queried): virtual-hosted style
+          # https://<bucket>.<endpoint>/<key-prefix>/<tarball>, where
+          # everything after the first "/" of wheels_obs_bucket is the
+          # object key prefix. The cn-southwest-2 (Guiyang) bucket every
+          # current caller selects is public-read, so the link works
+          # without credentials; the legacy ap-southeast-1 default bucket
+          # is not public (anonymous GET would 403), which the HEAD probe
+          # in the upload step surfaces in the log instead of hiding.
+          # Mirrors the PR CI _build.yml wheels-name steps.
+          BUCKET_NAME="${WHEELS_BUCKET%%/*}"
+          KEY_PREFIX=""
+          if [[ "${WHEELS_BUCKET}" == */* ]]; then
+            KEY_PREFIX="${WHEELS_BUCKET#*/}/"
+          fi
+          URL="https://${BUCKET_NAME}.${WHEELS_ENDPOINT}/${KEY_PREFIX}${PYTORCH_TARBALL}"
+          echo "pytorch_wheels_url=${URL}" >> "$GITHUB_OUTPUT"
           echo "PyTorch source tarball: ${SOURCE_TARBALL}"
           echo "Upstream wheels tarball: ${PYTORCH_TARBALL}"
 
@@ -354,6 +374,19 @@ jobs:
             echo "=== Upload attempt ${attempt} ==="
             if obsutil cp "./${TARBALL}" "obs://${WHEELS_BUCKET}/${TARBALL}" -f -vlength; then
               echo "Upload succeeded on attempt ${attempt}"
+              # Echo the public download link now that the object exists
+              # (the URL was derived in the names step above). The HEAD
+              # probe is best-effort and anonymous: 200 means the link is
+              # directly downloadable without credentials; any other
+              # status is logged as a warning, never a step failure.
+              # Mirrors the PR CI _build.yml upload steps.
+              DOWNLOAD_URL="${{ steps.names.outputs.pytorch_wheels_url }}"
+              if command -v curl >/dev/null 2>&1; then
+                HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 60 -I "${DOWNLOAD_URL}" || echo 000)
+                echo "Public download URL (anonymous HEAD: HTTP ${HTTP_CODE}): ${DOWNLOAD_URL}"
+              else
+                echo "Public download URL: ${DOWNLOAD_URL}"
+              fi
               exit 0
             fi
             echo "Upload attempt ${attempt} failed"
@@ -495,6 +528,8 @@ jobs:
           UPSTREAM_SHORT: ${{ needs.fetch.outputs.resolved_short }}
           TORCH_NPU_SHORT: ${{ steps.resolve_torch_npu_sha.outputs.short }}
           PYVER: ${{ steps.pyver.outputs.version }}
+          WHEELS_ENDPOINT: ${{ inputs.wheels_obs_endpoint }}
+          WHEELS_BUCKET: ${{ inputs.wheels_obs_bucket }}
         run: |
           set -e
           ARCH=$(uname -m)
@@ -503,6 +538,15 @@ jobs:
           IMAGE_TAG="${DOCKER_IMAGE##*:}"
           TORCHNPU_TARBALL="wheels-torchnpu-upstream-${VERSION_BASE}-${TORCH_NPU_SHORT}-${UPSTREAM_SHORT}-${PY}-${IMAGE_TAG}-${ARCH}-v1.tar.gz"
           echo "torchnpu_wheels_tarball=${TORCHNPU_TARBALL}" >> "$GITHUB_OUTPUT"
+          # Anonymous download URL, derived exactly like the upstream
+          # wheels URL in the fetch job's names step above.
+          BUCKET_NAME="${WHEELS_BUCKET%%/*}"
+          KEY_PREFIX=""
+          if [[ "${WHEELS_BUCKET}" == */* ]]; then
+            KEY_PREFIX="${WHEELS_BUCKET#*/}/"
+          fi
+          URL="https://${BUCKET_NAME}.${WHEELS_ENDPOINT}/${KEY_PREFIX}${TORCHNPU_TARBALL}"
+          echo "torchnpu_wheels_url=${URL}" >> "$GITHUB_OUTPUT"
           echo "torch_npu wheels tarball: ${TORCHNPU_TARBALL}"
 
       # obsutil is preinstalled in the builder image; a broken probe
@@ -695,6 +739,17 @@ jobs:
             echo "=== Upload attempt ${attempt} ==="
             if obsutil cp "./${TARBALL}" "obs://${WHEELS_BUCKET}/${TARBALL}" -f -vlength; then
               echo "Upload succeeded on attempt ${attempt}"
+              # Same public download link echo as the upstream wheels
+              # upload in the fetch job: best-effort anonymous HEAD probe,
+              # never a step failure. Mirrors the PR CI _build.yml upload
+              # steps.
+              DOWNLOAD_URL="${{ steps.torchnpu_name.outputs.torchnpu_wheels_url }}"
+              if command -v curl >/dev/null 2>&1; then
+                HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 60 -I "${DOWNLOAD_URL}" || echo 000)
+                echo "Public download URL (anonymous HEAD: HTTP ${HTTP_CODE}): ${DOWNLOAD_URL}"
+              else
+                echo "Public download URL: ${DOWNLOAD_URL}"
+              fi
               exit 0
             fi
             echo "Upload attempt ${attempt} failed"
@@ -730,7 +785,9 @@ jobs:
           echo "torch_npu commit: ${TORCH_NPU_SHA}"
           echo "Max jobs        : ${MAX_JOBS}"
           echo "Upstream wheels : ${{ needs.fetch.outputs.pytorch_wheels_tarball }}"
+          echo "  download URL  : ${{ needs.fetch.outputs.pytorch_wheels_url }}"
           echo "torch_npu wheels: ${{ steps.torchnpu_name.outputs.torchnpu_wheels_tarball }}"
+          echo "  download URL  : ${{ steps.torchnpu_name.outputs.torchnpu_wheels_url }}"
           echo "torch_npu cache : ${{ steps.wheels_cache.outputs.torchnpu_hit == 'true' && 'HIT (torch_npu reused from OBS)' || 'MISS (built in this run)' }}"
           echo "============================================"
 
@@ -746,6 +803,8 @@ jobs:
             echo "| torch_npu commit | \`${TORCH_NPU_SHA}\` |"
             echo "| Max jobs | ${MAX_JOBS} |"
             echo "| Upstream wheels | \`${{ needs.fetch.outputs.pytorch_wheels_tarball }}\` |"
+            echo "| Upstream wheels URL | ${{ needs.fetch.outputs.pytorch_wheels_url }} |"
             echo "| torch_npu wheels | \`${{ steps.torchnpu_name.outputs.torchnpu_wheels_tarball }}\` |"
+            echo "| torch_npu wheels URL | ${{ steps.torchnpu_name.outputs.torchnpu_wheels_url }} |"
             echo "| torch_npu cache | ${{ steps.wheels_cache.outputs.torchnpu_hit == 'true' && 'HIT (torch_npu reused from OBS)' || 'MISS (built in this run)' }} |"
           } >> "$GITHUB_STEP_SUMMARY"
