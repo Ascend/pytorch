@@ -190,6 +190,10 @@ jobs:
             # whether they belong on this platform's blacklist.
             retest-a3) PREFIX="rta3" ;;
             retest-a5) PREFIX="rta5" ;;
+            # Pass cases: nodeids recorded as passed on this platform
+            # (platform_passed_diff.json -> passed_<platform>) and re-run here.
+            pass-a3) PREFIX="pa3" ;;
+            pass-a5) PREFIX="pa5" ;;
             # Explicit case-list runs (custom-test.yml). The prefix mirrors the
             # category, so the result artifacts read
             # test-reports-custom_test_cases-a3-1 / -a5-1.

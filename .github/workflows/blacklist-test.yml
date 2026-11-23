@@ -476,6 +476,100 @@ jobs:
       cases_artifact_name: cases-shards-a5
 
   # ==========================================================================
+  # PASS cases: nodeids recorded as passed on a platform (platform_passed_diff
+  # -> passed_{platform}) are re-run on that platform to confirm they still
+  # pass. Combined with the blacklist run above (full union minus passed), this
+  # makes the pipeline exercise the complete blacklist universe U on each
+  # platform, so the final report can cover all three slices: 公共黑名单
+  # (= U - passed_a3 - passed_a5), a3 pass, and a5 pass.
+  # ==========================================================================
+  shard-pass-a3:
+    needs: validate
+    uses: ./.github/workflows/_blacklist_pass_shard.yml
+    secrets: inherit
+    with:
+      platform: a3
+      num_shards: ${{ inputs.num_shards || '4' }}
+      artifact_name: cases-shards-pass-a3
+
+  test-pass-a3:
+    needs:
+      - resolve
+      - build-a3
+      - shard-pass-a3
+    if: ${{ !cancelled() && needs.shard-pass-a3.result == 'success' && (needs.resolve.outputs.a3_found == 'true' || needs.build-a3.result == 'success') }}
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ inputs.test_max_parallel || 8 }}
+      matrix:
+        include:
+          - category: pass-a3
+            num_shards: ${{ needs.shard-pass-a3.outputs.num_shards }}
+            matrix_json: ${{ needs.shard-pass-a3.outputs.shards_json }}
+            max_workers: '32'
+            runner_label: 'linux-aarch64-a3-800i-2-cn12-001'
+    uses: ./.github/workflows/_blacklist_test-category.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ needs.resolve.outputs.a3_resolved_short || needs.build-a3.outputs.resolved_short }}
+      resolved_sha: ${{ needs.resolve.outputs.a3_resolved_short || needs.build-a3.outputs.resolved_sha }}
+      pytorch_wheels_tarball: ${{ needs.resolve.outputs.a3_pytorch_wheels_tarball || needs.build-a3.outputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a3_torchnpu_wheels_tarball || needs.build-a3.outputs.torchnpu_wheels_tarball }}
+      upstream_repo: pytorch/pytorch
+      category: ${{ matrix.category }}
+      num_shards: ${{ matrix.num_shards }}
+      matrix_json: ${{ matrix.matrix_json }}
+      max_workers: ${{ matrix.max_workers }}
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17
+      runner_label: ${{ matrix.runner_label }}
+      device_env: 'privateuse1,cpu'
+      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 || github.event_name == 'push' }}
+      cases_artifact_name: cases-shards-pass-a3
+
+  shard-pass-a5:
+    needs: validate
+    uses: ./.github/workflows/_blacklist_pass_shard.yml
+    secrets: inherit
+    with:
+      platform: a5
+      num_shards: ${{ inputs.num_shards || '4' }}
+      artifact_name: cases-shards-pass-a5
+
+  test-pass-a5:
+    needs:
+      - resolve
+      - build-a5
+      - shard-pass-a5
+    if: ${{ !cancelled() && needs.shard-pass-a5.result == 'success' && (needs.resolve.outputs.a5_found == 'true' || needs.build-a5.result == 'success') }}
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ inputs.test_max_parallel || 8 }}
+      matrix:
+        include:
+          - category: pass-a5
+            num_shards: ${{ needs.shard-pass-a5.outputs.num_shards }}
+            matrix_json: ${{ needs.shard-pass-a5.outputs.shards_json }}
+            max_workers: '32'
+            runner_label: 'linux-amd64-a5-2'
+    uses: ./.github/workflows/_blacklist_test-category.yml
+    secrets: inherit
+    with:
+      resolved_short: ${{ needs.resolve.outputs.a5_resolved_short || needs.build-a5.outputs.resolved_short }}
+      resolved_sha: ${{ needs.resolve.outputs.a5_resolved_short || needs.build-a5.outputs.resolved_sha }}
+      pytorch_wheels_tarball: ${{ needs.resolve.outputs.a5_pytorch_wheels_tarball || needs.build-a5.outputs.pytorch_wheels_tarball }}
+      torchnpu_wheels_tarball: ${{ needs.resolve.outputs.a5_torchnpu_wheels_tarball || needs.build-a5.outputs.torchnpu_wheels_tarball }}
+      upstream_repo: pytorch/pytorch
+      category: ${{ matrix.category }}
+      num_shards: ${{ matrix.num_shards }}
+      matrix_json: ${{ matrix.matrix_json }}
+      max_workers: ${{ matrix.max_workers }}
+      docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.11-torch-master-cann9.2.0-20260910200430-202610160226-8a315d17
+      runner_label: ${{ matrix.runner_label }}
+      device_env: 'privateuse1,cpu'
+      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 || github.event_name == 'push' }}
+      cases_artifact_name: cases-shards-pass-a5
+
+  # ==========================================================================
   # Aggregate results only. Blacklisted cases are EXPECTED to fail, so this job
   # never turns failures into a red pipeline: a red run would just mean "the
   # blacklist is still accurate". The only signal worth checking is `passed`
@@ -486,9 +580,13 @@ jobs:
       - build-a3
       - shard-a3
       - test-a3
+      - shard-pass-a3
+      - test-pass-a3
       - build-a5
       - shard-a5
       - test-a5
+      - shard-pass-a5
+      - test-pass-a5
     if: always()
     runs-on: ubuntu-latest
     permissions:
@@ -516,6 +614,22 @@ jobs:
         with:
           pattern: test-reports-bla5-*
           path: reports-a5
+          merge-multiple: true
+
+      - name: Download a3 pass test reports
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-pa3-*
+          path: reports-pa3
+          merge-multiple: true
+
+      - name: Download a5 pass test reports
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-pa5-*
+          path: reports-pa5
           merge-multiple: true
 
       - name: Aggregate blacklist results
@@ -610,6 +724,29 @@ jobs:
           path: |
             removal-candidates.json
             removal-candidates.md
+          retention-days: 30
+
+      # Combine the blacklist run (reports-a3/reports-a5) and the pass run
+      # (reports-pa3/reports-pa5) into a single 3-sheet Excel: 公共黑名单
+      # (= full union - passed_a3 - passed_a5), a3 pass, a5 pass. Requires
+      # openpyxl on the runner (installed inline below).
+      - name: Generate blacklist Excel report
+        if: always()
+        continue-on-error: true
+        run: |
+          pip install --quiet openpyxl
+          python3 .github/scripts/blacklist-test/scripts/generate_blacklist_excel.py \
+            --reports-root . \
+            --config-dir .github/config/blacklist_testccases \
+            --output blacklist-report.xlsx
+
+      - name: Upload blacklist Excel report
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: blacklist-report
+          path: blacklist-report.xlsx
           retention-days: 30
 
   # ==========================================================================
