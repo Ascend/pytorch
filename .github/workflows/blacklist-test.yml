@@ -25,6 +25,7 @@ on:
       - ci-test
     paths:
       - '.github/workflows/blacklist-test.yml'
+      - '.github/config/blacklist_testccases/**'
   workflow_dispatch:
     inputs:
       upstream_ref:
