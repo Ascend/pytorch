@@ -1085,7 +1085,6 @@
 
 </div>
 
-<!-- npu="910b,A3" id422 -->
 <a class="method_anchor" id="torch_TypedStorage_complex_double"></a>
 
 > <font size="3">complex_double()</font>
@@ -1095,7 +1094,6 @@
 **原生文档**：[torch.TypedStorage.complex_double](https://pytorch.org/docs/2.12/storage.html#torch.TypedStorage.complex_double)
 
 **产品支持情况**：
-<!-- end id422 -->
 
 <!-- npu="910b" id250 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1103,10 +1101,11 @@
 <!-- npu="A3" id251 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id251 -->
+<!-- npu="950" id252 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id252 -->
 
-<!-- npu="910b,A3" id423 -->
 </div>
-<!-- end id423 -->
 
 <!-- npu="910b,A3" id424 -->
 <a class="method_anchor" id="torch_TypedStorage_complex_float"></a>
