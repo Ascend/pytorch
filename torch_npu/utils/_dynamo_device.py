@@ -93,6 +93,28 @@ class NpuInterface(DeviceInterface):
     def is_bf16_supported(including_emulation: bool = False):
         return True
 
+    @staticmethod
+    def memory_allocated(device=None):
+        return torch.npu.memory_allocated(device)
+
+    @classmethod
+    def raise_if_triton_unavailable(cls, device=None):
+        from torch._dynamo.exc import TritonUnavailableError
+
+        try:
+            import triton.backends
+
+            backends = triton.backends.backends
+        except (ImportError, AttributeError) as e:
+            raise TritonUnavailableError(
+                "triton not built with the 'ascend' backend"
+            ) from e
+
+        if "ascend" not in backends:
+            raise TritonUnavailableError(
+                "triton not built with the 'ascend' backend"
+            )
+
     @classmethod
     def get_multi_processor_count(cls, device=None) -> int:
         return cls.get_device_properties(device).vector_core_num
