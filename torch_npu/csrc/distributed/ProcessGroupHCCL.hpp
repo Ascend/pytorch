@@ -616,6 +616,8 @@ public:
         return true;
     }
 
+    void eagerConnectSingleDevice(at::Device device) override;
+
     void startCoalescing() override;
 
     c10::intrusive_ptr<c10d::Work> endCoalescing() override;
