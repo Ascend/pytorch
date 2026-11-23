@@ -2,6 +2,7 @@ import os
 import argparse
 import random
 import time
+from copy import deepcopy
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
@@ -81,6 +82,12 @@ def parse_args():
         "--npu-backend",
         type=str,
         default="dvm")
+    parser.add_argument("--batch-size", type=int, default=CONFIG["batch_size"])
+    parser.add_argument("--image-size", type=int, nargs=2, default=CONFIG["dummy_dataset"]["image_size"])
+    bn = parser.add_mutually_exclusive_group()
+    bn.add_argument("--norm-eval", dest="norm_eval", action="store_true")
+    bn.add_argument("--train-bn", dest="norm_eval", action="store_false")
+    parser.set_defaults(norm_eval=CONFIG["model"].get("backbone_norm_eval", False))
     return parser.parse_args()
 
 
@@ -166,7 +173,12 @@ def main():
     args = parse_args()
     os.environ['TORCHINDUCTOR_NPU_BACKEND'] = args.npu_backend
     torch.use_deterministic_algorithms(True)
-    cfg = CONFIG
+    cfg = deepcopy(CONFIG)
+    cfg["batch_size"] = args.batch_size
+    cfg["dummy_dataset"]["image_size"] = tuple(args.image_size)
+    cfg["model"]["backbone_norm_eval"] = args.norm_eval
+    cfg["dummy_dataset"]["length"] = max(
+        cfg["dummy_dataset"]["length"], cfg["batch_size"] * cfg["train_steps"])
     set_seed(cfg["seed"])
 
     device = (

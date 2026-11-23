@@ -871,6 +871,7 @@ class SimpleV1SparseDrive(BaseModel):
         use_grid_mask=True,
         data_preprocessor=None,
         init_cfg=None,
+        backbone_norm_eval=False,
     ):
         super().__init__(data_preprocessor=data_preprocessor, init_cfg=init_cfg)
 
@@ -883,7 +884,7 @@ class SimpleV1SparseDrive(BaseModel):
             out_indices=(0, 1, 2, 3),
             frozen_stages=-1,
             norm_cfg=dict(type='BN', requires_grad=True),
-            norm_eval=False,
+            norm_eval=backbone_norm_eval,
             style='pytorch',
             init_cfg=(
                 dict(type='Pretrained', checkpoint=backbone_pretrained)
