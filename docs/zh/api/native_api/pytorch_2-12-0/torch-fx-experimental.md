@@ -1352,7 +1352,7 @@
 
 <div style="margin-left: 2em">
 
-**原生文档**：[torch.fx.experimental.symbolic_shapes.hint_int](https://pytorch.org/docs/2.12/generated/torch.fx.experimental.symbolic_shapes.hint_int.html)
+**接口说明**：TorchNPU 为 PyTorch 2.12 提供此兼容接口。
 
 **产品支持情况**：
 
