@@ -10817,7 +10817,7 @@
 **限制与说明**：
 
 - `self`仅支持bf16，fp16，fp32
-- `input`不支持标量`tensor`
+- `self`不支持标量张量
 - `correction`参数值不能超过int32的最大值
 
 </div>
