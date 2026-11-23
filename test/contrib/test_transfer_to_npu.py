@@ -592,5 +592,118 @@ class TestTransferToNpu(TestCase):
         self.assertEqual(torch.get_autocast_gpu_dtype(), torch.bfloat16)
         torch.set_autocast_gpu_dtype(torch.float16)
 
+    def test_cuda_memory_submodule_redirect(self):
+        # _patch_cuda 新增 cuda.memory 路径，同名接口应指向 torch_npu.npu.memory.*
+        self.assertIs(torch.cuda.memory.memory_allocated, torch_npu.npu.memory.memory_allocated)
+        self.assertIs(torch.cuda.memory.memory_cached, torch_npu.npu.memory.memory_cached)
+        self.assertIs(torch.cuda.memory.memory_reserved, torch_npu.npu.memory.memory_reserved)
+        self.assertIs(torch.cuda.memory.max_memory_allocated, torch_npu.npu.memory.max_memory_allocated)
+        self.assertIs(torch.cuda.memory.max_memory_cached, torch_npu.npu.memory.max_memory_cached)
+        self.assertIs(torch.cuda.memory.max_memory_reserved, torch_npu.npu.memory.max_memory_reserved)
+        self.assertIs(torch.cuda.memory.empty_cache, torch_npu.npu.memory.empty_cache)
+        self.assertIs(torch.cuda.memory.memory_stats, torch_npu.npu.memory.memory_stats)
+        self.assertIs(torch.cuda.memory.memory_stats_as_nested_dict, torch_npu.npu.memory.memory_stats_as_nested_dict)
+        self.assertIs(torch.cuda.memory.memory_snapshot, torch_npu.npu.memory.memory_snapshot)
+        self.assertIs(torch.cuda.memory.memory_summary, torch_npu.npu.memory.memory_summary)
+        self.assertIs(torch.cuda.memory.get_allocator_backend, torch_npu.npu.memory.get_allocator_backend)
+        self.assertIs(torch.cuda.memory.change_current_allocator, torch_npu.npu.memory.change_current_allocator)
+        self.assertIs(torch.cuda.memory.MemPool, torch_npu.npu.memory.MemPool)
+        self.assertIs(torch.cuda.memory.MemPoolContext, torch_npu.npu.memory.MemPoolContext)
+        self.assertIs(torch.cuda.memory.use_mem_pool, torch_npu.npu.memory.use_mem_pool)
+
+    def test_cuda_memory_explicit_redirect(self):
+        # 命名不同或不在 __all__ 的接口，须显式赋值
+        self.assertIs(torch.cuda.memory.CUDAPluggableAllocator, torch_npu.npu.memory.NPUPluggableAllocator)
+        self.assertIs(torch.cuda.memory.is_initialized, torch_npu.npu.memory.is_initialized)
+
+    def test_cuda_memory_runtime(self):
+        device = torch.device('cuda:0')
+        a = torch.randn((100, 100), device=device)
+        self.assertGreater(torch.cuda.memory.memory_allocated(), 0)
+        self.assertGreaterEqual(torch.cuda.memory.memory_cached(), 0)
+        self.assertGreaterEqual(torch.cuda.memory.memory_reserved(), 0)
+        self.assertTrue(torch.cuda.memory.is_initialized())
+        self.assertEqual(torch.cuda.memory.get_allocator_backend(), 'native')
+        self.assertIsInstance(torch.cuda.memory.memory_stats(), dict)
+        self.assertIsInstance(torch.cuda.memory.memory_stats_as_nested_dict(), dict)
+        self.assertIsInstance(torch.cuda.memory.host_memory_stats(), dict)
+        self.assertIsInstance(torch.cuda.memory.host_memory_stats_as_nested_dict(), dict)
+        torch.cuda.memory.empty_cache()
+        torch.cuda.memory.reset_accumulated_memory_stats()
+        torch.cuda.memory.reset_accumulated_host_memory_stats()
+        torch.cuda.memory.reset_peak_memory_stats()
+        torch.cuda.memory.reset_peak_host_memory_stats()
+        torch.cuda.memory.reset_max_memory_allocated()
+        torch.cuda.memory.reset_max_memory_cached()
+        torch.cuda.memory.set_per_process_memory_fraction(0.5)
+        self.assertEqual(torch.cuda.memory.get_per_process_memory_fraction(), 0.5)
+
+    def test_cuda_memory_caching_allocator(self):
+        size = 1024 * 1024
+        ptr = torch.cuda.memory.caching_allocator_alloc(size, 0)
+        torch.cuda.memory.caching_allocator_delete(ptr)
+
+    def test_cuda_streams_submodule_redirect(self):
+        self.assertIs(torch.cuda.streams.Stream, torch_npu.npu.streams.Stream)
+        self.assertIs(torch.cuda.streams.Event, torch_npu.npu.streams.Event)
+        self.assertIs(torch.cuda.streams.ExternalStream, torch_npu.npu.streams.ExternalStream)
+        self.assertIs(torch.cuda.streams.ExternalEvent, torch_npu.npu.streams.ExternalEvent)
+        stream = torch.cuda.streams.Stream()
+        event = torch.cuda.streams.Event()
+        self.assertIsInstance(stream, torch_npu.npu.streams.Stream)
+        self.assertIsInstance(event, torch_npu.npu.streams.Event)
+
+    def test_cuda_graphs_submodule_redirect(self):
+        self.assertIs(torch.cuda.graphs.CUDAGraph, torch_npu.npu.graphs.NPUGraph)
+        self.assertIs(torch.cuda.graphs.graph, torch_npu.npu.graphs.graph)
+        self.assertIs(torch.cuda.graphs.graph_pool_handle, torch_npu.npu.graphs.graph_pool_handle)
+        self.assertIs(torch.cuda.graphs.make_graphed_callables, torch_npu.npu.graphs.make_graphed_callables)
+        self.assertFalse(torch.cuda.graphs.is_current_stream_capturing())
+
+    def test_cuda_random_submodule_redirect(self):
+        self.assertIs(torch.cuda.random.current_device, torch_npu.npu.current_device)
+        self.assertIs(torch.cuda.random.device_count, torch_npu.npu.device_count)
+        self.assertEqual(torch.cuda.random.current_device(), 0)
+        self.assertEqual(torch.cuda.random.device_count(), torch_npu.npu.device_count())
+
+    def test_grad_scaler_proxy(self):
+        # torch.amp.GradScaler / torch.GradScaler 默认 device='cuda'，须透传为 npu GradScaler
+        self.assertIs(torch.GradScaler, torch.amp.GradScaler)
+        scaler = torch.amp.GradScaler(device='cuda')
+        self.assertTrue(scaler.is_enabled())
+        scaler = torch.GradScaler(device='cuda', init_scale=2.0)
+        self.assertEqual(scaler.get_scale(), 2.0)
+
+    def test_cuda_random_rng_state(self):
+        # torch.cuda.random.get/set_rng_state 走 npu rng
+        state = torch.cuda.random.get_rng_state()
+        self.assertIsInstance(state, torch.Tensor)
+        torch.cuda.random.set_rng_state(state)
+
+    def test_fork_rng(self):
+        # torch.random.fork_rng(device_type='cuda') 走 npu rng
+        with torch.random.fork_rng(device_type='cuda'):
+            torch.randn(1, device='npu')
+
+    def test_save_on_cpu(self):
+        # torch.autograd.graph.save_on_cpu(device_type='cuda') 走 npu
+        torch.autograd.graph.save_on_cpu(pin_memory=True, device_type='cuda')
+
+    def test_checkpoint_set_device_states(self):
+        # torch.utils.checkpoint.set_device_states(device_type='cuda') 走 npu
+        torch.utils.checkpoint.set_device_states([], [], device_type='cuda')
+
+    def test_typed_storage(self):
+        # Storage 构造器 TypedStorage.__new__ 的 device='cuda' 须重写为 npu
+        s = torch.storage.TypedStorage(1, device='cuda')
+        self.assertEqual(s.device.type, 'npu')
+        self.assertTrue(s.is_cuda)
+
+    def test_torch_stream(self):
+        # torch.Stream 代理：device='cuda' 须重写为 npu
+        s = torch.Stream(device='cuda')
+        self.assertEqual(s.device.type, 'npu')
+        self.assertIsInstance(s, torch.Stream)
+
 if __name__ == "__main__":
     run_tests()
