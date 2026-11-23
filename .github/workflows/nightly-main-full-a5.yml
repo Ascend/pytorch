@@ -6,7 +6,6 @@ on:
       - ci-test
     paths:
       - '.github/workflows/nightly-main-full-a5.yml'
-      # test
   workflow_dispatch:
 
 permissions:
