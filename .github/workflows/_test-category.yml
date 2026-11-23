@@ -198,6 +198,14 @@ jobs:
         with:
           status: in_progress
           job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, ${{ steps.pyver.outputs.label }})
+          # Run summary page (public): rendered as the "Artifacts" link on
+          # the upstream HUD job row (same target as the relay-derived
+          # workflow_run_url "Run" button). Supported by the pinned
+          # fb6a1fce action (the inline callback reads ARTIFACT_URL into
+          # workflow.artifact_url); the earlier revert removed this
+          # together with a bad pin bump, not because the parameter was
+          # unsupported.
+          artifact-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           max-time: 60
 
       - name: Compute tarball names
@@ -584,6 +592,8 @@ jobs:
           status: completed
           conclusion: ${{ steps.parse_results.outputs.parse_ok == 'true' && steps.parse_results.outputs.total_failed == '0' && 'success' || 'failure' }}
           job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, ${{ steps.pyver.outputs.label }})
+          # Run summary page (public), same as the in_progress report above.
+          artifact-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           max-time: 60
           test-results: >-
             {
@@ -612,6 +622,8 @@ jobs:
           status: completed
           conclusion: ${{ steps.parse_results.outputs.parse_ok == 'true' && steps.parse_results.outputs.total_failed == '0' && 'success' || 'failure' }}
           job-name: ${{ inputs.runner_label }} / test (${{ inputs.category }}, ${{ matrix.shard }}, ${{ inputs.num_shards }}, ${{ steps.pyver.outputs.label }})
+          # Run summary page (public), same as the in_progress report above.
+          artifact-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           max-time: 60
           test-results: >-
             {
