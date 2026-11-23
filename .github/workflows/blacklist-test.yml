@@ -25,7 +25,12 @@ on:
       - ci-test
     paths:
       - '.github/workflows/blacklist-test.yml'
-      - '.github/config/blacklist_testccases/**'
+      - '.github/config/blacklist_testccases/conf/dtype_unsupported_testcases.json'
+      - '.github/config/blacklist_testccases/conf/hardware_unsupported_testcases.json'
+      - '.github/config/blacklist_testccases/conf/platform_passed_diff.json'
+      - '.github/config/blacklist_testccases/conf/running_skiped_testcases.json'
+      - '.github/config/blacklist_testccases/conf/temporary_skiped_grouped.json'
+      - '.github/config/blacklist_testccases/scripts/flatten_blacklist_testccases.py'
   workflow_dispatch:
     inputs:
       upstream_ref:
