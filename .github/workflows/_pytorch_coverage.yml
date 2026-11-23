@@ -340,6 +340,7 @@ jobs:
           PYEOF
 
       - name: Backfill missing coverage data from the previous release
+        id: backfill
         run: |
           set -euo pipefail
 
@@ -353,9 +354,16 @@ jobs:
           import sys
           from pathlib import Path
 
+          def set_backfill_ok(ok):
+              out = os.environ.get("GITHUB_OUTPUT")
+              if out:
+                  with open(out, "a", encoding="utf-8") as fh:
+                      fh.write(f"backfill_ok={'true' if ok else 'false'}\n")
+
           cov_dir = Path(os.environ["COV_ARTIFACTS"]) / "pytorch@latest"
           if not (cov_dir / "coverage.xml").is_file():
               print("merge did not promote, nothing to backfill")
+              set_backfill_ok(False)
               sys.exit(0)
 
           expected = set()
@@ -376,6 +384,7 @@ jobs:
           missing = sorted(expected - (covered - failed))
           if not missing:
               print("coverage data is complete for all executed test files")
+              set_backfill_ok(True)
               sys.exit(0)
           print(f"{len(missing)} test file(s) missing usable coverage data: {missing}")
 
@@ -398,9 +407,36 @@ jobs:
               )
           previous_local = extract_root / "pytorch@latest"
           if not extracted_ok or not (previous_local / "coverage.xml").is_file():
-              print("WARNING: no usable previous release at latest/release.tar.gz, cannot backfill")
+              print(
+                  "WARNING: no usable previous release at latest/release.tar.gz, "
+                  "cannot backfill; keeping the previous latest",
+                  file=sys.stderr,
+              )
+              set_backfill_ok(False)
               sys.exit(0)
           print(f"previous coverage: {base}/latest/release.tar.gz")
+
+          # Coverage data is tied to the collected revision (line/arc numbers), so
+          # only backfill test files from a release built on the same commit.
+          def read_sha(manifest_file):
+              try:
+                  data = json.loads(manifest_file.read_text(encoding="utf-8"))
+              except (OSError, json.JSONDecodeError):
+                  return ""
+              return data.get("pytorch_sha", "")
+
+          current_sha = read_sha(cov_dir / "manifest.json")
+          previous_sha = read_sha(previous_local / "manifest.json")
+          if not current_sha or not previous_sha or current_sha != previous_sha:
+              print(
+                  "WARNING: cannot backfill across commits "
+                  f"(current={current_sha or '<empty>'}, "
+                  f"previous={previous_sha or '<empty>'}); "
+                  "keeping the previous latest",
+                  file=sys.stderr,
+              )
+              set_backfill_ok(False)
+              sys.exit(0)
 
           backfilled = []
           still_missing = []
@@ -435,9 +471,11 @@ jobs:
           print(f"backfilled {len(backfilled)} test file(s) from the previous release")
           if still_missing:
               print(
-                  f"WARNING: still no usable coverage data for {len(still_missing)} test file(s): {still_missing}",
+                  f"WARNING: still no usable coverage data for {len(still_missing)} test file(s): {still_missing}; "
+                  "keeping the previous latest",
                   file=sys.stderr,
               )
+          set_backfill_ok(not still_missing)
           PYEOF
 
       - name: Check the promoted coverage data
@@ -477,6 +515,7 @@ jobs:
         continue-on-error: true
         env:
           CATEGORIES: ${{ inputs.categories }}
+          BACKFILL_OK: ${{ steps.backfill.outputs.backfill_ok }}
         run: |
           if [ ! -f "${COV_ARTIFACTS}/pytorch@latest/coverage.xml" ] || [ ! -d "${COV_ARTIFACTS}/covstub" ]; then
             echo "WARNING: merge did not promote, keeping the remote and the staging data untouched"
@@ -485,7 +524,9 @@ jobs:
 
           obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${{ env.OBS_ENDPOINT }}
 
-          if [ -z "${CATEGORIES}" ]; then
+          if [ "${BACKFILL_OK:-}" != "true" ]; then
+            echo "WARNING: backfill validation failed; keeping the previous OBS latest"
+          elif [ -z "${CATEGORIES}" ]; then
             tar -C "${COV_ARTIFACTS}" -czf /tmp/release.tar.gz covstub pytorch@latest
             ls -lh /tmp/release.tar.gz
             tar -tzf /tmp/release.tar.gz > /tmp/release-files.txt
@@ -521,6 +562,7 @@ jobs:
         continue-on-error: true
         env:
           CATEGORIES: ${{ inputs.categories }}
+          BACKFILL_OK: ${{ steps.backfill.outputs.backfill_ok }}
           RESOLVED_SHORT: ${{ needs.resolve.outputs.short }}
           OBS_COVERAGE_PREFIX: ${{ env.OBS_COVERAGE_PREFIX }}
         run: |
@@ -551,6 +593,10 @@ jobs:
               print()
               print("merge did not promote, there is no coverage artifact to summarize")
               raise SystemExit(0)
+
+          if os.environ.get("BACKFILL_OK") != "true":
+              print()
+              print("> backfill validation failed; the previous OBS latest was kept")
 
           manifest = {}
           manifest_file = cov_dir / "manifest.json"

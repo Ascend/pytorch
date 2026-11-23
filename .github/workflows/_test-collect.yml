@@ -494,6 +494,18 @@ jobs:
             --parallel 16 \
             2>&1 | tee /tmp/collect_cases.log
 
+          COLLECT_STATUS=${PIPESTATUS[0]}
+          if [ "${COLLECT_STATUS}" -ne 0 ]; then
+            echo "ERROR: test case collection failed (exit ${COLLECT_STATUS}); see the collection-errors artifact." >&2
+            exit 1
+          fi
+          # Partial collection silently drops test files from every shard. Fail the
+          # job so the coverage stage and the latest release are not updated.
+          if [ -f "${GITHUB_WORKSPACE}/collection_errors/collection_errors_summary.json" ]; then
+            echo "ERROR: test case collection failed for one or more files; see the collection-errors artifact." >&2
+            exit 1
+          fi
+
           echo "=== Generated shard files ==="
           ls -la ${GITHUB_WORKSPACE}/cases-shards/
 
