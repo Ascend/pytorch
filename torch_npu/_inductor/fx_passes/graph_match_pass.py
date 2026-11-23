@@ -39,7 +39,6 @@ class AscendCustomPostPass(CustomGraphPass):
             extra=repr(
                 (
                     names,
-                    npu_config.allow_searchsorted_lowering,
                     npu_config.enable_full_lowering_fallback.strip() == "allfallback",
                 )
             ),

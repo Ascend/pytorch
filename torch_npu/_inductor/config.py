@@ -7,7 +7,7 @@ from typing import Optional
 
 import torch
 import torch._inductor.config as inductor_config
-from torch_npu.npu._backends import get_soc_version
+import torch_npu
 
 from .utils import classproperty
 from .codegen.triton_utils import NPUKernelType
@@ -34,7 +34,9 @@ Ascend910B1 = 220
 Ascend310B1 = 240
 Ascend910_9391 = 250
 Ascend950 = 260
-is_ascend950 = get_soc_version() >= Ascend950
+# Direct C-level lookups avoid initializing the device in forked compile workers.
+is_ascend950 = torch_npu._C._npu_get_soc_version() >= Ascend950
+earlier_than_ascend950 = torch_npu._C._npu_get_soc_version() < Ascend950
 
 ub_size = 192 * 1024
 if is_ascend950:
@@ -165,8 +167,6 @@ inductor_config.triton.coalesce_tiling_analysis = False
 inductor_config.triton.mix_order_reduction = False
 
 enable_fast_gelu = os.getenv("TORCHINDUCTOR_ENABLE_FAST_GELU", "0") == "1"
-allow_pad_lowering = os.getenv("TORCHINDUCTOR_ENABLE_PAD_LOWERING", "0") == "1"
-allow_searchsorted_lowering = os.getenv("TORCHINDUCTOR_ENABLE_SEARCHSORTED_LOWERING", "0") == "1"
 allow_embedding_dense_backward_lowering = os.getenv(
     "TORCHINDUCTOR_ENABLE_EMBEDDING_DENSE_BACKWARD_LOWERING", "0"
 ) == "1"

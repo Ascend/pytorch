@@ -230,12 +230,31 @@ class TestComparisonCountRewrite(unittest.TestCase):
                     self.check_rewrite(fn, (q, b))
 
     def test_float_profitability(self):
-        for native in (False, True):
-            with patch.object(config, "allow_searchsorted_lowering", native):
+        for earlier_than_ascend950 in (False, True):
+            with patch.object(config, "earlier_than_ascend950", earlier_than_ascend950):
                 self.assertFalse(_profitable(8192, 128, floating=True))
                 self.assertFalse(_profitable(32768, 128, floating=True))
-                self.assertEqual(_profitable(378000, 378, floating=True), native)
+                self.assertEqual(
+                    _profitable(378000, 378, floating=True),
+                    not earlier_than_ascend950,
+                )
                 self.assertTrue(_profitable(32768, 1024, floating=True))
+
+    def test_low_precision_searchsorted_inputs(self):
+        for dtype, earlier_than_ascend950 in itertools.product(
+            (torch.float16, torch.bfloat16), (False, True)
+        ):
+            with self.subTest(dtype=dtype, earlier_than_ascend950=earlier_than_ascend950):
+                q = torch.tensor([float("nan"), -1, 0, 1], dtype=dtype)
+                b = torch.tensor([float("nan"), -2, 0, 2], dtype=dtype)
+                with patch.object(config, "earlier_than_ascend950", earlier_than_ascend950):
+                    gm = self.check_rewrite(args=(q, b))
+                search = next(
+                    n for n in gm.graph.nodes if n.target == aten.searchsorted.Tensor
+                )
+                expected_dtype = torch.float32 if earlier_than_ascend950 else dtype
+                self.assertEqual(search.args[0].meta["val"].dtype, expected_dtype)
+                self.assertEqual(search.args[1].meta["val"].dtype, expected_dtype)
 
     def test_general_comparison_semantics(self):
         for dtype in (torch.int32, torch.int64):
@@ -303,11 +322,11 @@ class TestComparisonCountRewrite(unittest.TestCase):
         self.assertFalse(shape_env.guards)
 
     def test_cache_fingerprint(self):
-        def fingerprint(native):
-            with patch.object(config, "allow_searchsorted_lowering", native):
-                return AscendCustomPostPass().uuid()
-
-        self.assertNotEqual(fingerprint(False), fingerprint(True))
+        with patch.object(config, "enable_full_lowering_fallback", ""):
+            default_fingerprint = AscendCustomPostPass().uuid()
+            self.assertEqual(default_fingerprint, AscendCustomPostPass().uuid())
+        with patch.object(config, "enable_full_lowering_fallback", "allfallback"):
+            self.assertNotEqual(default_fingerprint, AscendCustomPostPass().uuid())
 
 
 @unittest.skipUnless(
@@ -323,13 +342,36 @@ class TestComparisonCountCompile(unittest.TestCase):
 
     def compile_tracked(self, fn, dynamic=True):
         from torch._inductor.compile_fx import compile_fx
+        from torch._inductor.graph import GraphLowering
 
         builds = []
 
         def backend(gm, inputs):
             before = pass_count()
-            result = compile_fx(gm, inputs)
-            builds.append(pass_count() - before)
+            codes = []
+            save_output_code = GraphLowering.save_output_code
+
+            def capture(code):
+                codes.append(code)
+                if save_output_code is not None:
+                    save_output_code(code)
+
+            with patch.object(GraphLowering, "save_output_code", capture):
+                result = compile_fx(gm, inputs)
+            rewritten = pass_count() - before
+            builds.append(rewritten)
+            if rewritten and config.is_ascend950:
+                code = "\n".join(codes)
+                self.assertIn("triton_helpers.bucketize_binary_search(", code)
+                executable = "\n".join(
+                    line for line in code.splitlines()
+                    if not line.lstrip().startswith("#")
+                )
+                self.assertNotRegex(
+                    executable,
+                    r"aten\.searchsorted|extern_kernels\.searchsorted|"
+                    r"aoti_torch_\w*searchsorted",
+                )
             return result
 
         return torch.compile(
@@ -338,7 +380,7 @@ class TestComparisonCountCompile(unittest.TestCase):
 
     def compile_exact(self, fn, args):
         before = pass_count()
-        compiled = torch.compile(fn, fullgraph=True, dynamic=False)
+        compiled, _ = self.compile_tracked(fn, dynamic=False)
         assert_call_exact(compiled, fn, *args)
         self.assertGreater(pass_count(), before)
         return compiled

@@ -74,7 +74,7 @@ from .lowering_common import (
     resolve_op_from_name,
 )
 from .lowering_override_list import LOWERING_OVERRIDE_OP
-from .config import log, is_ascend950, enable_full_lowering_fallback
+from .config import log, is_ascend950, earlier_than_ascend950, enable_full_lowering_fallback
 
 from .lowering_fallback_list import FALLBACK_LIST, NPU_EXTRA_FALLBACK_LIST
 
@@ -356,6 +356,17 @@ def _register_npu_inductor_fallbacks():
         side=None,
         sorter=None,
     ):
+        if earlier_than_ascend950:
+            return fallback_handler(
+                aten.searchsorted.Tensor, add_to_fallback_set=False
+            )(
+                sorted_sequence,
+                self,
+                out_int32=out_int32,
+                right=right,
+                side=side,
+                sorter=sorter,
+            )
         # The native Inductor lowering queries physical strides for boundaries and
         # an optional sorter. Generic views such as SliceView only carry a reindex
         # function, so realize() materializes the backing storage but does not make

@@ -164,11 +164,9 @@ def _profitable(value_count, reference_count, floating=False):
         # wall time; 262144*128 and 32768*1024 saved both. Use 2**25 as an
         # initial conservative floor, not a universal break-even point.
         minimum_comparison_work = 33554432
-        if not config.allow_searchsorted_lowering:
-            # AI_CPU search scales with the number of values. At 378000*378
-            # it was slower than the original float reduction; at 32768*1024
-            # the larger reference dimension amortized this cost. Retain the
-            # original graph for short references on the fallback path.
+        if config.earlier_than_ascend950:
+            # ACLNN search scales with the number of values. Short references
+            # do not amortize its cost for floating-point comparisons.
             reference_range = reference_range & (reference_count >= 1024)
     comparison_work = value_count * reference_count
     search_work = (value_count + reference_count) * search_levels
@@ -308,12 +306,12 @@ def comparison_count_to_searchsorted_pass(graph: torch.fx.Graph) -> None:
         if floating:
             with graph.inserting_before(node), value_meta.fake_mode:
                 if (
-                    value_meta.dtype in (torch.float16, torch.bfloat16)
-                    and not config.allow_searchsorted_lowering
+                    config.earlier_than_ascend950
+                    and value_meta.dtype in (torch.float16, torch.bfloat16)
                 ):
-                    # ACLNN SearchSorted rejects BF16; its FP16 path was slower
-                    # than FP32 in full-path A/B. Both types widen exactly to
-                    # FP32. Preserve original tensor users and native dtypes.
+                    # ACLNN SearchSorted rejects BF16, and its FP16 path is
+                    # slower than FP32. Widen both operands without changing
+                    # the original tensors or their other users.
                     values = _call_with_meta(
                         graph, torch.ops.prims.convert_element_type.default,
                         (values, torch.float32),
