@@ -1,6 +1,6 @@
 # 概述
 
-OpPlugin是TorchNPU的算子插件，为使用PyTorch框架的开发者提供便捷的NPU算子库调用能力。本章节的主要目标是指导具有一定PyTorch基础的用户完成算子适配工作，本章节提供了单算子适配概述、适配流程和适配开发指导等内容。
+OpPlugin是TorchNPU的算子插件，为使用PyTorch框架的开发者提供便捷的NPU算子库调用能力。本文档面向具有一定PyTorch基础的用户，介绍单算子适配的概念、适配价值与适配流程，指导用户完成算子适配工作。
 
 ## 什么是算子适配
 
@@ -12,7 +12,7 @@ OpPlugin是TorchNPU的算子插件，为使用PyTorch框架的开发者提供便
 
 > [!NOTE]
 >
-> - ATen IR（Aten Intermediate Representation，Aten中间表示）是PyTorch深度学习框架底层的核心中间表示形式，是连接PyTorch上层用户接口与底层硬件执行逻辑的关键载体。
+> - ATen IR（ATen Intermediate Representation，ATen中间表示）是PyTorch深度学习框架底层的核心中间表示形式，是连接PyTorch上层用户接口与底层硬件执行逻辑的关键载体。
 > - ATen IR由PyTorch官方定义，封装了算子的核心语义信息（名称、入参/返回值类型、计算逻辑描述），屏蔽了上层API的语法差异和底层硬件的实现细节，是PyTorch框架内算子分发、编译优化、跨硬件适配的统一“语言”。ATen IR接口说明，请参考[pytorch/aten/src/ATen/native](https://github.com/pytorch/pytorch/tree/main/aten/src/ATen/native#readme)。
 
 ## 为什么要做算子适配

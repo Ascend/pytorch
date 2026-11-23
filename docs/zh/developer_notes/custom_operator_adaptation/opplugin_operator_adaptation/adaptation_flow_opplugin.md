@@ -2,5 +2,5 @@
 
 算子适配需遵循标准化流程，确保算子在昇腾NPU平台的功能正确性与性能最优，总体适配流程如下图所示。
 
-**图 1**  算子适配流程图  
-![](../../../figures/opplugin_adaptation_flow.png)
+**图 1** 算子适配流程图  
+![算子适配总体流程框图，展示各适配环节的先后顺序与相互衔接关系](../../../figures/opplugin_adaptation_flow.png)

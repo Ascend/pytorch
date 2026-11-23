@@ -168,7 +168,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id15 -->
 
-**限制与说明**：未设置`device`时，调用该接口会隐式地初始化当前`device`（默认0卡）
+**限制与说明**：未设置`device`时，调用该接口会隐式地初始化当前`device`（默认0卡）。
 
 </div>
 
@@ -256,7 +256,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id24 -->
 
-**限制与说明**： 通过环境变量TORCH_NPU_DEVICE_CAPABILITY配置`torch_npu.npu.get_device_capability()`的返回值，仅用于兼容原生PyTorch，不代表NPU硬件实际能力
+**限制与说明**： 通过环境变量TORCH_NPU_DEVICE_CAPABILITY配置`torch_npu.npu.get_device_capability()`的返回值，仅用于兼容原生PyTorch，不代表NPU硬件实际能力。
 
 </div>
 
@@ -302,7 +302,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id30 -->
 
-**限制与说明**： 仅支持name、total_memory、L2_cache_size、cube_core_num和vector_core_num属性，原cuda上支持的其余属性均返回空字段
+**限制与说明**： 仅支持name、total_memory、L2_cache_size、cube_core_num和vector_core_num属性，原CUDA上支持的其余属性均返回空字段。
 
 </div>
 
@@ -697,7 +697,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id243 -->
 
-**限制与说明**： 可使用`npu-smi info -t common -i <id>`查看Aicore curFreq(MHZ)指标代替。
+**限制与说明**：可使用`npu-smi info -t common -i <id>`查看AI Core的当前频率，回显字段为`Aicore curFreq(MHZ)`。
 
 </div>
 
@@ -1359,7 +1359,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id132 -->
 
-**限制与说明**： 当前仅支持推理场景，不支持训练场景
+**限制与说明**： 当前仅支持推理场景，不支持训练场景。
 
 </div>
 

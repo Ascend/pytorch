@@ -10716,7 +10716,7 @@
 <!-- end id1350 -->
 
 <!-- npu="950" id1432 -->
-**限制与说明**： <term>Ascend 950DT系列产品</term>：不支持complex64，complex128
+**限制与说明**： <term>Ascend 950DT系列产品</term>：不支持complex64、complex128
 <!-- end id1432 -->
 
 </div>

@@ -4,7 +4,7 @@
 >
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
 > - 本支持清单的范围以[PyTorch社区文档](https://pytorch.org/docs/2.7/)为准，社区文档中未列出的接口不在本清单范围内；已在社区文档中存在但未收录于本清单的API尚未验证，请谨慎使用，我们将在验证完成后更新文档。
-> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
+> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证的产品暂不纳入。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.7/nn.html)。
 
 <div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
@@ -387,7 +387,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id48 -->
 
-**限制与说明**： `self`仅支持fp32，int64
+**限制与说明**： `self`仅支持fp32、int64
 
 </div>
 
@@ -435,7 +435,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id54 -->
 
-**限制与说明**： `self`仅支持fp16，fp32
+**限制与说明**： `self`仅支持fp16、fp32
 
 </div>
 
@@ -575,7 +575,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id72 -->
 
-**限制与说明**： `self`仅支持fp16，fp32
+**限制与说明**： `self`仅支持fp16、fp32
 
 </div>
 
@@ -1205,7 +1205,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id153 -->
 
-**限制与说明**： `self`仅支持fp16，fp32，int64
+**限制与说明**： `self`仅支持fp16、fp32、int64
 
 </div>
 
@@ -2101,7 +2101,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id273 -->
 
-**限制与说明**： `input`仅支持fp16，fp32
+**限制与说明**： `input`仅支持fp16、fp32
 
 </div>
 
@@ -2125,7 +2125,7 @@
 
 **限制与说明**：
 
-- `input`仅支持bf16，fp16，fp32
+- `input`仅支持bf16、fp16、fp32
 
 <!-- npu="910b" id277 -->
 - <term>Atlas A2训练系列产品</term>，默认场景下，如果频繁触发编译，建议手动设置`torch.npu.config.allow_internal_format`为False，控制入参不开启内部格式，避免在线编译，例如：
@@ -2156,7 +2156,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id280 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32
+**限制与说明**： `input`仅支持bf16、fp16、fp32
 
 </div>
 
@@ -2228,7 +2228,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id290 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32
+**限制与说明**： `input`仅支持bf16、fp16、fp32
 
 </div>
 
@@ -2804,7 +2804,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id356 -->
 
-**限制与说明**： `input`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `input`仅支持fp16、fp32、uint8、int8、int16、int32、int64、bool
 
 </div>
 
@@ -2826,7 +2826,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id359 -->
 
-**限制与说明**： `input`仅支持fp16，fp32，int16，int32，int64，bool
+**限制与说明**： `input`仅支持fp16、fp32、int16、int32、int64、bool
 
 </div>
 
@@ -2908,7 +2908,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id368 -->
 
-**限制与说明**： `input`仅支持fp32，fp64
+**限制与说明**： `input`仅支持fp32、fp64
 
 </div>
 
@@ -3084,7 +3084,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id392 -->
 
-**限制与说明**： `input`仅支持fp16，fp32，complex64，complex128
+**限制与说明**： `input`仅支持fp16、fp32、complex64、complex128
 
 </div>
 
@@ -3128,7 +3128,7 @@
 
 **限制与说明**：
 
-- `input`仅支持bf16，fp16，fp32，fp64，complex64，complex128
+- `input`仅支持bf16、fp16、fp32、fp64，complex64，complex128
 - 支持2-3维
 
 </div>
@@ -3175,7 +3175,7 @@
 
 **限制与说明**：
 
-- `input`仅支持bf16，fp16，fp32，fp64，complex64，complex128
+- `input`仅支持bf16、fp16、fp32、fp64、complex64、complex128
 - 支持5-6维
 
 </div>
@@ -3200,7 +3200,7 @@
 
 **限制与说明**：
 
-- `input`仅支持int8，bool
+- `input`仅支持int8、bool
 - 在输入`x`为六维以上时可能会出现性能下降问题
 
 </div>
@@ -3225,7 +3225,7 @@
 
 **限制与说明**：
 
-- `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+- `input`仅支持bf16、fp16、fp32、fp64、uint8、int8、int16、int32、int64、bool、complex64、complex128
 - 在输入`x`为六维以上时可能会出现性能下降问题
 
 </div>
@@ -3250,7 +3250,7 @@
 
 **限制与说明**：
 
-- `input`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+- `input`仅支持fp16、fp32、uint8、int8、int16、int32、int64、bool、complex64、complex128
 - 在输入`x`为六维以上时可能会出现性能下降问题
 
 </div>
@@ -3335,7 +3335,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id416 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64
+**限制与说明**： `input`仅支持bf16、fp16、fp32、fp64
 
 </div>
 
@@ -3384,7 +3384,7 @@
 
 **限制与说明**：
 
-- `input`仅支持fp16，fp32，int32
+- `input`仅支持fp16、fp32、int32
 - 可能回退至CPU执行
 
 </div>
@@ -3407,7 +3407,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id425 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
+**限制与说明**： `input`仅支持bf16、fp16、fp32、fp64、uint8、int8、int16、int32、int64
 
 </div>
 
@@ -3451,7 +3451,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id431 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64
+**限制与说明**： `input`仅支持bf16，fp16，fp32、fp64
 
 </div>
 
@@ -3569,7 +3569,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id446 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，uint8，int8，int32，int64
+**限制与说明**： `input`仅支持bf16、fp16、fp32、uint8、int8、int32、int64
 
 </div>
 
@@ -3591,7 +3591,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id449 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
+**限制与说明**： `input`仅支持bf16、fp16、fp32、fp64、uint8、int8、int16、int32、int64
 
 </div>
 
@@ -3635,7 +3635,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id455 -->
 
-**限制与说明**： `input`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `input`仅支持fp16、fp32、fp64、uint8、int8、int16、int32、int64、bool
 
 </div>
 
@@ -3708,7 +3708,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id464 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `input`仅支持bf16、fp16、fp32、uint8、int8、int16、int32、int64、bool、complex64、complex128
 
 </div>
 
@@ -3818,7 +3818,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id479 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64
+**限制与说明**： `input`仅支持bf16、fp16、fp32、uint8、int8、int16、int32、int64
 
 </div>
 
@@ -3840,7 +3840,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id482 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `input`仅支持bf16、fp16、fp32、uint8、int8、int16、int32、int64、bool
 
 </div>
 
@@ -3864,7 +3864,7 @@
 
 **限制与说明**：
 
-- `input`仅支持fp16，fp32，uint8，int8，int16，int32，int64
+- `input`仅支持fp16、fp32、uint8，int8，int16，int32、int64
 - 可能回退至CPU执行
 
 </div>
@@ -3887,7 +3887,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id488 -->
 
-**限制与说明**： `input`仅支持fp16，fp32，uint8，int8，int16，int32，int64
+**限制与说明**： `input`仅支持fp16、fp32、uint8、int8、int16、int32、int64
 
 </div>
 
@@ -3955,7 +3955,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id497 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64
+**限制与说明**： `input`仅支持bf16、fp16、fp32、fp64
 
 </div>
 
@@ -4786,7 +4786,7 @@
 <!-- end id571 -->
 
 <!-- npu="910b,A3" id1027 -->
-**限制与说明**： 接口暂不支持`jit_compile=False`，如需在该模式下使用，请将"DynamicGRUV2"添加至"NPU_FUZZY_COMPILE_BLACKLIST"选项内，具体操作可参考[添加二进制黑名单示例](../appendixes/example_of_adding_a_binary_blocklist.md)
+**限制与说明**： 接口暂不支持`jit_compile=False`，如需在该模式下使用，请将“DynamicGRUV2”添加至“NPU_FUZZY_COMPILE_BLACKLIST”选项内，具体操作可参考[添加二进制黑名单示例](../appendixes/example_of_adding_a_binary_blocklist.md)
 
 </div>
 <!-- end id1027 -->
@@ -5215,7 +5215,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id620 -->
 
-**限制与说明**： `input`仅支持fp16，fp32，int64，bool
+**限制与说明**： `input`仅支持fp16、fp32、int64、bool
 
 </div>
 
@@ -5305,7 +5305,7 @@
 
 **限制与说明**：
 
-- `input`仅支持int32，int64
+- `input`仅支持int32、int64
 - 属性`max_norm`仅支持非负值，不支持nan
 
 <a class="method_anchor" id="torch_nn_Embedding_from_pretrained"></a>
@@ -5352,7 +5352,7 @@
 
 **限制与说明**：
 
-- `input`仅支持int32，int64
+- `input`仅支持int32、int64
 - 仅支持`max_norm`大于等于0
 
 <a class="method_anchor" id="torch_nn_EmbeddingBag_forward"></a>
@@ -5463,7 +5463,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id644 -->
 
-**限制与说明**： `input`仅支持fp16，fp32，int64
+**限制与说明**： `input`仅支持fp16、fp32、int64
 
 </div>
 
@@ -5531,7 +5531,7 @@
 
 **限制与说明**：
 
-- `log_probs`仅支持fp32，fp64
+- `log_probs`仅支持fp32、fp64
 - 不支持`log_probs` 2D输入
 
 </div>
@@ -5579,7 +5579,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id659 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，int64
+**限制与说明**： `input`仅支持bf16、fp16、fp32、int64
 
 </div>
 
@@ -5601,7 +5601,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id662 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，int16，int32，int64
+**限制与说明**： `input`仅支持bf16、fp16、fp32、int16、int32、int64
 
 </div>
 
@@ -5695,7 +5695,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id674 -->
 
-**限制与说明**： `input1`、`input2`、`target`仅支持bf16，fp16，fp32，int8，int32，int64
+**限制与说明**： `input1`、`input2`、`target`仅支持bf16、fp16、fp32、int8、int32、int64
 
 </div>
 
@@ -5717,7 +5717,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id677 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64
+**限制与说明**： `input`仅支持bf16，fp16、fp32、uint8、int8、int16、int32、int64
 
 </div>
 
@@ -5762,7 +5762,7 @@
 **限制与说明**：
 
 - `input`仅支持fp32，fp64
-- `target`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+- `target`仅支持bf16、fp16、fp32、fp64、uint8、int8、int16、int32、int64、bool
 - 可能回退至CPU执行
 
 </div>
@@ -5897,7 +5897,7 @@
 
 **限制与说明**：
 
-- `anchor`、`positive`、`negative`仅支持fp16，fp32，uint8，int8，int16，int32，int64
+- `anchor`、`positive`、`negative`仅支持fp16、fp32、uint8、int8、int16、int32、int64
 - 可能回退至CPU执行
 
 </div>
@@ -5944,7 +5944,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id704 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `input`仅支持bf16、fp16、fp32、fp64、uint8、int8、int16、int32、int64、bool
 
 </div>
 
@@ -5966,7 +5966,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id707 -->
 
-**限制与说明**： `input`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `input`仅支持fp16、fp32、fp64、uint8、int8、int16、int32、int64、bool
 
 </div>
 
@@ -6018,7 +6018,7 @@
 
 **限制与说明**：
 
-- `input`仅支持fp16，fp32，uint8
+- `input`仅支持fp16、fp32、uint8
 - 可能回退至CPU执行
 
 </div>
@@ -6043,7 +6043,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id716 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `input`仅支持bf16、fp16、fp32、uint8、int8、int16、int32、int64，bool，complex64，complex128
 
 </div>
 
@@ -6197,7 +6197,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id737 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `input`仅支持bf16、fp16、fp32、fp64、uint8、int8、int16、int32、int64、bool
 
 </div>
 
@@ -6321,7 +6321,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id746 -->
 
-**限制与说明**： `vec`仅支持bf16，fp16，fp32，fp64，complex64
+**限制与说明**： `vec`仅支持bf16、fp16、fp32、fp64、complex64
 
 </div>
 
@@ -7956,7 +7956,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id950 -->
 
-**限制与说明**： `input`仅支持fp32，int64
+**限制与说明**： `input`仅支持fp32、int64
 
 <a class="method_anchor" id="torch_nn_utils_rnn_PackedSequence_batch_sizes"></a>
 
@@ -8136,7 +8136,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id974 -->
 
-**限制与说明**： `self`仅支持fp32，int64
+**限制与说明**： `self`仅支持fp32、int64
 
 </div>
 
@@ -8304,7 +8304,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id998 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `input`仅支持bf16、fp16、fp32、uint8、int8、int16、int32、int64、bool，complex64，complex128
 
 </div>
 

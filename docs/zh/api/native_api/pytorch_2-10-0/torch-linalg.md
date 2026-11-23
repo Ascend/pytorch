@@ -70,7 +70,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id6 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32
+**限制与说明**： `input`仅支持bf16、fp16、fp32
 
 </div>
 
@@ -176,7 +176,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id12 -->
 
-**限制与说明**： `A`仅支持fp32，fp64，complex64，complex128
+**限制与说明**： `A`仅支持fp32、fp64、complex64、complex128
 
 </div>
 
@@ -380,7 +380,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id18 -->
 
-**限制与说明**： `A`、`B`仅支持fp32，fp64，complex64，complex128
+**限制与说明**： `A`、`B`仅支持fp32、fp64、complex64、complex128
 
 </div>
 
@@ -552,7 +552,7 @@
 
 **限制与说明**：
 
-- `input`仅支持fp16，fp32
+- `input`仅支持fp16、fp32
 - 输入最大支持6维
 
 </div>

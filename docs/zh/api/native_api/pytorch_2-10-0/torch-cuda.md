@@ -4,8 +4,8 @@
 >
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
 > - 本支持清单的范围以[PyTorch社区文档](https://pytorch.org/docs/2.10/)为准，社区文档中未列出的接口不在本清单范围内；已在社区文档中存在但未收录于本清单的API尚未验证，请谨慎使用，我们将在验证完成后更新文档。
-> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
-> 在使用支持的cuda接口时，需要将API名称中的cuda替换为NPU形式才能使用：将torch.cuda.替换为torch_npu.npu.或torch.npu.。torch_npu.npu.和torch.npu.两种调用方式，功能一致。举例如下：
+> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证的产品暂不纳入。
+> 在使用支持的CUDA接口时，需要将API名称中的cuda替换为NPU形式才能使用：将torch.cuda.替换为torch_npu.npu.或torch.npu.。torch_npu.npu.和torch.npu.两种调用方式，功能一致。举例如下：
 >
 >   `torch.cuda.current_device` --> `torch_npu.npu.current_device`<br>
 >   `torch.cuda.current_device` --> `torch.npu.current_device`
@@ -256,7 +256,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id24 -->
 
-**限制与说明**： 通过环境变量TORCH_NPU_DEVICE_CAPABILITY配置`torch_npu.npu.get_device_capability()`的返回值，仅用于兼容原生PyTorch，不代表NPU硬件实际能力
+**限制与说明**： 通过环境变量`TORCH_NPU_DEVICE_CAPABILITY`配置`torch_npu.npu.get_device_capability()`的返回值，仅用于兼容原生PyTorch，不代表NPU硬件实际能力
 
 </div>
 
@@ -302,7 +302,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id30 -->
 
-**限制与说明**： 仅支持name、total_memory、L2_cache_size、cube_core_num和vector_core_num属性，原cuda上支持的其余属性均返回空字段
+**限制与说明**： 仅支持`name`、`total_memory`、`L2_cache_size`、`cube_core_num`和`vector_core_num`属性，原CUDA上支持的其余属性均返回空字段
 
 </div>
 
@@ -720,7 +720,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id237 -->
 
-**限制与说明**： 可使用`npu-smi info -t common -i <id>`查看Aicore curFreq(MHZ)指标代替。
+**限制与说明**：可使用`npu-smi info -t common -i <id>`查看AI Core的当前频率，回显字段为`Aicore curFreq(MHZ)`。
 
 </div>
 

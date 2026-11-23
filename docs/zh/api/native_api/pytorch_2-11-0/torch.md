@@ -597,8 +597,8 @@
 
 **限制与说明**：
 
-- `indices`仅支持int32，int64
-- `values`仅支持fp16，fp32，int32
+- `indices`仅支持int32、int64
+- `values`仅支持fp16、fp32、int32
 - `dtype`参数与`values`的dtype保持一致
 
 </div>
@@ -703,7 +703,7 @@
 
 **限制与说明**：
 
-- `obj`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool。
+- `obj`仅支持bf16、fp16、fp32、fp64、uint8、int8、int16、int32、int64、bool。
 - 当`obj`为NPU张量且`copy=False`时，请省略`device`或指定与输入张量一致的完整设备名（如`npu:0`）；使用不带设备编号的`npu`会报设备不匹配错误。
 
 </div>
@@ -726,7 +726,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id63 -->
 
-**限制与说明**： `data`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `data`仅支持bf16、fp16、fp32、fp64、uint8、int8、int16、int32、int64、bool
 
 </div>
 
@@ -770,7 +770,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id69 -->
 
-**限制与说明**： `input`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `input`仅支持fp16、fp32、fp64、uint8、int8、int16、int32、int64、bool
 
 </div>
 
@@ -792,7 +792,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id75 -->
 
-**限制与说明**： `dtype`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `dtype`仅支持bf16、fp16、fp32、fp64、uint8、int8、int16、int32、int64、bool
 
 </div>
 
@@ -834,7 +834,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id81 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**： `input`仅支持bf16、fp16、fp32、uint8、int8、int16、int32、int64、bool、complex64、complex128
 
 </div>
 
@@ -856,7 +856,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id84 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `input`仅支持bf16、fp16、fp32、fp64、uint8、int8、int16、int32、int64、bool
 
 </div>
 
@@ -987,7 +987,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id99 -->
 
-**限制与说明**： `dtype`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `dtype`仅支持bf16、fp16、fp32、uint8、int8、int16、int32、int64、bool
 
 </div>
 
@@ -1474,7 +1474,7 @@
 
 **限制与说明**：
 
-- `input`仅支持fp16，fp32，int16，int32，int64，bool
+- `input`仅支持fp16、fp32、int16、int32、int64、bool
 - `index`的维度数需与`input`的维度数一致
 
 <!-- npu="950,A3,910b" id162 -->
@@ -1766,7 +1766,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id199 -->
 
-**限制与说明**： `input`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `input`仅支持fp16、fp32、uint8、int8、int16、int32、int64、bool
 
 </div>
 
@@ -2223,8 +2223,8 @@
 
 - `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
 - 若入参`dims`的长度小于`input`.shape的长度，则会在`dims`前自动补全1，使其长度与`input`.shape对齐。补全后的`dims`，需要满足如下限制：
-  - 当需要对第一根轴进行重复时，最多允许同时对4个维度进行重复操作（即`dims`中大于1的元素个数 ≤ 4），例如：不支持`torch.tile(input, [2, 3, 4, 5, 6])` ，支持`torch.tile(input, [2, 3, 1, 5, 6])`
-  - 当不需要对第一根轴进行重复时，最多允许同时对3个维度进行重复操作（即`dims`中大于1的元素个数 ≤ 3），例如：不支持`torch.tile(input, [1, 3, 4, 5, 6])` ，支持`torch.tile(input, [1, 3, 1, 5, 6])`
+  - 当需要对第一根轴进行重复时，最多允许同时对4个维度进行重复操作（即`dims`中大于1的元素个数 ≤ 4），例如：不支持`torch.tile(input, [2, 3, 4, 5, 6])`，支持`torch.tile(input, [2, 3, 1, 5, 6])`
+  - 当不需要对第一根轴进行重复时，最多允许同时对3个维度进行重复操作（即`dims`中大于1的元素个数 ≤ 3），例如：不支持`torch.tile(input, [1, 3, 4, 5, 6])`，支持`torch.tile(input, [1, 3, 1, 5, 6])`
   - 若执行反向计算，输入`Tensor`的维度数与入参`dims`中大于1的元素个数之和不得超过8
 
 </div>
@@ -2840,7 +2840,7 @@
 
 **限制与说明**：
 
-- `mean`、`std`仅支持fp16，fp32
+- `mean`、`std`仅支持fp16、fp32
 
 <!-- npu="950" id1124 -->
 - 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同。
@@ -3516,7 +3516,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id413 -->
 
-**限制与说明**： `input`仅支持fp16，fp32，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `input`仅支持fp16、fp32、uint8、int8、int16、int32、int64、bool
 
 </div>
 
@@ -6468,10 +6468,10 @@
 **限制与说明**：
 
 - 双tensor输入的场景约束如下：
-  - `elements`、`test_elements`仅支持fp16，fp32，uint8，int8，int16，int32，int64
+  - `elements`、`test_elements`仅支持fp16、fp32、uint8、int8、int16、int32、int64
   - 第一个输入`tensor`维度不能大于7维，第二个输入`tensor`维度不能大于8维
 - 单tensor输入的场景约束如下：
-  - `elements`、`test_elements`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
+  - `elements`、`test_elements`仅支持bf16、fp16、fp32、fp64、uint8、int8、int16、int32、int64
   - 输入`tensor`的维度不大于8维
 
 </div>
@@ -7047,7 +7047,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id832 -->
 
-**限制与说明**： `tensors`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `tensors`仅支持fp16、fp32、fp64、uint8、int8、int16、int32、int64、bool
 
 </div>
 
@@ -7248,7 +7248,7 @@
 
 **限制与说明**：
 
-- `x1`、`x2`仅支持bf16，fp16，fp32
+- `x1`、`x2`仅支持bf16、fp16、fp32
 - 当`p=2.0`时，`compute_mode`仅支持"donot_use_mm_for_euclid_dist"模式，传入其他值时，会自动修改为此模式
 
 <!-- npu="950,A3,910b" id854 -->
@@ -7964,7 +7964,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id926 -->
 
-**限制与说明**： `sorted_sequence`、`values`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64
+**限制与说明**： `sorted_sequence`、`values`仅支持fp16、fp32、fp64、uint8、int8、int16、int32、int64
 
 </div>
 
@@ -8759,7 +8759,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id995 -->
 
-**限制与说明**： `y`、`x`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64
+**限制与说明**： `y`、`x`仅支持bf16、fp16、fp32、uint8、int8、int16、int32、int64
 
 </div>
 
@@ -10105,7 +10105,7 @@
 <!-- end id1052 -->
 
 <!-- npu="910b,A3,950" id1514 -->
-**限制与说明**： 此接口可调用，但不控制 NPU 矩阵乘精度；NPU 使用 torch_npu.npu.matmul.allow_hf32 配置。
+**限制与说明**： 此接口可调用，但不控制NPU矩阵乘精度；NPU使用torch_npu.npu.matmul.allow_hf32配置。
 
 </div>
 <!-- end id1514 -->

@@ -2,9 +2,9 @@
 
 > [!NOTE]
 >
-> - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
+> - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持情况与原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
 > - 本支持清单的范围以[PyTorch社区文档](https://pytorch.org/docs/2.11/)为准，社区文档中未列出的接口不在本清单范围内；已在社区文档中存在但未收录于本清单的API尚未验证，请谨慎使用，我们将在验证完成后更新文档。
-> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
+> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证的产品暂不纳入。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.11/optim.html)。
 
 <div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
@@ -202,7 +202,7 @@
 
 **限制与说明**：
 
-- `params`仅支持bf16，fp16，fp32
+- `params`仅支持bf16、fp16、fp32
 - 优化器在启动`foreach`的情况下（`foreach=None`或`foreach=True`），当被优化的参数分组过多时由于`foreach`算子的特性会导致性能下降。这种情况建议设置为`foreach=False`，例如：
 
   ```python
@@ -516,7 +516,7 @@
 
 **限制与说明**：
 
-- `params`仅支持bf16，fp16，fp32
+- `params`仅支持bf16、fp16、fp32
 - 优化器在启动`foreach`的情况下（`foreach=None`或`foreach=True`），当被优化的参数分组过多时由于`foreach`算子的特性会导致性能下降。这种情况建议设置为`foreach=False`，例如：
 
   ```python
@@ -788,7 +788,7 @@
 
 **限制与说明**：
 
-- `params`仅支持bf16，fp16，fp32
+- `params`仅支持bf16、fp16、fp32
 - 优化器在启动`foreach`的情况下（`foreach=None`或`foreach=True`），当被优化的参数分组过多时由于`foreach`算子的特性会导致性能下降。这种情况建议设置为`foreach=False`，例如：
 
   ```python
@@ -1065,7 +1065,7 @@
 
 **限制与说明**：
 
-- `params`仅支持bf16，fp16，fp32，complex64
+- `params`仅支持bf16、fp16、fp32、complex64
 - 优化器在启动`foreach`的情况下（`foreach=None`或`foreach=True`），当被优化的参数分组过多时由于`foreach`算子的特性会导致性能下降。这种情况建议设置为`foreach=False`，例如：
 
   ```python
@@ -1073,7 +1073,7 @@
   optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, foreach=False)
   ```
 
-- 优化器在启动`fused`的情况下（`fused=True`），暂不支持`grad_scale`和`found_inf`参数。对标`_single_tensor_adamw`实现，fp32与cpu/cuda一致，fp16和bf16采用升精度实现，与cpu/cuda不一致
+- 优化器在启动`fused`的情况下（`fused=True`），暂不支持`grad_scale`和`found_inf`参数。对标`_single_tensor_adamw`实现，fp32与CPU/CUDA一致，fp16和bf16采用升精度实现，与CPU/CUDA不一致
 
 <a class="method_anchor" id="torch_optim_AdamW_add_param_group"></a>
 
@@ -1293,7 +1293,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id159 -->
 
-**限制与说明**：`params`仅支持fp16，fp32
+**限制与说明**：`params`仅支持fp16、fp32
 
 </div>
 
@@ -3509,7 +3509,7 @@
 
 **限制与说明**：
 
-- `params`仅支持bf16，fp16，fp32
+- `params`仅支持bf16、fp16、fp32
 - 优化器在启动`foreach`的情况下（`foreach=None`或`foreach=True`），当被优化的参数分组过多时由于`foreach`算子的特性会导致性能下降。这种情况建议设置为`foreach=False`，例如：
 
   ```python
@@ -3517,7 +3517,7 @@
   optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, foreach=False)
   ```
 
-- 优化器支持启动`fused`，即(`fused=True`)。
+- 优化器支持启动`fused`，即（`fused=True`）。
 
 <a class="method_anchor" id="torch_optim_SGD_add_param_group"></a>
 
@@ -3767,7 +3767,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id480 -->
 
-**限制与说明**：`params`仅支持fp16，fp32
+**限制与说明**：`params`仅支持fp16、fp32
 
 </div>
 

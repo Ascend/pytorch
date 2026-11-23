@@ -11385,7 +11385,10 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1250 -->
 
-**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128取值范围[-65504,65504]
+**限制与说明**：
+
+- `self`仅支持bf16、fp16、fp32、fp64、uint8、int8、int16、int32、int64、bool、complex64、complex128。
+- 在<term>Atlas A3训练系列产品</term>上，`self`的数据类型为fp32、bf16、fp16、int32或int64时，输入值在`[-65504, 65504]`内可满足精度要求。超出该范围时无法保证计算精度，建议在CPU上计算。
 
 </div>
 

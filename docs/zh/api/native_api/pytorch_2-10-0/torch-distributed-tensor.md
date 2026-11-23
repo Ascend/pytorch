@@ -65,7 +65,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id6 -->
 
-**限制与说明**：`local_tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128
+**限制与说明**：`local_tensor`仅支持bf16、fp16、fp32、fp64、uint8、int8、int16、int32、int64、bool、complex64、complex128
 
 </div>
 
@@ -111,7 +111,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id9 -->
 
-**限制与说明**：`input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool
+**限制与说明**：`input`仅支持bf16、fp16、fp32、fp64、uint8、int8、int32、int64、bool
 
 </div>
 
@@ -180,7 +180,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id12 -->
 
-**限制与说明**：`input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool，complex64，complex128
+**限制与说明**：`input`仅支持bf16、fp16、fp32、fp64、uint8、int8、int32、int64、bool、complex64、complex128
 
 </div>
 
@@ -288,7 +288,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id27 -->
 
-**限制与说明**： `tensor`仅支持bf16，fp16，fp32，fp64，uint8，int8，int32，int64，bool
+**限制与说明**：`tensor`仅支持bf16、fp16、fp32、fp64、uint8、int8、int32、int64、bool
 
 </div>
 
@@ -310,7 +310,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id24 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32
+**限制与说明**：`input`仅支持bf16、fp16、fp32
 
 </div>
 
@@ -377,6 +377,11 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id46 -->
 
-**限制与说明**： 仅支持NPU fused SDPA路径；`q`/`k`/`v`仅支持BNSD布局；暂不支持`pse`、`padding_mask`、`prefix`、`actual_seq_qlen`、`actual_seq_kvlen`、`sink`以及任意非causal的attention mask；启用load balance时要求使用causal attention；暂不支持通过`torch.compile`编译为计算图
+**限制与说明**：
+
+- 仅支持NPU融合SDPA路径，`q`、`k`和`v`均使用`BNSD`布局。
+- 不支持`pse`、`padding_mask`、`prefix`、`actual_seq_qlen`、`actual_seq_kvlen`、`sink`和非因果注意力掩码。
+- 启用负载均衡（load balance）时，必须使用因果注意力。
+- 暂不支持通过`torch.compile`编译为计算图。
 
 </div>

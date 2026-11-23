@@ -4,7 +4,7 @@
 >
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
 > - 本支持清单的范围以[PyTorch社区文档](https://pytorch.org/docs/2.7/)为准，社区文档中未列出的接口不在本清单范围内；已在社区文档中存在但未收录于本清单的API尚未验证，请谨慎使用，我们将在验证完成后更新文档。
-> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
+> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证的产品暂不纳入。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.7/tensorboard.html)。
 
 <div style="display:none;">
@@ -139,7 +139,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id18 -->
 
-**限制与说明**：`img_tensor`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**：`img_tensor`仅支持fp16、fp32、fp64、uint8、int8、int16、int32、int64、bool
 
 </div>
 
@@ -279,7 +279,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id36 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32
+**限制与说明**：`input`仅支持bf16、fp16、fp32
 
 </div>
 
@@ -373,7 +373,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id48 -->
 
-**限制与说明**： `vertices`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**：`vertices`仅支持bf16、fp16、fp32、fp64、uint8、int8、int16、int32、int64、bool
 
 </div>
 

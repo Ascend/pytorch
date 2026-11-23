@@ -47,7 +47,7 @@
 
 **限制与说明**：
 
-- `tensors`仅支持bf16，fp16，fp32，fp64
+- `tensors`仅支持bf16、fp16、fp32、fp64
 - 不支持稀疏张量
 
 </div>

@@ -4,7 +4,7 @@
 >
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
 > - 本支持清单的范围以[PyTorch社区文档](https://pytorch.org/docs/2.11/)为准，社区文档中未列出的接口不在本清单范围内；已在社区文档中存在但未收录于本清单的API尚未验证，请谨慎使用，我们将在验证完成后更新文档。
-> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
+> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证的产品暂不纳入。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.11/tensors.html)。
 
 <div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
@@ -1312,7 +1312,7 @@
 
 **限制与说明**：
 
-- `self`仅支持fp16，fp32, fp64
+- `self`仅支持fp16、fp32、fp64
 
 <!-- npu="A3" id86 -->
 - <term>Atlas A3训练系列产品</term>额外支持bf16
@@ -11380,7 +11380,10 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1250 -->
 
-**限制与说明**： `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool，complex64，complex128取值范围[-65504,65504]
+**限制与说明**：
+
+- `self`仅支持bf16、fp16、fp32、fp64、uint8、int8、int16、int32、int64、bool、complex64、complex128。
+- 在<term>Atlas A3训练系列产品</term>上，`self`的数据类型为fp32、bf16、fp16、int32或int64时，输入值在`[-65504, 65504]`内可满足精度要求。超出该范围时无法保证计算精度，建议在CPU上计算。
 
 </div>
 
@@ -11605,7 +11608,7 @@
 **限制与说明**：
 
 - `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
-- 由于硬件差异，npu `topk`索引结果与GPU/CPU不一致。当前NPU仅支持返回`sorted`为true的计算结果
+- 由于硬件差异，NPU `topk`索引结果与GPU/CPU不一致。当前NPU仅支持返回`sorted`为true的计算结果。
 - 不支持标量`tensor`
 
 </div>
@@ -12103,7 +12106,7 @@
 **限制与说明**：
 
 - `self`仅支持fp16，fp32，fp64，uint8，int8，int16，int32，int64
-- 遵循PyTorch社区规范，不再支持对bool类型数据进行处理。针对存量bool类型数据可以通过如下方案进行替换：如果需要输出全True，可以采用`Tensor.bernoulli_(p=1.0)`。如果需要输出均匀分布的bool类型，则采用`Tensor.bernoulli_(p=0.5)`
+- 遵循PyTorch社区规范，不再支持对bool类型数据进行处理。针对存量bool类型数据可以通过如下方案进行替换：如果需要输出全True，可以采用`Tensor.bernoulli_(p=1.0)`。如果需要输出均匀分布的bool类型，则采用`Tensor.bernoulli_(p=0.5)`。
 
 <!-- npu="950" id1412 -->
 - 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同。

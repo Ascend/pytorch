@@ -4,7 +4,7 @@
 >
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
 > - 本支持清单的范围以[PyTorch社区文档](https://pytorch.org/docs/2.11/)为准，社区文档中未列出的接口不在本清单范围内；已在社区文档中存在但未收录于本清单的API尚未验证，请谨慎使用，我们将在验证完成后更新文档。
-> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
+> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证的产品暂不纳入。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.11/nn.html)。
 
 <div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
@@ -318,7 +318,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id39 -->
 
-**限制与说明**： `self`仅支持fp32
+**限制与说明**：`self`仅支持fp32
 
 </div>
 
@@ -4787,7 +4787,7 @@
 <!-- end id571 -->
 
 <!-- npu="910b,A3" id1030 -->
-**限制与说明**： 接口暂不支持`jit_compile=False`，如需在该模式下使用，请将"DynamicGRUV2"添加至"NPU_FUZZY_COMPILE_BLACKLIST"选项内，具体操作可参考[添加二进制黑名单示例](../appendixes/example_of_adding_a_binary_blocklist.md)
+**限制与说明**： 接口暂不支持`jit_compile=False`，如需在该模式下使用，请将“DynamicGRUV2”添加至“NPU_FUZZY_COMPILE_BLACKLIST”选项内，具体操作可参考[添加二进制黑名单示例](../appendixes/example_of_adding_a_binary_blocklist.md)
 
 </div>
 <!-- end id1030 -->
@@ -5305,7 +5305,7 @@
 **限制与说明**：
 
 - `input`仅支持int32，int64
-- 属性`max_norm`仅支持非负值，不支持nan
+- 属性`max_norm`仅支持非负值，不支持NaN
 
 <a class="method_anchor" id="torch_nn_Embedding_from_pretrained"></a>
 

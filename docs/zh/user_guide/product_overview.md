@@ -2,7 +2,7 @@
 
 TorchNPU插件是基于昇腾的深度学习适配框架，使昇腾NPU可以支持PyTorch框架，为PyTorch框架的使用者提供昇腾AI处理器的超强算力。TorchNPU插件采用**设备适配**的实现方案，将昇腾NPU作为新的后端设备注册到PyTorch的Device抽象层中，使其与CPU、CUDA等设备类型并列。开发者只需在代码中将设备指定为NPU，PyTorch原生的算子分发机制即可自动将计算任务路由到NPU侧执行，无需修改模型结构和训练逻辑。
 
-TorchNPU插件位于PyTorch上层API与底层昇腾CANN（异构计算架构）软件栈之间，向上承载PyTorch框架的全部特性（动态图、自动微分、Profiling等），向下对接CANN的ACL（Ascend Computing Language）运行时、算子库及HCCL集合通信库，完成从PyTorch算子到NPU可执行内核的完整映射。
+TorchNPU插件位于PyTorch上层API与底层昇腾CANN（异构计算架构）软件栈之间，向上承载PyTorch框架的全部特性（动态图、自动微分、Profiling等），向下对接CANN的AscendCL（Ascend Computing Language）运行时、算子库及HCCL集合通信库，完成从PyTorch算子到NPU可执行内核的完整映射。
 
 TorchNPU插件在设计上最大限度继承了PyTorch框架的原生特性，开发者几乎无需改变原有的开发习惯和代码风格：
 
@@ -23,32 +23,32 @@ TorchNPU插件采用**C++/Python双层架构**，C++层以`torch_npu._C`扩展�
 | **PyTorch框架层** | PyTorch Core | 开源PyTorch核心框架，提供autograd自动微分、nn.Module、优化器、DataLoader、Dispatcher算子分发等基础设施 |
 | **TorchNPU适配层（Python）** | TorchNPU Python包 | 面向用户的Python API层，包含初始化框架、NPU设备接口、图编译后端、分布式训练、Profiling等模块 |
 | **TorchNPU适配层（C++）** | `torch_npu._C`扩展模块 | 通过PyBind11绑定的C++核心，包含张量基础设施、内存分配器、算子执行框架、HCCL通信、Inductor后端等底层实现 |
-| **计算库层** | CANN软件栈 | 昇腾异构计算架构，提供ACL运行时、GE图引擎、AI CPU/TBE/AI Core算子库、HCCL集合通信库等 |
+| **计算库层** | CANN软件栈 | 昇腾异构计算架构，提供AscendCL运行时、GE图引擎、AI CPU/TBE/AI Core算子库、HCCL集合通信库等 |
 | **硬件层** | 昇腾NPU处理器 | 昇腾AI处理器硬件，集成AI Core、AI CPU、Vector Core等异构计算单元及HCCS高速互联 |
 
 ## 初始化流程
 
 TorchNPU插件的启动遵循严格的6阶段初始化顺序，确保各模块按依赖关系正确加载和初始化，实现PyTorch和昇腾NPU的无缝集成：
 
-![](../figures/initialization_flow.png)
+![TorchNPU插件启动的6阶段初始化顺序流程图，各模块按依赖关系依次加载](../figures/initialization_flow.png)
 
 ## 数据流
 
 **Eager Mode（动态图模式）端到端数据流：**
 
-![](../figures/eager_mode_flow.png)
+![Eager Mode数据流：PyTorch逐算子发起调用，经Dispatcher、TorchNPU适配和Host任务队列下发到NPU执行，结果返回Host](../figures/eager_mode_flow.png)
 
 Eager Mode下每个算子独立下发执行，保留了PyTorch动态图的灵活性和即时反馈能力。NPU上支持多Stream并发，通过Stream级TaskQueue实现二级流水并行下发，减少Host与Device之间的调度延迟。
 
 **Graph Mode（图编译模式）端到端数据流：**
 
-![](../figures/graph_mode_flow.png)
+![Graph Mode数据流：Dynamo捕获Python代码并生成FX图，编译后端生成融合内核或静态图，再下发到NPU执行](../figures/graph_mode_flow.png)
 
 Graph Mode通过`torch.compile()`一键开启，Dynamo前端将Eager代码即时编译为FX Graph，编译后端负责算子融合、内存优化和代码生成。NPUGraphs将捕获的图下沉至NPU侧，支持一次捕获多次重放，消除重复的kernel启动开销；Inductor后端则通过算子融合与代码生成实现计算图级别的深度优化。
 
 **张量数据流：**
 
-![](../figures/tensor_flow.png)
+![张量数据流：模型参数与输入从Host内存拷贝至Device HBM，中间结果在Device侧传递](../figures/tensor_flow.png)
 
 模型参数和输入数据从CPU Host内存拷贝至NPU Device内存（HBM），计算过程中张量数据驻留在NPU Device侧，各算子通过Device内存直接传递中间结果，最终根据需求将输出结果回传至Host侧。
 

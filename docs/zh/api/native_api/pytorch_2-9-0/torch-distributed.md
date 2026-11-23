@@ -4,7 +4,7 @@
 >
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
 > - 本支持清单的范围以[PyTorch社区文档](https://pytorch.org/docs/2.9/)为准，社区文档中未列出的接口不在本清单范围内；已在社区文档中存在但未收录于本清单的API尚未验证，请谨慎使用，我们将在验证完成后更新文档。
-> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
+> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证的产品暂不纳入。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.9/distributed.html)。
 
 <div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
@@ -111,7 +111,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id12 -->
 
-**限制与说明**：该接口仅在调用 `torch_npu.contrib.transfer_to_npu` 后支持。调用后，NCCL 进程组接口会映射到 `ProcessGroupHCCL`，实际通信由 HCCL 执行；未调用 `torch_npu.contrib.transfer_to_npu` 时，该接口不支持。
+**限制与说明**：该接口仅在调用 `torch_npu.contrib.transfer_to_npu` 后支持。调用后，NCCL进程组接口会映射到 `ProcessGroupHCCL`，实际通信由HCCL执行；未调用 `torch_npu.contrib.transfer_to_npu` 时，该接口不支持。
 
 </div>
 
@@ -689,7 +689,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id75 -->
 
-**限制与说明**： `p2p_op_list`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**： `p2p_op_list`仅支持bf16、fp16、fp32、fp64、uint8、int8、int16、int32、int64、bool
 
 </div>
 
@@ -777,7 +777,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id142 -->
 
-**限制与说明**： `tensor`仅支持bf16，fp16，fp32，int32，int64，bool
+**限制与说明**： `tensor`仅支持bf16、fp16、fp32、int32、int64、bool
 
 </div>
 
@@ -799,7 +799,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id118 -->
 
-**限制与说明**： `tensor`仅支持bf16，fp16，fp32，uint8，int8，int32，int64，bool
+**限制与说明**： `tensor`仅支持bf16、fp16、fp32、uint8、int8、int32、int64、bool
 
 </div>
 
@@ -845,7 +845,7 @@
 
 **限制与说明**：
 
-- `output_tensor`仅支持bf16，fp16，fp32，int8，int32，bool
+- `output_tensor`仅支持bf16、fp16、fp32、int8、int32、bool
 - `world_size`不支持3，5，6，7
 
 </div>
@@ -992,7 +992,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id96 -->
 
-**限制与说明**： `input_list`仅支持bf16，fp16，fp32，int8，int32
+**限制与说明**： `input_list`仅支持bf16、fp16、fp32、int8、int32
 
 </div>
 
@@ -1017,7 +1017,7 @@
 **限制与说明**：
 
 - `output`仅支持bf16，fp16，fp32，int8，int32
-- `world_size`不支持3，5，6，7
+- `world_size`不支持3、5、6、7
 
 <!-- npu="910b" id100 -->
 - 针对<term>Atlas A2训练系列产品</term>，当前版本“prod”操作不支持int16、bf16数据类型
@@ -1331,7 +1331,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id109 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，uint8，int8，int32，int64
+**限制与说明**： `input`仅支持bf16、fp16、fp32、uint8、int8、int32、int64
 
 </div>
 

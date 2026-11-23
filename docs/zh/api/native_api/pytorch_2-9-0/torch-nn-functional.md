@@ -724,14 +724,14 @@
 **限制与说明**：
 
 - `query`、`key`、`value`仅支持bf16、fp16和fp32，且所有输入参数须满足以下规格约束：
-  - 输入`query`、`key`、`value`的N：batch size，当前只支持[N，head_num, S(L), E(Ev)]的排布方式，取值范围1~2K
-  - 输入`query`的head_num和`key`/`value`的head_num必须成比例关系，即Nq/Nkv必须是非0整数，取值范围1~256
-  - 输入`query`的L：Target sequence length，取值范围1~512K
-  - 输入`key`、`value`的S：Source sequence length，取值范围1~512K
-- 输入`query`、`key`、`value`的E：Embedding dimension of the query and key，取值范围1~512
+  - `query`、`key`、`value`均使用`[N, head_num, S(L), E(Ev)]`布局，批次大小`N`的取值范围为1~2K。
+  - `query`的头数必须是`key`和`value`头数的整数倍，比值范围为1~256。
+  - `query`的目标序列长度`L`的取值范围为1~512K。
+  - `key`和`value`的源序列长度`S`的取值范围为1~512K。
+  - `query`和`key`的嵌入维度`E`的取值范围为1~512。
   - 输入`value`的Ev：Embedding dimension of the value，必须与E相等
   - 输入`attn_mask`：当前支持[N, 1, L, S]、[N, head_num, L, S]、[1, 1, L, S]、[L, S]，以及可广播到[N, head_num, L, S]的bool类型mask，例如[L, 1]、[1, S]、[1, 1]等排布方式
-  - 在开启`is_causal`计算时，`attn_mask`必须为None；不开启`is_causal`时，若`attn_mask`输入有效数据，输入数据类型必须是bool类型
+  - `is_causal=True`时，`attn_mask`必须为`None`。`is_causal=False`时，若传入`attn_mask`，其数据类型须为`bool`或与`query`一致的浮点类型。
   - 输入`query`、`key`、`value`的数据类型为bf16、fp16、fp32
   - 通过设置`torch_npu.npu.use_compatible_impl(True)`，支持按SDPA后端选择上下文指定MATH后端，例如：
 
@@ -742,10 +742,10 @@
         out = torch.nn.functional.scaled_dot_product_attention(query, key, value)
     ```
 
-- 与原接口除了规格限制之外差异点：
-  - NPU的随机算法部分用DSA硬件实现，算法在DSA引擎固化与GPU算法实现存在差异，导致dropout功能和GPU结果不一致
-  - 当前接口支持输入`query`的head num和`key`/`value`的head num不等长，而原生PyTorch接口不支持
-  - 当前接口传入符合类型要求（`attn_mask`必须为bool或与`query`同dtype，否则直接报错）的非bool类型`attn_mask`时，不会命中融合算子实现路径，而是静默回退到小算子拼接实现，性能存在下降。原生CUDA SDPA支持符合接口要求的浮点加性mask，是否使用融合实现取决于所选后端及其他输入条件。
+- 与原接口除了规格限制之外的差异点：
+
+  - NPU的随机算法部分用DSA硬件实现，算法在DSA引擎固化与GPU算法实现存在差异，导致dropout功能和GPU结果不一致。
+  - `is_causal=False`时，传入与`query`数据类型一致的浮点`attn_mask`会回退到Math实现，性能可能下降。原生CUDA SDPA是否使用融合实现取决于所选后端及输入条件。
 
 </div>
 
