@@ -139,7 +139,7 @@ import torch_npu
 compiled_fn = torch.compile(model_fn, backend='inductor', dynamic=False, options=shape_options)
 
 # 运行不同形状，只触发 2 次编译
-test_shapes = [(3, 32), (4, 32), (5, 32), (6, 32)]
+test_shapes = [(3, 20), (4, 20), (5, 20), (6, 20)]
 for shape in test_shapes:
     A = torch.randn(shape, device="npu")
     B = torch.randn(shape, device="npu")
@@ -152,22 +152,147 @@ for shape in test_shapes:
 
 ### 自定义预处理和后处理函数
 
-可以通过 `transform_pre_fn`、`transform_post_fn`、`recover_pre_fn` 和 `recover_post_fn` 参数来自定义预处理和后处理逻辑：
+#### NPUShapeHandling 类
+
+`NPUShapeHandling` 是 shape handling 的核心实现类，Python 侧封装位于 `torch_npu/utils/_dynamo.py`，底层由 `torch_npu._C._NPUShapeHandling` 实现，并通过 `torch_npu._inductor` 对外导出：
 
 ```python
-def custom_transform_pre_fn(*args, **kwargs):
-    # 自定义预处理逻辑
-    return [args[0], args[1]]
+from torch_npu._inductor import NPUShapeHandling
+# 等价的访问方式：torch_npu._inductor.NPUShapeHandling
+```
 
-def custom_transform_post_fn(trans_outputs):
-    # 自定义后处理逻辑
-    return zip(*trans_outputs)
+构造参数如下：
 
-shape_handling = NPUShapeHandling(
-    configs=configs,
-    transform_pre_fn=custom_transform_pre_fn,
-    transform_post_fn=custom_transform_post_fn
+| 参数 | 类型 | 是否必填 | 默认值 | 说明 |
+|---|---|---|---|---|
+| `configs` | `list[dict]` | 否 | 处理 dim 0 的 `BATCHSIZE` 默认规则 | 分档规则列表，字段与 `shape_handling_configs` 完全一致（见“配置参数说明”）。为空时采用延迟初始化，在首次 `transform` 时根据实际输入推导 `indices`。 |
+| `transform_pre_fn` | `Callable[..., list[torch.Tensor]]` | 否 | `None` | transform 前处理。入参为 `(*args, **kwargs)`，需返回参与分档的 Tensor 列表。未设置时自动展平输入结构并取出其中所有 Tensor。设置此项时需同时提供 `transform_post_fn`。 |
+| `transform_post_fn` | `Callable[[list[list[torch.Tensor]]], tuple[list[tuple], list[dict]]]` | 否 | `None` | transform 后处理。将每组 Tensor 还原为一组调用参数，返回 `(args_list, kwargs_list)`。未设置时按原始 args/kwargs 结构自动还原，但仅在未设置 `transform_pre_fn` 时可用。 |
+| `recover_pre_fn` | `Callable[[list[Any]], list[list[torch.Tensor]]]` | 否 | `None` | recover 前处理。将每组执行结果转换为 `recover` 所需的 Tensor 分组。未设置时自动展平各组输出。设置此项时需同时提供 `recover_post_fn`。 |
+| `recover_post_fn` | `Callable[[list[torch.Tensor]], Any]` | 否 | `None` | recover 后处理。将裁剪、拼接后的 Tensor 列表转换为最终返回结构。未设置时按原始输出结构自动还原，但仅在未设置 `recover_pre_fn` 时可用。 |
+
+#### 自定义函数的生效时机
+
+四个函数分别挂接在“分档（transform）”和“还原（recover）”流程上，执行顺序如下：
+
+```text
+transform_hook(*args, **kwargs):
+  ① transform_pre_fn(*args, **kwargs)      -> list[Tensor]
+  ② transform(tensors)                     -> list[list[Tensor]]   # 按档位填充，处理批次维时，超过最大档位则分片
+  ③ transform_post_fn(trans_outputs)       -> (args_list, kwargs_list)
+
+recover_hook(groups):
+  ① recover_pre_fn(groups)                 -> list[list[Tensor]]
+  ② recover(tensor_groups)                 -> list[Tensor]         # 去除 padding、拼接分片
+  ③ recover_post_fn(re_outputs)            -> 最终返回结构
+```
+
+> 设置自定义前处理时，须同时提供对应的后处理；仅自定义后处理时，前处理使用默认逻辑。
+>
+> 命名对应关系：通过 `torch.compile` 使用时，四个函数放在 `shape_handling_dict` 中，键名为 `trans_pre_fn`、`trans_post_fn`、`re_pre_fn`、`re_post_fn`；直接构造 `NPUShapeHandling` 时，参数名为 `transform_pre_fn`、`transform_post_fn`、`recover_pre_fn`、`recover_post_fn`。两套名称一一对应。
+
+#### 示例 1：直接使用 NPUShapeHandling
+
+自定义函数会在输入/输出不是标准 Tensor 容器时使用。下面示例不设置自定义函数，直接实例化 `NPUShapeHandling`，用默认钩子手动调用 `transform_hook` / `recover_hook` 完成一次完整的分档执行流程：
+
+```python
+import torch
+import torch_npu
+from torch_npu._inductor import NPUShapeHandling
+
+# 分档规则：按 batch 维（dim 0）分档，档位为 [4, 8]
+configs = [
+    {
+        "type": "BATCHSIZE",
+        "dimensions": [0],
+        "indices": [],      # 自动推导可以分档的 Tensor，无对应维度的 Tensor 会被跳过
+        "value": 0.0,       # padding 填充值
+        "gears": [4, 8],    # 显式指定档位
+    }
+]
+
+handler = NPUShapeHandling(configs=configs)
+
+def model_fn(a, b):
+    return a + b
+
+a = torch.randn(3, 20, device="npu")
+b = torch.randn(3, 20, device="npu")
+
+# ① 分档：向上取到不小于输入的档位（3 -> 4），并还原成“逐组的 args/kwargs”
+new_args, new_kwargs = handler.transform_hook(a, b)
+
+# ② 逐组直接执行模型函数（本例未使用 torch.compile）
+outputs = [model_fn(*args, **kwargs) for args, kwargs in zip(new_args, new_kwargs)]
+
+# ③ 还原：去除 padding，恢复为原始 shape
+out = handler.recover_hook(outputs)
+print(out.shape)  # torch.Size([3, 20])
+```
+
+#### 示例 2：通过 torch.compile 注入自定义函数
+
+若模型入参包含非 Tensor 参数或自定义结构，自动展平无法覆盖时，可通过 `shape_handling_dict` 注入自定义函数。下面示例将缩放系数固定为 `SCALE`，由 `trans_post_fn` 为每组传入：
+
+```python
+import torch
+import torch_npu
+
+configs = [
+    {
+        "type": "BATCHSIZE",
+        "dimensions": [0],
+        "indices": [],
+        "value": 0.0,
+        "gears": [4, 8],
+    }
+]
+
+SCALE = 2.0
+
+def model_fn(tensors, scale):
+    return [t * scale for t in tensors]
+
+# transform 前：只把 Tensor 列表交给分档逻辑
+def trans_pre_fn(tensors, scale):
+    return list(tensors)
+
+# transform 后：重新组装每组的位置参数与关键字参数
+def trans_post_fn(trans_outputs):
+    new_args = [([*group],) for group in trans_outputs]
+    new_kwargs = [{"scale": SCALE} for _ in trans_outputs]
+    return new_args, new_kwargs
+
+# recover 前：将每组的执行结果转回 Tensor 分组
+def re_pre_fn(outputs):
+    return [list(out) for out in outputs]
+
+# recover 后：整理为最终返回结构
+def re_post_fn(re_outputs):
+    return list(re_outputs)
+
+shape_options = {
+    "enable_shape_handling": True,
+    "shape_handling_configs": configs,
+    "shape_handling_dict": {
+        "trans_pre_fn": trans_pre_fn,
+        "trans_post_fn": trans_post_fn,
+        "re_pre_fn": re_pre_fn,
+        "re_post_fn": re_post_fn,
+    },
+}
+
+compiled_fn = torch.compile(
+    model_fn,
+    backend="inductor",
+    dynamic=False,
+    options=shape_options,
 )
+
+for batch in (3, 5):
+    tensors = [torch.randn(batch, 16, device="npu") for _ in range(2)]
+    out = compiled_fn(tensors, SCALE)
+    print(batch, [t.shape for t in out])  # 3 [torch.Size([3, 16]), ...]；5 [torch.Size([5, 16]), ...]
 ```
 
 ## 注意事项
@@ -175,8 +300,8 @@ shape_handling = NPUShapeHandling(
 1. ShapeHandling 目前仅支持最多两个维度的处理（BATCHSIZE 和 SEQLEN）。
 2. 对于 BATCHSIZE 类型，dimensions 列表中只有第一个元素会被使用。
 3. 对于 SEQLEN 类型，如果提供了单个维度值，会自动应用到所有受影响的张量。
-4. 当输入形状超过 max_size 时，会自动进行分割处理。
-5. 当输入形状不在任何档位时，会自动 padding 到最近的上一个档位。
+4. 批次维（`BATCHSIZE`）超过最大档位时会自动分片，序列维（`SEQLEN`）超过最大档位时会报错。显式设置 `gears` 时取其中最大值，否则取 `max_size`。
+5. 待处理的维度未命中档位且存在更大的档位时，会填充到其中最小的档位。
 
 ## 性能优势
 

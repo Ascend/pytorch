@@ -21,6 +21,10 @@ Symbolic（符号化）是 PyTorch Ascend 扩展中用于处理动态形状输�
 import torch
 import torch_npu
 
+# 定义模型
+def model_fn(x):
+    return torch.relu(x)
+
 # 使用 dynamic=True 启用符号化编译
 compiled_fn = torch.compile(
     model_fn, 
@@ -231,7 +235,7 @@ else:
 - **[INDUCTOR_ASCEND_SYMBOLIC_GROUP_AUTOTUNE](./INDUCTOR_ASCEND_SYMBOLIC_GROUP_AUTOTUNE.md)**
 - **[INDUCTOR_ASCEND_SYMBOLIC_GROUP_TEMPLATES](./INDUCTOR_ASCEND_SYMBOLIC_GROUP_TEMPLATES.md)**
 
-## 与 shapeHandling 的对比
+## 与 ShapeHandling 的对比
 
 ### 设计理念
 
