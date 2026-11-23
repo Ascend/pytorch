@@ -1,6 +1,7 @@
 # Copyright (c) 2026, Huawei Technologies Co., Ltd
 #
 import os
+import re
 import unittest
 from contextlib import ExitStack
 from unittest import mock
@@ -21,6 +22,12 @@ prims = torch.ops.prims
 
 
 class TestLoweringFallbackBlacklist(TestCase):
+    @staticmethod
+    def _triton_kernel_count(body):
+        compiled = body.count("async_compile.triton(")
+        inlined = len(re.findall(r"(?m)^@npu_triton_heuristics\.\w+\(", body))
+        return max(compiled, inlined)
+
     def test_policy(self):
         for expected, ops in (
             (False, (aten.logical_and, aten.logical_and.default, aten.logical_and.out,
@@ -113,7 +120,7 @@ class TestLoweringFallbackBlacklist(TestCase):
                 actual, body = self._compile(fn, args)
                 torch.testing.assert_close(actual, fn(*args), rtol=0, atol=0)
                 self.assertNotIn("torch.ops.aten.logical_and.", body)
-                self.assertEqual(body.count("async_compile.triton("), 1)
+                self.assertEqual(self._triton_kernel_count(body), 1)
                 self.assertEqual(body.count(".run("), 1)
                 if fn is fused:
                     self.assertRegex(body, r"tmp\d+ & tmp\d+")
@@ -133,7 +140,7 @@ class TestLoweringFallbackBlacklist(TestCase):
                 actual, body = self._compile(op, tuple(t.npu() for t in host_args))
                 torch.testing.assert_close(actual.cpu(), expected, rtol=0, atol=0)
                 self.assertIn(f"torch.ops.{op}(", body)
-                self.assertNotIn("async_compile.triton(", body)
+                self.assertEqual(self._triton_kernel_count(body), 0)
 
     @unittest.skipUnless(torch.npu.is_available(), "requires an NPU")
     def test_mutation_and_alias(self):
@@ -153,7 +160,7 @@ class TestLoweringFallbackBlacklist(TestCase):
         self.assertIsNone(actual)
         for actual, reference in zip(values, expected):
             torch.testing.assert_close(actual.cpu(), reference, rtol=0, atol=0)
-        self.assertIn("async_compile.triton(", body)
+        self.assertGreater(self._triton_kernel_count(body), 0)
 
 
 if __name__ == "__main__":
