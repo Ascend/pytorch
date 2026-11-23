@@ -20,7 +20,6 @@ TorchNPU环境变量请参考《[TorchNPU环境变量参考](https://www.hiascen
 | FXGraph图优化 |TORCHINDUCTOR_ENABLE_GROUPED_MATMUL_FUSION| 控制grouped_matmul_fusion_pass的开关，将汇聚到同一个cat的多个互相独立的小GEMM合并成一次npu_grouped_matmul调用，默认不设置，等价于关闭 |
 | FXGraph图优化 |TORCHINDUCTOR_ENABLE_MULTI_SLICE_CONCAT| 控制multi_slice_concat_pass的开关，将汇聚到同一个cat的一串固定宽度、常量偏移的列切片折叠成单个npu_ext::multi_slice_concat，默认不设置，等价于关闭 |
 | 计算图多流并行 |ENABLE_PARALLEL_SCHEDULER| 是否开启计算图多流并行调度策略，默认为False，即不开启计算图多流并行调度策略，设置为True，表示开启计算图多流并行调度策略                  |
-| 离散访存       |INDUCTOR_INDIRECT_MEMORY_MODE| 是否开启离散访存的融合以及配置融合方式，默认值为"simd_simt_mix"                                                                                                            |
 | 离散访存       |USE_STORE_IN_CAT| 用于控制Inductor针对cat融合的行为，当前默认为False                                                                                               |
 | 动态shape    |INDUCTOR_ASCEND_SYMBOLIC_GROUP_AUTOTUNE| 控制是否启用动态shape分组autotune（grouped autotune），开启后按shape特征将运行时shape划分到不同分组，每组使用代表shape进行一次autotune，默认值为0                                                                                            |
 | 动态shape    |INDUCTOR_ASCEND_SYMBOLIC_GROUP_TEMPLATES| 配置参与动态shape分组autotune的模板类型列表，多个模板以逗号分隔，默认值为"pointwise,reduction,persistent_reduction"                                                                          |
