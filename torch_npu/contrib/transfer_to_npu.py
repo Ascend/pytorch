@@ -45,7 +45,7 @@ torch_cuda_fn_white_list = [
     'synchronize', 'mem_get_info', 'memory_stats', 'memory_summary', 'memory_allocated', 'max_memory_allocated',
     'reset_max_memory_allocated', 'memory_reserved', 'max_memory_reserved', 'reset_max_memory_cached',
     'reset_peak_memory_stats', 'default_stream', 'can_device_access_peer', 'current_stream', 'utilization',
-    'set_per_process_memory_fraction', 'caching_allocator_alloc'
+    'set_per_process_memory_fraction', 'caching_allocator_alloc', 'get_rng_state', 'set_rng_state'
 ]
 torch_distributed_fn_white_list = ['__init__']
 device_kwargs_list = ['device', 'device_type', 'map_location', 'device_id']
@@ -84,6 +84,32 @@ class _EventProxy(torch.Event, metaclass=_TorchTypeProxyMeta):
         # matching; return a base torch.Event to pass the check.
         instance = super().__new__(_EventProxy.__mro__[1], *args, **kwargs)
         return instance
+
+
+class _StreamProxy(torch.Stream, metaclass=_TorchTypeProxyMeta):
+
+    def __new__(cls, *args, **kwargs):
+        if args:
+            args_new = list(args)
+            args = _replace_cuda_to_npu_in_list(args_new, None)
+        if kwargs:
+            device = kwargs.get('device', None)
+            if device is not None:
+                _replace_cuda_to_npu_in_kwargs(kwargs, 'device', device)
+        instance = super().__new__(cls, *args, **kwargs)
+        return instance
+
+
+class _GradScalerProxy(torch_npu.npu.amp.GradScaler):
+
+    # torch.amp.GradScaler 首参 device 仅支持 'cuda'/'cpu'（torch 官方无 NPU 后端），
+    # torch_npu.npu.amp.GradScaler 无 device 参数（本身即 NPU 实现，且多 dynamic 参数）。
+    # 用 *args/**kwargs 透传并仅剥离 device，不硬编码 torch 签名，torch 后续增/改参数无需改动本代理。
+    def __init__(self, *args, **kwargs):
+        if args:
+            args = args[1:]          # 剥离位置传入的 device（torch 侧首参）
+        kwargs.pop("device", None)   # 剥离关键字传入的 device
+        super().__init__(*args, **kwargs)
 
 
 def _get_function_from_string(attribute_string):
@@ -386,7 +412,10 @@ def _patch_cuda():
         ['cuda.amp.autocast_mode', torch_npu.npu.amp.autocast_mode],
         ['cuda.amp.common', torch_npu.npu.amp.common],
         ['cuda.amp.grad_scaler', torch_npu.npu.amp.grad_scaler],
-        ['cuda._pin_memory_utils', npu_pin_memory_utils]
+        ['cuda._pin_memory_utils', npu_pin_memory_utils],
+        ['cuda.memory', torch_npu.npu.memory],
+        ['cuda.streams', torch_npu.npu.streams],
+        ['cuda.graphs', torch_npu.npu.graphs]
     ]
 
     from torch_npu._init.patches.monkey_patches import _apply_patches
@@ -508,12 +537,25 @@ def _init():
     
     torch_npu.npu._lazy_call(_update_cuda_default_generators)
 
+    # torch.cuda.random.*
+    _device_wrapper(torch.cuda.random, ['get_rng_state', 'set_rng_state'])
+
     # torch.cuda.memory.*
     _device_wrapper(torch.npu.memory, ['_record_memory_history', '_snapshot'])
     torch.cuda.memory._record_memory_history = torch.npu.memory._record_memory_history
     torch.cuda.memory._snapshot = torch.npu.memory._snapshot
     torch.cuda.memory._dump_snapshot = torch.npu.memory._dump_snapshot
+    torch.cuda.memory.CUDAPluggableAllocator = torch_npu.npu.memory.NPUPluggableAllocator
+    torch.cuda.memory.is_initialized = torch_npu.npu.memory.is_initialized
     torch._C._host_emptyCache = torch_npu._C._npu_hostEmptyCache
+
+    # torch.cuda.graphs.* / torch.cuda.random.*
+    # 命名不同或不在 npu.*.__all__ 里的接口，_apply_patches 逐属性替换覆盖不到，须显式赋值。
+    # 注意：torch.cuda.streams.ExternalStream 同名且已在 torch_npu.npu.streams.__all__ 中，
+    # 由 _apply_patches 自动映射为 torch_npu.npu.streams.ExternalStream，勿显式赋值为 ExternalEvent。
+    torch.cuda.graphs.CUDAGraph = torch_npu.npu.graphs.NPUGraph
+    torch.cuda.random.current_device = torch_npu.npu.current_device
+    torch.cuda.random.device_count = torch_npu.npu.device_count
 
     # torch.profiler.*
     _device_wrapper(torch_npu.profiler._KinetoProfile, ['export_memory_timeline'])
@@ -523,9 +565,11 @@ def _init():
     # torch.*
     _device_wrapper(torch, torch_fn_white_list)
     torch.UntypedStorage.__new__ = _wrapper_cuda(torch.UntypedStorage.__new__)
+    torch.storage.TypedStorage.__new__ = _wrapper_cuda(torch.storage.TypedStorage.__new__)
     torch.storage.TypedStorage.is_cuda = torch.storage.TypedStorage.is_npu
     torch.Generator = _GeneratorProxy
     torch.Event = _EventProxy
+    torch.Stream = _StreamProxy
     torch.amp.autocast_mode.autocast.__init__ = _wrapper_cuda(torch.amp.autocast_mode.autocast.__init__)
 
     # torch.is_autocast_enabled / torch.amp.custom_fwd / torch.amp.custom_bwd
@@ -537,6 +581,14 @@ def _init():
     torch.set_autocast_gpu_dtype = torch_npu.npu.set_autocast_dtype
     torch.amp.custom_fwd = _wrapper_cuda(torch.amp.custom_fwd)
     torch.amp.custom_bwd = _wrapper_cuda(torch.amp.custom_bwd)
+    torch.amp.GradScaler = _GradScalerProxy
+    torch.GradScaler = _GradScalerProxy
+
+    # torch.random.* / torch.autograd.* / torch.utils.checkpoint.*
+    # device_type 默认 'cuda' 的隐蔽接口，重写 device_type cuda->npu
+    torch.random.fork_rng = _wrapper_cuda(torch.random.fork_rng)
+    torch.autograd.graph.save_on_cpu = _wrapper_cuda(torch.autograd.graph.save_on_cpu)
+    torch.utils.checkpoint.set_device_states = _wrapper_cuda(torch.utils.checkpoint.set_device_states)
 
     # torch.Tensor.*
     _device_wrapper(torch.Tensor, torch_tensor_fn_white_list)
