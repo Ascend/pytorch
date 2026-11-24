@@ -131,7 +131,7 @@ def patch_rng_state_helper_for_npu():
 
         seed_portion = seed.reshape([1]).view(torch.uint8)
         offset_portion = offset.reshape([1]).view(torch.uint8)
-        new_state = torch.cat([seed_portion, offset_portion])
+        new_state = torch.cat([seed_portion, offset_portion]).cpu()
         torch.npu.set_rng_state(new_state)
 
     def set_new_offset(relative_offset):

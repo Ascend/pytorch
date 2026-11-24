@@ -9,8 +9,6 @@ import torch
 
 from torch.ops import (
     quantized_decomposed,
-    rngprims,
-    _inductor_test,
     inductor,
     fsdp,
 )
@@ -34,8 +32,6 @@ aten = torch.ops.aten
 prims = torch.ops.prims
 
 NPU_EXTRA_FALLBACK_LIST = [
-    _inductor_test.realize,
-    _inductor_test.realize.default,
     associative_scan,
     aten._assert_tensor_metadata,
     aten._assert_tensor_metadata.default,
@@ -417,8 +413,6 @@ NPU_EXTRA_FALLBACK_LIST = [
     quantized_decomposed.quantize_per_channel.default,
     quantized_decomposed.quantize_per_tensor.default,
     quantized_decomposed.quantize_per_tensor.tensor,
-    rngprims.philox_rand,
-    rngprims.philox_rand.default,
     while_loop,
     # Keep the upstream lowering of with_effects (see issue #4894, and the note
     # above): upstream decomposes with_effects(token, print, ...) into builtin
