@@ -283,6 +283,16 @@ class NPUTritonScheduling(TritonScheduling):
         except FileNotFoundError:
             pass
 
+    @classmethod
+    def tiling_is_compatible(cls, node_schedule, numel, reduction_numel, tiling):
+        # Upstream symbolic checks need a scalar, but tiling selection must
+        # retain NumelList's per-axis sizes.
+        if isinstance(reduction_numel, NumelList):
+            reduction_numel = reduction_numel.numels()
+        return super().tiling_is_compatible(
+            node_schedule, numel, reduction_numel, tiling
+        )
+
     # transform indexing before call codegen_node_schedule_with_kernel
     def codegen_node_schedule(self, kernel_features: SIMDKernelFeatures, nodes, origin_node=None):
         node_schedule = kernel_features.node_schedule
