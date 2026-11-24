@@ -4,9 +4,9 @@
 
 ## 特性简介
 
-在深度学习领域，矩阵乘法MM类算子是计算量最大的核心操作。传统的 PyTorch eager 模式下，矩阵乘法和随后pointwise（逐点的）算子（如激活函数 ReLU（修正线性单元）、SiLU（Sigmoid Linear Unit）、Bias Add（偏置加法） 等）通常作为独立的Kernel依次执行。这种方式会导致频繁的Kernel启动开销和大量的全局内存数据传输（I/O 瓶颈），严重影响性能。
+在深度学习领域，矩阵乘法MM类算子是计算量最大的核心操作。传统的 PyTorch eager 模式下，矩阵乘法和随后pointwise（逐点的）算子（如激活函数 ReLU（修正线性单元）、SiLU（Sigmoid Linear Unit）、Bias Add（偏置加法）等）通常作为独立的Kernel依次执行。这种方式会导致频繁的Kernel启动开销和大量的全局内存数据传输（I/O 瓶颈），严重影响性能。
 
-另外，社区PyTorch Inductor通过Triton后端可以支持cv融合，因此torch_npu的inductor中也要对标社区功能，为cv融合提供相应的triton后端。
+另外，社区PyTorch Inductor通过Triton后端可以支持cv融合，因此torch_npu的inductor中也要对标社区功能，为cv融合提供相应的Triton后端。
 
 ## Triton cv特性使用方法
 
@@ -39,9 +39,9 @@ print(result.shape)
 
 #### 编译进行中
 
-在编译执行的过程中，会看到Triton cv在进行autotune过程的日志，以上述的示例为例，会有类似如下的日志输出
+在编译执行的过程中，会看到Triton cv在进行autotune过程的日志，以上述的示例为例，会有类似如下的日志输出：
 
-```shell
+```output
 AUTOTUNE mm(200x256, 256x256)
 strides: [256, 1], [1, 256]
 dtypes: torch.float16, torch.float16
@@ -68,7 +68,7 @@ Wxxx.708000 2317919 site-packages/torch/_inductor/debug.py:518] [0/0] model__0_i
 
 在autotune的过程中，被选为最优的算子时，我们在torch_compile_debug的output_code.py中，即可看到相应的算子
 
-以上述示例为例，我们最终会在output_code.py中看到如下的triton cv融合算子
+当调优选中 Triton 矩阵乘模板且 ReLU 成功融合时，可在 `torch_compile_debug` 目录下的 `output_code.py` 中看到如下融合 kernel。
 
 ```python
 # AOT ID: ['0_inference']

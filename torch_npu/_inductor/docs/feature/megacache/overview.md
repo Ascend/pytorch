@@ -1,5 +1,7 @@
 # MegaCache特性介绍
 
+本文档介绍MegaCache特性，统一保存和恢复torch.compile编译过程中产生的多级缓存，减少模型冷启动时重复执行图捕获、代码生成与Kernel编译的耗时，适用于使用torch.compile编译模型并希望复用编译缓存的用户。
+
 ## 特性简介
 
 MegaCache是面向`torch.compile`编译场景的端到端缓存复用能力，用于统一保存和恢复模型编译过程中产生的多级缓存，从而减少模型冷启动时重复执行图捕获、动态图分析、代码生成、Kernel编译和Autotune带来的耗时。PyTorch社区将MegaCache定位为一种可持久化、可在不同进程以及满足兼容条件的机器间传递的编译缓存方案，通过`torch.compiler.save_cache_artifacts()`和`torch.compiler.load_cache_artifacts()`两个接口完成缓存的导出与加载。
@@ -21,6 +23,7 @@ MegaCache的基本使用流程分为**生成并保存缓存**和**加载并使�
 
 ```python
 import torch
+import torch_npu
 
 CACHE_FILE = "megacache_artifacts.bin"
 
@@ -74,7 +77,7 @@ print(cache_info)
 }
 ```
 
-其中 precompile cache 是当前社区的实验性功能，可以进一步扩大缓存范围，默认关闭。如果希望启用，需要配置：
+其中PRECOMPILE缓存是当前社区的实验性功能，可以进一步扩大缓存范围，默认关闭。如果希望启用，需要配置：
 
 ```bash
 export TORCH_CACHING_PRECOMPILE=1
@@ -86,10 +89,13 @@ export TORCH_CACHING_PRECOMPILE=1
 
 ```python
 import torch
+import torch_npu
 
 CACHE_FILE = "megacache_artifacts.bin"
 
+# 读取已保存的MegaCache文件
 with open(CACHE_FILE, "rb") as f:
+    # 加载序列化Artifact到编译缓存
     cache_info = torch.compiler.load_cache_artifacts(f.read())
 
 if cache_info is None:
@@ -102,8 +108,11 @@ class Model(torch.nn.Module):
 
 
 model = Model().npu()
+
+# 编译时按缓存查询机制判断是否命中
 compiled_model = torch.compile(model)
 
+# 与保存侧保持相同的代表性输入shape完成预热
 x = torch.randn(1024, device="npu")
 compiled_model(x)
 ```
@@ -112,7 +121,7 @@ compiled_model(x)
 
 ## 使用约束
 
-- 暂不支持CppWrapper。CppWrapper会单独保存相关二进制文件，尚未纳入MegaCache制品打包范围。
+- 暂不支持CppWrapper。CppWrapper会单独保存相关二进制文件，尚未纳入MegaCache Artifact打包范围。
 
 ## 设备支持说明
 

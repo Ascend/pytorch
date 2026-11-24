@@ -1,8 +1,10 @@
-# AOTI 特性介绍
+# AOTI特性介绍
+
+本文档介绍AOTI特性，涵盖基于AOTInductor实现模型的编译、打包，以及在C++与Python场景下加载和运行AOTI模型，适用于需要将导出的PyTorch模型编译并部署到非Python推理环境的用户。
 
 ## 特性简介
 
-AOTInductor 是 TorchInductor 的专用版本，旨在处理导出的 PyTorch 模型，对其进行优化，并生成动态链接库及其他相关产物。这些编译产物广泛应用于服务端推理部署场景，支持非Python环境下的推理执行。
+AOTInductor是TorchInductor的专用版本，旨在处理导出的PyTorch模型，对其进行优化，并生成动态链接库及其他相关产物。这些编译产物广泛应用于服务端推理部署场景，支持非Python环境下的推理执行。
 
 主要功能包括：
 
@@ -17,9 +19,9 @@ AOTInductor 是 TorchInductor 的专用版本，旨在处理导出的 PyTorch �
 
 ### 基本使用方法
 
-#### 编译模型为 AOTI 格式并且打包
+#### 编译模型为AOTI格式并且打包
 
-要使用AOTInductor编译模型，首先需要用```torch.export.export()```将模型捕获为计算图；然后通过```torch._inductor.aoti_compile_and_package```执行编译，并将编译之后的产物打包。
+要使用AOTInductor编译模型，首先需要用`torch.export.export()`将模型捕获为计算图；然后通过`torch._inductor.aoti_compile_and_package`执行编译，并将编译之后的产物打包。
 
 ```python
 import os
@@ -66,9 +68,9 @@ with torch.no_grad():
 
 ```
 
-#### 加载并运行 AOTI 模型（Python 接口）
+#### 加载并运行AOTI模型（Python接口）
 
-可以使用Python接口```torch._inductor.aoti_load_package```加载并运行AOTI模型。
+可以使用Python接口`torch._inductor.aoti_load_package`加载并运行AOTI模型。
 
 ```python
 import os
@@ -81,11 +83,11 @@ model = torch._inductor.aoti_load_package(os.path.join(os.getcwd(), "model.pt2")
 print(model(torch.randn(8, 10, device=device)))
 ```
 
-#### 加载并运行 AOTI 模型（C++ 接口）
+#### 加载并运行AOTI模型（C++ 接口）
 
-可以使用C++接口加载并运行AOTI模型。Inductor NPU对比GPU需要额外依赖```libtorch_npu.so```，该so由TorchNPU的编译脚本```build_libtorch_npu.py```生成。
+可以使用C++接口加载并运行AOTI模型。Inductor NPU对比GPU需要额外依赖`libtorch_npu.so`，该so由TorchNPU的编译脚本`build_libtorch_npu.py`生成。
 
-```C++
+```cpp
 #include <iostream>
 #include <vector>
 #include <exception>
@@ -118,7 +120,7 @@ int main() {
         std::cout << "Inference time: " << elapsed_seconds.count() << "s" << std::endl;
 
         std::cout << "Output shape: [" << outputs[0].sizes() << "]" << std::endl;
-        std::cout << "Output (first 10 elements): " 
+        std::cout << "Output (first 8 elements): "
                   << at::narrow(at::flatten(outputs[0]), 0, 0, 8) << std::endl;
 
         torch::save(outputs, "./cpp_outputs.pt");
@@ -132,7 +134,7 @@ int main() {
 }
 ```
 
-对于C++文件的构建，可以使用提供的```CMakeLists.txt```模板,它会将```inference.cpp```文件编译成名为```aoti_example```的可执行二进制文件。
+对于C++文件的构建，可以使用提供的`CMakeLists.txt`模板，它会将`inference.cpp`文件编译成名为`aoti_example`的可执行二进制文件。
 
 ```cmake
 cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
@@ -165,7 +167,7 @@ message("torch_npu install location: " ${TORCH_NPU_PATH})
 # Should replace here by real env.
 # ======================================================================================
 include_directories(${TORCH_NPU_PATH}/include)
-link_directories(${TORCH_PATH}/libs)
+link_directories(${TORCH_PATH}/lib)
 link_directories("/path/to/your/libtorch_npu/lib")
 # ======================================================================================
 
@@ -178,12 +180,12 @@ target_link_libraries(aoti_example "${TORCH_LIBRARIES}")
 set_property(TARGET aoti_example PROPERTY CXX_STANDARD 17)
 ```
 
-其中```/path/to/your/libtorch_npu/lib```需要替换为编译的```libtorch_npu.so```路径。
+其中`/path/to/your/libtorch_npu/lib`需要替换为编译生成的`libtorch_npu.so`所在目录。
 
 ## 使用约束
 
 暂不支持叠加Catlass，仅做功能兼容支持。
-不推荐使用社区已标记为deprecated的torch._export.aot_compile()/torch._export.aot_load()接口， 如需使用，请避免在同一进程内部多次调用
+不推荐使用社区已标记为deprecated的torch._export.aot_compile()/torch._export.aot_load()接口如需使用，请避免在同一进程内部多次调用。
 
 ## 设备支持说明
 

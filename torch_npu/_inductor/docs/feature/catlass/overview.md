@@ -1,8 +1,10 @@
 # Catlass特性介绍
 
+文档介绍Catlass特性，说明Catlass在inductor-ascend中为GEMM Kernel提供epilogue融合的原理，并给出使用示例及autotune日志、output_code.py运行结果，适用于在PyTorch编译模式下提升矩阵乘法类算子性能的用户。
+
 ## 特性简介
 
-在深度学习领域，矩阵乘法（GEMM: 通用矩阵乘法，MM: 矩阵乘法，BMM: 批量矩阵乘法，MMADD: 矩阵乘加）是计算量最大的核心操作。传统的 PyTorch eager 模式下，矩阵乘法和随后pointwise（逐点的）算子（如激活函数 ReLU（修正线性单元）、SiLU（Sigmoid Linear Unit）、Bias Add（偏置加法） 等）通常作为独立的Kernel依次执行。这种方式会导致频繁的Kernel启动开销和大量的全局内存数据传输（I/O 瓶颈），严重影响性能。
+在深度学习领域，矩阵乘法（GEMM: 通用矩阵乘法，MM: 矩阵乘法，BMM: 批量矩阵乘法，MMADD: 矩阵乘加）是计算量最大的核心操作。传统的 PyTorch eager 模式下，矩阵乘法和随后pointwise（逐点的）算子（如激活函数 ReLU（修正线性单元）、SiLU（Sigmoid Linear Unit）、Bias Add（偏置加法）等）通常作为独立的Kernel依次执行。这种方式会导致频繁的Kernel启动开销和大量的全局内存数据传输（I/O 瓶颈），严重影响性能。
 NVIDIA的CUTLASS库提供了高度优化的GEMM Kernel，并支持在Epilogue阶段（Kernel 的最后阶段）融合自定义的后处理操作。通过将部分支持的pointwise类算子直接融合到 GEMM Kernel 中，可以显著减少内存访问和Kernel启动次数，提升整体性能。
 
 在昇腾领域，Catlass对标NVIDIA Cutlass。因此，为了在PyTorch编译模式下，提供对等的方案，我们在inductor-ascend中也引入Catlass；在此基础上，也支持部分pointwise类进行epilogue融合。
@@ -18,7 +20,7 @@ os.environ["TORCHINDUCTOR_MAX_AUTOTUNE"] = "1"  # 开启max autotune
 os.environ["TORCHINDUCTOR_MAX_AUTOTUNE_GEMM_BACKENDS"] = "CATLASS,ATen"  # 对matmul类算子尝试使用CATLASS和ATen后端调优
 os.environ["TORCHINDUCTOR_NPU_CATLASS_DIR"] = "/path/to/catlass/dir"  # 设置环境中Catlass库所在的路径
 os.environ["CATLASS_EPILOGUE_FUSION"] = "1"  # 开启Catlass epilogue的CV融合功能
-os.environ["TORCHINDUCTOR_CATLASS_ENABLED_OPS"] = "mm,addmm,bmm,grouped_mm" # 可对mm,addmm,bmm和grouped_mm类的matmul算子进行CATLASS模版调优尝试
+os.environ["TORCHINDUCTOR_CATLASS_ENABLED_OPS"] = "mm,addmm,bmm,grouped_mm" # 可对mm,addmm,bmm和grouped_mm类的matmul算子进行CATLASS模板调优尝试
 
 import torch
 import torch.nn.functional as F
@@ -47,9 +49,9 @@ compile_result = forward_mm(a, b)  # 获取运行结果
 
 #### 编译进行中
 
-在编译执行的过程中，会看到Catlass在进行autotune过程的日志，以上述的示例为例，会有类似如下的日志输出
+在编译执行的过程中，会看到Catlass在进行autotune过程的日志，以上述的示例为例，会有类似如下的日志输出。
 
-```shell
+```output
 [xxx] [INFO] [10987] profiler.py: CANN profiling data parsed in a total time of 0:00:02.025342
 [xxx] [INFO] [10978] profiler.py: All profiling data parsed in a total time of 0:00:02.994265
 AUTOTUNE mm(512x256, 256x1024)
@@ -62,13 +64,13 @@ SingleProcess AUTOTUNE benchmarking takes 3.5552 seconds and 2.3107 seconds prec
 ```
 
 如上所示的示例中，表明了inductor正在对 (512, 256) x (256, 1024)的matmul操作进行autotune的过程，标注了‘Catlass_xxx’的算子即为不同config下的Catlass算子，
-而'mm'的算子则表示为aclnn对应的matmul算子
+而’mm‘的算子则表示为aclnn对应的matmul算子。
 
 #### 运行结果
 
-当Catlass在autotune的过程中，被选为最优的算子时，我们在torch_compile_debug的output_code.py中，即可看到相应的Catlass算子
+当Catlass在autotune的过程中，被选为最优的算子时，我们在torch_compile_debug的output_code.py中，即可看到相应的Catlass算子。
 
-以上述示例为例，因为上述示例的尾块vector算子silu还可以与Catlass进行CV融合，我们最终会在output_code.py中看到如下的Catlass cv融合算子
+以上述示例为例，因为上述示例的尾块Vector算子silu还可以与Catlass进行CV融合，我们最终会在output_code.py中看到如下的Catlass CV融合算子。
 
 ```python
 from ctypes import c_void_p, c_long, c_int

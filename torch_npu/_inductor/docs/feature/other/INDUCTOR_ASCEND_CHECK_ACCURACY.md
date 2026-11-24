@@ -2,7 +2,7 @@
 
 ## 功能描述
 
-开启triton后端精度对比工具，dump单算子用例。当启用时，会自动启用INDUCTOR_ASCEND_DUMP_FX_GRAPH功能，默认值为空。
+开启Triton后端精度对比工具，dump单算子用例。当启用时，会自动启用INDUCTOR_ASCEND_DUMP_FX_GRAPH功能，默认值为空。
 
 | 值 | 说明 |
 |---|---|

@@ -2,7 +2,7 @@
 
 ## 功能描述
 
-dump 功能用于单算子用例的调试和问题排查。当INDUCTOR_ASCEND_CHECK_ACCURACY或AOTI_ASCEND_DEBUG_KERNEL启用时，会自动启用此功能，默认值为空。
+dump功能用于单算子用例的调试和问题排查。当INDUCTOR_ASCEND_CHECK_ACCURACY或AOTI_ASCEND_DEBUG_KERNEL启用时，会自动启用此功能，默认值为空。
 
 | 值 | 说明 |
 |---|---|

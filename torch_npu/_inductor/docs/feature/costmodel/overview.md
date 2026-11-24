@@ -1,20 +1,22 @@
 # CostModel特性介绍
 
+本文档介绍CostModel特性，Inductor-Ascend在Triton后端precompile阶段对候选config进行静态性能预测并优先送入编译与profiling流程，以降低首次编译开销，适用于自动Tiling产生大量候选config的融合算子编译场景。
+
 ## 概述
 
-面向Ascend 950PR&950DT系列产品+PyTorch-v2.13.0，Inductor-Ascend在Triton后端precompile阶段提供CostModel预筛选能力。该能力通过Triton-Ascend CostModel后端对候选config进行静态性能预测，并将预测耗时较短的config优先送入后续编译和实测profiling流程，从而降低候选config数量较多时的首次编译开销。
+面向Ascend 950PR&950DT系列产品+PyTorch v2.13.0，Inductor-Ascend在Triton后端precompile阶段提供CostModel预筛选能力。该能力通过Triton-Ascend CostModel后端对候选config进行静态性能预测，并将预测耗时较短的config优先送入后续编译和实测profiling流程，从而降低候选config数量较多时的首次编译开销。
 
-CostModel适用于自动Tiling产生大量候选config的融合算子。它不改变算子计算语义，也不直接决定最终运行时使用的kernel。最终可用config仍会经过precompile校验，后续autotune流程会继续基于实际编译和profiling结果完成选择。
+CostModel适用于自动Tiling产生大量候选config的融合算子。它不改变算子计算语义，也不直接决定最终运行时使用的Kernel。最终可用config仍会经过precompile校验，后续autotune流程会继续基于实际编译和profiling结果完成选择。
 
 ## 关键概念解释
 
 ### Config
 
-Config是Triton kernel的候选编译配置，通常包含block大小、stage数量、warp数量等影响代码生成和运行性能的参数。Inductor-Ascend会为同一个融合算子生成多个候选config，并在precompile和autotune阶段选择可用且性能较优的config。
+Config是Triton Kernel的候选编译配置，通常包含Block大小、stage数量、Warp数量等影响代码生成和运行性能的参数。Inductor-Ascend会为同一个融合算子生成多个候选config，并在precompile和autotune阶段选择可用且性能较优的config。
 
 ### TTIR
 
-TTIR是Triton kernel在编译过程中的中间表示。CostModel基于每个config生成对应TTIR，并结合运行时标量参数进行静态仿真，预测该config的耗时。
+TTIR是Triton Kernel在编译过程中的中间表示。CostModel基于每个config生成对应TTIR，并结合运行时标量参数进行静态仿真，预测该config的耗时。
 
 ### Arg Bindings
 
@@ -23,7 +25,7 @@ Arg Bindings用于向CostModel传入TTIR中标量参数的实际值，例如`arg
 ## 作用
 
 - 减少precompile和autotune需要处理的config数量，降低首次编译耗时。
-- 按CostModel预测耗时对候选config排序，使更可能高性能的config优先进入后续流程。
+- 按CostModel预测耗时对候选config排序，使更可能具备高性能的config优先进入后续流程。
 - 在CostModel筛选出的config全部编译失败时，使用被CostModel筛掉的config进行兜底编译，避免因为预筛选过窄导致无可用config。
 - 通过Triton-Ascend CostModel缓存减少重复TTIR预测开销。
 
@@ -33,7 +35,7 @@ Arg Bindings用于向CostModel传入TTIR中标量参数的实际值，例如`arg
 
 1. 根据当前kernel的候选config逐个生成TTIR。
 2. 从运行时输入和grid信息中解析CostModel需要的Arg Bindings。
-3. 逐个调用Triton-Ascend提供的`costmodel_bench`单item接口，获得`(config, 预测耗时)`结果并在Inductor侧汇总。
+3. 逐个调用Triton-Ascend提供的`costmodel_bench`单item接口，获得config与预测耗时组成的二元组结果并在Inductor侧汇总。
 4. 过滤掉预测耗时为无穷大的config，并按预测耗时从小到大排序。
 5. 根据`INDUCTOR_ASCEND_COSTMODEL_RATIO`保留排序靠前的config，替换原始config集合进入precompile。
 6. 将未被选中的config记录为兜底config。如果CostModel选中的config没有产生有效编译结果，则使用兜底config再次执行precompile。
@@ -57,15 +59,16 @@ export INDUCTOR_ASCEND_COSTMODEL_RATIO=0.25
 配置完成后，正常使用`torch.compile`即可进入CostModel链路：
 
 ```python
+# 使用torch.compile编译示例算子，触发Inductor-Ascend的CostModel预筛选链路
 import torch
 import torch_npu
 
-
+# backend="inductor"表示使用Inductor后端；在NPU上由Inductor-Ascend接管，从而进入CostModel预筛选流程
 @torch.compile(backend="inductor")
 def fn(x, y):
     return x + y
 
-
+# device="npu"表示将输入张量创建在NPU设备上；预期输出为两个1024维NPU张量相加的结果，编译日志中可见CostModel筛选流程
 out = fn(torch.randn(1024, device="npu"), torch.randn(1024, device="npu"))
 ```
 

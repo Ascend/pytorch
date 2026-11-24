@@ -1,6 +1,6 @@
 # 模型性能分析
 
-Inductor的性能调优方法可参考pytorch官方文档， 《[Profiling to understand torch.compile performance](https://docs.pytorch.org/docs/stable/user_guide/torch_compiler/torch.compiler_profiling_torch_compile.html)》，其中`torch.profiler.profile()`需要按照`TorchNPU`相关接口进行适配，适配方法参考《[Ascend PyTorch调优工具](https://www.hiascend.com/document/detail/zh/canncommercial/850/devaids/Profiling/atlasprofiling_16_0033.html)》。
+Inductor的性能调优方法可参考PyTorch官方文档，《[Profiling to understand torch.compile performance](https://docs.pytorch.org/docs/stable/user_guide/torch_compiler/torch.compiler_profiling_torch_compile.html)》，其中`torch.profiler.profile()`需要按照`TorchNPU`相关接口进行适配，适配方法参考《[Ascend PyTorch调优工具](https://www.hiascend.com/document/detail/zh/canncommercial/850/devaids/Profiling/atlasprofiling_16_0033.html)》。
 
 例如，Torch社区中的`ModelWithBreaks`用例可参考如下进行改造，改造后的代码如下：
 
@@ -58,4 +58,4 @@ prof.export_chrome_trace("trace_break.json")
 ```
 
 Profiling中可观察到官方示例中对应的Torch-Compiled Region与CompiledFunction。
-![](./trace.drawio.svg)
+![Profiling时间轴：ModelWithBreaks示例的Torch-Compiled Region与CompiledFunction对应关系](./trace.drawio.svg)

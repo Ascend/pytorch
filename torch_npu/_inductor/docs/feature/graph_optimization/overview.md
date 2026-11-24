@@ -1,17 +1,20 @@
 # 图优化特性介绍
 
+本文档介绍图优化特性，说明 TorchNPU 基于 PyTorch Inductor 的自定义优化 pass 在 pre/post 两个图优化阶段的构成与使能方式，并给出使用示例与编译日志验证方法，适用于需要提升昇腾 AI 处理器上模型编译与推理性能的用户。
+
 ## 图优化特性简介
 
-在CANN（华为计算加速网络）异构计算架构中支持多种AI框架。该架构基于开源的PyTorch，并通过TorchNPU适配昇腾AI处理器。TorchNPU 利用 PyTorch 中的 Inductor 编译器能力，实现模型的加速编译。由于开源 PyTorch 对昇腾的适配性较弱，且对不同模型的图优化能力不足，需要通过自定义的优化 pass（优化步骤）来增强图优化能力，从而进一步提升模型性能。
+在CANN（华为异构计算架构）中支持多种AI框架。该架构基于开源的PyTorch，并通过TorchNPU适配昇腾AI处理器。TorchNPU 利用 PyTorch 中的 Inductor 编译器能力，实现模型的加速编译。由于开源 PyTorch 对昇腾的适配性较弱，且对不同模型的图优化能力不足，需要通过自定义的优化 pass（优化步骤）来增强图优化能力，从而进一步提升模型性能。
 
 ![Alt text](image.png)
 
-当前pass主要应用在模型推理过程中，pre/post两个图优化阶段，包含pass如下所示
+当前pass主要应用在模型推理过程中，pre/post两个图优化阶段，包含的pass如下所示：
 
 ```text
 # pre
 cat_slice_cat_fold_pass
 pad_slice_fold
+dtype_optimal_pass
 fusion_attention_v3_pass
 ```
 
@@ -31,7 +34,6 @@ fold_to_copy
 view_fold_pass
 fold_where
 fold_redundant_ops
-dtype_optimal_pass
 cat_to_view_pass
 repeat_to_expand_pass
 fold_iota_arithmetic_pass
@@ -55,7 +57,7 @@ grouped_matmul_fusion_pass      (TORCHINDUCTOR_ENABLE_GROUPED_MATMUL_FUSION)
 
 各开关的取值、验证方式与使用约束见 **[TORCHINDUCTOR_ENABLE_FUSED_MATMUL_RELU](./TORCHINDUCTOR_ENABLE_FUSED_MATMUL_RELU.md)**、**[TORCHINDUCTOR_ENABLE_MULTI_SLICE_CONCAT](./TORCHINDUCTOR_ENABLE_MULTI_SLICE_CONCAT.md)**、**[TORCHINDUCTOR_ENABLE_GRAD_MATMUL_TRANSPOSE_OPT](./TORCHINDUCTOR_ENABLE_GRAD_MATMUL_TRANSPOSE_OPT.md)**、**[TORCHINDUCTOR_ENABLE_GROUPED_MATMUL_FUSION](./TORCHINDUCTOR_ENABLE_GROUPED_MATMUL_FUSION.md)**
 
-上述新增的5个pass的改写在训练图上同样成立，因此不受“仅推理生效”的限制，推理和训练两条路径都会执行。
+上述新增的4个pass的改写在训练图上同样成立，因此不受“仅推理生效”的限制，推理和训练两条路径都会执行。
 
 ## 图优化特性使用示例
 
@@ -100,7 +102,7 @@ os.environ["INDUCTOR_ASCEND_LOG_LEVEL"] = "DEBUG"
 import torch
 ```
 
-```text
+```output
 # 编译器pass生效日志
 DEBUG - Registering function cat_to_view_pass from module torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass with pass_type=PassType.POST, fx_pass_level=FxPassLevel.LEVEL1
 DEBUG - Registering function repeat_to_expand_pass from module torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass with pass_type=PassType.POST, fx_pass_level=FxPassLevel.LEVEL1
@@ -132,7 +134,7 @@ DEBUG - Registering function dtype_optimal_pass from module torch_npu._inductor.
 
 ### 运行结果
 
-当前图优化特性提供了多个图优化pass，经过优化的图，以 pad_slice_fold pass为例， 在优化前和优化后的代码如下所示：
+当前图优化特性提供了多个图优化pass，经过优化的图，以 pad_slice_fold pass为例，在优化前和优化后的代码如下所示：
 
 ```python
 # 优化前

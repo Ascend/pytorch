@@ -1,12 +1,14 @@
 # parallel_schedule
 
+本文档介绍计算图多流并行调度特性，在开启图下沉且完成Kernel Fusion后对计算图并行能力进行计算，将可并行的子图分流到多流并行执行以实现推理加速，适用于使用Ascend 950DT系列产品进行模型推理的用户。
+
 ## 功能描述
 
 原生TorchInductor默认在同一个Stream中串行下发Kernel，图中没有数据依赖的Kernel也可能因此无法重叠执行。面向Ascend 950DT系列产品和PyTorch 2.9.0，本特性在启用图下沉并完成Kernel融合后，分析计算图中的并行关系，将可并行的子图分配到不同Stream执行，以提高设备利用率。
 基于多流的并发调度具体功能是在Inductor的调度体系中，在完成Kernel Fusion后引入对计算图并行能力的计算，主要功能:
-
+ 
 1. 使用收敛算法分析子图间的并行关系。将使用同类计算单元的子图归为一组，再把可并行的Cube组和Vector组分配到不同Stream执行，提高计算单元利用率。
-
+ 
 2. 支持按业务场景配置并行调度策略，无需修改底层执行逻辑。
 
 ![Alt text](parallel_schedule.png)
@@ -19,7 +21,7 @@
 export ENABLE_PARALLEL_SCHEDULER=True
 ```
 
-```shell
+```output
 
 # 验证1.观察日志出现并行分组日志打印：
 
@@ -74,12 +76,12 @@ def call(args):
             xxx.xxx1(c_void_p(buf1.data_ptr()), c_void_p(arg5_1.data_ptr()), c_void_p(buf2.data_ptr()), 128, 6144, 6144, None, c_void_p(workspace_0.data_ptr()), c_void_p(stream_group_cube.npu_stream))
             del arg5_1
             buf3 = buf2;     del buf2  # reuse
-        # Topologically Sorted Source Nodes: [add, input_4], Original ATen: [aten.addmm, aten.relu]
+            # Topologically Sorted Source Nodes: [add, input_4], Original ATen: [aten.addmm, aten.relu]
             xxx3.run(buf3, arg6_1, 128, 6144, stream=stream_group_cube.npu_stream)
 
 ```
 
-### 关闭计算图多流并行调度(默认关闭)
+### 关闭计算图多流并行调度（默认关闭）
 
 ```shell
 export ENABLE_PARALLEL_SCHEDULER=False
@@ -125,7 +127,7 @@ class CustomParallelStrategy(ParallelStrategyBase):
 ### 注册自定义并行调度策略
 
 ```python
-# 在torch_npu\_inductor\__init__.py文件中计算图多流并行调度入口处添加注册代码
+# 在torch_npu/_inductor/__init__.py文件中计算图多流并行调度入口处添加注册代码
     if os.environ.get("ENABLE_PARALLEL_SCHEDULER", "false").lower() == "true":
         from .fx_passes.parallel_scheduler_pass import parallel_scheduler
 
@@ -141,7 +143,7 @@ class CustomParallelStrategy(ParallelStrategyBase):
 
 ## 使用约束
 
-计算图多流并行调度特性默认关闭，需要在图下沉开启时使用计算图多流调度能力，当前仅适用于模型推理过程。
+计算图多流并行调度特性默认关闭，需要在图下沉开启时使用该特性，当前仅适用于模型推理过程。
 
 ## 支持的型号
 

@@ -11,7 +11,7 @@ TORCHINDUCTOR_ENABLE_FUSED_MATMUL_RELU=1
 ```text
 Pattern1: relu(addmm(bias, x, w))       -> npu_fused_matmul(x, w, bias, "relu")
 Pattern2: view(relu(view(addmm(...))))  -> view(npu_fused_matmul(...))
-          AOT会把3维linear拆成这种形态、relu作用在view上，relu是pointwise的，
+          AOT会把3维linear拆成这种形态，relu作用在view上，relu是pointwise的，
           因此吸收进算子，输出仍由原来的view承载
 Pattern3: relu(mm(x, w) + bias)         -> npu_fused_matmul(x, w, bias, "relu")
           inductor未把mm+add折叠成addmm时出现的形态
@@ -21,7 +21,7 @@ Pattern4: relu(mm(x, w))                -> npu_fused_matmul(x, w, "relu")
 
 1. 环境变量默认不设置，等价于关闭，此时pass不会被注册，推理和训练两条路径都不会执行它。
 2. 取值为 1、true、yes、on、y（不区分大小写）时使能，其余取值均按关闭处理。
-3. 该pass注册在POST阶段（pass_type=PassType.POST，fx_pass_level=FxPassLevel.LEVEL1）：post_grad图中linear已被分解，addmm的权重已经是 (K, N)，与算子的x2直接对应，无需额外插入transpose或reshape。
+3. 该pass注册在POST阶段（pass_type=PassType.POST,fx_pass_level=FxPassLevel.LEVEL1）：post_grad图中linear已被分解，addmm的权重已经是 (K, N)，与算子的x2直接对应，无需额外插入transpose或reshape。
 4. 使能后该pass仍可通过 SHUT_DOWN_FX_PASS_LIST 关闭，两个开关取并集。
 
 ## 配置示例
@@ -38,7 +38,7 @@ export INDUCTOR_ASCEND_LOG_LEVEL=DEBUG
 export TORCHINDUCTOR_ENABLE_FUSED_MATMUL_RELU=1
 ```
 
-```text
+```output
 # 验证：观察日志fused_matmul_relu_pass已注册
 DEBUG - Registering function fused_matmul_relu_pass from module torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass with pass_type=PassType.POST, fx_pass_level=FxPassLevel.LEVEL1
 ```
@@ -49,7 +49,7 @@ DEBUG - Registering function fused_matmul_relu_pass from module torch_npu._induc
 unset TORCHINDUCTOR_ENABLE_FUSED_MATMUL_RELU
 ```
 
-```text
+```output
 # 验证：观察日志fused_matmul_relu_pass未注册
 DEBUG - Ignoring registration of fused_matmul_relu_pass
 ```

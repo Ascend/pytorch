@@ -1,10 +1,12 @@
 # FlexAttention特性介绍
 
+本文档介绍FlexAttention特性，通过`score_mod`和`mask_mod`描述注意力分数变换与可见性规则，并由Inductor-Ascend生成在NPU上执行的Triton kernel，适用于需要在NPU上使用torch.compile运行FlexAttention的开发者。
+
 ## 概述
 
 FlexAttention通过`score_mod`和`mask_mod`描述注意力分数变换及可见性规则，支持因果注意力、滑动窗口等场景。Inductor-Ascend将这些规则与Attention计算结合，生成在NPU上执行的Triton kernel。
 
-本文对应master分支与配套PyTorch 2.13接口。不同分支的辅助输出接口和调优配置可能不同，请使用与安装版本一致的文档。
+本文对应master分支与配套PyTorch 2.13.0接口。不同分支的辅助输出接口和调优配置可能不同，请使用与安装版本一致的文档。
 
 ## 关键概念
 
@@ -68,7 +70,7 @@ python flex_attention_example.py
 
 预期输出的张量形状如下；首次运行包含编译开销：
 
-```text
+```output
 Out: (1, 4, 256, 64)
 dQ/dK/dV: (1, 4, 256, 64) (1, 4, 256, 64) (1, 4, 256, 64)
 ```
@@ -102,7 +104,7 @@ out = compiled_flex_attention(
 
 对于`q.shape=(B, Hq, M, D)`、`k.shape=(B, Hkv, N, D)`、`v.shape=(B, Hkv, N, Dv)`，当`Hq`是`Hkv`的整数倍时，可以在调用中设置`enable_gqa=True`。输出形状为`(B, Hq, M, Dv)`。例如，`Hq=4`、`Hkv=2`表示每两个Query head共享一个Key/Value head。
 
-通过`return_aux=AuxRequest(lse=True)`可以请求log-sum-exp辅助输出，返回`(out, aux)`并从`aux.lse`访问结果；`AuxRequest`从`torch.nn.attention.flex_attention`导入。`AuxRequest(max_scores=True)`还可请求最大分数。辅助输出会影响可用kernel路径，应按实际形状验证；不要同时设置`return_lse=True`和`return_aux`。
+通过`return_aux = AuxRequest(lse=True)`可以请求log-sum-exp辅助输出，返回`(out, aux)`并从`aux.lse`访问结果；`AuxRequest`从`torch.nn.attention.flex_attention`导入。`AuxRequest(max_scores=True)`还可请求最大分数。辅助输出会影响可用kernel路径，应按实际形状验证；不要同时设置`return_lse=True`和`return_aux`。
 
 ## 执行方式与调优
 

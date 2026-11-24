@@ -2,7 +2,7 @@
 
 ## 功能
 
-控制多线程编译线程数量，默认为最大核数的一半（max_precompiled_thread_num = os.cpu_count() // 2），大于1时，使用并发编译。
+控制多线程编译线程数量，默认为最大核数的一半(max_precompiled_thread_num = os.cpu_count() // 2)，大于1时，使用并发编译。
 
 ## 配置示例
 

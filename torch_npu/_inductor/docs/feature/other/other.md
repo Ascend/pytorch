@@ -1,4 +1,4 @@
-# 其他特性&环境变量
+# 其他特性与环境变量
 
 - **[ENABLE_INPLACE_BUFFERS](./ENABLE_INPLACE_BUFFERS.md)**  
 

@@ -1,4 +1,4 @@
-# TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING （同社区）
+# TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING（同社区）
 
 ## 功能描述
 
@@ -10,13 +10,13 @@
 
 ## 配置示例
 
-开启autotune过程中的profiling
+开启autotune过程中的profiling：
 
 ```shell
 export TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING="1"
 ```
 
-关闭autotune过程中的profiling
+关闭autotune过程中的profiling：
 
 ```shell
 export TORCHINDUCTOR_PROFILE_WITH_DO_BENCH_USING_PROFILING="0"

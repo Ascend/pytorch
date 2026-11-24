@@ -1,8 +1,8 @@
-# TORCHINDUCTOR_COMPILE_THREADS(同社区)
+# TORCHINDUCTOR_COMPILE_THREADS（同社区）
 
 ## 功能
 
-并发编译的进程数量，默认值为32，与社区逻辑保持一致，控制并发编译kernel的进程数量，大于1时，使用多进程编译。
+并发编译的进程数量，默认值为32，与社区逻辑保持一致，控制并发编译Kernel的进程数量，大于1时，使用多进程编译。
 
 ## 配置示例
 

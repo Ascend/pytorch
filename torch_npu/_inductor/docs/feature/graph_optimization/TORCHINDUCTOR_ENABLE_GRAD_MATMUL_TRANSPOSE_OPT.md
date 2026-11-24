@@ -16,7 +16,7 @@ mm(rhs.T, lhs.T)
 
 1. 环境变量默认不设置，等价于关闭，此时pass不会被注册，推理和训练两条路径都不会执行它。
 2. 取值为 1、true、yes、on、y（不区分大小写）时使能，其余取值均按关闭处理。
-3. 该pass注册在POST阶段（pass_type=PassType.POST，fx_pass_level=FxPassLevel.LEVEL1）。
+3. 该pass注册在POST阶段（pass_type=PassType.POST,fx_pass_level=FxPassLevel.LEVEL1）。
 4. 使能后该pass仍可通过 SHUT_DOWN_FX_PASS_LIST 关闭，两个开关取并集。
 
 ## 配置示例
@@ -33,7 +33,7 @@ export INDUCTOR_ASCEND_LOG_LEVEL=DEBUG
 export TORCHINDUCTOR_ENABLE_GRAD_MATMUL_TRANSPOSE_OPT=1
 ```
 
-```text
+```output
 # 验证：观察日志grad_matmul_transpose_opt_pass已注册
 DEBUG - Registering function grad_matmul_transpose_opt_pass from module torch_npu._inductor.fx_passes.ascend_custom_passes.ascend_graph_pass with pass_type=PassType.POST, fx_pass_level=FxPassLevel.LEVEL1
 ```
@@ -44,7 +44,7 @@ DEBUG - Registering function grad_matmul_transpose_opt_pass from module torch_np
 unset TORCHINDUCTOR_ENABLE_GRAD_MATMUL_TRANSPOSE_OPT
 ```
 
-```text
+```output
 # 验证：观察日志grad_matmul_transpose_opt_pass未注册
 DEBUG - Ignoring registration of grad_matmul_transpose_opt_pass
 ```
