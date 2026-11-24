@@ -6327,6 +6327,7 @@ def _npu_rsplit_outer_applicable(kernel) -> bool:
 
 class NPUTritonScheduling(TritonScheduling):
     kernel_type = NPUTritonKernel
+    supports_sub_parent_epilogue = False
 
     def __init__(self, scheduler):
         super().__init__(scheduler)

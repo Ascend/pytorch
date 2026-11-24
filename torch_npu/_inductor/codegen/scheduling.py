@@ -172,6 +172,7 @@ def _generate_npu_node_schedule(self, nodes, numel, rnumel):
 
 class NPUNoLinearTritonScheduling(TritonScheduling):
     kernel_type = NPUTritonKernel
+    supports_sub_parent_epilogue = False
 
     def generate_node_schedule(self, nodes, numel, rnumel):
         if not npu_config.enable_welford:
@@ -189,6 +190,8 @@ class NPUNoLinearTritonScheduling(TritonScheduling):
 
 class NPUTritonScheduling(TritonScheduling):
     kernel_type = NPUIndexTritonKernel
+    # Sub-parent epilogue capability switch (not implemented on NPU yet).
+    supports_sub_parent_epilogue = False
     backend_features = OrderedSet(
         [
             BackendFeature.BUCKETIZE,

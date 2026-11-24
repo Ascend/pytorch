@@ -41,6 +41,7 @@ class NPUCombinedScheduling(CUDACombinedScheduling, TritonScheduling):
 
     instead of patch is_triton() function, we make NPUCombinedScheduling extends TritonScheduling
     """
+    supports_sub_parent_epilogue = False
 
     def __init__(self, scheduler: Scheduler | None) -> None:
         BaseScheduling.__init__(self, scheduler)
