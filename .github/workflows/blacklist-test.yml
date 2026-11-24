@@ -508,11 +508,18 @@ jobs:
       num_shards: ${{ inputs.num_shards || '4' }}
       artifact_name: cases-shards-pass-a3
 
+  # Serialized after test-a3 on purpose: both jobs target the same single a3
+  # machine (linux-aarch64-a3-800i-2-cn12-001), so running them concurrently
+  # just makes the two shard matrices compete for the same runner. The
+  # `!cancelled()` guard keeps this job running when test-a3 failed or was
+  # skipped (blacklisted cases are expected to fail; pass cases are an
+  # independent slice).
   test-pass-a3:
     needs:
       - resolve
       - build-a3
       - shard-pass-a3
+      - test-a3
     if: ${{ !cancelled() && needs.shard-pass-a3.result == 'success' && (needs.resolve.outputs.a3_found == 'true' || needs.build-a3.result == 'success') }}
     strategy:
       fail-fast: false
@@ -556,11 +563,14 @@ jobs:
       num_shards: ${{ inputs.num_shards || '4' }}
       artifact_name: cases-shards-pass-a5
 
+  # Same serialization as test-pass-a3: a5 test and pass cases share the single
+  # a5 machine (linux-amd64-a5-2).
   test-pass-a5:
     needs:
       - resolve
       - build-a5
       - shard-pass-a5
+      - test-a5
     if: ${{ !cancelled() && needs.shard-pass-a5.result == 'success' && (needs.resolve.outputs.a5_found == 'true' || needs.build-a5.result == 'success') }}
     strategy:
       fail-fast: false
