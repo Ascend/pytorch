@@ -319,16 +319,6 @@ jobs:
               print(f"| 分析报告 (OBS) | [ai-analysis-report.md]({url}) |")
           print("| GHA 制品 | ai-failure-analysis（报告 + failures.json + agent 日志） |")
           EOF
-          if [ -f agent-final-message.md ] && [ -s agent-final-message.md ]; then
-            {
-              echo ""
-              echo "### Agent 结论摘要"
-              echo ""
-              echo '```'
-              cat agent-final-message.md
-              echo '```'
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
 
       - name: Upload analysis artifacts
         if: always()
