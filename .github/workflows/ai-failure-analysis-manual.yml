@@ -15,6 +15,15 @@ name: AI Failure Analysis (manual)
 # 本入口不设 continue-on-error：调通阶段失败必须显红。
 
 on:
+  # push 自举触发器：dispatch-only 的新 workflow 在非默认分支上无法被首次
+  # dispatch（GitHub 只登记已运行过或存在于默认分支的 workflow）。本文件
+  # 变更推送到 ci-test 时自动执行一次（run_url 用下方默认值），完成首次
+  # 运行注册后 workflow_dispatch 才可用；同时也充当"配置变更自检"。
+  push:
+    branches:
+      - ci-test
+    paths:
+      - '.github/workflows/ai-failure-analysis-manual.yml'
   workflow_dispatch:
     inputs:
       run_url:
@@ -48,7 +57,8 @@ jobs:
       actions: read
     secrets: inherit
     with:
-      run_url: ${{ inputs.run_url }}
-      model: ${{ inputs.model }}
-      max_cases: ${{ inputs.max_cases }}
-      timeout_minutes: ${{ inputs.timeout_minutes }}
+      # push 自举事件 inputs 上下文为空，用 || 兜底（dispatch 时取输入值）
+      run_url: ${{ inputs.run_url || 'https://github.com/Ascend/pytorch/actions/runs/45056432061' }}
+      model: ${{ inputs.model || '' }}
+      max_cases: ${{ inputs.max_cases || 30 }}
+      timeout_minutes: ${{ inputs.timeout_minutes || 45 }}
