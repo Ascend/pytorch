@@ -1,0 +1,59 @@
+name: AI Failure Analysis (manual)
+
+# AI 失败用例分析的独立验证入口（验证第一步：确认 DeepSeek 模型可调通、
+# 固定流水线链接的失败/error/超时用例可端到端分析）。
+# 日常夜间运行走 nightly-upstream-release-a3/a5.yml 末尾的
+# ai-failure-analysis job，不经由此入口。
+#
+# 使用：Actions 页面 Run workflow，填入待分析流水线 URL，例如近期失败的
+# nightly a3 run https://github.com/Ascend/pytorch/actions/runs/44800596484
+# （1 条非 infra 失败用例 + 2 个 job 级失败分片，兼测两条路径）。
+# 传全绿 run URL 可低成本验证"跳过"分支（如 runs/45056457618）。
+#
+# 前置：repo secrets 已配置 DEEPSEEK_API_KEY（DeepSeek Platform 申请）。
+# 本入口不设 continue-on-error：调通阶段失败必须显红。
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_url:
+        description: '待分析的流水线 run URL（如 https://github.com/Ascend/pytorch/actions/runs/44800596484）'
+        required: true
+        type: string
+      model_main:
+        description: '主模型（默认 deepseek-flash[1m]）'
+        required: false
+        type: string
+        default: 'deepseek-flash[1m]'
+      max_cases:
+        description: '深度分析的失败用例上限'
+        required: false
+        type: number
+        default: 30
+      max_turns:
+        description: 'agent 工具调用轮数上限'
+        required: false
+        type: number
+        default: 150
+      timeout_minutes:
+        description: 'job 超时（分钟）'
+        required: false
+        type: number
+        default: 45
+
+permissions:
+  contents: read
+
+jobs:
+  ai-failure-analysis:
+    uses: ./.github/workflows/_ai_failure_analysis.yml
+    permissions:
+      contents: read
+      actions: read
+    secrets: inherit
+    with:
+      run_url: ${{ inputs.run_url }}
+      model_main: ${{ inputs.model_main }}
+      max_cases: ${{ inputs.max_cases }}
+      max_turns: ${{ inputs.max_turns }}
+      timeout_minutes: ${{ inputs.timeout_minutes }}

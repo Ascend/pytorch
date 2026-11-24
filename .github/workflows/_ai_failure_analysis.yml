@@ -1,0 +1,315 @@
+name: AI Failure Analysis
+
+# 失败用例 AI 根因分析（Claude Code headless + DeepSeek）。由 nightly
+# a3/a5 末尾的 ai-failure-analysis job 与 ai-failure-analysis-manual.yml
+# 手动验证入口共同调用。
+#
+# 流程：廉价门禁（fetch_test_failures.py，无模型调用）→ 通过才装
+# Claude Code → DeepSeek 模型冒烟 → agent 按 skill 夜间模式分析 →
+# 报告上传 guiyang OBS → Summary 打印匿名下载链接。
+#
+# 门禁退出码（job 级/基础设施失败一律不启动 AI 流程）：
+#   0 分析 / 3 无失败用例 / 4 报告制品缺失 / 5 失败全部为基础设施签名
+
+on:
+  workflow_call:
+    inputs:
+      run_url:
+        required: false
+        type: string
+        default: ''
+        description: 待分析流水线 run URL；空 = 当前 run
+      model_main:
+        required: false
+        type: string
+        default: 'deepseek-flash[1m]'
+        description: DeepSeek 主模型（Claude Code opus/sonnet 槽位映射）
+      model_small:
+        required: false
+        type: string
+        default: 'deepseek-flash'
+        description: DeepSeek 小模型（haiku/subagent 槽位映射）
+      max_cases:
+        required: false
+        type: number
+        default: 30
+        description: 深度分析的失败用例上限（其余按签名聚类归类）
+      max_turns:
+        required: false
+        type: number
+        default: 150
+        description: agent 工具调用轮数上限
+      timeout_minutes:
+        required: false
+        type: number
+        default: 45
+        description: job 超时（分钟）
+      obs_endpoint:
+        required: false
+        type: string
+        default: 'obs.cn-southwest-2.myhuaweicloud.com'
+        description: 报告上传 OBS endpoint（Guiyang）
+      obs_bucket:
+        required: false
+        type: string
+        default: 'pytorch-torchnpu'
+        description: 报告上传 OBS 桶名（public-read）
+      obs_prefix:
+        required: false
+        type: string
+        default: 'ai-analysis'
+        description: 报告对象键前缀
+      continue_on_error:
+        required: false
+        type: boolean
+        default: false
+        description: true = 分析失败不使本 job 显红（夜间集成用；手动验证保持 false 以便失败可见）
+
+permissions:
+  contents: read
+
+jobs:
+  ai-failure-analysis:
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+    # 夜间集成传 true：AI 分析异常不影响流水线结论；手动验证默认 false 显红
+    continue-on-error: ${{ inputs.continue_on_error }}
+    permissions:
+      # gh 下载本仓库制品 + checkout，够用即可；不继承顶层 id-token: write
+      contents: read
+      actions: read
+    env:
+      # DeepSeek 官方 Claude Code 接入配置（api-docs.deepseek.com
+      # /guides/anthropic_api）。模型名必须是 claude-* 映射支持的名字，
+      # 深层原因见 DeepSeek 文档：非 claude 前缀名会被服务端 400。
+      ANTHROPIC_BASE_URL: https://api.deepseek.com/anthropic
+      ANTHROPIC_AUTH_TOKEN: ${{ secrets.DEEPSEEK_API_KEY }}
+      ANTHROPIC_MODEL: ${{ inputs.model_main }}
+      ANTHROPIC_DEFAULT_OPUS_MODEL: ${{ inputs.model_main }}
+      ANTHROPIC_DEFAULT_SONNET_MODEL: ${{ inputs.model_main }}
+      ANTHROPIC_DEFAULT_HAIKU_MODEL: ${{ inputs.model_small }}
+      CLAUDE_CODE_SUBAGENT_MODEL: ${{ inputs.model_small }}
+      # gh CLI 认证（门禁脚本下载制品用）
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout this repo (skill + gate script + prompt)
+        uses: actions/checkout@v6
+
+      - name: Gate and prepare failure data
+        id: gate
+        run: |
+          set +e
+          RUN_URL='${{ inputs.run_url }}'
+          if [ -z "${RUN_URL}" ]; then
+            RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          fi
+          echo "run_url=${RUN_URL}" >> "$GITHUB_OUTPUT"
+          echo "Target run: ${RUN_URL}"
+          python3 .github/scripts/fetch_test_failures.py \
+            --run-url "${RUN_URL}" \
+            --workdir failure-data \
+            --max-cases '${{ inputs.max_cases }}'
+          code=$?
+          set -e
+          echo "gate_code=${code}" >> "$GITHUB_OUTPUT"
+          if [ "$code" -eq 0 ]; then
+            echo "status=analyze" >> "$GITHUB_OUTPUT"
+          elif [ "$code" -eq 3 ] || [ "$code" -eq 4 ] || [ "$code" -eq 5 ]; then
+            echo "status=skipped" >> "$GITHUB_OUTPUT"
+            echo "GATE: skipped (exit ${code}), AI analysis will NOT run"
+          else
+            echo "::error::gate script failed with unexpected exit code ${code}"
+            exit 1
+          fi
+
+      - name: Setup Node
+        if: steps.gate.outputs.status == 'analyze'
+        uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+
+      - name: Install Claude Code
+        if: steps.gate.outputs.status == 'analyze'
+        run: |
+          set -e
+          # 精确 pin：Claude Code 迭代快，避免夜间接入行为漂移；升级时显式改版本
+          npm install -g @anthropic-ai/claude-code@2.1.331
+          claude --version
+
+      - name: Smoke test model connectivity
+        if: steps.gate.outputs.status == 'analyze'
+        run: |
+          set -e
+          # 隔离配置目录（runner 上下文不可用于 job 级 env，用预置环境变量）
+          export CLAUDE_CONFIG_DIR="${RUNNER_TEMP}/claude-config"
+          SMOKE=$(claude -p "Reply with exactly: MODEL_OK" --max-turns 2 --output-format text 2>smoke.err) || {
+            cat smoke.err >&2 || true
+            echo "::error::claude smoke test failed: check DEEPSEEK_API_KEY secret and DeepSeek API reachability"
+            exit 1
+          }
+          echo "smoke reply: ${SMOKE}"
+          echo "${SMOKE}" | grep -q "MODEL_OK" || {
+            echo "::error::model replied unexpectedly: ${SMOKE}"
+            exit 1
+          }
+          echo "Model connectivity OK"
+
+      - name: Run AI failure analysis
+        id: agent
+        if: steps.gate.outputs.status == 'analyze'
+        env:
+          RUN_URL: ${{ steps.gate.outputs.run_url }}
+          WORKDIR: failure-data
+          REPORT_PATH: ai-analysis-report.md
+          MAX_CASES: '${{ inputs.max_cases }}'
+          MAX_TURNS: '${{ inputs.max_turns }}'
+        run: |
+          set -e
+          # 隔离配置目录（runner 上下文不可用于 job 级 env，用预置环境变量）
+          export CLAUDE_CONFIG_DIR="${RUNNER_TEMP}/claude-config"
+          # 渲染 prompt 模板（sed 而非 envsubst：不依赖 gettext，占位符固定五个）
+          sed -e "s|\${RUN_URL}|${RUN_URL}|g" \
+              -e "s|\${WORKDIR}|${WORKDIR}|g" \
+              -e "s|\${REPORT_PATH}|${REPORT_PATH}|g" \
+              -e "s|\${MAX_CASES}|${MAX_CASES}|g" \
+              -e "s|\${MAX_TURNS}|${MAX_TURNS}|g" \
+              .github/ai-analysis/nightly_prompt.md > prompt.md
+          set +e
+          claude -p "$(cat prompt.md)" \
+            --dangerously-skip-permissions \
+            --max-turns "${MAX_TURNS}" \
+            --output-format text > agent-summary.txt 2> claude-agent.log
+          AGENT_CODE=$?
+          set -e
+          echo "agent_code=${AGENT_CODE}" >> "$GITHUB_OUTPUT"
+          echo "claude exit code: ${AGENT_CODE}"
+          if [ "${AGENT_CODE}" -ne 0 ]; then
+            echo "::warning::claude exited with code ${AGENT_CODE}; report may be incomplete"
+          fi
+          if [ ! -s ai-analysis-report.md ]; then
+            echo "report file missing/empty, wrapping agent stdout as fallback"
+            {
+              echo "# AI 失败用例分析报告（降级产出：agent 未写报告文件）"
+              echo
+              cat agent-summary.txt 2>/dev/null || true
+            } > ai-analysis-report.md
+          fi
+          [ -s ai-analysis-report.md ] || {
+            echo "::error::no report produced (agent code ${AGENT_CODE}, see claude-agent.log artifact)"
+            exit 1
+          }
+
+      - name: Install obsutil
+        if: steps.gate.outputs.status == 'analyze'
+        run: |
+          set -e
+          # 与 _nightly_build_upstream_wheels.yml 的安装方式一致（无 Actions
+          # cache：本 job 每日至多一次，单文件上传不值得缓存维护）
+          ARCH=$(uname -m)
+          case "${ARCH}" in
+            x86_64)  OBS_ARCH="amd64" ;;
+            aarch64) OBS_ARCH="arm64" ;;
+            *)       echo "Unsupported architecture: ${ARCH}"; exit 1 ;;
+          esac
+          OBSUTIL_HOME="$HOME/.local/obsutil"
+          rm -rf "${OBSUTIL_HOME}"
+          mkdir -p "${OBSUTIL_HOME}"
+          OBS_URL="https://obs-community.obs.cn-north-1.myhuaweicloud.com/obsutil/current/obsutil_linux_${OBS_ARCH}.tar.gz"
+          wget --tries=3 --timeout=30 --waitretry=10 --progress=dot:mega "${OBS_URL}"
+          tar -zxf "obsutil_linux_${OBS_ARCH}.tar.gz" -C "${OBSUTIL_HOME}/"
+          rm -f "obsutil_linux_${OBS_ARCH}.tar.gz"
+          ln -sf "${OBSUTIL_HOME}"/obsutil_linux_${OBS_ARCH}_*/obsutil "${OBSUTIL_HOME}/obsutil"
+          "${OBSUTIL_HOME}/obsutil" version
+
+      - name: Upload report to OBS
+        id: obs
+        if: steps.gate.outputs.status == 'analyze'
+        run: |
+          set -e
+          export PATH="${HOME}/.local/obsutil:${PATH}"
+          # 凭据跟随 endpoint（Guiyang 桶独立 key 对），与 wheels 上传一致
+          OBS_ENDPOINT='${{ inputs.obs_endpoint }}'
+          OBS_BUCKET='${{ inputs.obs_bucket }}'
+          OBS_PREFIX='${{ inputs.obs_prefix }}'
+          if [[ "${OBS_ENDPOINT}" == *cn-southwest-2* ]]; then
+            obsutil config -i=${{ secrets.ACCESSKEY_GUIYANG }} -k=${{ secrets.SECRETACCESSKEY_GUIYANG }} -e=${OBS_ENDPOINT}
+          else
+            obsutil config -i=${{ secrets.ACCESSKEY }} -k=${{ secrets.SECRETACCESSKEY }} -e=${OBS_ENDPOINT}
+          fi
+          # 对象键用"被分析 run"的 id（手动模式下与当前 workflow run 不同）
+          RUN_ID=$(python3 -c "import json; print(json.load(open('failure-data/gate.json'))['run']['run_id'])")
+          KEY="${OBS_PREFIX}/run-${RUN_ID}"
+          obsutil cp ai-analysis-report.md "obs://${OBS_BUCKET}/${KEY}/ai-analysis-report.md" -f
+          obsutil cp failure-data/failures.json "obs://${OBS_BUCKET}/${KEY}/failures.json" -f
+          # 桶为 public-read，匿名 URL 为 virtual-hosted style；HEAD 探测
+          # best-effort，非 200 仅告警（与 wheels 上传一致）
+          REPORT_URL="https://${OBS_BUCKET}.${OBS_ENDPOINT}/${KEY}/ai-analysis-report.md"
+          echo "report_url=${REPORT_URL}" >> "$GITHUB_OUTPUT"
+          HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 60 -I "${REPORT_URL}" || echo 000)
+          echo "Public download URL (anonymous HEAD: HTTP ${HTTP_CODE}): ${REPORT_URL}"
+          if [ "${HTTP_CODE}" != "200" ]; then
+            echo "::warning::report not anonymously downloadable (HTTP ${HTTP_CODE})"
+          fi
+
+      - name: Write job summary
+        if: always()
+        env:
+          REPORT_URL: ${{ steps.obs.outputs.report_url }}
+        run: |
+          python3 - <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          import json, os
+
+          print("## AI 失败用例分析")
+          try:
+              gate = json.load(open("failure-data/gate.json", encoding="utf-8"))
+          except Exception:
+              print("| 项 | 值 |")
+              print("|---|---|")
+              print("| 状态 | gate 异常（见 job 日志） |")
+              raise SystemExit(0)
+          run = gate.get("run", {})
+          status = gate.get("status", "skipped")
+          print("| 项 | 值 |")
+          print("|---|---|")
+          if status == "analyze":
+              counts = gate.get("counts", {})
+              print(f"| 状态 | **analyzed**（failed={counts.get('failed')} "
+                    f"errors={counts.get('errors')} timeout={counts.get('timeout')}；"
+                    f"非基础设施用例 {gate.get('cases_non_infra')} / "
+                    f"基础设施类 {gate.get('cases_infra')}） |")
+          else:
+              print(f"| 状态 | skipped（{gate.get('reason', '')}） |")
+          if run.get("html_url"):
+              sha = (run.get("head_sha") or "")[:12]
+              print(f"| 目标流水线 | [{run.get('name')} #{run.get('run_id')}]({run['html_url']}) @ {sha} |")
+          url = os.environ.get("REPORT_URL", "")
+          if url:
+              print(f"| 分析报告 (OBS) | [ai-analysis-report.md]({url}) |")
+          print("| GHA 制品 | ai-failure-analysis（报告 + failures.json + agent 日志） |")
+          EOF
+          if [ -f agent-summary.txt ] && [ -s agent-summary.txt ]; then
+            {
+              echo ""
+              echo "### Agent 结论摘要"
+              echo ""
+              echo '```'
+              cat agent-summary.txt
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload analysis artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-failure-analysis
+          path: |
+            ai-analysis-report.md
+            agent-summary.txt
+            prompt.md
+            smoke.err
+            claude-agent.log
+            failure-data/gate.json
+            failure-data/failures.json
+          if-no-files-found: ignore
+          retention-days: 30
