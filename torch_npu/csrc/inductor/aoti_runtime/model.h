@@ -17,6 +17,9 @@
 // applies to other files under torch/csrc/inductor/aoti_runtime/.
 #include <torch/csrc/inductor/aoti_runtime/utils.h>
 #include <torch_npu/csrc/inductor/aoti_runtime/device_utils.h>
+#ifdef USE_NPU
+#include <torch_npu/csrc/inductor/aoti_runtime/utils_npu.h>
+#endif
 #include <torch_npu/csrc/inductor/aoti_torch/c/shim.h>
 #ifdef USE_NPU
 #include <torch_npu/csrc/inductor/aoti_torch/c/shim_npu.h>
@@ -203,7 +206,9 @@ public:
              DeviceStreamType stream, AOTIProxyExecutorHandle proxy_executor)
     {
 #if defined(USE_NPU)
+        AOTINpuGuard device_guard(device_idx_);
         auto run_stream = normalize_run_stream(stream);
+        AOTINpuStreamGuard stream_guard(run_stream, device_idx_);
         if (!run_finished_) {
             aclrtEvent run_finished;
             AOTI_RUNTIME_DEVICE_CHECK(aclrtCreateEvent(&run_finished));
@@ -218,7 +223,7 @@ public:
         model->run_impl(input_handles, output_handles, run_stream, proxy_executor);
 
 #if defined(USE_NPU)
-        AOTI_RUNTIME_DEVICE_CHECK(aclrtRecordEvent(*run_finished_, run_stream));
+        record_completion(run_stream);
 #else
         run_finished_ = true;
 #endif
@@ -234,7 +239,9 @@ public:
                              DeviceStreamType stream, AOTIProxyExecutorHandle proxy_executor)
     {
 #if defined(USE_NPU)
+        AOTINpuGuard device_guard(device_idx_);
         auto run_stream = normalize_run_stream(stream);
+        AOTINpuStreamGuard stream_guard(run_stream, device_idx_);
 #else
         auto run_stream = stream;
 #endif
@@ -248,7 +255,9 @@ public:
     run_const_fold(DeviceStreamType stream, AOTIProxyExecutorHandle proxy_executor, bool initialization = false)
     {
 #if defined(USE_NPU)
+        AOTINpuGuard device_guard(device_idx_);
         auto run_stream = normalize_run_stream(stream);
+        AOTINpuStreamGuard stream_guard(run_stream, device_idx_);
         if (!run_finished_) {
             aclrtEvent run_finished;
             AOTI_RUNTIME_DEVICE_CHECK(aclrtCreateEvent(&run_finished));
@@ -263,7 +272,7 @@ public:
         auto folded_constants = model->const_run_impl(run_stream, proxy_executor, initialization);
 
 #if defined(USE_NPU)
-        AOTI_RUNTIME_DEVICE_CHECK(aclrtRecordEvent(*run_finished_, run_stream));
+        record_completion(run_stream);
 #else
         run_finished_ = true;
 #endif
@@ -491,7 +500,34 @@ public:
     }
 
     /// Synchronizes completion event.
-    void wait_for_completion() {}
+    void wait_for_completion()
+    {
+#ifdef USE_NPU
+        if (!run_finished_) {
+            throw std::runtime_error("Model NPU event was not initialized");
+        }
+        AOTI_RUNTIME_DEVICE_CHECK(aclrtSynchronizeEvent(*run_finished_));
+#endif
+    }
+
+#ifdef USE_NPU
+private:
+    void record_completion(DeviceStreamType run_stream)
+    {
+        // The stream getter drains the host queue before returning the ACL stream.
+        void* submitted_stream = nullptr;
+        AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_get_current_npu_stream(device_idx_, &submitted_stream));
+
+        std::optional<AOTINpuStreamGuard> completion_guard;
+        if (submitted_stream != run_stream) {
+            completion_guard.emplace(run_stream, device_idx_);
+            AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_get_current_npu_stream(device_idx_, &submitted_stream));
+            AOTI_RUNTIME_CHECK(submitted_stream == run_stream, "Failed to flush the model NPU stream");
+        }
+
+        AOTI_RUNTIME_DEVICE_CHECK(aclrtRecordEvent(*run_finished_, run_stream));
+    }
+#endif
 
 protected:
     uint8_t* _get_constants_start()
