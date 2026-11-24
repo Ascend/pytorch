@@ -9,6 +9,7 @@ import threading
 from typing import Any, Optional, TYPE_CHECKING
 
 import torch
+from torch.utils._pytree import tree_flatten
 import torch_npu
 from torch import _TorchCompileWrapper
 
@@ -579,6 +580,91 @@ def _install_dynamo_post_import_trigger():
         sys.meta_path.insert(0, _DynamoPostImportFinder())
 
 
+def _aoti_uses_npu(graph, example_inputs) -> bool:
+    """Inspect device metadata without allocating tensors or initializing NPU."""
+    values = [example_inputs, getattr(graph, "example_inputs", None)]
+    graph_module = getattr(graph, "graph_module", graph)
+    if isinstance(graph_module, torch.fx.GraphModule):
+        values.extend(node.meta.get("val") for node in graph_module.graph.nodes)
+        values.extend(graph_module.parameters())
+        values.extend(graph_module.buffers())
+    leaves, _ = tree_flatten(values)
+    return any(
+        isinstance(value, torch.Tensor) and value.device.type == "npu"
+        for value in leaves
+    )
+
+
+def _patch_aoti_backend_selection(inductor_module):
+    """Apply NPU backend options before AOTI starts decomposing the graph."""
+    def wrap_entrypoint(original, config_name):
+        signature = inspect.signature(original)
+
+        @functools.wraps(original)
+        def compile_with_npu_backend(*args, **kwargs):
+            bound = signature.bind(*args, **kwargs)
+            graph = next(iter(bound.arguments.values()))
+            example_inputs = (
+                bound.arguments.get("args"), bound.arguments.get("kwargs")
+            )
+            if not _aoti_uses_npu(graph, example_inputs):
+                return original(*args, **kwargs)
+
+            options = dict(bound.arguments.get(config_name) or {})
+            backend = _resolve_npu_backend(options.get("npu_backend"))
+            with _NpuBackendScope(backend):
+                return original(*args, **kwargs)
+
+        compile_with_npu_backend._torch_npu_aoti_backend_selection = True
+        return compile_with_npu_backend
+
+    for name, config_name in (
+        ("aoti_compile_and_package", "inductor_configs"),
+        ("aot_compile", "options"),
+    ):
+        original = getattr(inductor_module, name, None)
+        if original is not None and not getattr(
+            original, "_torch_npu_aoti_backend_selection", False
+        ):
+            setattr(inductor_module, name, wrap_entrypoint(original, config_name))
+
+
+class _AotiPostImportLoader(importlib.abc.Loader):
+    def __init__(self, loader, finder):
+        self._loader = loader
+        self._finder = finder
+
+    def create_module(self, spec):
+        create_module = getattr(self._loader, "create_module", None)
+        return create_module(spec) if create_module is not None else None
+
+    def exec_module(self, module):
+        self._loader.exec_module(module)
+        _patch_aoti_backend_selection(module)
+        if self._finder in sys.meta_path:
+            sys.meta_path.remove(self._finder)
+
+
+class _AotiPostImportFinder(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname != "torch._inductor":
+            return None
+        spec = _find_spec_without_finder(self, fullname)
+        if spec is not None and spec.loader is not None:
+            spec.loader = _AotiPostImportLoader(spec.loader, self)
+        return spec
+
+
+def _install_aoti_post_import_trigger():
+    """Install AOTI hooks lazily, including when Inductor was imported first."""
+    module = sys.modules.get("torch._inductor")
+    if module is not None:
+        _patch_aoti_backend_selection(module)
+        return
+    if not any(isinstance(finder, _AotiPostImportFinder) for finder in sys.meta_path):
+        sys.meta_path.insert(0, _AotiPostImportFinder())
+
+
 @run_once
 def add_dynamo_methods_init():
     steps = (
@@ -727,5 +813,6 @@ def add_dynamo_methods():
         from torch_npu.dynamo import _LazyNpuGraphEx
         sys.modules["npugraph_ex"] = _LazyNpuGraphEx("npugraph_ex")
     patch_inductor_wrapper()
+    _install_aoti_post_import_trigger()
     install_npugraph_mark_step_trigger()
     patch_symbolic_shapes_api_compatibility()

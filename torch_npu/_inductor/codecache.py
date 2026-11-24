@@ -24,6 +24,7 @@ from torch._inductor.codecache import CacheBase, get_lock_dir, LOCK_TIMEOUT
 from torch._inductor.graph import GraphLowering
 import torch_npu
 from torch_npu.utils._error_code import ErrCode, pta_error
+from .lowering_common import run_once
 
 empty_json = "{}"
 
@@ -36,6 +37,7 @@ def lock_context(key):
     with lock:
         yield
 
+@run_once
 def patch_aot_code_compiler_compile():
     # In v2.6.0, aoti has bug when init oss_proxy_executor with default op_json,
     # which could not be skipped, so here we try to create a new npu op_json,

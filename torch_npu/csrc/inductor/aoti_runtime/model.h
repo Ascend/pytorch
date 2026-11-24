@@ -5,8 +5,9 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#include <cctype>
+#include <functional>
 #include <optional>
-#include <regex>
 #include <stdexcept>
 #include <unordered_map>
 #include <utility>
@@ -16,6 +17,9 @@
 // C ABI defined in torch/csrc/inductor/aoti_torch/c/shim.h. The same rule
 // applies to other files under torch/csrc/inductor/aoti_runtime/.
 #include <torch_npu/csrc/inductor/aoti_runtime/device_utils.h>
+#ifdef USE_NPU
+#include <torch_npu/csrc/inductor/aoti_runtime/utils_npu.h>
+#endif
 #include <torch_npu/csrc/inductor/aoti_runtime/utils.h>
 
 #define AOTI_RUNTIME_CHECK(EXPR, MSG)                                                                                  \
@@ -92,25 +96,34 @@ using ConstantMap = std::unordered_map<std::string, MaybeOwningAtenTensorHandle>
 // Update the list here if more devices are supported in the future
 inline void parse_device_str(const std::string& device_str, int32_t& device_type, int32_t& device_idx)
 {
-    std::regex re("(cpu|npu)(:([0-9]+))?");
-    std::smatch sm;
-    bool matched = std::regex_match(device_str, sm, re);
-    AOTI_RUNTIME_CHECK(matched, "Invalid device: " + device_str);
-
-    if (sm[1].str() == "cpu") {
+    const size_t colon_pos = device_str.find(':');
+    const std::string device_type_str = device_str.substr(0, colon_pos);
+    if (device_type_str == "cpu") {
         device_type = aoti_torch_device_type_cpu();
 #ifdef USE_NPU
-    } else if (sm[1].str() == "npu") {
+    } else if (device_type_str == "npu") {
         device_type = aoti_torch_device_type_npu();
 #endif
     } else {
         AOTI_RUNTIME_CHECK(false, "Invalid device: " + device_str);
     }
-    const size_t default_sm = 3;
-    if (sm[default_sm].matched) {
-        device_idx = stoi(sm[default_sm].str());
-    } else {
-        device_idx = -1;
+
+    device_idx = -1;
+    if (colon_pos == std::string::npos) {
+        return;
+    }
+
+    const std::string index_str = device_str.substr(colon_pos + 1);
+    AOTI_RUNTIME_CHECK(!index_str.empty(), "Invalid device: " + device_str);
+    for (char c : index_str) {
+        AOTI_RUNTIME_CHECK(std::isdigit(static_cast<unsigned char>(c)), "Invalid device: " + device_str);
+    }
+    try {
+        device_idx = std::stoi(index_str);
+    } catch (const std::out_of_range&) {
+        AOTI_RUNTIME_CHECK(false, "Invalid device: " + device_str);
+    } catch (const std::invalid_argument&) {
+        AOTI_RUNTIME_CHECK(false, "Invalid device: " + device_str);
     }
 }
 
@@ -178,7 +191,9 @@ public:
              DeviceStreamType stream, AOTIProxyExecutorHandle proxy_executor)
     {
 #if defined(USE_NPU)
+        AOTINpuGuard device_guard(device_idx_);
         auto run_stream = normalize_run_stream(stream);
+        AOTINpuStreamGuard stream_guard(run_stream, device_idx_);
         if (!run_finished_) {
             aclrtEvent run_finished;
             AOTI_RUNTIME_DEVICE_CHECK(aclrtCreateEvent(&run_finished));
@@ -193,7 +208,7 @@ public:
         model->run_impl(input_handles, output_handles, run_stream, proxy_executor);
 
 #if defined(USE_NPU)
-        AOTI_RUNTIME_DEVICE_CHECK(aclrtRecordEvent(*run_finished_, run_stream));
+        record_completion(run_stream);
 #else
         run_finished_ = true;
 #endif
@@ -209,7 +224,9 @@ public:
                              DeviceStreamType stream, AOTIProxyExecutorHandle proxy_executor)
     {
 #if defined(USE_NPU)
+        AOTINpuGuard device_guard(device_idx_);
         auto run_stream = normalize_run_stream(stream);
+        AOTINpuStreamGuard stream_guard(run_stream, device_idx_);
 #else
         auto run_stream = stream;
 #endif
@@ -223,7 +240,9 @@ public:
     run_const_fold(DeviceStreamType stream, AOTIProxyExecutorHandle proxy_executor, bool initialization = false)
     {
 #if defined(USE_NPU)
+        AOTINpuGuard device_guard(device_idx_);
         auto run_stream = normalize_run_stream(stream);
+        AOTINpuStreamGuard stream_guard(run_stream, device_idx_);
         if (!run_finished_) {
             aclrtEvent run_finished;
             AOTI_RUNTIME_DEVICE_CHECK(aclrtCreateEvent(&run_finished));
@@ -238,7 +257,7 @@ public:
         auto folded_constants = model->const_run_impl(run_stream, proxy_executor, initialization);
 
 #if defined(USE_NPU)
-        AOTI_RUNTIME_DEVICE_CHECK(aclrtRecordEvent(*run_finished_, run_stream));
+        record_completion(run_stream);
 #else
         run_finished_ = true;
 #endif
@@ -528,7 +547,34 @@ public:
     }
 
     /// Synchronizes completion event.
-    void wait_for_completion() {}
+    void wait_for_completion()
+    {
+#ifdef USE_NPU
+        if (!run_finished_) {
+            throw std::runtime_error("Model NPU event was not initialized");
+        }
+        AOTI_RUNTIME_DEVICE_CHECK(aclrtSynchronizeEvent(*run_finished_));
+#endif
+    }
+
+#ifdef USE_NPU
+private:
+    void record_completion(DeviceStreamType run_stream)
+    {
+        // The stream getter drains the host queue before returning the ACL stream.
+        void* submitted_stream = nullptr;
+        AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_get_current_npu_stream(device_idx_, &submitted_stream));
+
+        std::optional<AOTINpuStreamGuard> completion_guard;
+        if (submitted_stream != run_stream) {
+            completion_guard.emplace(run_stream, device_idx_);
+            AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_get_current_npu_stream(device_idx_, &submitted_stream));
+            AOTI_RUNTIME_CHECK(submitted_stream == run_stream, "Failed to flush the model NPU stream");
+        }
+
+        AOTI_RUNTIME_DEVICE_CHECK(aclrtRecordEvent(*run_finished_, run_stream));
+    }
+#endif
 
 protected:
     uint8_t* _get_constants_start()
