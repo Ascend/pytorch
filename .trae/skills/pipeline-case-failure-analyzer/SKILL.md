@@ -31,7 +31,7 @@ description: "分析 Ascend/pytorch GitHub Actions 流水线中测试用例失�
 - **GitHub API 一律用 `gh api`**（`GH_TOKEN` 已认证，5000 req/h）。
   **禁止裸 `curl https://api.github.com/...`**——CI runner 的共享 IP 会撞 60 req/h
   匿名限流，全部请求都会失败。
-- **预算约束**（由 prompt 注入 `MAX_CASES` / `MAX_TURNS`）：
+- **预算约束**（由 prompt 注入 `MAX_CASES` / `TIME_BUDGET`）：
   - 失败用例先按错误签名（异常类型+首行消息）聚类；深度分析 top `MAX_CASES` 条，
     其余在报告"失败概览"节按簇给一行归类；
   - CANN 日志制品（`ascend-cann-logs-*`，单个 20~115MB）**默认跳过**，仅当某用例
@@ -39,7 +39,7 @@ description: "分析 Ascend/pytorch GitHub Actions 流水线中测试用例失�
   - 历史对比限定最近 24h 内至多 2 条同 workflow run；
   - 不做无界 `git log`/全量 diff 浏览，diff 范围限定在失败用例直接相关的文件。
 - **产出契约**：完整报告写入 prompt 指定的 `REPORT_PATH` 文件（结构见"产出格式"），
-  stdout 只输出 ≤10 行结论摘要。报告是给人看的夜间报告：结论先行、每条结论
+  最终回答只输出 ≤10 行结论摘要。报告是给人看的夜间报告：结论先行、每条结论
   带置信度（高/中/低）与依据。
 
 ## 分析工作流

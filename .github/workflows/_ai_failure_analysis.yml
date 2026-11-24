@@ -1,12 +1,14 @@
 name: AI Failure Analysis
 
-# 失败用例 AI 根因分析（Claude Code headless + DeepSeek）。由 nightly
-# a3/a5 末尾的 ai-failure-analysis job 与 ai-failure-analysis-manual.yml
-# 手动验证入口共同调用。
+# 失败用例 AI 根因分析（Trae CLI headless）。由 nightly a3/a5 末尾的
+# ai-failure-analysis job 与 ai-failure-analysis-manual.yml 手动验证入口
+# 共同调用。Agent 换代历史：Claude Code + DeepSeek（f9823f0669）→ Trae CLI
+# 2.0（PAT 鉴权，接入方式对齐 EnginVault/nightly-issue-hub 的
+# availability-failure-analysis-github.yml 参考实现）。
 #
-# 流程：廉价门禁（fetch_test_failures.py，无模型调用）→ 通过才装
-# Claude Code → DeepSeek 模型冒烟 → agent 按 skill 夜间模式分析 →
-# 报告上传 guiyang OBS → Summary 打印匿名下载链接。
+# 流程：廉价门禁（fetch_test_failures.py，无模型调用）→ 通过才安装
+# Trae CLI（CDN stable + sha256 校验）→ PAT 登录 + 模型冒烟 → agent 按
+# skill 夜间模式分析 → 报告上传 guiyang OBS → Summary 打印匿名下载链接。
 #
 # 门禁退出码（job 级/基础设施失败一律不启动 AI 流程）：
 #   0 分析 / 3 无失败用例 / 4 报告制品缺失 / 5 失败全部为基础设施签名
@@ -19,26 +21,16 @@ on:
         type: string
         default: ''
         description: 待分析流水线 run URL；空 = 当前 run
-      model_main:
+      model:
         required: false
         type: string
-        default: 'deepseek-flash[1m]'
-        description: DeepSeek 主模型（Claude Code opus/sonnet 槽位映射）
-      model_small:
-        required: false
-        type: string
-        default: 'deepseek-flash'
-        description: DeepSeek 小模型（haiku/subagent 槽位映射）
+        default: ''
+        description: Trae 模型名；空 = 取 repo 变量 TRAECLI_MODEL，再空 = GLM-5.3-Flash
       max_cases:
         required: false
         type: number
         default: 30
         description: 深度分析的失败用例上限（其余按签名聚类归类）
-      max_turns:
-        required: false
-        type: number
-        default: 150
-        description: agent 工具调用轮数上限
       timeout_minutes:
         required: false
         type: number
@@ -79,16 +71,8 @@ jobs:
       contents: read
       actions: read
     env:
-      # DeepSeek 官方 Claude Code 接入配置（api-docs.deepseek.com
-      # /guides/anthropic_api）。模型名必须是 claude-* 映射支持的名字，
-      # 深层原因见 DeepSeek 文档：非 claude 前缀名会被服务端 400。
-      ANTHROPIC_BASE_URL: https://api.deepseek.com/anthropic
-      ANTHROPIC_AUTH_TOKEN: ${{ secrets.DEEPSEEK_API_KEY }}
-      ANTHROPIC_MODEL: ${{ inputs.model_main }}
-      ANTHROPIC_DEFAULT_OPUS_MODEL: ${{ inputs.model_main }}
-      ANTHROPIC_DEFAULT_SONNET_MODEL: ${{ inputs.model_main }}
-      ANTHROPIC_DEFAULT_HAIKU_MODEL: ${{ inputs.model_small }}
-      CLAUDE_CODE_SUBAGENT_MODEL: ${{ inputs.model_small }}
+      # Trae PAT 登录（login --with-trae-pat 读取）
+      TRAECLI_PERSONAL_ACCESS_TOKEN: ${{ secrets.TRAE_API_KEY }}
       # gh CLI 认证（门禁脚本下载制品用）
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -122,34 +106,67 @@ jobs:
             exit 1
           fi
 
-      - name: Setup Node
-        if: steps.gate.outputs.status == 'analyze'
-        uses: actions/setup-node@v7
-        with:
-          node-version: '20'
-
-      - name: Install Claude Code
+      - name: Install Trae CLI
         if: steps.gate.outputs.status == 'analyze'
         run: |
           set -e
-          # 精确 pin：Claude Code 迭代快，避免夜间接入行为漂移；升级时显式改版本
-          npm install -g @anthropic-ai/claude-code@2.1.331
-          claude --version
+          # CDN stable 通道 + manifest sha256 校验（安装方式对齐
+          # EnginVault/nightly-issue-hub 参考实现；二进制自带运行时，无需 Node）
+          BASE=https://lf-cdn.trae.com.cn/obj/trae-com-cn/trae-cli
+          MANIFEST=$(curl -fsSL --max-time 60 "$BASE/v2/public/stable/latest.json")
+          read -r VER URL SHA SIZE <<< "$(printf '%s' "$MANIFEST" | python3 -c "
+          import json,sys
+          m=json.load(sys.stdin)
+          a=[x for x in m['artifacts'] if x.get('platform')=='linux-x86_64'][0]
+          u=a['url'] if a['url'].startswith('http') else '$BASE/'+a['url'].lstrip('/')
+          print(m['version'], u, a.get('sha256','-'), a.get('size','-'))")"
+          echo "traecli version=$VER"
+          curl -fsSL --max-time 600 "$URL" -o /tmp/traex.gz
+          echo "downloaded $(wc -c < /tmp/traex.gz) bytes (expect $SIZE)"
+          python3 - "$SHA" <<'EOF'
+          import sys, hashlib
+          h = hashlib.sha256(open('/tmp/traex.gz','rb').read()).hexdigest()
+          if sys.argv[1] != '-' and h != sys.argv[1]:
+              sys.exit(f'sha256 mismatch: {h}')
+          print('sha256 OK')
+          EOF
+          mkdir -p ~/.local/share/traecli/releases/"$VER"
+          gzip -dc /tmp/traex.gz > ~/.local/share/traecli/releases/"$VER"/traex
+          chmod +x ~/.local/share/traecli/releases/"$VER"/traex
+          ln -sfn ~/.local/share/traecli/releases/"$VER" ~/.local/share/traecli/current
+          mkdir -p ~/.local/bin && ln -sf ~/.local/share/traecli/current/traex ~/.local/bin/traecli
+          export PATH=~/.local/bin:$PATH
+          traecli --version
 
-      - name: Smoke test model connectivity
+      - name: Login with Trae PAT and smoke test model
         if: steps.gate.outputs.status == 'analyze'
         run: |
           set -e
-          # 隔离配置目录（runner 上下文不可用于 job 级 env，用预置环境变量）
-          export CLAUDE_CONFIG_DIR="${RUNNER_TEMP}/claude-config"
-          SMOKE=$(claude -p "Reply with exactly: MODEL_OK" --max-turns 2 --output-format text 2>smoke.err) || {
-            cat smoke.err >&2 || true
-            echo "::error::claude smoke test failed: check DEEPSEEK_API_KEY secret and DeepSeek API reachability"
+          export PATH=~/.local/bin:$PATH
+          if [ -z "${TRAECLI_PERSONAL_ACCESS_TOKEN}" ]; then
+            echo "::error::TRAE_API_KEY secret is not configured"
+            exit 1
+          fi
+          timeout 180 traecli login --with-trae-pat || {
+            echo "::error::traecli login failed: check TRAE_API_KEY (Trae PAT) validity"
             exit 1
           }
-          echo "smoke reply: ${SMOKE}"
-          echo "${SMOKE}" | grep -q "MODEL_OK" || {
-            echo "::error::model replied unexpectedly: ${SMOKE}"
+          # 模型冒烟（区分"模型调不通"与"分析失败"）
+          MODEL='${{ inputs.model }}'
+          if [ -z "$MODEL" ]; then MODEL='${{ vars.TRAECLI_MODEL }}'; fi
+          if [ -z "$MODEL" ]; then MODEL='GLM-5.3-Flash'; fi
+          echo "model: $MODEL"
+          timeout 120 traecli exec --json --color never --skip-git-repo-check \
+            -C "$PWD" -y -m "$MODEL" -o /tmp/smoke-message.md \
+            "请直接回复两个字符：OK" > /tmp/smoke-events.jsonl 2>&1 || {
+            echo "::error::traecli probe failed - check TRAE_API_KEY and model '$MODEL'"
+            tail -n 15 /tmp/smoke-events.jsonl || true
+            exit 1
+          }
+          PROBE_OUT=$(cat /tmp/smoke-message.md 2>/dev/null || true)
+          echo "smoke reply: ${PROBE_OUT}"
+          echo "${PROBE_OUT}" | grep -q "OK" || {
+            echo "::error::model replied unexpectedly: ${PROBE_OUT}"
             exit 1
           }
           echo "Model connectivity OK"
@@ -162,40 +179,55 @@ jobs:
           WORKDIR: failure-data
           REPORT_PATH: ai-analysis-report.md
           MAX_CASES: '${{ inputs.max_cases }}'
-          MAX_TURNS: '${{ inputs.max_turns }}'
+          TIMEOUT_MINUTES: '${{ inputs.timeout_minutes }}'
         run: |
           set -e
-          # 隔离配置目录（runner 上下文不可用于 job 级 env，用预置环境变量）
-          export CLAUDE_CONFIG_DIR="${RUNNER_TEMP}/claude-config"
+          export PATH=~/.local/bin:$PATH
+          MODEL='${{ inputs.model }}'
+          if [ -z "$MODEL" ]; then MODEL='${{ vars.TRAECLI_MODEL }}'; fi
+          if [ -z "$MODEL" ]; then MODEL='GLM-5.3-Flash'; fi
+          # agent 内层超时留出登录/上传/Summary 的余量
+          EXEC_TIMEOUT=$(( TIMEOUT_MINUTES - 10 ))
+          if [ "$EXEC_TIMEOUT" -lt 10 ]; then EXEC_TIMEOUT=10; fi
           # 渲染 prompt 模板（sed 而非 envsubst：不依赖 gettext，占位符固定五个）
           sed -e "s|\${RUN_URL}|${RUN_URL}|g" \
               -e "s|\${WORKDIR}|${WORKDIR}|g" \
               -e "s|\${REPORT_PATH}|${REPORT_PATH}|g" \
               -e "s|\${MAX_CASES}|${MAX_CASES}|g" \
-              -e "s|\${MAX_TURNS}|${MAX_TURNS}|g" \
+              -e "s|\${TIME_BUDGET}|${EXEC_TIMEOUT} 分钟|g" \
               .github/ai-analysis/nightly_prompt.md > prompt.md
           set +e
-          claude -p "$(cat prompt.md)" \
-            --dangerously-skip-permissions \
-            --max-turns "${MAX_TURNS}" \
-            --output-format text > agent-summary.txt 2> claude-agent.log
+          T0=$(date +%s)
+          ( timeout -k 20 "${EXEC_TIMEOUT}m" traecli exec \
+              --json --color never --skip-git-repo-check \
+              -C "$PWD" -y -m "$MODEL" \
+              -o agent-final-message.md \
+              "$(cat prompt.md)" > trae-events.jsonl 2>&1 ) &
+          TPID=$!
+          while kill -0 "$TPID" 2>/dev/null; do
+            sleep 60
+            echo "[progress] elapsed=$(( $(date +%s) - T0 ))s events=$(wc -l < trae-events.jsonl 2>/dev/null || echo 0)"
+          done
+          wait "$TPID"
           AGENT_CODE=$?
           set -e
           echo "agent_code=${AGENT_CODE}" >> "$GITHUB_OUTPUT"
-          echo "claude exit code: ${AGENT_CODE}"
+          echo "traecli exit code: ${AGENT_CODE}"
           if [ "${AGENT_CODE}" -ne 0 ]; then
-            echo "::warning::claude exited with code ${AGENT_CODE}; report may be incomplete"
+            echo "::warning::traecli exited with code ${AGENT_CODE}; report may be incomplete"
+            echo "--- 失败现场：事件尾部 ---"
+            tail -n 25 trae-events.jsonl || true
           fi
           if [ ! -s ai-analysis-report.md ]; then
-            echo "report file missing/empty, wrapping agent stdout as fallback"
+            echo "report file missing/empty, wrapping agent final message as fallback"
             {
               echo "# AI 失败用例分析报告（降级产出：agent 未写报告文件）"
               echo
-              cat agent-summary.txt 2>/dev/null || true
+              cat agent-final-message.md 2>/dev/null || true
             } > ai-analysis-report.md
           fi
           [ -s ai-analysis-report.md ] || {
-            echo "::error::no report produced (agent code ${AGENT_CODE}, see claude-agent.log artifact)"
+            echo "::error::no report produced (agent code ${AGENT_CODE}, see trae-events.jsonl artifact)"
             exit 1
           }
 
@@ -287,13 +319,13 @@ jobs:
               print(f"| 分析报告 (OBS) | [ai-analysis-report.md]({url}) |")
           print("| GHA 制品 | ai-failure-analysis（报告 + failures.json + agent 日志） |")
           EOF
-          if [ -f agent-summary.txt ] && [ -s agent-summary.txt ]; then
+          if [ -f agent-final-message.md ] && [ -s agent-final-message.md ]; then
             {
               echo ""
               echo "### Agent 结论摘要"
               echo ""
               echo '```'
-              cat agent-summary.txt
+              cat agent-final-message.md
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
           fi
@@ -305,10 +337,9 @@ jobs:
           name: ai-failure-analysis
           path: |
             ai-analysis-report.md
-            agent-summary.txt
+            agent-final-message.md
             prompt.md
-            smoke.err
-            claude-agent.log
+            trae-events.jsonl
             failure-data/gate.json
             failure-data/failures.json
           if-no-files-found: ignore

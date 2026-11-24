@@ -16,10 +16,10 @@
 
 # 方法论（必须先完整阅读并遵循）
 
-`.claude/skills/pipeline-case-failure-analyzer/SKILL.md`——按其"夜间自动化模式"执行：
+`.trae/skills/pipeline-case-failure-analyzer/SKILL.md`——按其"夜间自动化模式"执行：
 阶段 0 读取预处理数据 → 按错误签名聚类 → 深度分析 top ${MAX_CASES} 条 →
 必要时阶段 3-5（测试源码按失败 commit 获取、24h 内历史流水线对比、代码变更排查）。
-参考细节：`.claude/skills/pipeline-case-failure-analyzer/references/` 下的
+参考细节：`.trae/skills/pipeline-case-failure-analyzer/references/` 下的
 ci_structure.md（制品/报告/CANN 日志结构）与 code_investigation.md（op_plugin
 执行框架与常见回归模式）。
 
@@ -33,7 +33,7 @@ ci_structure.md（制品/报告/CANN 日志结构）与 code_investigation.md（
    禁止用 master/本地未 fetch 的代码下结论。
 4. CANN 日志制品（`ascend-cann-logs-*`，单个 20~115MB）默认跳过；仅当某用例
    根因必须算子级证据且所在分片制品 < 200MB 时才下载，并在报告附注说明。
-5. 预算：最多 ${MAX_TURNS} 轮工具调用。优先完成全部用例的"聚类+初步归类"，
+5. 预算：总执行时间不超过 ${TIME_BUDGET}。优先完成全部用例的"聚类+初步归类"，
    再对 top 用例深挖；预算不足时宁可降深度也要覆盖全部非 infra 用例。
 6. 每条结论必须标注置信度（高/中/低）并给出证据链（日志片段/commit/diff 行）。
    拿不到证据就明说"未定位"，不要编造。
@@ -43,7 +43,8 @@ ci_structure.md（制品/报告/CANN 日志结构）与 code_investigation.md（
 1. 完整报告写入 `${REPORT_PATH}`（Markdown，UTF-8），结构按 SKILL.md 的
    "产出格式"节：摘要（3-5 条结论+置信度）→ 失败概览（签名聚类）→
    基础设施类（一行清单）→ 用例根因分析 → 回归判定 → 建议动作 → 分析元信息。
-2. stdout 只输出 ≤10 行的结论摘要（会被追加到 GitHub Actions Summary）。
+2. 最终回答只输出 ≤10 行的结论摘要（会被追加到 GitHub Actions Summary），
+   完整内容都在报告文件里。
 3. 报告是给人看的夜间报告：结论先行、中文、可执行。
 
 现在开始：先读 gate.json 和 failures.json，再读 SKILL.md，然后执行分析。
