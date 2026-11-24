@@ -29,7 +29,6 @@
 
 ## Initialization
 
-<!-- npu="910b,A3" id238 -->
 ### torch.distributed.is_available
 
 <div style="margin-left: 2em">
@@ -37,7 +36,6 @@
 **原生文档**：[torch.distributed.is_available](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.is_available)
 
 **产品支持情况**：
-<!-- end id238 -->
 
 <!-- npu="910b" id1 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -45,10 +43,11 @@
 <!-- npu="A3" id2 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id2 -->
+<!-- npu="950" id323 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id323 -->
 
-<!-- npu="910b,A3" id239 -->
 </div>
-<!-- end id239 -->
 
 ### torch.distributed.init_process_group
 
@@ -72,7 +71,23 @@
 
 </div>
 
-<!-- npu="910b,A3" id240 -->
+<!-- npu="950" id335 -->
+### torch.distributed.device\_mesh.init\_device\_mesh
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.device\_mesh.init\_device\_mesh](https://docs.pytorch.org/docs/2.14/distributed.html#torch.distributed.device_mesh.init_device_mesh)
+
+**产品支持情况**：
+
+<!-- npu="950" id334 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id334 -->
+
+</div>
+
+<!-- end id335 -->
+
 ### torch.distributed.is_initialized
 
 <div style="margin-left: 2em">
@@ -80,7 +95,6 @@
 **原生文档**：[torch.distributed.is_initialized](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.is_initialized)
 
 **产品支持情况**：
-<!-- end id240 -->
 
 <!-- npu="910b" id22 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -88,10 +102,11 @@
 <!-- npu="A3" id23 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id23 -->
+<!-- npu="950" id324 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id324 -->
 
-<!-- npu="910b,A3" id241 -->
 </div>
-<!-- end id241 -->
 
 ### <code><i>class</i></code> torch.distributed.ProcessGroupNCCL
 
@@ -174,6 +189,58 @@
 <!-- end id15 -->
 
 </div>
+
+<!-- npu="950" id337 -->
+
+<!-- npu="950" id339 -->
+### torch.distributed.distributed\_c10d.is\_xccl\_available
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.distributed\_c10d.is\_xccl\_available](https://docs.pytorch.org/docs/2.14/distributed.html#torch.distributed.distributed_c10d.is_xccl_available)
+
+**产品支持情况**：
+
+<!-- npu="950" id338 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id338 -->
+
+</div>
+
+<!-- end id339 -->
+
+### torch.distributed.distributed\_c10d.destroy\_process\_group
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.distributed\_c10d.destroy\_process\_group](https://docs.pytorch.org/docs/2.14/distributed.html#torch.distributed.distributed_c10d.destroy_process_group)
+
+**产品支持情况**：
+
+<!-- npu="950" id336 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id336 -->
+
+</div>
+
+<!-- end id337 -->
+
+<!-- npu="950" id345 -->
+### torch.distributed.distributed\_c10d.is\_backend\_available
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.distributed\_c10d.is\_backend\_available](https://docs.pytorch.org/docs/2.14/distributed.html#torch.distributed.distributed_c10d.is_backend_available)
+
+**产品支持情况**：
+
+<!-- npu="950" id344 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id344 -->
+
+</div>
+
+<!-- end id345 -->
 
 ### torch.distributed.distributed_c10d.is_ucc_available
 
@@ -323,6 +390,40 @@
 </div>
 <!-- end id282 -->
 
+<!-- npu="950" id341 -->
+### torch.distributed.get\_debug\_level
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.get\_debug\_level](https://docs.pytorch.org/docs/2.14/distributed.html#torch.distributed.get_debug_level)
+
+**产品支持情况**：
+
+<!-- npu="950" id340 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id340 -->
+
+</div>
+
+<!-- end id341 -->
+
+<!-- npu="950" id343 -->
+### torch.distributed.get\_node\_local\_rank
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.get\_node\_local\_rank](https://docs.pytorch.org/docs/2.14/distributed.html#torch.distributed.get_node_local_rank)
+
+**产品支持情况**：
+
+<!-- npu="950" id342 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id342 -->
+
+</div>
+
+<!-- end id343 -->
+
 ## Groups
 
 ### torch.distributed.new_group
@@ -406,6 +507,23 @@
 <!-- end id48 -->
 
 </div>
+
+<!-- npu="950" id347 -->
+### torch.distributed.split\_group
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.split\_group](https://docs.pytorch.org/docs/2.14/distributed.html#torch.distributed.split_group)
+
+**产品支持情况**：
+
+<!-- npu="950" id346 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id346 -->
+
+</div>
+
+<!-- end id347 -->
 
 ## DeviceMesh
 
@@ -1147,6 +1265,25 @@
 
 </div>
 
+<!-- npu="950" id349 -->
+<a class="method_anchor" id="torch_distributed_Work_get_future_result"></a>
+
+> <font size="3">get_future_result()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.Work.get\_future\_result](https://docs.pytorch.org/docs/2.14/distributed.html#torch.distributed.Work.get_future_result)
+
+**产品支持情况**：
+
+<!-- npu="950" id348 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id348 -->
+
+</div>
+
+<!-- end id349 -->
+
 <a class="method_anchor" id="torch_distributed_Work_is_completed"></a>
 
 > <font size="3">is_completed()</font>
@@ -1168,6 +1305,25 @@
 <!-- end id302 -->
 
 </div>
+
+<!-- npu="950" id351 -->
+<a class="method_anchor" id="torch_distributed_Work_result"></a>
+
+> <font size="3">result()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.Work.result](https://docs.pytorch.org/docs/2.14/distributed.html#torch.distributed.Work.result)
+
+**产品支持情况**：
+
+<!-- npu="950" id350 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id350 -->
+
+</div>
+
+<!-- end id351 -->
 
 <a class="method_anchor" id="torch_distributed_Work_source_rank"></a>
 
@@ -1283,18 +1439,13 @@
 
 ## Distributed Key-Value Store
 
-<!-- npu="910b,A3" id283 -->
-<!-- npu="910b,A3" id246 -->
 ### <code><i>class</i></code> torch.distributed.PrefixStore
-<!-- end id246 -->
 
 <div style="margin-left: 2em">
 
-<!-- npu="910b,A3" id247 -->
 **原生文档**：[torch.distributed.PrefixStore](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.PrefixStore)
 
 **产品支持情况**：
-<!-- end id247 -->
 
 <!-- npu="910b" id142 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1302,8 +1453,9 @@
 <!-- npu="A3" id143 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id143 -->
-
-<!-- npu="910b,A3" id248 -->
+<!-- npu="950" id325 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id325 -->
 <a class="method_anchor" id="torch_distributed_PrefixStore___init__"></a>
 
 > <font size="3">\_\_init\_\_()</font>
@@ -1313,7 +1465,6 @@
 **原生文档**：[torch.distributed.PrefixStore.\_\_init\_\_](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.PrefixStore.__init__)
 
 **产品支持情况**：
-<!-- end id248 -->
 
 <!-- npu="910b" id145 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1321,12 +1472,13 @@
 <!-- npu="A3" id146 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id146 -->
-
-<!-- npu="910b,A3" id249 -->
+<!-- npu="950" id326 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id326 -->
 </div>
-<!-- end id249 -->
+<!-- npu="910b,A3" id319 -->
 
-<!-- npu="910b,A3" id250 -->
+<!-- end id319 -->
 <a class="method_anchor" id="torch_distributed_PrefixStore_underlying_store"></a>
 
 > <font size="3">underlying_store()</font>
@@ -1336,7 +1488,6 @@
 **原生文档**：[torch.distributed.PrefixStore.underlying_store](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.PrefixStore.underlying_store)
 
 **产品支持情况**：
-<!-- end id250 -->
 
 <!-- npu="910b" id148 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1344,13 +1495,12 @@
 <!-- npu="A3" id149 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id149 -->
-
-<!-- npu="910b,A3" id251 -->
+<!-- npu="950" id327 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id327 -->
 </div>
-<!-- end id251 -->
 
 </div>
-<!-- end id283 -->
 
 ### <code><i>class</i></code> torch.distributed.Store
 
@@ -1727,7 +1877,6 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id201 -->
 
-<!-- npu="910b,A3" id266 -->
 <a class="method_anchor" id="torch_distributed_TCPStore___init__"></a>
 
 > <font size="3">\_\_init\_\_()</font>
@@ -1737,7 +1886,6 @@
 **原生文档**：[torch.distributed.TCPStore.\_\_init\_\_](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.TCPStore.__init__)
 
 **产品支持情况**：
-<!-- end id266 -->
 
 <!-- npu="910b" id202 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1745,12 +1893,12 @@
 <!-- npu="A3" id203 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id203 -->
+<!-- npu="950" id328 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id328 -->
 
-<!-- npu="910b,A3" id267 -->
 </div>
-<!-- end id267 -->
 
-<!-- npu="910b,A3" id268 -->
 <a class="method_anchor" id="torch_distributed_TCPStore_host"></a>
 
 > <font size="3">host()</font>
@@ -1760,7 +1908,6 @@
 **原生文档**：[torch.distributed.TCPStore.host](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.TCPStore.host)
 
 **产品支持情况**：
-<!-- end id268 -->
 
 <!-- npu="910b" id205 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1768,12 +1915,12 @@
 <!-- npu="A3" id206 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id206 -->
+<!-- npu="950" id329 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id329 -->
 
-<!-- npu="910b,A3" id269 -->
 </div>
-<!-- end id269 -->
 
-<!-- npu="910b,A3" id270 -->
 <a class="method_anchor" id="torch_distributed_TCPStore_libuvBackend"></a>
 
 > <font size="3">libuvBackend()</font>
@@ -1783,7 +1930,6 @@
 **原生文档**：[torch.distributed.TCPStore.libuvBackend](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.TCPStore.libuvBackend)
 
 **产品支持情况**：
-<!-- end id270 -->
 
 <!-- npu="910b" id208 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1791,12 +1937,12 @@
 <!-- npu="A3" id209 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id209 -->
+<!-- npu="950" id330 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id330 -->
 
-<!-- npu="910b,A3" id271 -->
 </div>
-<!-- end id271 -->
 
-<!-- npu="910b,A3" id272 -->
 <a class="method_anchor" id="torch_distributed_TCPStore_port"></a>
 
 > <font size="3">port()</font>
@@ -1806,7 +1952,6 @@
 **原生文档**：[torch.distributed.TCPStore.port](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.TCPStore.port)
 
 **产品支持情况**：
-<!-- end id272 -->
 
 <!-- npu="910b" id211 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1814,10 +1959,11 @@
 <!-- npu="A3" id212 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id212 -->
+<!-- npu="950" id331 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id331 -->
 
-<!-- npu="910b,A3" id273 -->
 </div>
-<!-- end id273 -->
 
 </div>
 
@@ -1885,7 +2031,6 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id222 -->
 
-<!-- npu="910b,A3" id278 -->
 <a class="method_anchor" id="torch_distributed_FileStore___init__"></a>
 
 > <font size="3">\_\_init\_\_()</font>
@@ -1895,7 +2040,6 @@
 **原生文档**：[torch.distributed.FileStore.\_\_init\_\_](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.FileStore.__init__)
 
 **产品支持情况**：
-<!-- end id278 -->
 
 <!-- npu="910b" id223 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1903,12 +2047,12 @@
 <!-- npu="A3" id224 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id224 -->
+<!-- npu="950" id332 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id332 -->
 
-<!-- npu="910b,A3" id279 -->
 </div>
-<!-- end id279 -->
 
-<!-- npu="910b,A3" id280 -->
 <a class="method_anchor" id="torch_distributed_FileStore_path"></a>
 
 > <font size="3">path()</font>
@@ -1918,7 +2062,6 @@
 **原生文档**：[torch.distributed.FileStore.path](https://pytorch.org/docs/2.14/distributed.html#torch.distributed.FileStore.path)
 
 **产品支持情况**：
-<!-- end id280 -->
 
 <!-- npu="910b" id226 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1926,10 +2069,11 @@
 <!-- npu="A3" id227 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id227 -->
+<!-- npu="950" id333 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id333 -->
 
-<!-- npu="910b,A3" id281 -->
 </div>
-<!-- end id281 -->
 
 </div>
 

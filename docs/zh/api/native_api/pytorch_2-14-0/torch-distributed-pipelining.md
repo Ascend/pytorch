@@ -302,6 +302,23 @@
 
 </div>
 
+<!-- npu="950" id56 -->
+### <code><i>class</i></code> torch.distributed.pipelining.schedules.ScheduleZBVZeroBubble
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.pipelining.schedules.ScheduleZBVZeroBubble](https://docs.pytorch.org/docs/2.14/distributed.pipelining.html#torch.distributed.pipelining.schedules.ScheduleZBVZeroBubble)
+
+**产品支持情况**：
+
+<!-- npu="950" id55 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id55 -->
+
+</div>
+
+<!-- end id56 -->
+
 ### <code><i>class</i></code> torch.distributed.pipelining.schedules.PipelineScheduleSingle
 
 <div style="margin-left: 2em">

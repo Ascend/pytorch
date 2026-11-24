@@ -204,6 +204,23 @@
 
 </div>
 
+<!-- npu="950" id51 -->
+### <code><i>class</i></code> torch.distributed.tensor.placement\_types.Partial
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.tensor.placement\_types.Partial](https://docs.pytorch.org/docs/2.10/distributed.tensor.html#torch.distributed.tensor.placement_types.Partial)
+
+**产品支持情况**：
+
+<!-- npu="950" id50 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id50 -->
+
+</div>
+
+<!-- end id51 -->
+
 ### <code><i>class</i></code> torch.distributed.tensor.placement_types.Placement
 
 <div style="margin-left: 2em">

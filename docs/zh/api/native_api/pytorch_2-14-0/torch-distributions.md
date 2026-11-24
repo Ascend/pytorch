@@ -70,6 +70,17 @@
 
 <div style="margin-left: 2em">
 
+<!-- npu="950" id1687 -->
+**原生文档**：[torch.distributions.distribution.Distribution](https://docs.pytorch.org/docs/2.14/distributions.html#torch.distributions.distribution.Distribution)
+
+**产品支持情况**：
+
+<!-- npu="950" id1686 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1686 -->
+
+<!-- end id1687 -->
+
 <a class="method_anchor" id="torch_distributions_distribution_Distribution_arg_constraints"></a>
 
 > <font size="3">arg_constraints()</font>

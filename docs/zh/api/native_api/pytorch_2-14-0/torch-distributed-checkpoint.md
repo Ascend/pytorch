@@ -43,6 +43,23 @@
 </div>
 <!-- end id245 -->
 
+<!-- npu="950" id373 -->
+### <code><i>class</i></code> torch.distributed.checkpoint.state\_dict\_saver.AsyncCheckpointerType
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.checkpoint.state\_dict\_saver.AsyncCheckpointerType](https://docs.pytorch.org/docs/2.14/distributed.checkpoint.html#torch.distributed.checkpoint.state_dict_saver.AsyncCheckpointerType)
+
+**产品支持情况**：
+
+<!-- npu="950" id372 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id372 -->
+
+</div>
+
+<!-- end id373 -->
+
 ### torch.distributed.checkpoint.state_dict_saver.save
 
 <div style="margin-left: 2em">
@@ -103,18 +120,13 @@
 
 </div>
 
-<!-- npu="910b,A3" id310 -->
-<!-- npu="910b,A3" id246 -->
 ### <code><i>class</i></code> torch.distributed.checkpoint.stateful.Stateful
-<!-- end id246 -->
 
 <div style="margin-left: 2em">
 
-<!-- npu="910b,A3" id247 -->
 **原生文档**：[torch.distributed.checkpoint.stateful.Stateful](https://pytorch.org/docs/2.14/distributed.checkpoint.html#torch.distributed.checkpoint.stateful.Stateful)
 
 **产品支持情况**：
-<!-- end id247 -->
 
 <!-- npu="910b" id13 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -122,8 +134,9 @@
 <!-- npu="A3" id14 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id14 -->
-
-<!-- npu="910b,A3" id248 -->
+<!-- npu="950" id354 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id354 -->
 <a class="method_anchor" id="torch_distributed_checkpoint_stateful_Stateful_load_state_dict"></a>
 
 > <font size="3">load_state_dict()</font>
@@ -133,7 +146,6 @@
 **原生文档**：[torch.distributed.checkpoint.stateful.Stateful.load_state_dict](https://pytorch.org/docs/2.14/distributed.checkpoint.html#torch.distributed.checkpoint.stateful.Stateful.load_state_dict)
 
 **产品支持情况**：
-<!-- end id248 -->
 
 <!-- npu="910b" id16 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -141,12 +153,13 @@
 <!-- npu="A3" id17 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id17 -->
-
-<!-- npu="910b,A3" id249 -->
+<!-- npu="950" id355 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id355 -->
 </div>
-<!-- end id249 -->
+<!-- npu="910b,A3" id340 -->
 
-<!-- npu="910b,A3" id250 -->
+<!-- end id340 -->
 <a class="method_anchor" id="torch_distributed_checkpoint_stateful_Stateful_state_dict"></a>
 
 > <font size="3">state_dict()</font>
@@ -156,7 +169,6 @@
 **原生文档**：[torch.distributed.checkpoint.stateful.Stateful.state_dict](https://pytorch.org/docs/2.14/distributed.checkpoint.html#torch.distributed.checkpoint.stateful.Stateful.state_dict)
 
 **产品支持情况**：
-<!-- end id250 -->
 
 <!-- npu="910b" id19 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -164,13 +176,12 @@
 <!-- npu="A3" id20 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id20 -->
-
-<!-- npu="910b,A3" id251 -->
+<!-- npu="950" id356 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id356 -->
 </div>
-<!-- end id251 -->
 
 </div>
-<!-- end id310 -->
 
 ### torch.distributed.checkpoint.state_dict_loader.load
 
@@ -288,18 +299,13 @@
 </div>
 <!-- end id314 -->
 
-<!-- npu="910b,A3" id311 -->
-<!-- npu="910b,A3" id252 -->
 ### <code><i>class</i></code> torch.distributed.checkpoint.staging.BlockingAsyncStager
-<!-- end id252 -->
 
 <div style="margin-left: 2em">
 
-<!-- npu="910b,A3" id253 -->
 **原生文档**：[torch.distributed.checkpoint.staging.BlockingAsyncStager](https://pytorch.org/docs/2.14/distributed.checkpoint.html#torch.distributed.checkpoint.staging.BlockingAsyncStager)
 
 **产品支持情况**：
-<!-- end id253 -->
 
 <!-- npu="910b" id28 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -307,6 +313,10 @@
 <!-- npu="A3" id29 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id29 -->
+<!-- npu="950" id357 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id357 -->
+<!-- npu="910b,A3" id344 -->
 
 <!-- npu="910b,A3" id254 -->
 <a class="method_anchor" id="torch_distributed_checkpoint_staging_BlockingAsyncStager_stage"></a>
@@ -353,9 +363,9 @@
 <!-- npu="910b,A3" id257 -->
 </div>
 <!-- end id257 -->
+<!-- end id344 -->
 
 </div>
-<!-- end id311 -->
 
 ### <code><i>class</i></code> torch.distributed.checkpoint.staging.StagingOptions
 
@@ -943,7 +953,6 @@
 
 </div>
 
-<!-- npu="910b,A3" id290 -->
 ### <code><i>class</i></code> torch.distributed.checkpoint.LoadPlan
 
 <div style="margin-left: 2em">
@@ -951,7 +960,6 @@
 **原生文档**：[torch.distributed.checkpoint.LoadPlan](https://pytorch.org/docs/2.14/distributed.checkpoint.html#torch.distributed.checkpoint.LoadPlan)
 
 **产品支持情况**：
-<!-- end id290 -->
 
 <!-- npu="910b" id178 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -959,12 +967,12 @@
 <!-- npu="A3" id179 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id179 -->
+<!-- npu="950" id358 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id358 -->
 
-<!-- npu="910b,A3" id291 -->
 </div>
-<!-- end id291 -->
 
-<!-- npu="910b,A3" id292 -->
 ### <code><i>class</i></code> torch.distributed.checkpoint.ReadItem
 
 <div style="margin-left: 2em">
@@ -972,7 +980,6 @@
 **原生文档**：[torch.distributed.checkpoint.ReadItem](https://pytorch.org/docs/2.14/distributed.checkpoint.html#torch.distributed.checkpoint.ReadItem)
 
 **产品支持情况**：
-<!-- end id292 -->
 
 <!-- npu="910b" id181 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -980,10 +987,11 @@
 <!-- npu="A3" id182 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id182 -->
+<!-- npu="950" id359 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id359 -->
 
-<!-- npu="910b,A3" id293 -->
 </div>
-<!-- end id293 -->
 
 ### <code><i>class</i></code> torch.distributed.checkpoint.SavePlanner
 
@@ -1115,17 +1123,13 @@
 
 </div>
 
-<!-- npu="910b,A3,950" id270 -->
 ### <code><i>class</i></code> torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader
-<!-- end id270 -->
 
 <div style="margin-left: 2em">
 
-<!-- npu="910b,A3" id271 -->
 **原生文档**：[torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader](https://pytorch.org/docs/2.14/distributed.checkpoint.html#torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader)
 
 **产品支持情况**：
-<!-- end id271 -->
 
 <!-- npu="910b" id73 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1133,6 +1137,9 @@
 <!-- npu="A3" id74 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id74 -->
+<!-- npu="950" id360 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id360 -->
 
 <!-- npu="910b,A3" id272 -->
 <a class="method_anchor" id="torch_distributed_checkpoint_format_utils_BroadcastingTorchSaveReader_read_metadata"></a>
@@ -1157,7 +1164,6 @@
 </div>
 <!-- end id273 -->
 
-<!-- npu="910b,A3" id274 -->
 <a class="method_anchor" id="torch_distributed_checkpoint_format_utils_BroadcastingTorchSaveReader_prepare_local_plan"></a>
 
 > <font size="3">prepare_local_plan()</font>
@@ -1167,7 +1173,6 @@
 **原生文档**：[torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.prepare_local_plan](https://pytorch.org/docs/2.14/distributed.checkpoint.html#torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.prepare_local_plan)
 
 **产品支持情况**：
-<!-- end id274 -->
 
 <!-- npu="910b" id79 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1175,12 +1180,12 @@
 <!-- npu="A3" id80 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id80 -->
+<!-- npu="950" id361 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id361 -->
 
-<!-- npu="910b,A3" id275 -->
 </div>
-<!-- end id275 -->
 
-<!-- npu="910b,A3" id276 -->
 <a class="method_anchor" id="torch_distributed_checkpoint_format_utils_BroadcastingTorchSaveReader_prepare_global_plan"></a>
 
 > <font size="3">prepare_global_plan()</font>
@@ -1190,7 +1195,6 @@
 **原生文档**：[torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.prepare_global_plan](https://pytorch.org/docs/2.14/distributed.checkpoint.html#torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.prepare_global_plan)
 
 **产品支持情况**：
-<!-- end id276 -->
 
 <!-- npu="910b" id82 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1198,10 +1202,11 @@
 <!-- npu="A3" id83 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id83 -->
+<!-- npu="950" id362 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id362 -->
 
-<!-- npu="910b,A3" id277 -->
 </div>
-<!-- end id277 -->
 
 <a class="method_anchor" id="torch_distributed_checkpoint_format_utils_BroadcastingTorchSaveReader_read_data"></a>
 
@@ -1225,7 +1230,6 @@
 
 </div>
 
-<!-- npu="910b,A3" id278 -->
 <a class="method_anchor" id="torch_distributed_checkpoint_format_utils_BroadcastingTorchSaveReader_reset"></a>
 
 > <font size="3">reset()</font>
@@ -1235,7 +1239,6 @@
 **原生文档**：[torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.reset](https://pytorch.org/docs/2.14/distributed.checkpoint.html#torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.reset)
 
 **产品支持情况**：
-<!-- end id278 -->
 
 <!-- npu="910b" id88 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1243,12 +1246,12 @@
 <!-- npu="A3" id89 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id89 -->
+<!-- npu="950" id363 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id363 -->
 
-<!-- npu="910b,A3" id279 -->
 </div>
-<!-- end id279 -->
 
-<!-- npu="910b,A3" id280 -->
 <a class="method_anchor" id="torch_distributed_checkpoint_format_utils_BroadcastingTorchSaveReader_set_up_storage_reader"></a>
 
 > <font size="3">set_up_storage_reader()</font>
@@ -1258,7 +1261,6 @@
 **原生文档**：[torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.set_up_storage_reader](https://pytorch.org/docs/2.14/distributed.checkpoint.html#torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.set_up_storage_reader)
 
 **产品支持情况**：
-<!-- end id280 -->
 
 <!-- npu="910b" id91 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1266,12 +1268,12 @@
 <!-- npu="A3" id92 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id92 -->
+<!-- npu="950" id364 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id364 -->
 
-<!-- npu="910b,A3" id281 -->
 </div>
-<!-- end id281 -->
 
-<!-- npu="910b,A3" id282 -->
 <a class="method_anchor" id="torch_distributed_checkpoint_format_utils_BroadcastingTorchSaveReader_validate_checkpoint_id"></a>
 
 > <font size="3">validate_checkpoint_id()</font>
@@ -1281,7 +1283,6 @@
 **原生文档**：[torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.validate_checkpoint_id](https://pytorch.org/docs/2.14/distributed.checkpoint.html#torch.distributed.checkpoint.format_utils.BroadcastingTorchSaveReader.validate_checkpoint_id)
 
 **产品支持情况**：
-<!-- end id282 -->
 
 <!-- npu="910b" id94 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1289,14 +1290,14 @@
 <!-- npu="A3" id95 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id95 -->
+<!-- npu="950" id365 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id365 -->
 
-<!-- npu="910b,A3" id283 -->
 </div>
-<!-- end id283 -->
 
 </div>
 
-<!-- npu="910b,A3" id294 -->
 ### <code><i>class</i></code> torch.distributed.checkpoint.SavePlan
 
 <div style="margin-left: 2em">
@@ -1304,7 +1305,6 @@
 **原生文档**：[torch.distributed.checkpoint.SavePlan](https://pytorch.org/docs/2.14/distributed.checkpoint.html#torch.distributed.checkpoint.SavePlan)
 
 **产品支持情况**：
-<!-- end id294 -->
 
 <!-- npu="910b" id205 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1312,10 +1312,11 @@
 <!-- npu="A3" id206 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id206 -->
+<!-- npu="950" id366 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id366 -->
 
-<!-- npu="910b,A3" id295 -->
 </div>
-<!-- end id295 -->
 
 ### <code><i>class</i></code> torch.distributed.checkpoint.FileSystemReader
 
@@ -1334,6 +1335,25 @@
 <!-- npu="950" id24 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id24 -->
+
+<!-- npu="950" id375 -->
+<a class="method_anchor" id="torch_distributed_checkpoint_FileSystemReader_checkpoint_id"></a>
+
+> <font size="3">checkpoint_id</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.checkpoint.FileSystemReader.checkpoint\_id](https://docs.pytorch.org/docs/2.14/distributed.checkpoint.html#torch.distributed.checkpoint.FileSystemReader.checkpoint_id)
+
+**产品支持情况**：
+
+<!-- npu="950" id374 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id374 -->
+
+</div>
+
+<!-- end id375 -->
 
 </div>
 
@@ -1589,18 +1609,13 @@
 </div>
 <!-- end id265 -->
 
-<!-- npu="910b,A3" id312 -->
-<!-- npu="910b,A3" id296 -->
 ### <code><i>class</i></code> torch.distributed.checkpoint.planner.WriteItem
-<!-- end id296 -->
 
 <div style="margin-left: 2em">
 
-<!-- npu="910b,A3" id297 -->
 **原生文档**：[torch.distributed.checkpoint.planner.WriteItem](https://pytorch.org/docs/2.14/distributed.checkpoint.html#torch.distributed.checkpoint.planner.WriteItem)
 
 **产品支持情况**：
-<!-- end id297 -->
 
 <!-- npu="910b" id208 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1608,6 +1623,10 @@
 <!-- npu="A3" id209 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id209 -->
+<!-- npu="950" id367 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id367 -->
+<!-- npu="910b,A3" id346 -->
 
 <!-- npu="910b,A3" id298 -->
 <a class="method_anchor" id="torch_distributed_checkpoint_planner_WriteItem_tensor_storage_size"></a>
@@ -1631,9 +1650,9 @@
 <!-- npu="910b,A3" id299 -->
 </div>
 <!-- end id299 -->
+<!-- end id346 -->
 
 </div>
-<!-- end id312 -->
 
 ### <code><i>class</i></code> torch.distributed.checkpoint.hf_storage.HuggingFaceStorageReader
 
@@ -1695,18 +1714,13 @@
 
 </div>
 
-<!-- npu="910b,A3" id313 -->
-<!-- npu="910b,A3" id300 -->
 ### <code><i>class</i></code> torch.distributed.checkpoint.staging.AsyncStager
-<!-- end id300 -->
 
 <div style="margin-left: 2em">
 
-<!-- npu="910b,A3" id301 -->
 **原生文档**：[torch.distributed.checkpoint.staging.AsyncStager](https://pytorch.org/docs/2.14/distributed.checkpoint.html#torch.distributed.checkpoint.staging.AsyncStager)
 
 **产品支持情况**：
-<!-- end id301 -->
 
 <!-- npu="910b" id214 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1714,8 +1728,9 @@
 <!-- npu="A3" id215 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id215 -->
-
-<!-- npu="910b,A3" id302 -->
+<!-- npu="950" id368 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id368 -->
 <a class="method_anchor" id="torch_distributed_checkpoint_staging_AsyncStager_should_synchronize_after_execute"></a>
 
 > <font size="3">should_synchronize_after_execute()</font>
@@ -1725,7 +1740,6 @@
 **原生文档**：[torch.distributed.checkpoint.staging.AsyncStager.should_synchronize_after_execute](https://pytorch.org/docs/2.14/distributed.checkpoint.html#torch.distributed.checkpoint.staging.AsyncStager.should_synchronize_after_execute)
 
 **产品支持情况**：
-<!-- end id302 -->
 
 <!-- npu="910b" id217 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1733,10 +1747,11 @@
 <!-- npu="A3" id218 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id218 -->
-
-<!-- npu="910b,A3" id303 -->
+<!-- npu="950" id369 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id369 -->
 </div>
-<!-- end id303 -->
+<!-- npu="910b,A3" id352 -->
 
 <!-- npu="910b,A3" id304 -->
 <a class="method_anchor" id="torch_distributed_checkpoint_staging_AsyncStager_stage"></a>
@@ -1783,9 +1798,9 @@
 <!-- npu="910b,A3" id307 -->
 </div>
 <!-- end id307 -->
+<!-- end id352 -->
 
 </div>
-<!-- end id313 -->
 
 <!-- npu="910b,A3" id266 -->
 ### torch.distributed.checkpoint.state_dict.set_model_state_dict
@@ -1829,7 +1844,6 @@
 </div>
 <!-- end id269 -->
 
-<!-- npu="910b,A3" id308 -->
 ### <code><i>class</i></code> torch.distributed.checkpoint.state_dict.StateDictOptions
 
 <div style="margin-left: 2em">
@@ -1837,7 +1851,6 @@
 **原生文档**：[torch.distributed.checkpoint.state_dict.StateDictOptions](https://pytorch.org/docs/2.14/distributed.checkpoint.html#torch.distributed.checkpoint.state_dict.StateDictOptions)
 
 **产品支持情况**：
-<!-- end id308 -->
 
 <!-- npu="910b" id226 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1845,10 +1858,11 @@
 <!-- npu="A3" id227 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id227 -->
+<!-- npu="950" id370 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id370 -->
 
-<!-- npu="910b,A3" id309 -->
 </div>
-<!-- end id309 -->
 
 ### torch.distributed.checkpoint.format_utils.dcp_to_torch_save
 
@@ -1890,7 +1904,6 @@
 
 </div>
 
-<!-- npu="910b,A3" id284 -->
 ### <code><i>class</i></code> torch.distributed.checkpoint.format_utils.DynamicMetaLoadPlanner
 
 <div style="margin-left: 2em">
@@ -1898,7 +1911,6 @@
 **原生文档**：[torch.distributed.checkpoint.format_utils.DynamicMetaLoadPlanner](https://pytorch.org/docs/2.14/distributed.checkpoint.html#torch.distributed.checkpoint.format_utils.DynamicMetaLoadPlanner)
 
 **产品支持情况**：
-<!-- end id284 -->
 
 <!-- npu="910b" id97 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -1906,7 +1918,8 @@
 <!-- npu="A3" id98 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id98 -->
+<!-- npu="950" id371 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id371 -->
 
-<!-- npu="910b,A3" id285 -->
 </div>
-<!-- end id285 -->

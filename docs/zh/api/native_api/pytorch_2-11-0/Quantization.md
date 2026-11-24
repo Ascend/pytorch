@@ -347,7 +347,6 @@
 
 </div>
 
-<!-- npu="910b,A3" id30 -->
 <a class="method_anchor" id="torch_ao_quantization_qconfig_mapping_QConfigMapping_set_module_name"></a>
 
 > <font size="3">set_module_name()</font>
@@ -364,9 +363,11 @@
 <!-- npu="A3" id29 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id29 -->
+<!-- npu="950" id660 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id660 -->
 
 </div>
-<!-- end id30 -->
 
 <a class="method_anchor" id="torch_ao_quantization_qconfig_mapping_QConfigMapping_set_module_name_object_type_order"></a>
 

@@ -735,6 +735,23 @@
 
 </div>
 
+<!-- npu="950" id1515 -->
+### torch.from\_file
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.from\_file](https://docs.pytorch.org/docs/2.10/generated/torch.from_file.html#torch.from_file)
+
+**产品支持情况**：
+
+<!-- npu="950" id1514 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1514 -->
+
+</div>
+
+<!-- end id1515 -->
+
 ### torch.from_numpy
 
 <div style="margin-left: 2em">
@@ -3169,7 +3186,6 @@
 
 </div>
 
-<!-- npu="910b,A3" id1150 -->
 ### torch.set_num_threads
 
 <div style="margin-left: 2em">
@@ -3177,7 +3193,6 @@
 **原生文档**：[torch.set_num_threads](https://pytorch.org/docs/2.10/generated/torch.set_num_threads.html)
 
 **产品支持情况**：
-<!-- end id1150 -->
 
 <!-- npu="910b" id367 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -3185,10 +3200,11 @@
 <!-- npu="A3" id368 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id368 -->
+<!-- npu="950" id1513 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1513 -->
 
-<!-- npu="910b,A3" id1151 -->
 </div>
-<!-- end id1151 -->
 
 ### torch.get_num_interop_threads
 
@@ -10056,11 +10072,9 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1053 -->
 
-<!-- npu="910b,A3,950" id1504 -->
 **限制与说明**： 此接口可调用，但不控制 NPU 矩阵乘精度；NPU 使用 torch_npu.npu.matmul.allow_hf32 配置。
 
 </div>
-<!-- end id1504 -->
 
 <!-- npu="910b,A3" id1164 -->
 ### torch.get_float32_matmul_precision
@@ -10321,15 +10335,15 @@
 
 **产品支持情况**：
 
-<!-- npu="910b" id1146 -->
+<!-- npu="910b" id1507 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id1146 -->
-<!-- npu="A3" id1147 -->
+<!-- end id1507 -->
+<!-- npu="A3" id1508 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id1147 -->
-<!-- npu="950" id1148 -->
+<!-- end id1508 -->
+<!-- npu="950" id1509 -->
 - <term>Ascend 950DT系列产品</term>：支持
-<!-- end id1148 -->
+<!-- end id1509 -->
 
 </div>
 
@@ -10490,15 +10504,15 @@
 
 **产品支持情况**：
 
-<!-- npu="910b" id1139 -->
+<!-- npu="910b" id1510 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id1139 -->
-<!-- npu="A3" id1140 -->
+<!-- end id1510 -->
+<!-- npu="A3" id1511 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id1140 -->
-<!-- npu="950" id1141 -->
+<!-- end id1511 -->
+<!-- npu="950" id1512 -->
 - <term>Ascend 950DT系列产品</term>：支持
-<!-- end id1141 -->
+<!-- end id1512 -->
 
 </div>
 

@@ -166,7 +166,6 @@
 
 </div>
 
-<!-- npu="910b,A3" id45 -->
 <a class="method_anchor" id="torch_distributed_optim_ZeroRedundancyOptimizer_join_device"></a>
 
 > <font size="3">join_device()</font>
@@ -176,7 +175,6 @@
 **原生文档**：[torch.distributed.optim.ZeroRedundancyOptimizer.join_device](https://pytorch.org/docs/2.12/distributed.optim.html#torch.distributed.optim.ZeroRedundancyOptimizer.join_device)
 
 **产品支持情况**：
-<!-- end id45 -->
 
 <!-- npu="910b" id28 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -184,12 +182,12 @@
 <!-- npu="A3" id29 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id29 -->
+<!-- npu="950" id55 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id55 -->
 
-<!-- npu="910b,A3" id46 -->
 </div>
-<!-- end id46 -->
 
-<!-- npu="910b,A3" id47 -->
 <a class="method_anchor" id="torch_distributed_optim_ZeroRedundancyOptimizer_join_hook"></a>
 
 > <font size="3">join_hook()</font>
@@ -199,7 +197,6 @@
 **原生文档**：[torch.distributed.optim.ZeroRedundancyOptimizer.join_hook](https://pytorch.org/docs/2.12/distributed.optim.html#torch.distributed.optim.ZeroRedundancyOptimizer.join_hook)
 
 **产品支持情况**：
-<!-- end id47 -->
 
 <!-- npu="910b" id31 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -207,12 +204,12 @@
 <!-- npu="A3" id32 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id32 -->
+<!-- npu="950" id56 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id56 -->
 
-<!-- npu="910b,A3" id48 -->
 </div>
-<!-- end id48 -->
 
-<!-- npu="910b,A3" id49 -->
 <a class="method_anchor" id="torch_distributed_optim_ZeroRedundancyOptimizer_join_process_group"></a>
 
 > <font size="3">join_process_group()</font>
@@ -222,7 +219,6 @@
 **原生文档**：[torch.distributed.optim.ZeroRedundancyOptimizer.join_process_group](https://pytorch.org/docs/2.12/distributed.optim.html#torch.distributed.optim.ZeroRedundancyOptimizer.join_process_group)
 
 **产品支持情况**：
-<!-- end id49 -->
 
 <!-- npu="910b" id34 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -230,12 +226,12 @@
 <!-- npu="A3" id35 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id35 -->
+<!-- npu="950" id57 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id57 -->
 
-<!-- npu="910b,A3" id50 -->
 </div>
-<!-- end id50 -->
 
-<!-- npu="910b,A3" id51 -->
 <a class="method_anchor" id="torch_distributed_optim_ZeroRedundancyOptimizer_load_state_dict"></a>
 
 > <font size="3">load_state_dict()</font>
@@ -245,7 +241,6 @@
 **原生文档**：[torch.distributed.optim.ZeroRedundancyOptimizer.load_state_dict](https://pytorch.org/docs/2.12/distributed.optim.html#torch.distributed.optim.ZeroRedundancyOptimizer.load_state_dict)
 
 **产品支持情况**：
-<!-- end id51 -->
 
 <!-- npu="910b" id37 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -253,10 +248,11 @@
 <!-- npu="A3" id38 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id38 -->
+<!-- npu="950" id58 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id58 -->
 
-<!-- npu="910b,A3" id52 -->
 </div>
-<!-- end id52 -->
 
 <a class="method_anchor" id="torch_distributed_optim_ZeroRedundancyOptimizer_state_dict"></a>
 

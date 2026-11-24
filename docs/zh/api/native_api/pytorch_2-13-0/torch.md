@@ -572,6 +572,23 @@
 
 </div>
 
+<!-- npu="950" id1544 -->
+### torch.from\_file
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.from\_file](https://docs.pytorch.org/docs/2.13/generated/torch.from_file.html#torch.from_file)
+
+**产品支持情况**：
+
+<!-- npu="950" id1543 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1543 -->
+
+</div>
+
+<!-- end id1544 -->
+
 ### torch.from_numpy
 
 <div style="margin-left: 2em">
@@ -3137,7 +3154,6 @@
 
 </div>
 
-<!-- npu="910b,A3" id1163 -->
 ### torch.set_num_threads
 
 <div style="margin-left: 2em">
@@ -3145,7 +3161,6 @@
 **原生文档**：[torch.set_num_threads](https://pytorch.org/docs/2.13/generated/torch.set_num_threads.html)
 
 **产品支持情况**：
-<!-- end id1163 -->
 
 <!-- npu="910b" id366 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -3153,10 +3168,11 @@
 <!-- npu="A3" id367 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id367 -->
+<!-- npu="950" id1542 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1542 -->
 
-<!-- npu="910b,A3" id1164 -->
 </div>
-<!-- end id1164 -->
 
 ### torch.get_num_interop_threads
 
@@ -10060,6 +10076,23 @@
 
 </div>
 
+<!-- npu="950" id1546 -->
+### torch.is\_autocast\_cache\_enabled
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.is\_autocast\_cache\_enabled](https://docs.pytorch.org/docs/2.13/generated/torch.is_autocast_cache_enabled.html#torch.is_autocast_cache_enabled)
+
+**产品支持情况**：
+
+<!-- npu="950" id1545 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1545 -->
+
+</div>
+
+<!-- end id1546 -->
+
 ### torch.is_autocast_enabled
 
 <div style="margin-left: 2em">
@@ -10245,11 +10278,9 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1055 -->
 
-<!-- npu="910b,A3,950" id1533 -->
 **限制与说明**： 此接口可调用，但不控制 NPU 矩阵乘精度；NPU 使用 torch_npu.npu.matmul.allow_hf32 配置。
 
 </div>
-<!-- end id1533 -->
 
 <!-- npu="910b,A3" id1179 -->
 ### torch.get_float32_matmul_precision
@@ -10351,6 +10382,23 @@
 <!-- end id1070 -->
 
 </div>
+
+<!-- npu="950" id1548 -->
+### torch.typename
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.typename](https://docs.pytorch.org/docs/2.13/generated/torch.typename.html#torch.typename)
+
+**产品支持情况**：
+
+<!-- npu="950" id1547 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id1547 -->
+
+</div>
+
+<!-- end id1548 -->
 
 ## Symbolic Numbers
 
@@ -10468,15 +10516,15 @@
 
 **产品支持情况**：
 
-<!-- npu="910b" id1159 -->
+<!-- npu="910b" id1536 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id1159 -->
-<!-- npu="A3" id1160 -->
+<!-- end id1536 -->
+<!-- npu="A3" id1537 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id1160 -->
-<!-- npu="950" id1161 -->
+<!-- end id1537 -->
+<!-- npu="950" id1538 -->
 - <term>Ascend 950DT系列产品</term>：支持
-<!-- end id1161 -->
+<!-- end id1538 -->
 
 </div>
 
@@ -10637,15 +10685,15 @@
 
 **产品支持情况**：
 
-<!-- npu="910b" id1147 -->
+<!-- npu="910b" id1539 -->
 - <term>Atlas A2训练系列产品</term>：支持
-<!-- end id1147 -->
-<!-- npu="A3" id1148 -->
+<!-- end id1539 -->
+<!-- npu="A3" id1540 -->
 - <term>Atlas A3训练系列产品</term>：支持
-<!-- end id1148 -->
-<!-- npu="950" id1149 -->
+<!-- end id1540 -->
+<!-- npu="950" id1541 -->
 - <term>Ascend 950DT系列产品</term>：支持
-<!-- end id1149 -->
+<!-- end id1541 -->
 
 </div>
 

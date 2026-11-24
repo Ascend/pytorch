@@ -39,6 +39,10 @@
 
 - **[torch.distributed.pipelining](torch-distributed-pipelining.md)**
 
+<!-- npu="950" id3 -->
+- **[PyTorch Symmetric Memory](torch-distributed-symmetric-memory.md)**
+<!-- end id3 -->
+
 - **[torch.distributed.tensor.parallel](torch-distributed-tensor-parallel.md)**
 
 - **[torch.distributed.checkpoint](torch-distributed-checkpoint.md)**
@@ -50,6 +54,10 @@
 - **[torch.func](torch-func.md)**
 
 - **[torch.futures](torch-futures.md)**
+
+<!-- npu="950" id4 -->
+- **[torch.multiprocessing](torch-multiprocessing.md)**
+<!-- end id4 -->
 
 - **[torch.fx](torch-fx.md)**
 

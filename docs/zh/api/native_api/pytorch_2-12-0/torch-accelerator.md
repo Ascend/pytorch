@@ -73,7 +73,6 @@
 
 </div>
 
-<!-- npu="910b,A3" id37 -->
 ### torch.accelerator.set_device_index
 
 <div style="margin-left: 2em">
@@ -81,7 +80,6 @@
 **原生文档**：[torch.accelerator.set_device_index](https://pytorch.org/docs/2.12/generated/torch.accelerator.set_device_index.html)
 
 **产品支持情况**：
-<!-- end id37 -->
 
 <!-- npu="910b" id10 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -89,10 +87,11 @@
 <!-- npu="A3" id11 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id11 -->
+<!-- npu="950" id43 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id43 -->
 
-<!-- npu="910b,A3" id38 -->
 </div>
-<!-- end id38 -->
 
 <!-- npu="910b,A3" id39 -->
 ### torch.accelerator.set_device_idx

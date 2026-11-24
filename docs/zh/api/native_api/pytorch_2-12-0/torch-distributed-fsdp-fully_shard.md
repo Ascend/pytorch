@@ -45,11 +45,283 @@
 
 </div>
 
+<!-- npu="950" id8 -->
+
+<!-- npu="950" id10 -->
+### <code><i>class</i></code> torch.distributed.fsdp.MixedPrecisionPolicy
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.fsdp.MixedPrecisionPolicy](https://docs.pytorch.org/docs/2.12/distributed.fsdp.fully_shard.html#torch.distributed.fsdp.MixedPrecisionPolicy)
+
+**产品支持情况**：
+
+<!-- npu="950" id9 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id9 -->
+
+</div>
+
+<!-- end id10 -->
+
+<!-- npu="950" id12 -->
+### <code><i>class</i></code> torch.distributed.fsdp.OffloadPolicy
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.fsdp.OffloadPolicy](https://docs.pytorch.org/docs/2.12/distributed.fsdp.fully_shard.html#torch.distributed.fsdp.OffloadPolicy)
+
+**产品支持情况**：
+
+<!-- npu="950" id11 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id11 -->
+
+</div>
+
+<!-- end id12 -->
+
+### <code><i>class</i></code> torch.distributed.fsdp.CPUOffloadPolicy
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.fsdp.CPUOffloadPolicy](https://docs.pytorch.org/docs/2.12/distributed.fsdp.fully_shard.html#torch.distributed.fsdp.CPUOffloadPolicy)
+
+**产品支持情况**：
+
+<!-- npu="950" id7 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id7 -->
+
+</div>
+
+<!-- end id8 -->
+
 ## PyTorch FSDP2 ( fully_shard )
 
 ### <code><i>class</i></code> torch.distributed.fsdp.FSDPModule
 
 <div style="margin-left: 2em">
+
+<!-- npu="950" id14 -->
+**原生文档**：[torch.distributed.fsdp.FSDPModule](https://docs.pytorch.org/docs/2.12/distributed.fsdp.fully_shard.html#torch.distributed.fsdp.FSDPModule)
+
+**产品支持情况**：
+
+<!-- npu="950" id13 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id13 -->
+
+<!-- end id14 -->
+
+<!-- npu="950" id16 -->
+<a class="method_anchor" id="torch_distributed_fsdp_FSDPModule_reshard"></a>
+
+> <font size="3">reshard()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.fsdp.FSDPModule.reshard](https://docs.pytorch.org/docs/2.12/distributed.fsdp.fully_shard.html#torch.distributed.fsdp.FSDPModule.reshard)
+
+**产品支持情况**：
+
+<!-- npu="950" id15 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id15 -->
+
+</div>
+
+<!-- end id16 -->
+
+<!-- npu="950" id18 -->
+<a class="method_anchor" id="torch_distributed_fsdp_FSDPModule_set_all_reduce_hook"></a>
+
+> <font size="3">set_all_reduce_hook()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.fsdp.FSDPModule.set\_all\_reduce\_hook](https://docs.pytorch.org/docs/2.12/distributed.fsdp.fully_shard.html#torch.distributed.fsdp.FSDPModule.set_all_reduce_hook)
+
+**产品支持情况**：
+
+<!-- npu="950" id17 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id17 -->
+
+</div>
+
+<!-- end id18 -->
+
+<!-- npu="950" id20 -->
+<a class="method_anchor" id="torch_distributed_fsdp_FSDPModule_set_is_last_backward"></a>
+
+> <font size="3">set_is_last_backward()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.fsdp.FSDPModule.set\_is\_last\_backward](https://docs.pytorch.org/docs/2.12/distributed.fsdp.fully_shard.html#torch.distributed.fsdp.FSDPModule.set_is_last_backward)
+
+**产品支持情况**：
+
+<!-- npu="950" id19 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id19 -->
+
+</div>
+
+<!-- end id20 -->
+
+<!-- npu="950" id22 -->
+<a class="method_anchor" id="torch_distributed_fsdp_FSDPModule_set_modules_to_backward_prefetch"></a>
+
+> <font size="3">set_modules_to_backward_prefetch()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.fsdp.FSDPModule.set\_modules\_to\_backward\_prefetch](https://docs.pytorch.org/docs/2.12/distributed.fsdp.fully_shard.html#torch.distributed.fsdp.FSDPModule.set_modules_to_backward_prefetch)
+
+**产品支持情况**：
+
+<!-- npu="950" id21 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id21 -->
+
+</div>
+
+<!-- end id22 -->
+
+<!-- npu="950" id24 -->
+<a class="method_anchor" id="torch_distributed_fsdp_FSDPModule_set_modules_to_forward_prefetch"></a>
+
+> <font size="3">set_modules_to_forward_prefetch()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.fsdp.FSDPModule.set\_modules\_to\_forward\_prefetch](https://docs.pytorch.org/docs/2.12/distributed.fsdp.fully_shard.html#torch.distributed.fsdp.FSDPModule.set_modules_to_forward_prefetch)
+
+**产品支持情况**：
+
+<!-- npu="950" id23 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id23 -->
+
+</div>
+
+<!-- end id24 -->
+
+<!-- npu="950" id26 -->
+<a class="method_anchor" id="torch_distributed_fsdp_FSDPModule_set_post_optim_event"></a>
+
+> <font size="3">set_post_optim_event()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.fsdp.FSDPModule.set\_post\_optim\_event](https://docs.pytorch.org/docs/2.12/distributed.fsdp.fully_shard.html#torch.distributed.fsdp.FSDPModule.set_post_optim_event)
+
+**产品支持情况**：
+
+<!-- npu="950" id25 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id25 -->
+
+</div>
+
+<!-- end id26 -->
+
+<!-- npu="950" id28 -->
+<a class="method_anchor" id="torch_distributed_fsdp_FSDPModule_set_reduce_scatter_divide_factor"></a>
+
+> <font size="3">set_reduce_scatter_divide_factor()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.fsdp.FSDPModule.set\_reduce\_scatter\_divide\_factor](https://docs.pytorch.org/docs/2.12/distributed.fsdp.fully_shard.html#torch.distributed.fsdp.FSDPModule.set_reduce_scatter_divide_factor)
+
+**产品支持情况**：
+
+<!-- npu="950" id27 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id27 -->
+
+</div>
+
+<!-- end id28 -->
+
+<!-- npu="950" id30 -->
+<a class="method_anchor" id="torch_distributed_fsdp_FSDPModule_set_requires_all_reduce"></a>
+
+> <font size="3">set_requires_all_reduce()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.fsdp.FSDPModule.set\_requires\_all\_reduce](https://docs.pytorch.org/docs/2.12/distributed.fsdp.fully_shard.html#torch.distributed.fsdp.FSDPModule.set_requires_all_reduce)
+
+**产品支持情况**：
+
+<!-- npu="950" id29 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id29 -->
+
+</div>
+
+<!-- end id30 -->
+
+<!-- npu="950" id32 -->
+<a class="method_anchor" id="torch_distributed_fsdp_FSDPModule_set_requires_gradient_sync"></a>
+
+> <font size="3">set_requires_gradient_sync()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.fsdp.FSDPModule.set\_requires\_gradient\_sync](https://docs.pytorch.org/docs/2.12/distributed.fsdp.fully_shard.html#torch.distributed.fsdp.FSDPModule.set_requires_gradient_sync)
+
+**产品支持情况**：
+
+<!-- npu="950" id31 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id31 -->
+
+</div>
+
+<!-- end id32 -->
+
+<!-- npu="950" id34 -->
+<a class="method_anchor" id="torch_distributed_fsdp_FSDPModule_set_reshard_after_backward"></a>
+
+> <font size="3">set_reshard_after_backward()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.fsdp.FSDPModule.set\_reshard\_after\_backward](https://docs.pytorch.org/docs/2.12/distributed.fsdp.fully_shard.html#torch.distributed.fsdp.FSDPModule.set_reshard_after_backward)
+
+**产品支持情况**：
+
+<!-- npu="950" id33 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id33 -->
+
+</div>
+
+<!-- end id34 -->
+
+<!-- npu="950" id36 -->
+<a class="method_anchor" id="torch_distributed_fsdp_FSDPModule_set_unshard_in_backward"></a>
+
+> <font size="3">set_unshard_in_backward()</font>
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.fsdp.FSDPModule.set\_unshard\_in\_backward](https://docs.pytorch.org/docs/2.12/distributed.fsdp.fully_shard.html#torch.distributed.fsdp.FSDPModule.set_unshard_in_backward)
+
+**产品支持情况**：
+
+<!-- npu="950" id35 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id35 -->
+
+</div>
+
+<!-- end id36 -->
 
 <a class="method_anchor" id="torch_distributed_fsdp_FSDPModule_unshard"></a>
 

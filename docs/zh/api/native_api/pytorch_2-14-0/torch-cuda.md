@@ -461,17 +461,17 @@
 
 </div>
 
-<!-- npu="910b,A3" id245 -->
 ### torch.cuda.is_initialized
 
 <div style="margin-left: 2em">
 
 **原生文档**：[torch.cuda.is_initialized](https://pytorch.org/docs/2.14/generated/torch.cuda.is_initialized.html)
 
+<!-- npu="910b,A3" id390 -->
 **NPU 形式名称**：torch_npu.npu.is_initialized
+<!-- end id390 -->
 
 **产品支持情况**：
-<!-- end id245 -->
 
 <!-- npu="910b" id43 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -479,10 +479,11 @@
 <!-- npu="A3" id44 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id44 -->
+<!-- npu="950" id392 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id392 -->
 
-<!-- npu="910b,A3" id246 -->
 </div>
-<!-- end id246 -->
 
 ### torch.cuda.is\_tf32\_supported
 

@@ -226,6 +226,23 @@
 
 </div>
 
+<!-- npu="950" id54 -->
+### <code><i>class</i></code> torch.distributed.tensor.placement\_types.Partial
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.tensor.placement\_types.Partial](https://docs.pytorch.org/docs/2.11/distributed.tensor.html#torch.distributed.tensor.placement_types.Partial)
+
+**产品支持情况**：
+
+<!-- npu="950" id53 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id53 -->
+
+</div>
+
+<!-- end id54 -->
+
 ### <code><i>class</i></code> torch.distributed.tensor.placement_types.Placement
 
 <div style="margin-left: 2em">
@@ -405,6 +422,5 @@
 - 不支持`pse`、`padding_mask`、`prefix`、`actual_seq_qlen`、`actual_seq_kvlen`、`sink`和非因果注意力掩码。
 - 启用负载均衡（load balance）时，必须使用因果注意力。
 - 暂不支持通过`torch.compile`编译为计算图。
-
 
 </div>

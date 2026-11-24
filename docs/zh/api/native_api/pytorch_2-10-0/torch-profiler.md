@@ -295,3 +295,20 @@
 <!-- npu="910b,A3" id58 -->
 </div>
 <!-- end id58 -->
+
+<!-- npu="950" id61 -->
+### <code><i>class</i></code> torch.autograd.profiler.record\_function
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.autograd.profiler.record\_function](https://docs.pytorch.org/docs/2.10/generated/torch.autograd.profiler.record_function.html#torch.autograd.profiler.record_function)
+
+**产品支持情况**：
+
+<!-- npu="950" id60 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id60 -->
+
+</div>
+
+<!-- end id61 -->
