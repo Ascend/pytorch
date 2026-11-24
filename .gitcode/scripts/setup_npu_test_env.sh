@@ -14,7 +14,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-PYTHON=python3.11
+PYTHON="${PYTHON_BIN:-python3.11}"
 WORKSPACE="${ATOMGIT_WORKSPACE:-/__w/ComputingActionTest/pytorch}"
 
 echo "============================================"

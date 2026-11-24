@@ -37,11 +37,16 @@ jobs:
 
       - name: compare selections
         continue-on-error: true
+        env:
+          TARGET_BRANCH: ${{ atomgit.event.pull_request.base.ref }}
+          COMMENT_BODY: ${{ atomgit.event.comment.body }}
         run: |
           python3 .gitcode/scripts/compare_selection.py \
             --modify-files modify_files.txt \
             --precise-dir precise \
-            --output selection_comparison.txt
+            --output selection_comparison.txt \
+            --target-branch "${TARGET_BRANCH}" \
+            --comment-body "${COMMENT_BODY}"
           cat selection_comparison.txt
 
       - name: upload comparison
@@ -52,3 +57,90 @@ jobs:
           name: selection-comparison
           path: selection_comparison.txt
           overwrite: true
+
+      - name: write job summary
+        if: always()
+        continue-on-error: true
+        run: |
+          python3 - <<'PYEOF' >> "$ATOMGIT_STEP_SUMMARY"
+          from pathlib import Path
+
+          print("## Selection Compare")
+          print()
+
+          out = Path("selection_comparison.txt")
+          if not out.is_file():
+              print("selection comparison was not generated.")
+              raise SystemExit(0)
+
+          lines = out.read_text(encoding="utf-8").splitlines()
+
+          scalars = {}
+          sections = {}
+          current = None
+          for line in lines:
+              if line.startswith("=== ") and line.endswith(" ==="):
+                  current = line[4:-4]
+                  sections[current] = []
+              elif current is not None:
+                  if line.strip():
+                      sections[current].append(line.strip())
+              elif ":" in line:
+                  key, value = line.split(":", 1)
+                  scalars[key.strip()] = value.strip()
+
+          roots = {str(Path.cwd()).rstrip("/"), str(Path.cwd().resolve()).rstrip("/")}
+
+          def repo_relative(path):
+              for root in roots:
+                  prefix = root + "/"
+                  if path.startswith(prefix):
+                      return path[len(prefix):]
+              return path
+
+          def find_section(prefix):
+              for name, files in sections.items():
+                  if name.startswith(prefix):
+                      return files
+              return []
+
+          added = find_section("formal added")
+          removed = find_section("formal removed")
+
+          status = scalars.get("precise status", "unknown")
+          print("**对比对象**: 精准测试策略 vs 现有策略")
+          print()
+          print(f"- 精准选测状态: {status}")
+          if status == "success":
+              print(f"- 精准选测结果: 原始 {scalars.get('precise total (raw)', '?')} 个文件，"
+                    f"过滤后 {scalars.get('precise total (filtered)', '?')} 个")
+              print(f"- 现有策略会跑: {scalars.get('original full total', '?')} 个文件")
+              print(f"- 精准策略会跑: {scalars.get('precise full total', '?')} 个文件")
+              try:
+                  delta = int(scalars.get("precise full total", "")) - int(
+                      scalars.get("original full total", "")
+                  )
+                  if delta > 0:
+                      print(f"- 净变化: 多跑 {delta} 个文件")
+                  elif delta < 0:
+                      print(f"- 净变化: 少跑 {-delta} 个文件")
+                  else:
+                      print("- 净变化: 文件数一致")
+              except ValueError:
+                  pass
+          else:
+              print("- 精准选测未成功，本次不做对比")
+          print()
+
+          for label, files in (
+              ("精准策略比现有策略多跑", added),
+              ("精准策略比现有策略少跑", removed),
+          ):
+              print(f"### {label} ({len(files)})")
+              print()
+              if not files:
+                  print("无")
+              for path in files:
+                  print(f"- `{repo_relative(path)}`")
+              print()
+          PYEOF

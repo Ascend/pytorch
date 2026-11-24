@@ -1,0 +1,123 @@
+name: nightly_coverage_collect
+
+on:
+  workflow_call:
+    inputs:
+      CONTAINER_OPTIONS:
+        description: Container options
+        required: false
+        type: string
+      DISTRIBUTED_MACHINES:
+        description: Number of distributed machines
+        required: false
+        type: string
+      DISTRIBUTED_2CARD_SHARDS:
+        description: Number of 2card distributed shards
+        required: false
+        type: string
+        default: "1"
+      REGULAR_NPU_MACHINES:
+        description: Number of regular NPU machines
+        required: false
+        type: string
+      COLLECT_PARALLEL:
+        description: Collect parallel
+        required: false
+        type: string
+      SHARD_STRATEGY:
+        required: false
+        type: string
+        default: ""
+      RUNNER_LABEL:
+        required: false
+        type: string
+        default: "npu=8"
+      DOCKER_IMAGE:
+        required: false
+        type: string
+        default: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_test:20261018"
+
+jobs:
+  collect:
+    name: collect
+    select: selected_by_default
+    runs-on: [ self-hosted, nightly, "${{ inputs.RUNNER_LABEL }}" ]
+    container:
+      image: ${{ inputs.DOCKER_IMAGE }}
+      options: ${{ inputs.CONTAINER_OPTIONS }}
+    env:
+      PYTHON_BIN: "python3"
+
+    steps:
+      - name: checkout
+        uses: checkout
+
+      - name: Install PyTorch
+        run: |
+          PY_VER=$(${PYTHON_BIN} -c 'import sys; print("%d.%d" % sys.version_info[:2])')
+          PY_TAG="cp${PY_VER//./}"
+          ${PYTHON_BIN} .gitcode/scripts/install_pytorch_from_requirements.py \
+            --arch aarch64 \
+            --python-tag "${PY_TAG}" \
+            --python-exe ${PYTHON_BIN}
+
+      - name: Install pytest-timeout
+        run: ${PYTHON_BIN} -m pip install --trusted-host mirrors.huaweicloud.com pytest-timeout pyyaml
+
+      - name: Download torch-npu-wheel
+        uses: download-artifact
+        with:
+          name: torch-npu-wheel
+          path: ./
+
+      - name: Setup NPU test environment
+        run: |
+          bash .gitcode/scripts/setup_npu_test_env.sh \
+            --wheel-artifact-dir ./
+
+      - name: Collect and shard test cases
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+          mkdir -p cases-shards collection_errors
+          STRATEGY_ARG=""
+          if [ -n "${{ inputs.SHARD_STRATEGY }}" ]; then
+            STRATEGY_ARG="--shard-strategy ${{ inputs.SHARD_STRATEGY }}"
+          fi
+          ${PYTHON_BIN} .gitcode/scripts/collect_all_cases.py \
+            --test-dir test \
+            --case-paths-config .gitcode/config/case_paths_ci.yml \
+            --distributed-shards "${{ inputs.DISTRIBUTED_MACHINES }}" \
+            --distributed-2card-shards "${{ inputs.DISTRIBUTED_2CARD_SHARDS }}" \
+            --regular-npu-shards "${{ inputs.REGULAR_NPU_MACHINES }}" \
+            --output-dir cases-shards \
+            --error-log-dir collection_errors \
+            --parallel "${{ inputs.COLLECT_PARALLEL }}" \
+            ${STRATEGY_ARG} \
+            --disabled-testcases .gitcode/config/disabled_testcases.json \
+            --disabled-methods .gitcode/config/disabled_test_methods.json
+
+          # Partial collection would silently drop test files from every shard. Fail
+          # the job so the pipeline keeps the previous latest coverage instead.
+          if [ -f collection_errors/collection_errors_summary.json ]; then
+            echo "ERROR: test case collection failed for one or more files;" \
+                 "see the collection-errors artifact." >&2
+            exit 1
+          fi
+
+      - name: Upload cases-shards as artifact
+        uses: upload-artifact
+        with:
+          name: cases-shards
+          path: cases-shards/
+          retention-days: 7
+          overwrite: true
+
+      - name: Upload collection errors as artifact
+        if: ${{ always() }}
+        uses: upload-artifact
+        with:
+          name: collection-errors
+          path: collection_errors/
+          retention-days: 7
+          overwrite: true

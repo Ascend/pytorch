@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Collect all test cases and split into shards.
 
@@ -237,7 +236,7 @@ def classify_files_full_scan(
 
 
 def _normalize_nodeid(nodeid: str) -> str:
-    """归一化 nodeid：去除开头的 'test/' 前缀，与 pytest 在 test 目录下收集的格式对齐"""
+    """Normalize a nodeid by stripping the leading 'test/' prefix to match pytest's format under the test directory."""
     if nodeid.startswith("test/"):
         return nodeid[len("test/"):]
     return nodeid
@@ -781,9 +780,20 @@ def save_error_logs(failed_files: List[Dict], error_log_dir: Path) -> None:
     print(f"  Summary: {summary_file}")
 
 
-def split_cases_into_shards(cases: List[Dict], num_shards: int) -> List[List[Dict]]:
-    """Split cases evenly into shards."""
+def split_cases_into_shards(
+    cases: List[Dict], num_shards: int, strategy: str = "contiguous",
+) -> List[List[Dict]]:
+    """Split cases into shards (contiguous slices or round-robin)."""
     total = len(cases)
+    if num_shards <= 0:
+        return []
+
+    if strategy == "round-robin":
+        shards: List[List[Dict]] = [[] for _ in range(num_shards)]
+        for i, case in enumerate(cases):
+            shards[i % num_shards].append(case)
+        return shards
+
     base_size = total // num_shards
     remainder = total % num_shards
 
@@ -853,6 +863,7 @@ def save_shards(
     num_shards: int,
     test_type: str,
     output_dir: Path,
+    strategy: str = "contiguous",
 ) -> Dict:
     """Save shard JSONs and return summary.
 
@@ -866,9 +877,9 @@ def save_shards(
             "shard_sizes": [],
         }
 
-    shards = split_cases_into_shards(cases, num_shards)
+    shards = split_cases_into_shards(cases, num_shards, strategy)
 
-    print(f"\nSaving {test_type} shards...")
+    print(f"\nSaving {test_type} shards (strategy={strategy})...")
     for i, shard_cases in enumerate(shards, 1):
         shard_file = output_dir / f"{test_type}_cases_shard_{i}.json"
         shard_data = {
@@ -1021,7 +1032,8 @@ def main():
             # Save 2card as separate category
             if cases_2card:
                 save_shards(cases_2card, args.distributed_2card_shards,
-                            "distributed_2card", output_dir)
+                            "distributed_2card", output_dir,
+                            getattr(args, "shard_strategy", "contiguous"))
                 save_cases_by_file(cases_2card, files, "distributed_2card", output_dir)
                 summary_categories["distributed_2card"] = {
                     "test_type": "distributed_2card",
@@ -1061,7 +1073,10 @@ def main():
         if cat_name == "regular" and args.regular_npu_shards is not None:
             output_type = "regular_npu"
 
-        cat_summary = save_shards(cases, num_shards, output_type, output_dir)
+        cat_summary = save_shards(
+            cases, num_shards, output_type, output_dir,
+            getattr(args, "shard_strategy", "contiguous"),
+        )
         cat_summary["total_files"] = len(files)
         cat_summary["workers"] = cat_config.get("workers", 32)
         cat_summary["execution"] = cat_config.get("execution", "concurrent")
@@ -1098,6 +1113,7 @@ def main():
         "total_cases": total_cases,
         "total_files": total_files,
         "total_skipped": len(all_skipped),
+        "shard_strategy": getattr(args, "shard_strategy", "contiguous"),
     }
     if hw_classification:
         overall_summary["hw_classification"] = hw_classification
@@ -1223,6 +1239,11 @@ def parse_args():
         help="Number of shards for distributed_2card tests. "
              "When set, distributed files are classified by card count "
              "(2-card vs rest) and output as separate categories.",
+    )
+    parser.add_argument(
+        "--shard-strategy", choices=["contiguous", "round-robin"],
+        default="contiguous",
+        help="分片分配策略: contiguous(默认) 连续切片, round-robin 按用例轮转.",
     )
     return parser.parse_args()
 

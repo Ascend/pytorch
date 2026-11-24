@@ -1,0 +1,382 @@
+name: nightly_coverage_merge
+
+on:
+  workflow_call:
+    inputs:
+      # Target package for coverage
+      COVERAGE_SOURCE:
+        required: false
+        type: string
+        default: "torch_npu"
+      # OBS archive prefix (object prefix of release.tar.gz)
+      OBS_OBJECT_PREFIX:
+        required: false
+        type: string
+        default: "pta/coverage/torch_npu/latest/"
+      # 7-day cache prefix on OBS for shard coverage data (workflow_run_id is appended)
+      OBS_SHARD_PREFIX:
+        required: false
+        type: string
+        default: "pta/coverage/torch_npu/7day-cache/"
+      # Shard object name list (comma-separated); must match COVERAGE_SHARD of the entry pipeline stage_coverage
+      COVERAGE_SHARDS:
+        required: false
+        type: string
+        default: "cov-data-distributed_2card,cov-data-distributed_2card-2,cov-data-distributed,cov-data-reg-npu-1,cov-data-reg-npu-2,cov-data-reg-npu-3,cov-data-reg-npu-4,cov-data-reg-npu-5,cov-data-reg-npu-6,cov-data-reg-npu-7,cov-data-reg-npu-8,cov-data-reg-npu-9,cov-data-reg-npu-10"
+      OBS_BUCKET:
+        required: false
+        type: string
+        default: "pta-pr"
+      OBS_ENDPOINT:
+        required: false
+        type: string
+        default: "obs.cn-north-4.myhuaweicloud.com"
+      # Expected number of shards (must match the stage_coverage job count of the entry pipeline);
+      # when fewer shards are received, the result is incomplete and is not promoted to latest
+      EXPECTED_SHARDS:
+        required: false
+        type: string
+        default: "13"
+      DOCKER_IMAGE:
+        required: false
+        type: string
+        default: "swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch_master_a2_aarch64_test:20261018"
+      # Whether to overwrite latest/ on OBS; set to false for debugging or incomplete runs to keep the previous result
+      PUBLISH_LATEST:
+        required: false
+        type: string
+        default: "true"
+      CONTAINER_OPTIONS:
+        required: false
+        type: string
+      RUNNER_LABEL:
+        required: false
+        type: string
+        default: "npu=1"
+
+jobs:
+  merge:
+    name: merge-coverage
+    select: always
+    runs-on: [ self-hosted, nightly, "${{ inputs.RUNNER_LABEL }}" ]
+    container:
+      image: ${{ inputs.DOCKER_IMAGE }}
+      options: ${{ inputs.CONTAINER_OPTIONS }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: checkout
+        uses: checkout
+
+      # Download shard coverage data from the corresponding run directory of the OBS 7day-cache
+      - name: Download coverage shard data from OBS
+        id: download_shards
+        env:
+          OBS_ENDPOINT: ${{ inputs.OBS_ENDPOINT }}
+          BUCKET: ${{ inputs.OBS_BUCKET }}
+          SHARD_PREFIX: ${{ inputs.OBS_SHARD_PREFIX }}
+          RUN_ID: ${{ atomgit.workflow_run_id }}
+          SHARDS: ${{ inputs.COVERAGE_SHARDS }}
+        run: |
+          mkdir -p cov-shards cov-data
+          echo "shard_count=0" >> $ATOMGIT_OUTPUT
+          echo "shards_complete=false" >> $ATOMGIT_OUTPUT
+
+          # Extract each <COVERAGE_SHARD>.tar.gz into cov-data/<COVERAGE_SHARD>/ (strip the inner shard/ prefix)
+          count=0
+          for name in ${SHARDS//,/ }; do
+            url="https://${BUCKET}.${OBS_ENDPOINT}/${SHARD_PREFIX}${RUN_ID}/${name}.tar.gz"
+            if curl -fsSL --retry 3 --retry-delay 5 "${url}" -o "cov-shards/${name}.tar.gz"; then
+              mkdir -p "cov-data/${name}"
+              tar -xzf "cov-shards/${name}.tar.gz" -C "cov-data/${name}" --strip-components=1
+              count=$((count + 1))
+            else
+              echo "WARNING: failed to download shard ${url}"
+            fi
+          done
+
+          echo "Extracted shard coverage data: ${count} (expected ${{ inputs.EXPECTED_SHARDS }})"
+          ls -la cov-data
+          echo "shard_count=${count}" >> $ATOMGIT_OUTPUT
+          if [ "${count}" -ne "${{ inputs.EXPECTED_SHARDS }}" ]; then
+            echo "WARNING: incomplete shard count ($count/${{ inputs.EXPECTED_SHARDS }}), not promoting to latest this time"
+            echo "shards_complete=false" >> $ATOMGIT_OUTPUT
+          else
+            echo "shards_complete=true" >> $ATOMGIT_OUTPUT
+          fi
+
+      - name: Install coverage
+        run: python3 -m pip install --trusted-host mirrors.huaweicloud.com coverage
+
+      - name: Merge shard coverage
+        id: merge
+        if: ${{ steps.download_shards.outputs.shards_complete == 'true' }}
+        env:
+          REPO: ${{ atomgit.repository }}
+          RUN_ID: ${{ atomgit.workflow_run_id }}
+          EVENT: ${{ atomgit.event_name }}
+        run: |
+          ls -la cov-data 2>/dev/null || true
+          INPUTS="$(cd cov-data 2>/dev/null && ls -d */ 2>/dev/null | sed 's:/$::' | sed 's:^:cov-data/:' | paste -sd, -)"
+          echo "Merge inputs: ${INPUTS:-<empty>}"
+          RUN_ATTEMPT="${ATOMGIT_RUN_ATTEMPT:-1}"
+
+          set +e
+          python3 .gitcode/scripts/coverage_report.py merge \
+            --inputs "${INPUTS}" \
+            --out-dir coverage-out \
+            --source "${{ inputs.COVERAGE_SOURCE }}" \
+            --workflow-name "torch_npu_coverage_nightly" \
+            --repository "${REPO}" \
+            --run-id "${RUN_ID}" \
+            --run-attempt "${RUN_ATTEMPT}" \
+            --event "${EVENT}" \
+            --sha "$(git rev-parse HEAD 2>/dev/null || echo '')" \
+            --summary-file coverage-summary.md
+          STATUS=$?
+          set -e
+          echo "merge_status=${STATUS}" >> $ATOMGIT_OUTPUT
+          echo "Merge exit code: ${STATUS}"
+          exit 0
+
+      # Backfill test files missing coverage data in this run with covdata from the previous OBS release
+      - name: Backfill missing coverage data from the previous release
+        id: backfill
+        if: ${{ steps.merge.outputs.merge_status == '0' }}
+        env:
+          OBS_ENDPOINT: ${{ inputs.OBS_ENDPOINT }}
+          PKG: ${{ inputs.COVERAGE_SOURCE }}
+          BUCKET: ${{ inputs.OBS_BUCKET }}
+          PREFIX: ${{ inputs.OBS_OBJECT_PREFIX }}
+        run: |
+          python3 - <<'PYEOF'
+          import json
+          import os
+          import shutil
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          def set_backfill_ok(ok):
+              out = os.environ.get("ATOMGIT_OUTPUT")
+              if out:
+                  with open(out, "a", encoding="utf-8") as fh:
+                      fh.write(f"backfill_ok={'true' if ok else 'false'}\n")
+
+          pkg = os.environ["PKG"]
+          cov_dir = Path("coverage-out") / f"{pkg}@latest"
+          if not (cov_dir / "manifest.json").is_file():
+              print("merge produced no result, no backfill needed")
+              set_backfill_ok(False)
+              sys.exit(0)
+
+          # Test files that appear in this run's shard reports should have coverage data in this run
+          expected = set()
+          for report in sorted(Path("cov-data").glob("*/reports/shard_*_cases.json")):
+              try:
+                  data = json.loads(report.read_text(encoding="utf-8"))
+              except (OSError, json.JSONDecodeError):
+                  continue
+              for case in data.get("cases", []):
+                  if case.get("file"):
+                      expected.add(case["file"])
+          if not expected:
+              print("no shard case reports found, skipping backfill")
+              set_backfill_ok(True)
+              sys.exit(0)
+
+          covered = {
+              p.parent.parent.relative_to(cov_dir).as_posix()
+              for p in cov_dir.glob("test/**/covdata/coverage")
+          }
+          missing = sorted(expected - covered)
+          if not missing:
+              print("all executed test files have coverage data, no backfill needed")
+              set_backfill_ok(True)
+              sys.exit(0)
+          print(f"{len(missing)} test files are missing coverage data: {missing}")
+
+          previous_url = "https://{}.{}/{}/release.tar.gz".format(
+              os.environ["BUCKET"],
+              os.environ["OBS_ENDPOINT"],
+              os.environ["PREFIX"].strip("/"),
+          )
+          archive = Path("/tmp/previous-release.tar.gz")
+          extract_root = Path("/tmp/previous-release")
+          shutil.rmtree(extract_root, ignore_errors=True)
+          extract_root.mkdir(parents=True)
+          downloaded = subprocess.run(
+              ["curl", "-fsSL", "--retry", "3", "--retry-delay", "5",
+               previous_url, "-o", str(archive)],
+              capture_output=True,
+          )
+          extracted = False
+          if downloaded.returncode == 0:
+              extracted = subprocess.run(
+                  ["tar", "-xzf", str(archive), "-C", str(extract_root)],
+                  capture_output=True,
+              ).returncode == 0
+          previous = extract_root / f"{pkg}@latest"
+          if not extracted or not (previous / "manifest.json").is_file():
+              print(
+                  "WARNING: previous release is unavailable, cannot backfill; "
+                  "keeping the previous latest",
+                  file=sys.stderr,
+              )
+              set_backfill_ok(False)
+              sys.exit(0)
+
+          # Coverage data is tied to the collected revision (line/arc numbers), so
+          # only backfill test files from a release built on the same commit.
+          def read_sha(manifest_file):
+              try:
+                  data = json.loads(manifest_file.read_text(encoding="utf-8"))
+              except (OSError, json.JSONDecodeError):
+                  return ""
+              return data.get(f"{pkg}_sha", "")
+
+          current_sha = read_sha(cov_dir / "manifest.json")
+          previous_sha = read_sha(previous / "manifest.json")
+          if not current_sha or not previous_sha or current_sha != previous_sha:
+              print(
+                  "WARNING: cannot backfill across commits "
+                  f"(current={current_sha or '<empty>'}, "
+                  f"previous={previous_sha or '<empty>'}); "
+                  "keeping the previous latest",
+                  file=sys.stderr,
+              )
+              set_backfill_ok(False)
+              sys.exit(0)
+
+          backfilled, still_missing = [], []
+          for test_file in missing:
+              src = previous / test_file / "covdata"
+              dst = cov_dir / test_file / "covdata"
+              tmp = cov_dir / test_file / "covdata.backfill"
+              shutil.rmtree(tmp, ignore_errors=True)
+              tmp.mkdir(parents=True)
+              if src.is_dir():
+                  for item in src.iterdir():
+                      if item.is_file():
+                          shutil.copy2(item, tmp / item.name)
+              if not (tmp / "coverage").is_file():
+                  shutil.rmtree(tmp, ignore_errors=True)
+                  still_missing.append(test_file)
+                  continue
+              shutil.rmtree(dst, ignore_errors=True)
+              tmp.rename(dst)
+              backfilled.append(test_file)
+
+          manifest_file = cov_dir / "manifest.json"
+          manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
+          manifest["test_groups"] = len(list(cov_dir.glob("test/**/covdata")))
+          manifest["backfilled"] = backfilled
+          if still_missing:
+              manifest["backfill_missing"] = still_missing
+          manifest_file.write_text(
+              json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
+          )
+          print(f"Backfilled {len(backfilled)} test files from the previous release")
+          if still_missing:
+              print(
+                  f"WARNING: {len(still_missing)} test files still have no usable coverage data: {still_missing}; "
+                  f"keeping the previous latest",
+                  file=sys.stderr,
+              )
+          set_backfill_ok(not still_missing)
+          PYEOF
+
+      - name: Build covstub source snapshot
+        if: ${{ steps.merge.outputs.merge_status == '0' }}
+        run: |
+          python3 .gitcode/scripts/coverage_report.py covstub \
+            --src "${{ inputs.COVERAGE_SOURCE }}" \
+            --test test \
+            --out-dir coverage-out \
+            --executed-dir "coverage-out/${{ inputs.COVERAGE_SOURCE }}@latest"
+
+      # Whether the merged output really exists: skip later steps when merge produced nothing
+      - name: Check merged coverage output
+        id: check_merged
+        if: ${{ always() }}
+        run: |
+          if [ -f "coverage-out/${{ inputs.COVERAGE_SOURCE }}@latest/manifest.json" ] \
+            && [ -d coverage-out/covstub ]; then
+            echo "ready=true" >> $ATOMGIT_OUTPUT
+          else
+            echo "ready=false" >> $ATOMGIT_OUTPUT
+            echo "No merged result, skipping test case map generation"
+          fi
+
+      - name: generate-test-case-map
+        if: ${{ always() && steps.check_merged.outputs.ready == 'true' }}
+        continue-on-error: true
+        uses: openlibing/test-action/precision-test@v1.0.12
+        with:
+          repo: torch_npu
+          build-map: true
+          coverage-dir: coverage-out/${{ inputs.COVERAGE_SOURCE }}@latest
+          source-dir: coverage-out/covstub
+          map-file: coverage-out/${{ inputs.COVERAGE_SOURCE }}@latest/test_case_map.json
+
+      - name: Package release archive
+        id: pack
+        if: ${{ steps.merge.outputs.merge_status == '0' }}
+        run: |
+          set -euo pipefail
+          PKG="${{ inputs.COVERAGE_SOURCE }}"
+
+          if [ ! -f "coverage-out/${PKG}@latest/manifest.json" ] || [ ! -d coverage-out/covstub ]; then
+            echo "No merged result, skipping packaging"
+            exit 0
+          fi
+
+          tar -C coverage-out -czf release.tar.gz covstub "${PKG}@latest"
+          ls -lh release.tar.gz
+          tar -tzf release.tar.gz > release-files.txt
+          if grep -qx "${PKG}@latest/manifest.json" release-files.txt; then
+            echo "packed=1" >> $ATOMGIT_OUTPUT
+            echo "Packaged: release.tar.gz"
+          else
+            echo "WARNING: release.tar.gz is incomplete (missing manifest.json)"
+          fi
+
+      - name: Write job summary
+        if: ${{ always() }}
+        run: |
+          if [ "${{ steps.download_shards.outputs.shards_complete }}" != "true" ]; then
+            echo "## TorchNPU Coverage" >> $ATOMGIT_STEP_SUMMARY
+            echo "Not merged: incomplete shard count (${{ steps.download_shards.outputs.shard_count }}/${{ inputs.EXPECTED_SHARDS }}), keeping the previous latest" >> $ATOMGIT_STEP_SUMMARY
+            exit 0
+          fi
+          if [ "${{ steps.backfill.outputs.backfill_ok }}" = "false" ]; then
+            echo "" >> $ATOMGIT_STEP_SUMMARY
+            echo "Backfill validation failed; keeping the previous OBS latest." >> $ATOMGIT_STEP_SUMMARY
+          fi
+          if [ -f coverage-summary.md ]; then
+            cat coverage-summary.md >> $ATOMGIT_STEP_SUMMARY
+          else
+            echo "## TorchNPU Coverage" >> $ATOMGIT_STEP_SUMMARY
+            echo "No coverage report produced (merge_status=${{ steps.merge.outputs.merge_status }})" >> $ATOMGIT_STEP_SUMMARY
+          fi
+
+      # Overwrite OBS latest/ only on a full run with a complete release; otherwise keep the previous result
+      - name: oidc-auth
+        if: ${{ steps.pack.outputs.packed == '1' && inputs.PUBLISH_LATEST == 'true' && steps.backfill.outputs.backfill_ok == 'true' }}
+        uses: huaweicloud-oidc-auth
+        with:
+          audience: pta_pr_obs_for_pytorch
+          region: cn-north-4
+          agency_urn: iam::0d336831568090260fd5c01450729240:agency:pta_obs_pr_trust
+          provider_urn: iam::0d336831568090260fd5c01450729240:oidcProvider:pta_obs_pr
+
+      - name: Publish release to OBS latest
+        if: ${{ steps.pack.outputs.packed == '1' && inputs.PUBLISH_LATEST == 'true' && steps.backfill.outputs.backfill_ok == 'true' }}
+        uses: obs-upload
+        with:
+          endpoint: "${{ inputs.OBS_ENDPOINT }}"
+          bucket: "${{ inputs.OBS_BUCKET }}"
+          artifact-path: |
+            release.tar.gz
+          object-prefix: "${{ inputs.OBS_OBJECT_PREFIX }}"

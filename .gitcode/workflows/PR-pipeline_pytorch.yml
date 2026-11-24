@@ -269,6 +269,13 @@ stages:
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' }}
         uses: .gitcode/workflows/get_count.yml
 
+      precise_select:
+        name: precise_select
+        select: selected_by_default
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && env.target_branch == 'master' }}
+        continue-on-error: true
+        uses: .gitcode/workflows/precise_select.yml
+
   stage_3:
     name: Build
     select: selected_by_default
@@ -353,6 +360,13 @@ stages:
           torch_branch: ${{ jobs.img_select.outputs.target_branch }}
           CP_DOCKER_IMG: ${{ jobs.img_select.outputs.img_x86_build }}
           runs_on_arch: "x86"
+
+      selection_compare:
+        name: selection_compare
+        select: selected_by_default
+        if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && env.target_branch == 'master' }}
+        continue-on-error: true
+        uses: .gitcode/workflows/selection_compare.yml
 
   stage_4:
     name: UT

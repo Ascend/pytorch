@@ -1,0 +1,118 @@
+name: nightly_coverage_build
+
+on:
+  workflow_call:
+    inputs:
+      MAX_JOBS:
+        description: C++ compile parallel jobs
+        required: false
+        type: string
+      DOCKER_IMAGE:
+        description: Docker image for building
+        required: false
+        type: string
+      CONTAINER_OPTIONS:
+        description: Container options
+        required: false
+        type: string
+      RUNS_ON_SPEC:
+        description: Runner CPU spec label
+        required: false
+        type: string
+        default: "cpu=32"
+
+jobs:
+  build:
+    name: build
+    select: selected_by_default
+    runs-on: [ self-hosted, nightly, "${{ inputs.RUNS_ON_SPEC }}" ]
+    container:
+      image: ${{ inputs.DOCKER_IMAGE }}
+      options: ${{ inputs.CONTAINER_OPTIONS }}
+    env:
+      PYTHON_BIN: "python3"
+
+    outputs:
+      wheel: ${{ steps.build.outputs.wheel }}
+      status: ${{ steps.build.outputs.status }}
+    steps:
+      - name: checkout
+        uses: checkout
+
+      - name: Write build environment info
+        run: |
+          echo "=== Build Environment Info ===" > build_msg.txt
+          echo "Python Version:" >> build_msg.txt
+          ${PYTHON_BIN} --version >> build_msg.txt 2>&1
+          echo "CMake Version:" >> build_msg.txt
+          cmake3 --version 2>/dev/null | head -1 >> build_msg.txt || cmake --version 2>/dev/null | head -1 >> build_msg.txt
+          echo "GCC Version:" >> build_msg.txt
+          gcc --version | head -1 >> build_msg.txt
+          echo "ccache Version:" >> build_msg.txt
+          ccache --version | head -1 >> build_msg.txt
+          echo "=== Build Info End ===" >> build_msg.txt
+
+      - name: Install PyTorch
+        run: |
+          PY_VER=$(${PYTHON_BIN} -c 'import sys; print("%d.%d" % sys.version_info[:2])')
+          PY_TAG="cp${PY_VER//./}"
+          echo "Python: ${PYTHON_BIN} ${PY_VER}, wheel tag: ${PY_TAG}"
+          ${PYTHON_BIN} .gitcode/scripts/install_pytorch_from_requirements.py \
+            --arch aarch64 \
+            --python-tag "${PY_TAG}" \
+            --python-exe ${PYTHON_BIN}
+
+      - name: Install nanobind
+        run: |
+          ${PYTHON_BIN} -m pip install nanobind
+
+      - name: Build torch_npu wheel
+        id: build
+        env:
+          MAX_JOBS: ${{ inputs.MAX_JOBS }}
+          DISABLE_INSTALL_TORCHAIR: "FALSE"
+          BUILD_WITHOUT_SHA: "1"
+        run: |
+          export CCACHE_BASEDIR="${ATOMGIT_WORKSPACE}"
+          source .gitcode/scripts/ccache_env.sh
+
+          TORCH_SPEC=$(grep -E '^torch==' requirements.txt | head -1 | sed 's/^torch==//')
+          TORCH_VER=$(echo "${TORCH_SPEC}" | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          if [ -z "${TORCH_VER}" ]; then
+            echo "ERROR: failed to find the pinned torch== version in requirements.txt"
+            exit 1
+          fi
+          echo "Resolved torch from requirements.txt: ${TORCH_SPEC} -> ${TORCH_VER}"
+          PY_VER=$(${PYTHON_BIN} -c 'import sys; print("%d.%d" % sys.version_info[:2])')
+          bash ci/build.sh --python="${PY_VER}" --torch="${TORCH_VER}" 2>&1 | tee /tmp/build_torch_npu.log
+          BUILD_STATUS=${PIPESTATUS[0]}
+          ccache -s 2>&1
+          echo "${BUILD_STATUS}" > build_status.txt
+          echo "status=${BUILD_STATUS}" >> $ATOMGIT_OUTPUT
+          if [ ${BUILD_STATUS} -eq 0 ]; then
+            WHL=$(ls dist/*.whl 2>/dev/null | head -1)
+            echo "wheel=${WHL}" >> $ATOMGIT_OUTPUT
+            echo "Build succeeded: ${WHL}"
+          else
+            echo "Build failed with exit code ${BUILD_STATUS}"
+            echo "wheel=N/A" >> $ATOMGIT_OUTPUT
+          fi
+          WHL=$(ls dist/*.whl 2>/dev/null | head -1)
+          echo "Wheel: ${WHL##*/}" >> build_msg.txt
+          exit ${BUILD_STATUS}
+
+      - name: Upload torch-npu wheel as artifact
+        uses: upload-artifact
+        with:
+          name: torch-npu-wheel
+          path: "dist/*.whl"
+          retention-days: 7
+          overwrite: true
+
+      - name: Upload build_msg.txt as artifact
+        uses: upload-artifact
+        with:
+          name: build-msg
+          path: build_msg.txt
+          retention-days: 7
+          overwrite: true
