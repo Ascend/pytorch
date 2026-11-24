@@ -30,8 +30,8 @@ _WIDTH = 64
 # Tower widths from a real model: three orders of magnitude, most far below a cube's capacity.
 _TOWER_K = (16, 32, 48, 64, 96, 128, 160, 192, 256, 320, 384, 512, 640, 768, 1024)
 
-_ENABLED = npu_config.enable_grouped_matmul_fusion
-_NEEDS_FLAG = "requires TORCHINDUCTOR_ENABLE_GROUPED_MATMUL_FUSION=1 (the pass registers on the switch)"
+_ENABLED = npu_config.is_ascend950
+_NEEDS_950 = "grouped_matmul_fusion_pass only registers on Ascend950 (npu_grouped_matmul)"
 
 
 def _count(graph, target):
@@ -324,7 +324,7 @@ class TestGroupedMatmulPass(TestUtils):
     # Numerics. Not bitwise-identical: the operator accumulates in a different order than separate
     # matmuls; measured relative RMS error in fp16 is 6.6e-06, matmul's own noise level.
     # ------------------------------------------------------------------
-    @unittest.skipUnless(_ENABLED, _NEEDS_FLAG)
+    @unittest.skipUnless(_ENABLED, _NEEDS_950)
     @parametrize("n", [16, 80])
     @runIfVersion(max="2.13")
     def test_matches_separate_matmuls(self, n):
