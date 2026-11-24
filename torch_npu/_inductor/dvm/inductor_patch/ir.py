@@ -487,7 +487,7 @@ def _patch_concatkernel_get_traced_graph(self):
 
 
 @classmethod
-def _patch_concatkernel_realize_into(cls, src, dst):
+def _patch_concatkernel_realize_into(cls, src, dst, allow_alias=True):
     # Attempt to turn this into a ReinterpretView rather than assert.
     # This has concessions around layout, as as_storage_and_layout
     # can cause us to go from flexible to fixed layout.
@@ -498,12 +498,12 @@ def _patch_concatkernel_realize_into(cls, src, dst):
     assert isinstance(dst, ir.ReinterpretView), dst
     if isinstance(src, ir.TensorBox):
         # unwrap a TensorBox
-        return cls.realize_into(src.data, dst)
-    if isinstance(src, ir.StorageBox):
+        return cls.realize_into(src.data, dst, allow_alias=allow_alias)
+    if isinstance(src, ir.StorageBox) and allow_alias:
         src.realize()
         # ExternKernelAlloc has specific requirements for output layout, should create a copy
         assert hasattr(src.data, "layout")
-        if cls.can_realize_into_without_copy(src):
+        if cls.can_realize_into_without_copy(src, dst):
             src.data.layout = ir.NonOwningLayout(dst)
             return src.data
     # introduce a copy
@@ -515,7 +515,7 @@ def _patch_concatkernel_realize_into(cls, src, dst):
         dtype=src.get_dtype(),
         inner_fn=src.make_loader(),
         ranges=[
-            V.graph.sizevars.check_equals(a, b)
+            V.graph.sizevars.check_equals_and_simplify(a, b)
             for a, b in zip(src.get_size(), dst.get_size())
         ],
         traced_graph=new_graph,
