@@ -740,5 +740,35 @@ class TestACLGraphWhileLoop(unittest.TestCase):
         self._check_while_replays(fn, ((3, 5), (0, 1), (5, 7)))
 
 
+    def test_conditional_body_gets_its_own_save_stream(self):
+        import torch_npu
+        import torch_npu.npu.graphs as npu_graphs
+        from torch_npu.npu._npugraph_conditional_nodes import if_else_node
+
+        shared = npu_graphs._get_save_tensor_stream(0)
+        seen = {}
+
+        def record(tag):
+            def fn(t):
+                seen[tag] = npu_graphs._get_save_tensor_stream(0)
+                return t.sin()
+            return fn
+
+        x = torch.randn(8, device="npu")
+        pred = torch.ones((), dtype=torch.bool, device="npu")
+        g = torch.npu.NPUGraph()
+        with torch.npu.graph(g):
+            if_else_node(pred, record("true"), record("false"), (x,))
+
+        # Each body captures into its own model, so no two of the three streams may be equal.
+        self.assertEqual(len(seen), 2)
+        self.assertNotEqual(seen["true"].npu_stream, shared.npu_stream)
+        self.assertNotEqual(seen["false"].npu_stream, shared.npu_stream)
+        self.assertNotEqual(seen["true"].npu_stream, seen["false"].npu_stream)
+        # Back outside the bodies the shared stream is in use again.
+        self.assertIsNone(torch_npu._C._npu_current_conditional_save_stream())
+        g.reset()
+
+
 if __name__ == "__main__":
     unittest.main()

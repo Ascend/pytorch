@@ -74,6 +74,9 @@ TORCH_NPU_API void super_kernel_scope_end(const char* scope_name);
 
 TORCH_NPU_API void launch_callback(c10_npu::NPUStream stream, NPUCallbackFunc func, void* fnData);
 TORCH_NPU_API void launch_host_func(c10_npu::NPUStream stream, NPUCallbackFunc func, void* fnData);
+
+// Save/print tensor helper stream of the conditional body being captured; nullopt elsewhere.
+TORCH_NPU_API std::optional<NPUStream> currentConditionalSaveStream();
 TORCH_NPU_API void subscribe_report(uint64_t threadId, c10_npu::NPUStream stream);
 TORCH_NPU_API void unsubscribe_report(uint64_t threadId, c10_npu::NPUStream stream);
 
@@ -104,6 +107,7 @@ struct TORCH_NPU_API NPUGraph {
   // Returns the underlying aclmdlRI handle as an integer. The handle is valid
   // only after a successful capture_end() and before reset().
   uintptr_t raw_npu_graph_exec() const;
+  std::optional<c10_npu::NPUStream> current_conditional_save_stream();
   void enable_debug_mode();
   void debug_dump(const std::string& debug_path);
   void super_kernel_optimize(const aclskOptions* options);
@@ -182,6 +186,10 @@ struct TORCH_NPU_API NPUGraph {
     }
   };
   std::stack<OwnedNPUStream> conditional_node_raw_streams_;
+
+  // One save-tensor helper stream per conditional body that saves a tensor, created on first
+  // use and owned like the body stream above.
+  std::stack<OwnedNPUStream> conditional_save_raw_streams_;
 
   // Device where capture occurred. Right now, for simplicity, we require all
   // ops in a capture to run on the same device, but this is a limitation of

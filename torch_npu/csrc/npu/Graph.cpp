@@ -568,6 +568,18 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
             (void)payload.release();
           })
       .def(
+          "_npu_current_conditional_save_stream",
+          []() -> py::object {
+            auto stream = c10_npu::currentConditionalSaveStream();
+            if (!stream.has_value()) {
+              return py::none();
+            }
+            return py::make_tuple(
+                static_cast<int64_t>(stream->id()),
+                static_cast<int64_t>(stream->device_index()),
+                static_cast<int64_t>(stream->device_type()));
+          })
+      .def(
           "_subscribe_report",
           [](py::object py_stream) {
             auto stream = (*py_stream).ptr();

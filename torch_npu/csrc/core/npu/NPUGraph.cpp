@@ -430,6 +430,32 @@ void NPUGraph::super_kernel_optimize(const aclskOptions* options) {
   NPU_CHECK_ERROR(c10_npu::skapi::AclskOptimize(model_ri_, options));
 }
 
+std::optional<c10_npu::NPUStream> NPUGraph::current_conditional_save_stream() {
+  if (conditional_save_raw_streams_.empty()) {
+    return std::nullopt;
+  }
+  auto& owned = conditional_save_raw_streams_.top();
+  if (owned.stream == nullptr) {
+    NPU_CHECK_ERROR(
+        c10_npu::acl::AclrtCreateStreamWithConfig(&owned.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
+  }
+  return c10_npu::getStreamFromExternal(owned.stream, capture_dev_);
+}
+
+std::optional<NPUStream> currentConditionalSaveStream() {
+  // Keyed off the capture the current stream belongs to; the root capture resolves to nothing.
+  auto capture_id = c10_npu::currentStreamCaptureIdMayInitCtx();
+  if (!capture_id.has_value()) {
+    return std::nullopt;
+  }
+  std::lock_guard<std::mutex> lock(_currently_capturing_graphs_mutex);
+  auto it = _currently_capturing_graphs.find(capture_id.value());
+  if (it == _currently_capturing_graphs.end()) {
+    return std::nullopt;
+  }
+  return it->second.graph->current_conditional_save_stream();
+}
+
 void NPUGraph::reset() {
   // I'd prefer these checks throw exceptions, not print warnings,
   // but the destructor calls reset(), and at least one CI build
@@ -494,6 +520,9 @@ void NPUGraph::reset() {
   // destroyed, in the order CUDAGraph::reset() uses. Mirrors pytorch/pytorch#185836.
   while (!conditional_node_raw_streams_.empty()) {
     conditional_node_raw_streams_.pop();
+  }
+  while (!conditional_save_raw_streams_.empty()) {
+    conditional_save_raw_streams_.pop();
   }
   capture_id_ = std::numeric_limits<CaptureId_t>::max();
 }
@@ -687,6 +716,10 @@ void NPUGraph::begin_capture_to_conditional_node(const at::Tensor& scalar_npu_pr
       c10_npu::acl::AclrtCreateStreamWithConfig(&raw_child_stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
   conditional_node_raw_streams_.emplace(raw_child_stream);
   auto child_stream = c10_npu::getStreamFromExternal(raw_child_stream, capture_dev_);
+
+  // Placeholder for this body's save/print tensor stream, created on first use so a body
+  // that never saves a tensor does not pay for one.
+  conditional_save_raw_streams_.emplace();
   NPUGRAPH_LOGD(
       "NPUGRAPH Conditional capture to child modelRI: child_model_ri=%p, child_stream=%p, "
       "mempool_id=(%lu,%lu)",
@@ -759,6 +792,8 @@ void NPUGraph::end_capture_to_conditional_node() {
   // Mirrors pytorch/pytorch#185836.
   TORCH_INTERNAL_ASSERT(!conditional_node_raw_streams_.empty(), "Missing raw stream for conditional node.");
   conditional_node_raw_streams_.pop();
+  TORCH_INTERNAL_ASSERT(!conditional_save_raw_streams_.empty(), "Missing save stream for conditional node.");
+  conditional_save_raw_streams_.pop();
 
   c10_npu::NPUCachingAllocator::endAllocateToPool(capture_dev_, mempool_id_);
   at::getHostAllocator(at::kPrivateUse1)->end_allocate_to_pool(mempool_id_);

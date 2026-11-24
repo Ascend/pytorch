@@ -233,6 +233,26 @@ class TestAclgraphDfx(TestCase):
             self.assertEqual(saved[1], y.cpu())
 
 
+    @SkipIfNotGteCANNVersion("8.5.0")
+    def test_save_tensor_stream_unchanged_outside_conditional_body(self):
+        # Outside a conditional body, including during a plain capture, nothing changes.
+        torch.npu.set_device(0)
+        self.assertIsNone(torch_npu._C._npu_current_conditional_save_stream())
+
+        shared = npu_graphs._get_save_tensor_stream(0)
+        self.assertIs(npu_graphs._get_save_tensor_stream(0), shared)
+
+        g = torch.npu.NPUGraph()
+        x = torch.ones(4, device="npu")
+        with torch.npu.graph(g):
+            self.assertIsNone(torch_npu._C._npu_current_conditional_save_stream())
+            during = npu_graphs._get_save_tensor_stream(0)
+            x.mul_(2)
+        self.assertIs(during, shared)
+        self.assertIsNone(torch_npu._C._npu_current_conditional_save_stream())
+        g.reset()
+
+
 class TestAclgraphRawHandle(TestCase):
     def test_raw_npu_graph_exec_requires_capture(self):
         torch.npu.set_device(0)

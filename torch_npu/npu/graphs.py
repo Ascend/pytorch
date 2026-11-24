@@ -126,6 +126,13 @@ _NPUGRAPH_TENSOR_BUFFER_SPEC_MARKER = "host_tensor_buffer"
 
 
 def _get_save_tensor_stream(device_index: int):
+    # A conditional body captures into its own model, so NPUGraph hands out a per-body
+    # helper stream here; None outside a body, where the shared per-device stream is used.
+    stream_data = torch_npu._C._npu_current_conditional_save_stream()
+    if stream_data is not None:
+        return torch_npu.npu.Stream(
+            stream_id=stream_data[0], device_index=stream_data[1], device_type=stream_data[2]
+        )
     with _save_tensor_stream_lock:
         if device_index not in _save_tensor_streams:
             _save_tensor_streams[device_index] = torch.npu.Stream(
