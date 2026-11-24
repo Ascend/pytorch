@@ -193,6 +193,20 @@ def meta_linalg_solve_triangular(
         )
     return result
 
+@register_meta_npu(
+    [aten.nonzero_static.default, aten.nonzero_static.out],
+    avoid_fallback_flag=True,
+)
+@out_wrapper()
+def meta_nonzero_static(self, *, size, fill_value: int = -1):
+    if device_hint(self) == "npu":
+        return self.new_empty((size, self.dim()), dtype=torch.long)
+
+    from torch._meta_registrations import nonzero_static
+
+    return nonzero_static(self, size=size, fill_value=fill_value)
+
+
 @register_meta_npu(aten.index_put.default)
 def meta_index_put_patch(self, indices, values, accumulate=False):
     return self.new_empty(self.shape)

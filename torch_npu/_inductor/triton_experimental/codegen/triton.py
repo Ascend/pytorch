@@ -2107,6 +2107,39 @@ class _ShapeTrackedMaskedBody:
         return self.result
 
 
+def _npu_rewrite_singleton_full(text, orig_ndim, real_ndim):
+    """Rewrite full literals matching the pre-split singleton shape."""
+    if orig_ndim == real_ndim:
+        return text
+    old_shape = str([1] * orig_ndim)
+    new_shape = str([1] * real_ndim)
+    return text.replace(f"tl.full({old_shape},", f"tl.full({new_shape},")
+
+
+def _npu_constant_index_assert_shape(var_shape, orig_ndim, real_ndim):
+    """Expected shape of a constant ``index_expr``/``value_expr`` value.
+
+    A constant index has no range symbol, so deriving the shape from the index
+    expression reports rank 0; trust the recorded CSE shape instead, and mirror
+    the rank extension the linearize fixup applies to the emitted ``tl.full``
+    text. Splitting a range tree into several register axes raises the final
+    rank without changing the singleton extents, and the fixup rewrites exactly
+    the all-singleton literal of the pre-split rank
+    so the recorded shape grows under
+    the same condition and no other.
+
+    A recorded all-singleton shape of a different rank is left alone: the text
+    carrying it is not the literal the fixup matches. That is the normalized
+    rank-one constant of a kernel whose pre-split rank is >= 2, where
+    ``NPUTritonKernel.indexing`` rewrote both the metadata and the text down to
+    ``tl.full([1], ...)``.
+    """
+    shape = tuple(var_shape)
+    if shape == (1,) * orig_ndim:
+        return (1,) * real_ndim
+    return shape
+
+
 def _npu_kernel_is_degenerate(kernel):
     # Mirrors the constant override's degeneracy predicate.
     if kernel.triton_tensor_ndim() == 0:
@@ -4424,6 +4457,26 @@ class NPUTritonKernel(TritonKernel):
                 expand_str = "[1]"
                 expand_shape = (1,)
 
+        # Upstream already rendered a constant index as
+        # ``tl.full(<old_expand_str>, <value>, tl.int32)`` before the normalization
+        # above ran. When the shape metadata changes, rewrite the rendered text too;
+        # otherwise the CSE shape assertion (built from expand_shape) contradicts the
+        # rank of the value actually emitted, and every triton config fails to compile.
+        normalized_index_str = result.index_str
+        if (
+            is_sympy_integer_like(index)
+            and copy_shape is None
+            and not dense_indexing
+            and not block_ptr
+            and result.expand_str != expand_str
+        ):
+            old_prefix = f"tl.full({result.expand_str},"
+            if normalized_index_str.startswith(old_prefix):
+                normalized_index_str = (
+                    f"tl.full({expand_str or '[]'},"
+                    + normalized_index_str[len(old_prefix) :]
+                )
+
         new_mask_vars = OrderedSet()
         # Pre-compute the inner reduction node per reduction tree. In nested-loop mode
         # only the innermost r-node is vectorized; outer r-nodes are Python scalars
@@ -4491,7 +4544,7 @@ class NPUTritonKernel(TritonKernel):
         # mask-only axis fails. Forcing the index to dense_size_str() fixes that but turns a
         # contiguous load into a gathered broadcast_to the ascend backend lowers worse. Skip
         # when the mask's axis-masks ⊆ the index's own: load stays linear, OOB safety kept.
-        new_index_str = result.index_str
+        new_index_str = normalized_index_str
         new_expand_str = expand_str
         if (
             self._load_mask is not None
@@ -8861,7 +8914,12 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                     elif op is not None:
                         opname, args, kwargs = op
                         if opname in ("index_expr", "value_expr"):
-                            shape = index_shape(args[0])
+                            if is_sympy_integer_like(args[0]) and var.shape is not None:
+                                shape = _npu_constant_index_assert_shape(
+                                    var.shape, orig_ndim, real_ndim
+                                )
+                            else:
+                                shape = index_shape(args[0])
                         elif opname == "constant":
                             shape = () if var.shape == () else (1,) * real_ndim
                         else:
@@ -8876,8 +8934,6 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                 shapes[name] = tuple(shape) if shape is not None else None
 
             kernel._npu_assert_shapes = shapes
-        old_singleton_size = f"[{', '.join(['1'] * orig_ndim)}]"
-        real_singleton_size = f"[{', '.join(['1'] * real_ndim)}]"
         # R-tree's actual slot. If the hook pushed it to an outer slot, upstream's
         # tl.sum(_, ndim-nreduce) still assumes last-dim; rewrite the dim arg to match.
         # real_reduction_dim = where R lives; old_reduction_dim = what upstream emitted.
@@ -8953,14 +9009,9 @@ def {combine_name}(in_ptr0, out_ptr0, xnumel, r0_numel, XBLOCK : tl.constexpr, R
                     # singleton extent.  Preserve shaped-constant semantics, but
                     # extend its singleton shape to the final rank so consumers
                     # and stores can broadcast it against the linearized tile.
-                    if (
-                        orig_ndim != real_ndim
-                        and f"tl.full({old_singleton_size}," in _get()
-                    ):
-                        _set(_get().replace(
-                            f"tl.full({old_singleton_size},",
-                            f"tl.full({real_singleton_size},",
-                        ))
+                    rewritten = _npu_rewrite_singleton_full(_get(), orig_ndim, real_ndim)
+                    if rewritten != _get():
+                        _set(rewritten)
                     if (not _promoted_any) and old_slice in _get() and f", {old_reduction_dim})" in _get():
                         _set(_get().replace(
                             f", {old_reduction_dim})", f", {real_reduction_dim})"

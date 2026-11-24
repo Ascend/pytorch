@@ -76,6 +76,53 @@ class TestCodegenRegressions(TestCase):
         self.assertEqual(result.expand_str, "")
         self.assertEqual(result.expand_shape, ())
 
+    def test_codegen_constant_index_emitted_shape_matches_cse_shape(self):
+        # Upstream renders a constant index as tl.full(<shape>, value, tl.int32)
+        # before NPUTritonKernel.indexing normalizes the shape metadata. The emitted
+        # text and the CSE shape (which feeds tl.static_assert) must agree, or every
+        # triton config fails to compile (e.g. combinations with a degenerate index).
+        for numels, all_singleton, expected_shape in (
+            ([1, 1], True, "[]"),
+            ([4], False, "[1]"),
+        ):
+            with self.subTest(numels=numels):
+                upstream_result = IndexingOptions(
+                    "tl.full([1, 1], 0, tl.int32)",
+                    OrderedSet(),
+                    "[1, 1]",
+                    False,
+                    sympy.Integer(0),
+                    expand_shape=(1, 1),
+                )
+                kernel = object.__new__(npu_triton_codegen.NPUTritonKernel)
+                kernel._npu_linearize = True
+                kernel.range_trees = [
+                    SimpleNamespace(numel=n, is_reduction=False) for n in numels
+                ]
+                kernel._load_mask = None
+                sizevars = SimpleNamespace(
+                    statically_known_equals=lambda expr, value: all_singleton
+                )
+                virtualized = SimpleNamespace(graph=SimpleNamespace(sizevars=sizevars))
+                with (
+                    mock.patch.object(TritonKernel, "indexing", return_value=upstream_result),
+                    ncfg.patch(codegen_linearize=True),
+                    mock.patch.object(npu_triton_codegen, "V", virtualized),
+                    mock.patch.object(kernel, "filter_masks"),
+                ):
+                    result = kernel.indexing(sympy.Integer(0))
+                self.assertEqual(
+                    result.index_str, f"tl.full({expected_shape}, 0, tl.int32)"
+                )
+                emitted_shape = tuple(
+                    int(part)
+                    for part in result.index_str[
+                        len("tl.full([") : result.index_str.index("],")
+                    ].split(",")
+                    if part.strip()
+                )
+                self.assertEqual(emitted_shape, result.expand_shape)
+
     def test_codegen_scalar_pointwise_grid_clamp_contract(self):
         cases = (
             ({"npu_num_x_nodes": 0, "grid_type": "Grid1D"}, True),
@@ -366,6 +413,69 @@ class TestCodegenRegressions(TestCase):
         )
         self.assertFalse(bool(torch.isnan(actual).any()))
         torch.testing.assert_close(actual, expected)
+
+
+    def test_codegen_constant_index_assert_shape_follows_singleton_rank_fixup(self):
+        # __getitem__ sample 13 (index a (5,5,5) tensor with a (2,) int64 index)
+        # builds a one-x-tree kernel that linearize splits into two register
+        # axes, so the emitted constant grows from tl.full([1], 5, tl.int32) to
+        # tl.full([1, 1], 5, tl.int32). The assertion shape must grow with it,
+        # or every triton config fails to compile on the rank check.
+        self.assertEqual(
+            npu_triton_codegen._npu_constant_index_assert_shape((1,), 1, 2), (1, 1)
+        )
+        # No split: the emitted text keeps its rank, so must the assertion.
+        self.assertEqual(
+            npu_triton_codegen._npu_constant_index_assert_shape((1,), 1, 1), (1,)
+        )
+        self.assertEqual(
+            npu_triton_codegen._npu_constant_index_assert_shape((1, 1), 2, 2), (1, 1)
+        )
+        # The fixup rewrites the all-singleton literal of the pre-split rank,
+        # whatever that rank is, so a rank-two recorded shape grows too.
+        self.assertEqual(
+            npu_triton_codegen._npu_constant_index_assert_shape((1, 1), 2, 3), (1, 1, 1)
+        )
+        # A rank-one constant in a kernel whose pre-split rank is two: indexing
+        # normalized text and metadata down to tl.full([1], ...), which is not
+        # the [1, 1] literal the fixup matches, so the shape stays rank one.
+        self.assertEqual(
+            npu_triton_codegen._npu_constant_index_assert_shape((1,), 2, 3), (1,)
+        )
+        # Degenerate kernels keep their honest 0-d shape.
+        self.assertEqual(
+            npu_triton_codegen._npu_constant_index_assert_shape((), 1, 2), ()
+        )
+
+    def test_codegen_constant_index_assert_shape_matches_rewritten_text(self):
+        # The assertion rank must equal the rank of the text the linearize
+        # fixup actually emits. Drive both from the production helpers over the
+        # rank pairs linearize can produce instead of restating the condition.
+        for orig_ndim in range(4):
+            for real_ndim in range(orig_ndim, 5):
+                for rank in range(4):
+                    recorded = (1,) * rank
+                    emitted = f"tl.full({list(recorded)}, 5, tl.int32)"
+                    rewritten = npu_triton_codegen._npu_rewrite_singleton_full(
+                        emitted, orig_ndim, real_ndim
+                    )
+                    literal = rewritten[
+                        rewritten.index("[") : rewritten.index("]") + 1
+                    ]
+                    text_rank = len(
+                        [t for t in literal[1:-1].split(",") if t.strip()]
+                    )
+                    shape = npu_triton_codegen._npu_constant_index_assert_shape(
+                        recorded, orig_ndim, real_ndim
+                    )
+                    self.assertEqual(
+                        len(shape),
+                        text_rank,
+                        f"assert rank {len(shape)} != emitted rank {text_rank} for "
+                        f"recorded={recorded} orig={orig_ndim} real={real_ndim}: "
+                        f"{rewritten}",
+                    )
+                    self.assertEqual(shape, (1,) * text_rank)
 
 
 if __name__ == "__main__":
