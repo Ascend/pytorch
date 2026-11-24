@@ -13,11 +13,13 @@ NPUGraph是一种在Eager Mode（单算子执行模式）下使用的静态图�
 
 3. **更新（Update）**：对于需要动态参数（如序列长度）的算子（如FlashAttention），NPUGraph通过专用的update机制在重放前刷新参数值，无需重新捕获整张图。该机制由[_npugraph_handlers](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/torch_npu-npu_npugraph_handlers.md)中的算子Handler自动管理，用户通过`auto_dispatch_capture=True`启用。
 
+    <!-- npu="950" id1 -->
     在<term>Ascend 950PR&950DT系列产品</term>场景下，支持**tiling下沉**的算子还可以通过另一种方式处理序列长度变化。Tiling用于决定如何将算子的计算任务分配给设备上的各个计算核。采用tiling下沉后，依赖序列长度的任务切分计算会在设备侧执行，并成为捕获图的一部分。每次重放时，设备从NPU张量中读取当前的实际长度，重新计算任务分配，因此这类算子无需通过graph update机制刷新参数。
 
     例如，CANN的`cann_ops_transformer`扩展提供了`flash_attn_metadata`和`flash_attn`接口。将两个调用一起捕获到同一张图中：`flash_attn_metadata`在设备侧AI CPU上生成任务切分信息（metadata），`flash_attn`使用该信息执行注意力计算。重放前，只需将新的实际长度写入已有的NPU张量，无需设置`auto_dispatch_capture=True`，也无需调用图更新接口。具体用法见下方[通过tiling下沉使用FlashAttention](#示例通过tiling下沉使用flashattention)，参数及约束请参见CANN的[FlashAttention接口文档](https://gitcode.com/cann/ops-transformer/blob/master/attention/flash_attn/docs/torchapi_flash_attn.md)。
 
     该方式仅适用于支持tiling下沉的算子及配置。重放时，张量形状、数据类型、内存地址和静态属性仍需保持不变；可以变化的是算子支持的输入张量内容，例如实际序列长度。
+    <!-- end id1 -->
 
 ### 核心优势
 
@@ -64,8 +66,8 @@ NPUGraph提供了三种方式：
 | API | 手动操作 | 自动处理 | 适用场景 |
 |-----|--------|---------|---------|
 | NPUGraph类（`capture_begin/end`）| 手动创建Stream、调用`capture_begin/end`、管理内存池、处理同步 | ACLGraph捕获和重放 | 多Stream协同、分区域捕获 |
-| graph()上下文管理器 | 决定捕获边界 | 自动创建Stream，同步与缓存处理 | 快速上手，单流场景 | 
-| make_graphed_callables() |传入callables和样例输入| 自动完成warmup、捕获前后向图、处理数据copy_更新 | 含动态控制流的安全子图捕获 | 
+| `graph()`上下文管理器 | 决定捕获边界 | 自动创建Stream，同步与缓存处理 | 快速上手，单流场景 | 
+| `make_graphed_callables()`|传入callables和样例输入| 自动完成warmup、捕获前后向图、处理数据copy_更新 | 含动态控制流的安全子图捕获 | 
 
 ## 使用样例
 
@@ -205,7 +207,8 @@ if __name__ == "__main__":
     main()
 ```
 
-### 示例：通过tiling下沉使用FlashAttention
+<!-- npu="950" id2 -->
+**补充示例：通过tiling下沉使用FlashAttention**<a id="示例通过tiling下沉使用flashattention"></a>
 
 本示例将`flash_attn_metadata`和`flash_attn`一起捕获，并使用不同的实际KV序列长度重放同一张图。K/V张量始终保留128个token的容量，NPU张量`seqused_kv`指定当前重放时每个batch样本实际使用的token数量。
 
@@ -303,3 +306,5 @@ if __name__ == "__main__":
 关键是将**metadata生成和注意力计算一起捕获**。如果只在捕获前生成一次metadata，实际长度变化后，图中的任务切分信息仍会保持原值。本示例在每次重放时都会在设备侧重新生成metadata，并将其交给注意力算子使用，无需重新执行Python的`attention()`函数。
 
 实际长度必须在已分配的序列容量范围内。需要使用新的Q/K/V数据时，与`seqused_kv`一样，在重放前将数据拷贝到已有张量中。如果修改张量形状，或修改布局、掩码模式等静态配置，则需要重新捕获。示例中的eager调用和结果比较仅用于验证，正常的重放循环中无需保留。
+
+<!-- end id2 -->
