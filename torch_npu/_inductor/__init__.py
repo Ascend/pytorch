@@ -46,6 +46,10 @@ def _get_backend() -> str:
 def _load_ascendc_backend():
     from . import ascendc
 
+    from .codecache import patch_aot_code_compiler_compile
+
+    patch_aot_code_compiler_compile()
+
 
 def _load_mlir_backend():
     import warnings
