@@ -85,7 +85,7 @@
 | 环境变量名称 | 简介 |
 | --- | --- |
 |[TORCH_HCCL_BLOCKING_WAIT](collective_communication/TORCH_HCCL_BLOCKING_WAIT.md)|当使用HCCL作为通信后端时，通过此环境变量可控制`ProcessGroupHCCL`中`wait()`和`synchronize()`的同步模式（阻塞或非阻塞）。|
-|[TORCH_HCCL_ASYNC_ERROR_HANDLING](collective_communication/TORCH_HCCL_ASYNC_ERROR_HANDLING.md)|当使用HCCL作为通信后端时，通过此环境变量可控制是否开启异步错误处理。|
+|[TORCH_HCCL_ASYNC_ERROR_HANDLING](collective_communication/TORCH_HCCL_ASYNC_ERROR_HANDLING.md)|通过此环境变量配置WatchDog在Work异常分支中的通信器清理和异常抛出策略。|
 |[HCCL_EVENT_TIMEOUT](collective_communication/HCCL_EVENT_TIMEOUT.md)|当使用HCCL作为通信后端时，通过此环境变量可设置等待event完成的超时时间。|
 |[P2P_HCCL_BUFFSIZE](collective_communication/P2P_HCCL_BUFFSIZE.md)|通过此环境变量可配置是否开启点对点通信（`torch.distributed.isend`、`torch.distributed.irecv`和`torch.distributed.batch_isend_irecv`），并使用独立通信域功能。|
 |[RANK_TABLE_FILE](collective_communication/RANK_TABLE_FILE.md)|通过此环境变量可配置RANK_TABLE_FILE文件的路径，用于集合通信域建链。|
@@ -97,6 +97,15 @@
 | 环境变量名称 | 简介 |
 | --- | --- |
 |[TORCH_HCCL_DESYNC_DEBUG](collective_communication/TORCH_HCCL_DESYNC_DEBUG.md)|当使用HCCL作为通信后端时，通过此环境变量可控制是否进行通信超时分析。|
+|[TORCH_HCCL_ENABLE_MONITORING](collective_communication/TORCH_HCCL_ENABLE_MONITORING.md)|通过此环境变量控制是否启动WatchDog心跳监控线程。|
+|[TORCH_HCCL_DUMP_ON_TIMEOUT](collective_communication/TORCH_HCCL_DUMP_ON_TIMEOUT.md)|通过此环境变量控制是否启用常规自动FR故障转储。|
+|[TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC](collective_communication/TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC.md)|配置心跳监控检查WatchDog进展的时间间隔，单位为秒。|
+|[TORCH_HCCL_WAIT_TIMEOUT_DUMP_MILSEC](collective_communication/TORCH_HCCL_WAIT_TIMEOUT_DUMP_MILSEC.md)|配置常规自动FR故障转储的等待时间，单位为毫秒。|
+|[TORCH_HCCL_COORD_CHECK_MILSEC](collective_communication/TORCH_HCCL_COORD_CHECK_MILSEC.md)|配置全局进程组监控线程检查共享诊断请求和有效管道的轮询间隔。|
+|[TORCH_HCCL_RETHROW_HCCL_ERRORS](collective_communication/TORCH_HCCL_RETHROW_HCCL_ERRORS.md)|控制WatchDog捕获标准C++异常后是否继续重抛。|
+|[TORCH_HCCL_TEARDOWN_ON_TIMEOUT](collective_communication/TORCH_HCCL_TEARDOWN_ON_TIMEOUT.md)|控制符合条件的Work超时是否在关闭一般重抛后仍继续重抛。|
+|[TORCH_HCCL_PROPAGATE_ERROR](collective_communication/TORCH_HCCL_PROPAGATE_ERROR.md)|控制是否通过进程组Store传播和检查远端错误来源。|
+|[TORCH_HCCL_LOG_CPP_STACK_ON_UNCLEAN_SHUTDOWN](collective_communication/TORCH_HCCL_LOG_CPP_STACK_ON_UNCLEAN_SHUTDOWN.md)|控制心跳监控进入故障诊断后是否尝试调用已注册的C++栈采集器。|
 |[TORCH_FR_BUFFER_SIZE](collective_communication/TORCH_FR_BUFFER_SIZE.md)|当使用HCCL作为通信后端时，通过此环境变量可配置飞行记录器（Flight Recorder，简称FR）环形缓冲区最多保存的通信记录条数。|
 |[TORCH_FR_CPP_STACK](collective_communication/TORCH_FR_CPP_STACK.md)|当使用HCCL作为通信后端时，通过此环境变量可控制Flight Recorder是否采集通信操作的C++调用栈。|
 |[TORCH_HCCL_ENABLE_TIMING](collective_communication/TORCH_HCCL_ENABLE_TIMING.md)|当使用HCCL作为通信后端时，通过此环境变量可控制是否为通信操作启用计算设备执行时长的NPU计时事件。|

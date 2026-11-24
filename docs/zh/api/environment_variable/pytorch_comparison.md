@@ -2,7 +2,7 @@
 
 本表集中展示环境变量与PyTorch对应变量或相关配置的对照说明，按对应关系分组。配置取值、使用约束和支持型号请参见各变量详情；完整变量范围请参见[环境变量列表](env_variable_list.md)。
 
-PyTorch的配置名称、默认值和兼容名称可能随版本变化，使用时需结合配套PyTorch版本确认。Flight Recorder相关条目以PyTorch 2.15的NCCL后端为对照。
+PyTorch的配置名称、默认值和兼容名称可能随版本变化，使用时需结合配套PyTorch版本确认。WatchDog、心跳监控和Flight Recorder相关条目以PyTorch 2.15的NCCL后端为对照。
 
 ## 同名环境变量
 
@@ -34,6 +34,18 @@ PyTorch的配置名称、默认值和兼容名称可能随版本变化，使用�
 | [TORCH_HCCL_ENABLE_TIMING](collective_communication/TORCH_HCCL_ENABLE_TIMING.md) | `TORCH_NCCL_ENABLE_TIMING`（环境变量） | 变量名称不同，均用于启用通信设备计时，默认值为`0`。PyTorch使用CUDA事件，TorchNPU使用NPU事件。开启各自后端的通信失步检查也会启用计时；PyTorch设为`TORCH_DISTRIBUTED_DEBUG=DETAIL`时也会启用。 |
 | [TORCH_HCCL_EXTRA_DUMP_ON_EXEC](collective_communication/TORCH_HCCL_EXTRA_DUMP_ON_EXEC.md) | `TORCH_NCCL_EXTRA_DUMP_ON_EXEC`（环境变量） | 变量名称和触发范围不同，默认值均为`0`。两者均可在WatchDog捕获标准异常时额外采集诊断快照，PyTorch的NCCL进程组在执行`abort()`时也会尝试采集。 |
 | [TORCH_HCCL_DEBUG_INFO_PIPE_FILE](collective_communication/TORCH_HCCL_DEBUG_INFO_PIPE_FILE.md) | `TORCH_NCCL_DEBUG_INFO_PIPE_FILE`（环境变量） | 变量名称不同，均用于配置手动触发转储的命名管道前缀，默认值为空。管道由心跳监控线程创建。PyTorch在NCCL WatchDog运行时启动该线程，TorchNPU还需显式开启HCCL心跳监控。 |
+| [TORCH_HCCL_ASYNC_ERROR_HANDLING](collective_communication/TORCH_HCCL_ASYNC_ERROR_HANDLING.md) | `TORCH_NCCL_ASYNC_ERROR_HANDLING`（环境变量） | 变量名称不同，默认值均为`3`，均支持`0`、`1`、`2`、`3`四种异常处理策略。默认跳过通信域清理并要求退出；各模式的具体行为和HCCL使用约束请参见变量详情。 |
+| [TORCH_HCCL_BLOCKING_WAIT](collective_communication/TORCH_HCCL_BLOCKING_WAIT.md) | `TORCH_NCCL_BLOCKING_WAIT`（环境变量） | 变量名称不同，默认值均为`0`。设为`1`时，由调用Work等待接口的线程等待通信完成并检查超时，不启动WatchDog及其心跳监控线程。 |
+| [TORCH_HCCL_ENABLE_MONITORING](collective_communication/TORCH_HCCL_ENABLE_MONITORING.md) | `TORCH_NCCL_ENABLE_MONITORING`（环境变量） | TorchNPU默认为`0`，控制是否启动心跳监控线程。PyTorch默认为`1`，控制监控线程在处理通信超时、通信异常或心跳停滞等故障后是否终止进程。设为`0`时，NCCL心跳监控线程仍会启动。 |
+| [TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC](collective_communication/TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC.md) | `TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC`（环境变量） | 均以秒为单位，用于判断WatchDog心跳是否长期未更新，并用于故障诊断后的额外等待。TorchNPU默认`600`秒，PyTorch默认`480`秒；TorchNPU需先开启心跳监控。 |
+| [TORCH_HCCL_COORD_CHECK_MILSEC](collective_communication/TORCH_HCCL_COORD_CHECK_MILSEC.md) | `TORCH_NCCL_COORD_CHECK_MILSEC`（环境变量） | 变量名称不同，默认值均为`1000`毫秒。用于全局进程组心跳监控线程轮询跨rank转储请求和手动转储管道；实际检查还需满足相应的转储配置条件。 |
+| [TORCH_HCCL_DUMP_ON_TIMEOUT](collective_communication/TORCH_HCCL_DUMP_ON_TIMEOUT.md) | `TORCH_NCCL_DUMP_ON_TIMEOUT`（环境变量） | 均控制Work异常、通信超时等故障的常规自动FR转储，默认值不同：TorchNPU为`0`，PyTorch为`1`。TorchNPU还需开启心跳监控，并配置有效的FR缓冲区。该变量不代表所有转储入口的总开关。 |
+| [TORCH_HCCL_WAIT_TIMEOUT_DUMP_MILSEC](collective_communication/TORCH_HCCL_WAIT_TIMEOUT_DUMP_MILSEC.md) | `TORCH_NCCL_WAIT_TIMEOUT_DUMP_MILSEC`（环境变量） | 变量名称不同，默认值均为`15000`毫秒，即`15`秒。用于故障转储等待，包括WatchDog预留的诊断等待时间和监控线程等待异步转储结果的时间。 |
+| [TORCH_HCCL_RETHROW_HCCL_ERRORS](collective_communication/TORCH_HCCL_RETHROW_HCCL_ERRORS.md) | `TORCH_NCCL_RETHROW_CUDA_ERRORS`（环境变量） | 变量名称不同，默认值均为`1`。控制WatchDog捕获标准异常后是否继续重抛。设为`0`会结束WatchDog线程，不会恢复监控；超时强制重抛和未知异常等路径仍可能导致进程退出。|
+| [TORCH_HCCL_TEARDOWN_ON_TIMEOUT](collective_communication/TORCH_HCCL_TEARDOWN_ON_TIMEOUT.md) | `TORCH_NCCL_TEARDOWN_ON_TIMEOUT`（环境变量） | 变量名称不同，默认值均为`0`。设为`1`时，异步错误处理模式`1`或`3`下的Work超时可在关闭一般异常重抛后仍触发重抛退出。 |
+| [TORCH_HCCL_PROPAGATE_ERROR](collective_communication/TORCH_HCCL_PROPAGATE_ERROR.md) | `TORCH_NCCL_PROPAGATE_ERROR`（环境变量） | 变量名称不同，默认值均为`0`。开启后，通过进程组Store传播错误来源，接收方可将进程组错误状态设置为`REMOTE_ERROR`。 |
+| [TORCH_HCCL_LOG_CPP_STACK_ON_UNCLEAN_SHUTDOWN](collective_communication/TORCH_HCCL_LOG_CPP_STACK_ON_UNCLEAN_SHUTDOWN.md) | `TORCH_NCCL_LOG_CPP_STACK_ON_UNCLEAN_SHUTDOWN`（环境变量） | 变量名称不同，默认值均为`1`。心跳监控线程进入故障诊断时，在C++栈采集器已注册的条件下尝试采集当前线程栈。 |
+| [TORCH_HCCL_DESYNC_DEBUG](collective_communication/TORCH_HCCL_DESYNC_DEBUG.md) | `TORCH_NCCL_DESYNC_DEBUG`（环境变量） | 变量名称不同，默认值均为`0`。均用于记录各rank通信进度，并在Work超时时尝试生成通信失步报告；`TORCH_DISTRIBUTED_DEBUG=DETAIL`也会启用相关诊断。非阻塞等待配置下，启用诊断且异步错误处理模式为`0`时，会将该模式调整为`3`。 |
 
 ## 通过PyTorch配置项对照
 

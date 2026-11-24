@@ -65,7 +65,11 @@ FR配置按“记录与输出”和“触发转储”两类划分。记录与输
 - **WatchDog异常出口额外采集**：由[TORCH_HCCL_EXTRA_DUMP_ON_EXEC](../../api/environment_variable/collective_communication/TORCH_HCCL_EXTRA_DUMP_ON_EXEC.md)=1开启。WatchDog捕获标准异常后额外尝试广播诊断请求并在当前rank采集快照，可覆盖communicator预检查发现异步错误、异步错误查询接口本身失败等可能未经过常规转储请求的情况。本地调用不依赖监控或常规转储开关；远端是否响应仍由各rank的监控配置和执行时序决定。
 - **命名管道手动触发**：设置[TORCH_HCCL_DEBUG_INFO_PIPE_FILE](../../api/environment_variable/collective_communication/TORCH_HCCL_DEBUG_INFO_PIPE_FILE.md)为管道前缀后，向`<prefix><rank>.pipe`写入非空内容可请求当前rank异步采集。需开启监控且FR缓冲区大于0。
 
-常规自动转储单次默认等待60秒，由`TORCH_HCCL_WAIT_TIMEOUT_DUMP_MILSEC`控制。首次超时后再尝试一次不包含FR条目调用栈的转储。默认进程组监控线程检查协调转储请求的轮询间隔由`TORCH_HCCL_COORD_CHECK_MILSEC`控制，默认1000毫秒。
+常规自动转储时，监控线程每次等待转储结果的超时时间由 `TORCH_HCCL_WAIT_TIMEOUT_DUMP_MILSEC` 控制，默认为 15 秒。首次等待超时后，监控线程会再尝试一次不包含 FR 条目调用栈的转储，单次等待上限与首次相同。
+
+WatchDog 广播故障转储信号后，会等待 `TORCH_HCCL_WAIT_TIMEOUT_DUMP_MILSEC` 配置值的 4 倍时长，默认为 60 秒。
+
+默认进程组的监控线程按 `TORCH_HCCL_COORD_CHECK_MILSEC` 指定的间隔轮询协调转储请求，默认间隔为 1000 毫秒。
 
 > [!NOTE]
 >

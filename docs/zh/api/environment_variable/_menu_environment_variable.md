@@ -119,6 +119,33 @@
   <!-- npu="950,A3,910b,910,310p" id37 -->
   - [TORCH_HCCL_DESYNC_DEBUG](collective_communication/TORCH_HCCL_DESYNC_DEBUG.md)
   <!-- end id37 -->
+  <!-- npu="950,A3,910b,910" id96 -->
+  - [TORCH_HCCL_ENABLE_MONITORING](collective_communication/TORCH_HCCL_ENABLE_MONITORING.md)
+  <!-- end id96 -->
+  <!-- npu="950,A3,910b,910" id97 -->
+  - [TORCH_HCCL_DUMP_ON_TIMEOUT](collective_communication/TORCH_HCCL_DUMP_ON_TIMEOUT.md)
+  <!-- end id97 -->
+  <!-- npu="950,A3,910b,910" id100 -->
+  - [TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC](collective_communication/TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC.md)
+  <!-- end id100 -->
+  <!-- npu="950,A3,910b,910" id101 -->
+  - [TORCH_HCCL_WAIT_TIMEOUT_DUMP_MILSEC](collective_communication/TORCH_HCCL_WAIT_TIMEOUT_DUMP_MILSEC.md)
+  <!-- end id101 -->
+  <!-- npu="950,A3,910b,910" id102 -->
+  - [TORCH_HCCL_COORD_CHECK_MILSEC](collective_communication/TORCH_HCCL_COORD_CHECK_MILSEC.md)
+  <!-- end id102 -->
+  <!-- npu="950,A3,910b,910" id103 -->
+  - [TORCH_HCCL_RETHROW_HCCL_ERRORS](collective_communication/TORCH_HCCL_RETHROW_HCCL_ERRORS.md)
+  <!-- end id103 -->
+  <!-- npu="950,A3,910b,910" id104 -->
+  - [TORCH_HCCL_TEARDOWN_ON_TIMEOUT](collective_communication/TORCH_HCCL_TEARDOWN_ON_TIMEOUT.md)
+  <!-- end id104 -->
+  <!-- npu="950,A3,910b,910" id105 -->
+  - [TORCH_HCCL_PROPAGATE_ERROR](collective_communication/TORCH_HCCL_PROPAGATE_ERROR.md)
+  <!-- end id105 -->
+  <!-- npu="950,A3,910b,910" id106 -->
+  - [TORCH_HCCL_LOG_CPP_STACK_ON_UNCLEAN_SHUTDOWN](collective_communication/TORCH_HCCL_LOG_CPP_STACK_ON_UNCLEAN_SHUTDOWN.md)
+  <!-- end id106 -->
   <!-- npu="950,A3,910b,910" id79 -->
   - [TORCH_FR_BUFFER_SIZE](collective_communication/TORCH_FR_BUFFER_SIZE.md)
   <!-- end id79 -->
