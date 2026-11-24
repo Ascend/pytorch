@@ -557,8 +557,15 @@ at::Tensor NPUNativeFunctions::blackman_window(
     c10::optional<c10::Layout> layout_opt,
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
+  // Resolve the dtype here, as upstream does: an unset dtype_opt must become
+  // the default float dtype BEFORE it reaches at::arange below. Left unset, the
+  // options carry no dtype, arange applies its own integral default and the
+  // window comes out int64 -- window_function_checks still passes (an unset
+  // dtype reads back as the default float), and the first elementwise call then
+  // fails on device, e.g. aclnnInplaceCos reporting 161002 for DT_INT64.
+  c10::ScalarType dtype = c10::dtype_or_default(dtype_opt);
   c10::TensorOptions options =
-      c10::TensorOptions().dtype(dtype_opt).device(device_opt).layout(layout_opt).pinned_memory(pin_memory_opt);
+      c10::TensorOptions().dtype(dtype).device(device_opt).layout(layout_opt).pinned_memory(pin_memory_opt);
 
   window_function_checks("blackman_window", options, window_length);
   if (window_length == 0) {
@@ -592,8 +599,15 @@ at::Tensor NPUNativeFunctions::bartlett_window(
     c10::optional<c10::Layout> layout_opt,
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
+  // Resolve the dtype here, as upstream does: an unset dtype_opt must become
+  // the default float dtype BEFORE it reaches at::arange below. Left unset, the
+  // options carry no dtype, arange applies its own integral default and the
+  // window comes out int64 -- window_function_checks still passes (an unset
+  // dtype reads back as the default float), and the first elementwise call then
+  // fails on device, e.g. aclnnInplaceCos reporting 161002 for DT_INT64.
+  c10::ScalarType dtype = c10::dtype_or_default(dtype_opt);
   c10::TensorOptions options =
-      c10::TensorOptions().dtype(dtype_opt).device(device_opt).layout(layout_opt).pinned_memory(pin_memory_opt);
+      c10::TensorOptions().dtype(dtype).device(device_opt).layout(layout_opt).pinned_memory(pin_memory_opt);
 
   window_function_checks("bartlett_window", options, window_length);
   if (window_length == 0) {
@@ -628,8 +642,15 @@ at::Tensor NPUNativeFunctions::hann_window(
     c10::optional<c10::Layout> layout_opt,
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
+  // Resolve the dtype here, as upstream does: an unset dtype_opt must become
+  // the default float dtype BEFORE it reaches at::arange below. Left unset, the
+  // options carry no dtype, arange applies its own integral default and the
+  // window comes out int64 -- window_function_checks still passes (an unset
+  // dtype reads back as the default float), and the first elementwise call then
+  // fails on device, e.g. aclnnInplaceCos reporting 161002 for DT_INT64.
+  c10::ScalarType dtype = c10::dtype_or_default(dtype_opt);
   c10::TensorOptions options =
-      c10::TensorOptions().dtype(dtype_opt).device(device_opt).layout(layout_opt).pinned_memory(pin_memory_opt);
+      c10::TensorOptions().dtype(dtype).device(device_opt).layout(layout_opt).pinned_memory(pin_memory_opt);
 
   window_function_checks("hann_window", options, window_length);
   return at::hamming_window(window_length, periodic, 0.5, 0.5, options);
@@ -654,8 +675,15 @@ at::Tensor NPUNativeFunctions::hamming_window(
     c10::optional<c10::Layout> layout_opt,
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
+  // Resolve the dtype here, as upstream does: an unset dtype_opt must become
+  // the default float dtype BEFORE it reaches at::arange below. Left unset, the
+  // options carry no dtype, arange applies its own integral default and the
+  // window comes out int64 -- window_function_checks still passes (an unset
+  // dtype reads back as the default float), and the first elementwise call then
+  // fails on device, e.g. aclnnInplaceCos reporting 161002 for DT_INT64.
+  c10::ScalarType dtype = c10::dtype_or_default(dtype_opt);
   c10::TensorOptions options =
-      c10::TensorOptions().dtype(dtype_opt).device(device_opt).layout(layout_opt).pinned_memory(pin_memory_opt);
+      c10::TensorOptions().dtype(dtype).device(device_opt).layout(layout_opt).pinned_memory(pin_memory_opt);
 
   window_function_checks("hamming_window", options, window_length);
   if (window_length == 0) {
