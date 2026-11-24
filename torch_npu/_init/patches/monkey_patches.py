@@ -7,7 +7,7 @@ from torch_npu._init.patches.patch_manager import PatchManager
 from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils._error_code import ErrCode, pta_error
-
+from torch_npu.utils import _associative_scan
 
 all_monkey_patches = [
     ["nn.functional", npu_functional],
