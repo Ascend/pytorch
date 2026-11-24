@@ -280,6 +280,7 @@ int munmap(void* addr, size_t length) {
 #include <torch/csrc/inductor/aoti_runtime/constant_type.h>
 #ifdef USE_NPU
 #include <torch_npu/csrc/inductor/aoti_runtime/device_utils.h>
+#include <torch_npu/csrc/inductor/aoti_runtime/utils_npu.h>
 #include <torch_npu/csrc/inductor/aoti_torch/c/shim_npu.h>
 #endif // USE_NPU
 
@@ -515,7 +516,9 @@ class AOTInductorModelBase {
       DeviceStreamType stream,
       AOTIProxyExecutorHandle proxy_executor) {
 #if defined(USE_NPU)
+    AOTINpuGuard device_guard(device_idx_);
     auto run_stream = normalize_run_stream(stream);
+    AOTINpuStreamGuard stream_guard(run_stream, device_idx_);
     if (!run_finished_) {
       aclrtEvent run_finished;
       AOTI_RUNTIME_DEVICE_CHECK(aclrtCreateEvent(&run_finished));
@@ -530,7 +533,7 @@ class AOTInductorModelBase {
     model->run_impl(input_handles, output_handles, run_stream, proxy_executor);
 
 #if defined(USE_NPU)
-    AOTI_RUNTIME_DEVICE_CHECK(aclrtRecordEvent(*run_finished_, run_stream));
+    record_completion(run_stream);
 #else
     run_finished_ = true;
 #endif
@@ -549,7 +552,9 @@ class AOTInductorModelBase {
     // don't bother with any of the run_finished stuff; this is unsafe to call
     // in a threaded context
 #if defined(USE_NPU)
+    AOTINpuGuard device_guard(device_idx_);
     auto run_stream = normalize_run_stream(stream);
+    AOTINpuStreamGuard stream_guard(run_stream, device_idx_);
 #else
     auto run_stream = stream;
 #endif
@@ -562,7 +567,9 @@ class AOTInductorModelBase {
       AOTIProxyExecutorHandle proxy_executor,
       bool initialization = false) {
 #ifdef USE_NPU
+    AOTINpuGuard device_guard(device_idx_);
     auto run_stream = normalize_run_stream(stream);
+    AOTINpuStreamGuard stream_guard(run_stream, device_idx_);
     if (!run_finished_) {
       aclrtEvent run_finished;
       AOTI_RUNTIME_DEVICE_CHECK(aclrtCreateEvent(&run_finished));
@@ -578,7 +585,7 @@ class AOTInductorModelBase {
     // torch/csrc/inductor/aoti_runtime/model_base.h
     try {
 #ifdef USE_NPU
-      AOTI_RUNTIME_DEVICE_CHECK(aclrtRecordEvent(*run_finished_, run_stream));
+      record_completion(run_stream);
 #else
       run_finished_ = true;
 #endif
@@ -605,6 +612,7 @@ class AOTInductorModelBase {
   }
 
   void load_constants(bool force = false) {
+    did_call_load_constants_ = true;
     size_t num_constants = this->num_constants();
     size_t num_folded_constants = this->num_folded_constants();
     constants_map_->reserve(num_constants);
@@ -729,11 +737,21 @@ class AOTInductorModelBase {
     }
   }
 
-  RAIIDataPtr&& release_constant_blob() {
+  void set_constant_blob_releasable(bool releasable) {
+    constant_blob_releasable_ = releasable;
+  }
+
+  RAIIDataPtr release_constant_blob() {
+    if (!constant_blob_releasable_) {
+      return RAIIDataPtr{};
+    }
     return std::move(constant_blob_);
   }
 
-  RAIIDataPtr&& release_aux_cpu_constant_blob() {
+  RAIIDataPtr release_aux_cpu_constant_blob() {
+    if (!constant_blob_releasable_) {
+      return RAIIDataPtr{};
+    }
     return std::move(aux_cpu_constant_blob_);
   }
 
@@ -900,6 +918,10 @@ class AOTInductorModelBase {
 #endif
   }
 
+  bool did_call_load_constants() const {
+    return did_call_load_constants_;
+  }
+
   void update_constants_array_from_map() {
     if (!constants_map_) {
       throw std::runtime_error{"constants_map_ was not ready when constants_ is trying to be constructed from it!"};
@@ -952,7 +974,32 @@ class AOTInductorModelBase {
   }
 
   /// Synchronizes completion event.
-  void wait_for_completion() {}
+  void wait_for_completion() {
+#ifdef USE_NPU
+    if (!run_finished_) {
+      throw std::runtime_error{"Model NPU event was not initialized"};
+    }
+    AOTI_RUNTIME_DEVICE_CHECK(aclrtSynchronizeEvent(*run_finished_));
+#endif
+  }
+
+#ifdef USE_NPU
+ private:
+  void record_completion(DeviceStreamType run_stream) {
+    // The stream getter drains the host queue before returning the ACL stream.
+    void* submitted_stream = nullptr;
+    AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_get_current_npu_stream(device_idx_, &submitted_stream));
+
+    std::optional<AOTINpuStreamGuard> completion_guard;
+    if (submitted_stream != run_stream) {
+      completion_guard.emplace(run_stream, device_idx_);
+      AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_get_current_npu_stream(device_idx_, &submitted_stream));
+      AOTI_RUNTIME_CHECK(submitted_stream == run_stream, "Failed to flush the model NPU stream");
+    }
+
+    AOTI_RUNTIME_DEVICE_CHECK(aclrtRecordEvent(*run_finished_, run_stream));
+  }
+#endif
 
  protected:
   uint8_t* _get_constants_start() {
@@ -1051,6 +1098,10 @@ class AOTInductorModelBase {
   // If True, we would prepare the weight when loading the model, otherwise the
   // model will be loaded without weights, and need to be provided by the user.
   bool include_weights;
+  bool did_call_load_constants_{false};
+  // External-constants containers retain shallow tensor handles rather than
+  // owning an allocated weight blob. release_* returns empty blob handles.
+  bool constant_blob_releasable_{true};
 
   // Record if the model finishes an inference run so that its owning
   // AOTModelContainer can reuse this instance.
