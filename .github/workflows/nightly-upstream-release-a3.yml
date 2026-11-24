@@ -98,3 +98,23 @@ jobs:
       # cxx20 step in _nightly_test-category.yml. Flip to false to
       # disable.
       patch_triton_cxx20: true
+
+  # AI 失败用例分析（Claude Code headless + DeepSeek）：仅分析本 run 中
+  # failed/error/timeout 的测试用例根因，报告上传 Guiyang OBS 并在 job
+  # Summary 打印匿名下载链接。两层拦截保证 job 级/基础设施失败不启动
+  # AI 流程：本 job 只在 test job 失败时运行；job 内门禁
+  # （.github/scripts/fetch_test_failures.py）在无失败用例 / 报告制品缺失
+  # / 失败全部命中基础设施签名时直接结束（不调用模型）。
+  # continue_on_error：AI 分析异常不影响夜间流水线结论。
+  ai-failure-analysis:
+    needs: test
+    if: ${{ !cancelled() && needs.test.result == 'failure' }}
+    uses: ./.github/workflows/_ai_failure_analysis.yml
+    permissions:
+      contents: read
+      actions: read
+    secrets: inherit
+    with:
+      max_cases: 30
+      timeout_minutes: 45
+      continue_on_error: true
