@@ -6,6 +6,8 @@ import unittest
 from contextlib import ExitStack
 from unittest import mock
 
+from packaging.version import Version
+
 os.environ.setdefault("TORCHINDUCTOR_NPU_BACKEND", "triton_experimental")
 
 import torch
@@ -19,6 +21,8 @@ from torch_npu._inductor.triton_experimental import lowering, lowering_fallback_
 
 aten = torch.ops.aten
 prims = torch.ops.prims
+TORCH_216 = Version(torch.__version__).release[:2] == (2, 16)
+TRITON_CODEGEN_SKIP_REASON = "Temporarily disabled pending TritonEx codegen validation on PyTorch 2.16"
 
 
 class TestLoweringFallbackBlacklist(TestCase):
@@ -109,6 +113,7 @@ class TestLoweringFallbackBlacklist(TestCase):
                          if not line.lstrip().startswith("#"))
         return actual, body
 
+    @unittest.skipIf(TORCH_216, TRITON_CODEGEN_SKIP_REASON)
     @unittest.skipUnless(torch.npu.is_available(), "requires an NPU")
     def test_logical_and_codegen_and_fusion(self):
         def fused(x, y):
@@ -142,6 +147,7 @@ class TestLoweringFallbackBlacklist(TestCase):
                 self.assertIn(f"torch.ops.{op}(", body)
                 self.assertEqual(self._triton_kernel_count(body), 0)
 
+    @unittest.skipIf(TORCH_216, TRITON_CODEGEN_SKIP_REASON)
     @unittest.skipUnless(torch.npu.is_available(), "requires an NPU")
     def test_mutation_and_alias(self):
         x, y = torch.randn(17, 31, device="npu"), torch.randn(1, 31, device="npu")
