@@ -170,6 +170,28 @@ def meta_sort(self, stable=None, dim=-1, descending=False, values=None, indices=
         from torch._meta_registrations import meta_sort
         return meta_sort(self, stable=stable, dim=dim, descending=descending, values=values, indices=indices)
 
+@register_meta_npu(aten.linalg_solve_triangular.default, avoid_fallback_flag=True)
+def meta_linalg_solve_triangular(
+    A: Tensor, B: Tensor, *, upper: bool, left: bool = True, unitriangular: bool = False
+):
+    from torch._meta_registrations import linalg_solve_triangular_meta
+
+    result = linalg_solve_triangular_meta(
+        A, B, upper=upper, left=left, unitriangular=unitriangular
+    )
+    if device_hint(A) == "npu":
+        from torch._prims_common import make_contiguous_strides_for
+
+        # NPU solves left-sided systems in row-major order. Right-sided
+        # systems are implemented by transposing the solution, so their
+        # last two dimensions are column-major.
+        return torch.empty_strided(
+            result.shape,
+            make_contiguous_strides_for(result.shape, row_major=left),
+            dtype=result.dtype,
+            device=result.device,
+        )
+    return result
 
 @register_meta_npu(aten.index_put.default)
 def meta_index_put_patch(self, indices, values, accumulate=False):
