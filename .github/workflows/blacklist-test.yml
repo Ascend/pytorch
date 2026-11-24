@@ -372,7 +372,10 @@ jobs:
     if: ${{ !cancelled() && needs.shard-a3.result == 'success' && (needs.resolve.outputs.a3_found == 'true' || needs.build-a3.result == 'success') }}
     strategy:
       fail-fast: false
-      max-parallel: ${{ inputs.test_max_parallel || 8 }}
+      # workflow_dispatch 经 API/界面注入的输入是字符串（"8"），而
+      # strategy.max-parallel 只接受整数，直接取值会报 Unexpected value '8'。
+      # fromJSON 统一转成整数；push 触发时 inputs 为空，回退到 '8'。
+      max-parallel: ${{ fromJSON(inputs.test_max_parallel || '8') }}
       matrix:
         include:
           - category: blacklist-a3
@@ -395,7 +398,9 @@ jobs:
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17
       runner_label: ${{ matrix.runner_label }}
       device_env: 'privateuse1,cpu'
-      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 || github.event_name == 'push' }}
+      # workflow_dispatch 注入的输入可能是字符串 "true"，直接透传会让被调用方
+      # 的 boolean 入参类型校验失败。显式与 true / 'true' 比较，结果恒为布尔值。
+      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 == true || inputs.patch_triton_cxx20 == 'true' || github.event_name == 'push' }}
       cases_artifact_name: cases-shards-a3
 
   # ==========================================================================
@@ -455,7 +460,10 @@ jobs:
     if: ${{ !cancelled() && needs.shard-a5.result == 'success' && (needs.resolve.outputs.a5_found == 'true' || needs.build-a5.result == 'success') }}
     strategy:
       fail-fast: false
-      max-parallel: ${{ inputs.test_max_parallel || 8 }}
+      # workflow_dispatch 经 API/界面注入的输入是字符串（"8"），而
+      # strategy.max-parallel 只接受整数，直接取值会报 Unexpected value '8'。
+      # fromJSON 统一转成整数；push 触发时 inputs 为空，回退到 '8'。
+      max-parallel: ${{ fromJSON(inputs.test_max_parallel || '8') }}
       matrix:
         include:
           - category: blacklist-a5
@@ -478,7 +486,9 @@ jobs:
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.11-torch-master-cann9.2.0-20260910200430-202610160226-8a315d17
       runner_label: ${{ matrix.runner_label }}
       device_env: 'privateuse1,cpu'
-      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 || github.event_name == 'push' }}
+      # workflow_dispatch 注入的输入可能是字符串 "true"，直接透传会让被调用方
+      # 的 boolean 入参类型校验失败。显式与 true / 'true' 比较，结果恒为布尔值。
+      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 == true || inputs.patch_triton_cxx20 == 'true' || github.event_name == 'push' }}
       cases_artifact_name: cases-shards-a5
 
   # ==========================================================================
@@ -506,7 +516,10 @@ jobs:
     if: ${{ !cancelled() && needs.shard-pass-a3.result == 'success' && (needs.resolve.outputs.a3_found == 'true' || needs.build-a3.result == 'success') }}
     strategy:
       fail-fast: false
-      max-parallel: ${{ inputs.test_max_parallel || 8 }}
+      # workflow_dispatch 经 API/界面注入的输入是字符串（"8"），而
+      # strategy.max-parallel 只接受整数，直接取值会报 Unexpected value '8'。
+      # fromJSON 统一转成整数；push 触发时 inputs 为空，回退到 '8'。
+      max-parallel: ${{ fromJSON(inputs.test_max_parallel || '8') }}
       matrix:
         include:
           - category: pass-a3
@@ -529,7 +542,9 @@ jobs:
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-aarch64-cann-a3-py3.11-torch-master-cann9.2.0-20260910200430-202610160225-8a315d17
       runner_label: ${{ matrix.runner_label }}
       device_env: 'privateuse1,cpu'
-      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 || github.event_name == 'push' }}
+      # workflow_dispatch 注入的输入可能是字符串 "true"，直接透传会让被调用方
+      # 的 boolean 入参类型校验失败。显式与 true / 'true' 比较，结果恒为布尔值。
+      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 == true || inputs.patch_triton_cxx20 == 'true' || github.event_name == 'push' }}
       cases_artifact_name: cases-shards-pass-a3
 
   shard-pass-a5:
@@ -549,7 +564,10 @@ jobs:
     if: ${{ !cancelled() && needs.shard-pass-a5.result == 'success' && (needs.resolve.outputs.a5_found == 'true' || needs.build-a5.result == 'success') }}
     strategy:
       fail-fast: false
-      max-parallel: ${{ inputs.test_max_parallel || 8 }}
+      # workflow_dispatch 经 API/界面注入的输入是字符串（"8"），而
+      # strategy.max-parallel 只接受整数，直接取值会报 Unexpected value '8'。
+      # fromJSON 统一转成整数；push 触发时 inputs 为空，回退到 '8'。
+      max-parallel: ${{ fromJSON(inputs.test_max_parallel || '8') }}
       matrix:
         include:
           - category: pass-a5
@@ -572,7 +590,9 @@ jobs:
       docker_image: swr.cn-north-4.myhuaweicloud.com/frameworkptadapter/pytorch:torch-npu-test-x86_64-cann-a5-py3.11-torch-master-cann9.2.0-20260910200430-202610160226-8a315d17
       runner_label: ${{ matrix.runner_label }}
       device_env: 'privateuse1,cpu'
-      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 || github.event_name == 'push' }}
+      # workflow_dispatch 注入的输入可能是字符串 "true"，直接透传会让被调用方
+      # 的 boolean 入参类型校验失败。显式与 true / 'true' 比较，结果恒为布尔值。
+      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 == true || inputs.patch_triton_cxx20 == 'true' || github.event_name == 'push' }}
       cases_artifact_name: cases-shards-pass-a5
 
   # ==========================================================================
