@@ -96,19 +96,16 @@ class TestAclprofNative(TestCase):
                                            on_trace_ready=handler, **{option: True})
                 self.assertIsNone(handler._profile_ref)
 
-    def test_automatic_analysis_is_rejected_before_native_preparation(self):
+    def test_automatic_analysis_binds_without_starting_capture(self):
         with (
             tempfile.TemporaryDirectory() as directory,
-            patch.object(entry, "original_profile_init") as original,
             patch("torch.autograd.profiler._prepare_profiler") as prepare,
         ):
             for options in ({}, {"analyse_flag": True}):
                 handler = tensorboard_trace_handler(directory, **options)
-                with self.assertRaisesRegex(ValueError, "set analyse_flag=False"):
-                    torch.profiler.profile(experimental_config=_NPUExperimentalConfig(), on_trace_ready=handler)
-                self.assertIsNone(handler._profile_ref)
+                prof = torch.profiler.profile(experimental_config=_NPUExperimentalConfig(), on_trace_ready=handler)
+                self.assertIs(handler._profile_ref(), prof)
                 self.assertFalse(os.path.exists(handler.prof_path))
-            original.assert_not_called()
             prepare.assert_not_called()
 
     def test_invalid_aclprof_payload_state_does_not_fall_back(self):

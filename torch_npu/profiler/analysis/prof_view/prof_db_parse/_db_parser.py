@@ -48,6 +48,7 @@ class DbParser(BaseParser):
         parser_db_map = self.PYTORCH_DB_MAP
         if ProfilerPathManager.get_cann_path(self._profiler_path) and ProfilerConfig().get_level() != Constant.LEVEL_NONE:
             parser_db_map = {**self.PYTORCH_DB_MAP, **self.ANALYSIS_DB_MAP}
+        status = Constant.SUCCESS
         try:
             for name, parser in parser_db_map.items():
                 parser_obj = parser(name, self._param_dict)
@@ -55,11 +56,12 @@ class DbParser(BaseParser):
                 deps_data.setdefault(name, parser_data)
                 if parser_status != Constant.SUCCESS:
                     print_error_msg(f"DB parser failed, parser is {name}")
-        except Exception as error:
-            self.logger.error("Failed to generate ascend_pytorch_profiler db file, error: %s", str(error), exc_info=True)
+                    status = Constant.FAIL
+        except Exception:
+            self.logger.exception("Failed to generate ascend_pytorch_profiler db file.")
             return Constant.FAIL, ""
         finally:
             TorchDb().close()
             AnalysisDb().close()
         self.logger.info("DbParser finish.")
-        return Constant.SUCCESS, ""
+        return status, ""

@@ -203,7 +203,20 @@ def tensorboard_trace_handler(
         print_warn_msg("use_gzip is not bool, set by default.")
         use_gzip = False
 
-    def archive_profile(prof_path: str) -> None:
+    def archive_profile(prof_path: str, futures=None) -> None:
+        if analyse_flag:
+            analysis_failed = not futures
+            for future in futures or []:
+                # result() re-raises parsing exceptions and raises CancelledError for cancelled futures.
+                try:
+                    analysis_failed = future.result() is False
+                except Exception:
+                    analysis_failed = True
+                if analysis_failed:
+                    break
+            if analysis_failed:
+                print_warn_msg("Profiling data parsing failed; archiving is skipped.")
+                return
         archive_path = f"{prof_path}.tar.gz"
         temporary_path = f"{archive_path}.tmp"
         try:
@@ -216,7 +229,7 @@ def tensorboard_trace_handler(
             print_warn_msg(str(error))
 
     @no_exception_func()
-    def handle_aclprof(prof_inst) -> None:
+    def handle_aclprof(prof_inst) -> Optional[tuple]:
         from torch_npu._C._profiler import _get_completed_aclprof_window
 
         completed = _get_completed_aclprof_window(handler_fn.prof_path, prof_inst.get_trace_id() or "")
@@ -235,19 +248,22 @@ def tensorboard_trace_handler(
         start_keys = (Constant.SyscntEable, Constant.SysCntFreq, Constant.StartCnt, Constant.StartMonotonic)
         config = {Constant.COMMON_CONFIG: common, Constant.EXPERIMENTAL_CONFIG: experimental}
         _ProfInterface._write_profiler_info(path, config, dict(zip(start_keys, start_info)))
-        if use_gzip:
-            archive_profile(path)
+        futures = NpuProfiler.analyse(path, async_mode=async_mode) if analyse_flag else None
+        return path, futures
 
     def handler_fn(prof_inst) -> None:
-        if handler_fn._profile_ref is not None and handler_fn._profile_ref() is prof_inst:
-            handle_aclprof(prof_inst)
-            return
         futures = None
-        if analyse_flag:
-            futures = prof_inst.prof_if.analyse(async_mode=async_mode)
+        if handler_fn._profile_ref is not None and handler_fn._profile_ref() is prof_inst:
+            analysis_result = handle_aclprof(prof_inst)
+            if analysis_result is None:
+                return
+            prof_path, futures = analysis_result
+        else:
+            if analyse_flag:
+                futures = prof_inst.prof_if.analyse(async_mode=async_mode)
+            prof_path = prof_inst.prof_if.prof_path
         if not use_gzip:
             return
-        prof_path = prof_inst.prof_if.prof_path
         if async_mode and analyse_flag:
             if futures:
                 archive_lock = Lock()
@@ -259,15 +275,12 @@ def tensorboard_trace_handler(
                         if archived or not all(future.done() for future in futures):
                             return
                         archived = True
-                    if any(future.cancelled() or future.exception() is not None for future in futures):
-                        print_warn_msg("Profiling data parsing failed; original data is retained.")
-                        return
-                    archive_profile(prof_path)
+                    archive_profile(prof_path, futures)
 
                 for future in futures:
                     future.add_done_callback(archive_when_ready)
         else:
-            archive_profile(prof_path)
+            archive_profile(prof_path, futures)
 
     handler_fn.prof_path = ProfPathCreator().get_prof_dir_path(unique=True)
     handler_fn.analyse_flag = analyse_flag

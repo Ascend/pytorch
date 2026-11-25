@@ -9,7 +9,7 @@ from .prof_common_func._constant import Constant, print_info_msg, print_warn_msg
 from .prof_common_func._file_manager import FileManager
 from .prof_common_func._log import ProfilerLogger
 from .prof_common_func._path_manager import ProfilerPathManager
-from .prof_common_func._task_manager import ConcurrentTasksManager
+from .prof_common_func._task_manager import ConcurrentTasksManager, TaskStatus
 from .prof_common_func._utils import no_exception_func
 from .prof_config._parser_config import ParserConfig
 
@@ -108,8 +108,8 @@ class ProfilingParser:
                 ):
                     PathManager.remove_file_safety(os.path.join(cann_path, filename))
 
-    @no_exception_func()
-    def analyse_profiling_data(self):
+    @no_exception_func(default_ret=False)
+    def analyse_profiling_data(self) -> bool:
         ProfilerLogger.init(self._profiler_path, "ProfilingParser")
         self.logger = ProfilerLogger.get_instance()
         print_info_msg(
@@ -120,8 +120,9 @@ class ProfilingParser:
         ProfilerConfig().load_info(self._profiler_path)
         self.update_export_type()
         self.delete_previous_cann_db_files()
+        success = False
         try:
-            self.run_parser()
+            success = self.run_parser()
         except Exception:
             self.logger.exception("Failed to parsing profiling data")
         if self._analysis_type == Constant.TENSORBOARD_TRACE_HANDLER:
@@ -134,11 +135,12 @@ class ProfilingParser:
         print_info_msg(
             f"All profiling data parsed in a total time of {end_time - self._start_time}"
         )
+        return success
 
     def generate_parser_done_file(self):
         FileManager.create_empty_file(self._output_path, "analyse.done")
 
-    def run_parser(self) -> list:
+    def run_parser(self) -> bool:
         param_dict = {
             "profiler_path": self._profiler_path,
             "output_path": self._output_path,
@@ -185,3 +187,4 @@ class ProfilingParser:
                 parser(ParserConfig.PARSER_NAME_MAP.get(parser), param_dict)
             )
         manager.run()
+        return all(info.status == TaskStatus.Succeed for info in manager.task_infos.values())

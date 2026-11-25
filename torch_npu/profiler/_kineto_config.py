@@ -58,7 +58,8 @@ class _NPUExperimentalConfig(ExperimentalConfig):
     An NPU trace handler selects ACLprof and supplies its output directory.
     Without that handler the backend selection and native options are preserved.
     Device settings reuse the legacy configuration validation. ACLprof produces
-    native files per active window; CPU/Python collection and analysis are separate.
+    native files per active window and the handler can analyze them as text or DB.
+    CPU/Python collection is separate.
     """
 
     _npu_config = True

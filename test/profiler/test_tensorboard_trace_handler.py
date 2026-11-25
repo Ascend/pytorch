@@ -25,7 +25,9 @@ class TestTensorboardTraceHandler(unittest.TestCase):
             file.write(b"raw")
         with open(os.path.join(output_path, "trace_view.json"), "w", encoding="utf-8") as file:
             file.write("{}")
-        self.prof_if = SimpleNamespace(prof_path=self.prof_path, analyse=mock.Mock())
+        success = Future()
+        success.set_result(True)
+        self.prof_if = SimpleNamespace(prof_path=self.prof_path, analyse=mock.Mock(return_value=[success]))
         self.prof_inst = SimpleNamespace(prof_if=self.prof_if)
 
     def test_default_does_not_create_archive(self):
@@ -39,6 +41,7 @@ class TestTensorboardTraceHandler(unittest.TestCase):
         def finish_analysis(**_kwargs):
             with open(os.path.join(self.prof_path, "analyse.done"), "w", encoding="utf-8"):
                 pass
+            return self.prof_if.analyse.return_value
 
         self.prof_if.analyse.side_effect = finish_analysis
         tensorboard_trace_handler(self.temp_dir.name, use_gzip=True)(self.prof_inst)
@@ -85,15 +88,20 @@ class TestTensorboardTraceHandler(unittest.TestCase):
         self.assertFalse(os.path.exists(f"{self.prof_path}.tar.gz"))
 
     def test_async_analysis_failure_preserves_source(self):
-        future = Future()
-        self.prof_if.analyse.return_value = [future]
-        tensorboard_trace_handler(
-            self.temp_dir.name, async_mode=True, use_gzip=True
-        )(self.prof_inst)
-
-        future.set_exception(RuntimeError("analysis failed"))
-        self.assertTrue(os.path.isdir(self.prof_path))
-        self.assertFalse(os.path.exists(f"{self.prof_path}.tar.gz"))
+        for async_mode in (False, True):
+            for failure in (False, RuntimeError("analysis failed")):
+                with self.subTest(async_mode=async_mode, failure=failure):
+                    future = Future()
+                    self.prof_if.analyse.return_value = [future]
+                    if isinstance(failure, Exception):
+                        future.set_exception(failure)
+                    else:
+                        future.set_result(failure)
+                    tensorboard_trace_handler(
+                        self.temp_dir.name, async_mode=async_mode, use_gzip=True
+                    )(self.prof_inst)
+                    self.assertTrue(os.path.isdir(self.prof_path))
+                    self.assertFalse(os.path.exists(f"{self.prof_path}.tar.gz"))
 
 
 if __name__ == "__main__":

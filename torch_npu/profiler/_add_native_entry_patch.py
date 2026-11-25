@@ -28,8 +28,6 @@ def _custom_profile_init(self, **kwargs):
     handler = kwargs.get("on_trace_ready")
     npu_handler = getattr(handler, "_npu_handler", False)
     if getattr(cfg, "_npu_config", False) and (npu_handler or cfg._backend == "aclprof"):
-        if npu_handler and handler.analyse_flag:
-            raise ValueError("ACLprof native capture does not support automatic analysis; set analyse_flag=False")
         if npu_handler and handler._profile_ref is not None:
             raise ValueError("An NPU trace handler belongs to one profiler session")
         if any(kwargs.get(key, False) for key in ("with_stack", "with_modules", "with_flops")):
