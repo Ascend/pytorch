@@ -4,7 +4,6 @@
 #include <torch/csrc/profiler/combined_traceback.h>
 #include <torch/csrc/jit/serialization/pickler.h>
 
-#include "torch_npu/csrc/core/npu/PythonLazyInitBridge.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUAllocatorConfig.h"
@@ -178,7 +177,6 @@ void _record_memory_history(
       when = c10_npu::NPUCachingAllocator::RecordContext::STATE;
     }
   }
-  c10_npu::impl::runPythonLazyInit();
   setRecordFunctionCallbacks(enabled.has_value(), compileContext, globalRecordAnnotations);
   bool npu_enabled = enabled.has_value() && record_npu;
   c10_npu::NPUCachingAllocator::recordHistory(npu_enabled, recorder, max_entries, when, clearHistory, skip_actions);

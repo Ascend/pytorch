@@ -2,6 +2,9 @@
 # Licensed under the BSD 3-Clause License.
 
 import os
+import subprocess
+import sys
+import textwrap
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 
@@ -28,6 +31,40 @@ class TestMemoryHistoryBuffer(TestCase):
         torch_npu.npu.synchronize()
         torch_npu.npu.empty_cache()
         super().tearDown()
+
+    @parametrize("oom_snapshot_enable", [1, 2])
+    def test_oom_snapshot_enable(self, oom_snapshot_enable):
+        # Each mode must initialize NPU in a fresh interpreter.
+        script = textwrap.dedent("""
+            import torch
+            import torch_npu
+
+            assert not torch_npu.npu.is_initialized()
+            # With OOM_SNAPSHOT_ENABLE=1/2, OOM history setup during init can
+            # reenter Python lazy init and deadlock on its own initialization lock.
+            torch_npu.npu.init()
+            assert torch_npu._C._npu_isHistoryEnabled()
+
+            tensor = torch.empty(4096, dtype=torch.uint8, device="npu")
+            torch_npu.npu.synchronize()
+            snapshot = torch_npu.npu.memory._snapshot()
+            assert any(
+                block["address"] == tensor.data_ptr() and block.get("frames")
+                for segment in snapshot["segments"]
+                for block in segment["blocks"]
+            ), "OOM snapshot recording did not capture the allocation traceback"
+        """)
+        result = subprocess.run(
+            [sys.executable, "-c", script],
+            env={**os.environ, "OOM_SNAPSHOT_ENABLE": str(oom_snapshot_enable)},
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        self.assertEqual(
+            result.returncode, 0,
+            f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}",
+        )
 
     def test_memory_history_buffer(self):
         memory = torch_npu.npu.memory
