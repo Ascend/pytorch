@@ -7,10 +7,6 @@ from torch_npu._C._profiler import ProfilerActivity
 from torch_npu.npu import Event
 from torch_npu.profiler import supported_activities
 from torch_npu.profiler._profiler_path_creator import ProfPathCreator
-from torch_npu.profiler.analysis.prof_common_func._cann_package_manager import (
-    CannPackageManager,
-)
-from torch_npu.profiler.analysis.prof_common_func._constant import Constant
 from torch_npu.profiler.profiler_interface import (
     _disable_event_record,
     _enable_event_record,
@@ -207,13 +203,6 @@ class TestActionController(TestCase):
     def _check_metadata_json(self, prof_path: str) -> bool:
         path = os.path.join(os.path.realpath(prof_path), "profiler_metadata.json")
         return os.path.exists(path)
-
-    def _check_params(self):
-        CannPackageManager.SUPPORT_EXPORT_DB = False
-        self.prof_if.activities = set(supported_activities())
-        self.prof_if.experimental_config.export_type = Constant.Db
-        with self.assertExpectedRaises(RuntimeError):
-            self.prof_if._check_params()
 
 
 if __name__ == "__main__":

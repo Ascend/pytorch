@@ -37,6 +37,18 @@ class TestFwkFileParser(TestCase):
             result = parser.get_kernel_dict([])
             self.assertEqual(result, {})
 
+    def test_get_kernel_dict_no_flow_events_prints_warning(self):
+        with patch('torch_npu.profiler.analysis.prof_parse._fwk_cann_relation_parser.CANNFileParser') as mock_parser, \
+                patch('torch_npu.profiler.analysis.prof_parse._fwk_cann_relation_parser.ProfilerConfig') as mock_config, \
+                patch('torch_npu.profiler.analysis.prof_parse._fwk_cann_relation_parser.print_warn_msg') as mock_warn:
+            mock_parser.return_value.get_acl_to_npu_data.return_value = {}
+            mock_config.return_value.get_level.return_value = Constant.LEVEL1
+
+            parser = FwkCANNRelationParser("test_path")
+            result = parser.get_kernel_dict([])
+            self.assertEqual(result, {})
+            mock_warn.assert_called_once()
+
     def test_get_step_range_empty_kernel_dict(self):
         mock_root_node = MagicMock()
         mock_root_node.child_node_list = []

@@ -12,7 +12,6 @@ from .prof_common_func._path_manager import ProfilerPathManager
 from .prof_common_func._task_manager import ConcurrentTasksManager
 from .prof_common_func._utils import no_exception_func
 from .prof_config._parser_config import ParserConfig
-from .prof_parse._cann_file_parser import CANNFileParser
 
 
 __all__ = []
@@ -34,37 +33,29 @@ class ProfilingParser:
         self.logger = None
 
     @staticmethod
-    def simplify_data(profiler_path: str, simplify_flag: bool):
-        cann_path = ProfilerPathManager.get_cann_path(profiler_path)
+    def remove_cann_output(cann_path: str, remove_all: bool):
+        """删除 PROF 目录下上一次解析/导出留下的中间产物，保留原始数据与日志。"""
+        if not cann_path:
+            return
         device_paths = ProfilerPathManager.get_device_path(cann_path)
         host_path = ProfilerPathManager.get_host_path(cann_path)
-        rm_dirs = ["sqlite", "summary", "timeline"] if simplify_flag else ["sqlite"]
+        rm_dirs = ["sqlite", "summary", "timeline"] if remove_all else ["sqlite"]
         for rm_dir in rm_dirs:
-            if device_paths:
-                for device_path in device_paths:
-                    target_path = os.path.join(device_path, rm_dir)
-                    PathManager.remove_path_safety(target_path)
+            for device_path in device_paths:
+                PathManager.remove_path_safety(os.path.join(device_path, rm_dir))
             if host_path:
-                target_path = os.path.join(host_path, rm_dir)
-                PathManager.remove_path_safety(target_path)
-        if simplify_flag:
-            if not cann_path:
-                return
-            cann_rm_dirs = [
-                "analyze",
-                "mindstudio_profiler_log",
-                "mindstudio_profiler_output",
-            ]
-            for cann_rm_dir in cann_rm_dirs:
-                target_path = os.path.join(cann_path, cann_rm_dir)
-                PathManager.remove_path_safety(target_path)
-            log_patten = r"msprof_analysis_\d+\.log$"
-            for cann_file in os.listdir(cann_path):
-                file_path = os.path.join(cann_path, cann_file)
-                if not os.path.isfile(file_path):
-                    continue
-                if re.match(log_patten, cann_file):
-                    PathManager.remove_file_safety(file_path)
+                PathManager.remove_path_safety(os.path.join(host_path, rm_dir))
+        if not remove_all:
+            return
+        # mindstudio_profiler_log 与 msprof_analysis_*.log 均保留，便于问题定位
+        for rm_dir in ["analyze", "mindstudio_profiler_output"]:
+            PathManager.remove_path_safety(os.path.join(cann_path, rm_dir))
+
+    @staticmethod
+    def simplify_data(profiler_path: str, simplify_flag: bool):
+        ProfilingParser.remove_cann_output(
+            ProfilerPathManager.get_cann_path(profiler_path), simplify_flag
+        )
 
     def update_export_type(self):
         export_type = self._kwargs.get("export_type", None)
@@ -83,11 +74,6 @@ class ProfilingParser:
             return
         if not ProfilerPathManager.get_cann_path(self._profiler_path):
             return
-        if not CannPackageManager.is_support_export_db():
-            raise RuntimeError(
-                "Current CANN package version does not support export db. "
-                "If you want to export db, you can install supported CANN package version."
-            )
 
     def update_platform_analysis_dir(self):
         plt_dir_path = ProfilerPathManager.get_plt_dir_path(self._profiler_path)
@@ -162,9 +148,11 @@ class ProfilingParser:
         param_dict[Constant.EXPORT_TYPE] = ProfilerConfig().export_type
         param_dict[Constant.ACTIVITIES] = ProfilerConfig().activities
         parser_config = ParserConfig.ONLY_FWK_CONFIG
-        if ProfilerPathManager.get_cann_path(self._profiler_path):
-            CANNFileParser(self._profiler_path).del_summary_and_timeline_data()
-            CANNFileParser(self._profiler_path).del_output_path_data()
+        cann_path = ProfilerPathManager.get_cann_path(self._profiler_path)
+        if cann_path:
+            # 解析前清理上一次的解析/导出残留，避免旧的 finish.txt、旧 csv/db
+            # 影响本次导出的等待判断和解析结果
+            ProfilingParser.remove_cann_output(cann_path, True)
             if ProfilerConfig().get_level() == "Level_none":
                 parser_config = ParserConfig.LEVEL_NONE_CONFIG
             else:
