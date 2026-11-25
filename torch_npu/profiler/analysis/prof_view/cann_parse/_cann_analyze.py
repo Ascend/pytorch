@@ -23,6 +23,7 @@ from ...prof_common_func._path_manager import ProfilerPathManager
 from .._base_parser import BaseParser
 from ...prof_common_func._log import ProfilerLogger
 from ..._profiler_config import ProfilerConfig
+from ._cann_command import build_command_log_path, save_command_output
 
 __all__ = []
 
@@ -44,25 +45,34 @@ class CANNAnalyzeParser(BaseParser):
             if not os.path.isdir(self._cann_path):
                 return Constant.SUCCESS, None
             if not self.msprof_path:
-                err_msg = "Export CANN Profiling data faile! msprof command not found!" + prof_error(ErrCode.NOT_FOUND)
+                err_msg = "Export CANN Profiling data failed! msprof command not found!" + prof_error(ErrCode.NOT_FOUND)
                 print_error_msg(err_msg)
                 raise RuntimeError(err_msg)
+            command_log_path = build_command_log_path(self._profiler_path, "analyze")
 
             if Constant.Db in self._export_type:
                 analyze_cmd_list = [self.msprof_path, "--analyze=on", "--type=db", f"--output={self._cann_path}"]
-                completed_analysis = subprocess.run(analyze_cmd_list, capture_output=True, shell=False)
+                completed_analysis = subprocess.run(
+                    analyze_cmd_list, capture_output=True, shell=False,
+                    text=True, encoding="utf-8", errors="replace",
+                )
+                save_command_output(command_log_path, analyze_cmd_list, completed_analysis)
                 if completed_analysis.returncode != self.COMMAND_SUCCESS:
                     print_warn_msg("Failed to analyze CANN DB Profiling data.")
 
             if Constant.Text in self._export_type:
                 analyze_cmd_list = [self.msprof_path, "--analyze=on", f"--output={self._cann_path}"]
-                completed_analysis = subprocess.run(analyze_cmd_list, capture_output=True, shell=False)
+                completed_analysis = subprocess.run(
+                    analyze_cmd_list, capture_output=True, shell=False,
+                    text=True, encoding="utf-8", errors="replace",
+                )
+                save_command_output(command_log_path, analyze_cmd_list, completed_analysis)
                 if completed_analysis.returncode != self.COMMAND_SUCCESS:
                     print_warn_msg("Failed to analyze CANN TEXT Profiling data.")
 
-        except Exception as e:
+        except Exception:
             print_error_msg("Failed to analyze CANN Profiling data.")
-            self.logger.error("Failed to analyze CANN Profiling data, error: %s", str(e), exc_info=True)
+            self.logger.exception("Failed to analyze CANN Profiling data")
             return Constant.FAIL, None
         self.logger.info("CANNAnalyzeParser finish.")
         return Constant.SUCCESS, None
