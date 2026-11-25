@@ -92,18 +92,33 @@ def _nodeid_strings(entries):
                 yield nodeid
 
 
+def normalize_logs(value):
+    """Return a group's ``log`` field as a list of log strings.
+
+    ``log`` is a JSON array with one element per distinct observed error; an
+    element may bind two fragments with ``|`` (both must appear in the same
+    error message). A plain string is still tolerated for older configs and
+    returned as a single-element list.
+    """
+    if isinstance(value, str):
+        return [value] if value else []
+    if isinstance(value, list):
+        return [item for item in value if isinstance(item, str) and item]
+    return []
+
+
 def collect_log_map(config_dir):
-    """Return a {nodeid: log} mapping from the blacklist files.
+    """Return a {nodeid: [log, ...]} mapping from the blacklist files.
 
     Both file shapes are supported:
 
       * ``*_unsupported_testcases.json``: a top-level list of
         ``{log, nodeids: {...}}`` entries, where every nodeid key maps to its
-        group's ``log``;
+        group's ``log`` list;
       * grouped ``*_grouped.json``: nodeids under ``groups[].nodes`` and/or
         ``groups[].canns[].nodes`` with a group-level ``log``.
 
-    Empty logs are kept as-is so callers can skip them.
+    Empty logs yield an empty list so callers can skip them.
     """
     config_dir = Path(config_dir)
     if config_dir.is_dir():
@@ -121,7 +136,7 @@ def collect_log_map(config_dir):
             for entry in data:
                 if not isinstance(entry, dict):
                     continue
-                log = entry.get("log") or ""
+                log = normalize_logs(entry.get("log"))
                 nodeids = entry.get("nodeids")
                 if isinstance(nodeids, dict):
                     for nodeid in nodeids:
@@ -131,7 +146,7 @@ def collect_log_map(config_dir):
             for group in data.get("groups", []) or []:
                 if not isinstance(group, dict):
                     continue
-                log = group.get("log") or ""
+                log = normalize_logs(group.get("log"))
                 nodeid_lists = []
                 nodes = group.get("nodes")
                 if isinstance(nodes, list):

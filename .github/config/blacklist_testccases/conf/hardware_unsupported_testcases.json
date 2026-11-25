@@ -1,6 +1,6 @@
 [
   {
-    "log": "cannot be larger than 8 dimensions",
+    "log": ["cannot be larger than 8 dimensions"],
     "category": "cann not supported",
     "nodeids": {
       "test/functorch/test_ops.py::TestOperatorsDevicePRIVATEUSE1::test_extremal_numerics_cross_entropy_npu": {"cann": "aclnnIsClose; aclnnStack|aclnnIsClose; aclnnStack", "issue": "https://gitcode.com/Ascend/pytorch/issues/6011"},
@@ -3481,7 +3481,7 @@
     }
   },
   {
-    "log": "Only contiguous_format or preserve_format is supported",
+    "log": ["Only contiguous_format or preserve_format is supported"],
     "category": "cann not supported",
     "nodeids": {
       "test/cpp_extensions/test_libtorch_agnostic.py::TestLibtorchAgnosticPRIVATEUSE1::test_my_to_dtype_layout_npu": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314, https://gitcode.com/Ascend/pytorch/issues/6005, https://gitcode.com/Ascend/pytorch/issues/6009, https://gitcode.com/Ascend/pytorch/issues/5315"},
@@ -5112,7 +5112,7 @@
     }
   },
   {
-    "log": "NPU contiguous operator only supported contiguous memory format",
+    "log": ["NPU contiguous operator only supported contiguous memory format"],
     "category": "cann not supported",
     "nodeids": {
       "test/cpp_extensions/test_libtorch_agnostic.py::TestLibtorchAgnosticPRIVATEUSE1::test_my_contiguous_memory_format_npu": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/6009"},
@@ -5642,7 +5642,7 @@
     }
   },
   {
-    "log": "Only c10::MemoryFormat::Contiguous is supported for creating a npu tensor",
+    "log": ["Only c10::MemoryFormat::Contiguous is supported for creating a npu tensor"],
     "category": "cann not supported",
     "nodeids": {
       "test/cpp_extensions/test_libtorch_agnostic.py::TestLibtorchAgnosticPRIVATEUSE1::test_my_empty_layout0_memory_format1_npu": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/6009"},
@@ -5781,7 +5781,10 @@
     }
   },
   {
-    "log": "not implemented for DT_INT8;Only contiguous_format or preserve_format is supported",
+    "log": [
+      "not implemented for DT_INT8",
+      "Only contiguous_format or preserve_format is supported"
+    ],
     "category": "cann not supported",
     "nodeids": {
       "test/functorch/test_ops.py::TestOperatorsDevicePRIVATEUSE1::test_grad_nn_functional_max_unpool2d_npu_float32": {"cann": "aclnnMaxUnpool2d|", "issue": "https://gitcode.com/Ascend/pytorch/issues/6009, https://gitcode.com/Ascend/pytorch/issues/5317"},
@@ -5795,14 +5798,17 @@
     }
   },
   {
-    "log": "Only contiguous_format or preserve_format is supported;not implemented for DT_DOUBLE",
+    "log": [
+      "Only contiguous_format or preserve_format is supported",
+      "not implemented for DT_DOUBLE"
+    ],
     "category": "cann not supported",
     "nodeids": {
       "test/inductor/test_torchinductor_opinfo.py::TestInductorOpInfoNPU::test_comprehensive_double_npu_float64": {"cann": "|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/6009, https://gitcode.com/Ascend/pytorch/issues/6005"}
     }
   },
   {
-    "log": "not implemented for DT_COMPLEX",
+    "log": ["not implemented for DT_COMPLEX"],
     "category": "device not supported",
     "nodeids": {
       "test/complex_tensor/test_complex_tensor.py::TestComplexTensorPRIVATEUSE1::test_consistency_acosh_npu_complex128": {"cann": "aclnnIsClose|aclnnIsClose", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314"},
@@ -19363,7 +19369,7 @@
     }
   },
   {
-    "log": "not implemented for DT_DOUBLE",
+    "log": ["not implemented for DT_DOUBLE"],
     "category": "device not supported",
     "nodeids": {
       "test/complex_tensor/test_complex_tensor.py::TestComplexBwdGradientsNPU::test_fn_grad_abs_npu_complex128": {"cann": "aclnnDot|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/6005"},
@@ -28285,7 +28291,10 @@
     }
   },
   {
-    "log": "not implemented for DT_COMPLEX;not implemented for DT_DOUBLE",
+    "log": [
+      "not implemented for DT_COMPLEX",
+      "not implemented for DT_DOUBLE"
+    ],
     "category": "device not supported",
     "nodeids": {
       "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_nn_functional_pad_reflect_npu_complex64": {"cann": "aclnnIndex|aclnnIsClose", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
@@ -28369,7 +28378,7 @@
     }
   },
   {
-    "log": "Torch not compiled with CUDA enabled|test/distributed/rpc/cuda/test_tensorpipe_agent.py",
+    "log": ["Torch not compiled with CUDA enabled|test/distributed/rpc/cuda/test_tensorpipe_agent.py"],
     "category": "device not supported",
     "nodeids": {
       "test/distributed/rpc/cuda/test_tensorpipe_agent.py::TensorPipeCudaDistAutogradTest::test_gpu_simple": {"cann": "", "issue": ""},

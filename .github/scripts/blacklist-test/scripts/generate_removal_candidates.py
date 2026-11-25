@@ -12,8 +12,8 @@ reports (reports-a3/ reports-a5/) and collects, per platform, the nodeids that:
     == "No testcase in XML"          (the test was removed / renamed).
 
 Additionally, for nodeids that are still failing, a log-search verifies whether
-the blacklist ``log`` (raw error, possibly ';'-joined) actually appears in the
-reported error message. Nodeids whose recorded log does NOT appear are flagged
+any recorded blacklist ``log`` (a list of raw errors) still appears in the
+reported error message. Nodeids whose recorded logs do NOT appear are flagged
 as ``log_mismatch`` — their blacklist justification is out of sync.
 
 These groups are written to a JSON file and a Markdown report. Nothing is
@@ -103,20 +103,31 @@ def load_flatten_module():
     return module
 
 
+def log_matches(message, log):
+    """Return True when the recorded ``log`` still describes ``message``.
+
+    A log entry may bind two fragments with ``|`` — both must appear in the
+    same error message (e.g. an operator call site plus its assertion). A plain
+    entry is a single substring check.
+    """
+    parts = [part.strip() for part in log.split("|") if part.strip()]
+    return bool(parts) and all(part in message for part in parts)
+
+
 def build_log_mismatch(log_map, statuses, messages, all_logs):
-    """Return mismatches whose recorded log does NOT appear in the error.
+    """Return mismatches whose recorded logs do NOT appear in the error.
 
     Only nodeids that are still failing (status failed/error) with a real error
-    message are considered. The ``log`` may hold several ';'-joined fragments;
-    the nodeid is flagged when NONE of them appear in the message. Each flagged
-    entry carries the recorded ``log`` plus any fragment collected from the
-    blacklist groups' ``log`` fields that DOES appear in the message (the
-    up-to-date error signature, if any).
+    message are considered. The nodeid is flagged only when NONE of its group's
+    logs match the message (see ``log_matches`` for the ``|`` rule). Each
+    flagged entry carries the recorded logs plus every log collected from the
+    blacklist groups that DOES match the message (the up-to-date error
+    signature, if any).
     """
     mismatched = []
     for nodeid in sorted(log_map):
-        log = (log_map[nodeid] or "").strip()
-        if not log:
+        logs = [log for log in (log_map[nodeid] or []) if log]
+        if not logs:
             continue
         status = statuses.get(nodeid)
         if status not in ("failed", "error"):
@@ -124,14 +135,13 @@ def build_log_mismatch(log_map, statuses, messages, all_logs):
         message = messages.get(nodeid, "") or ""
         if not message or message in SENTINEL_MESSAGES:
             continue
-        fragments = [fragment.strip() for fragment in log.split(";") if fragment.strip()]
-        if any(fragment in message for fragment in fragments):
+        if any(log_matches(message, log) for log in logs):
             continue
-        matched = [fragment for fragment in all_logs if fragment in message]
+        matched = [log for log in all_logs if log_matches(message, log)]
         mismatched.append(
             {
                 "nodeid": nodeid,
-                "recorded_log": log,
+                "recorded_log": "; ".join(logs),
                 "matched_logs": matched,
             }
         )
@@ -141,7 +151,7 @@ def build_log_mismatch(log_map, statuses, messages, all_logs):
 def build_report(reports_root, config_dir):
     flatten = load_flatten_module()
     log_map = flatten.collect_log_map(config_dir)
-    all_logs = sorted({log for log in log_map.values() if log})
+    all_logs = sorted({log for logs in log_map.values() for log in logs})
 
     platforms = {}
     counts = {}

@@ -49,7 +49,7 @@ def build_meta_map(config_dir):
     """Return {nodeid: {category, reason, issue}} across the blacklist files.
 
     Handles both file shapes used under blacklist_testccases/:
-      * ``*_unsupported_testcases.json``: list of {log, category, nodeids: {..}}
+      * ``*_unsupported_testcases.json``: list of {log: [..], category, nodeids: {..}}
       * ``*_grouped.json``: {groups: [{category, reason, issue, nodes: [..]}]}
     """
     meta = {}
@@ -63,7 +63,11 @@ def build_meta_map(config_dir):
                 if not isinstance(entry, dict):
                     continue
                 category = entry.get("category") or ""
-                reason = entry.get("log") or ""
+                log = entry.get("log")
+                if isinstance(log, list):
+                    reason = "; ".join(item for item in log if isinstance(item, str) and item)
+                else:
+                    reason = log or ""
                 nodeids = entry.get("nodeids")
                 if isinstance(nodeids, dict):
                     for nodeid, val in nodeids.items():
