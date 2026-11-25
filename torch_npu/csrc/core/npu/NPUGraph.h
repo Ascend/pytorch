@@ -111,6 +111,7 @@ struct TORCH_NPU_API NPUGraph {
   void enable_debug_mode();
   void debug_dump(const std::string& debug_path);
   void super_kernel_optimize(const aclskOptions* options);
+  void route_pool_to_innermost_capture(aclmdlRI child_model_ri = nullptr);
   void begin_capture_to_if_node(const at::Tensor& scalar_npu_pred_tensor);
   // COMPAT(>= 2.14): NPUGraph WHILE capture entry points.
 #if TORCH_NPU_VERSION_GE(2, 14)

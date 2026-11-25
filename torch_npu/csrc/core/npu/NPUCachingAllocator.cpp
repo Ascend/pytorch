@@ -2438,11 +2438,12 @@ class DeviceCachingAllocator {
     return status != aclmdlRICaptureStatus::ACL_MODEL_RI_CAPTURE_STATUS_NONE;
   }
 
-  // Called by NPUGraph::reset
+  // Called by NPUGraph::reset, and by NPUGraph during capture to drop the extra
+  // reference a conditional node's re-routing takes.
   void releasePool(MempoolId_t mempool_id) {
     std::lock_guard<std::recursive_mutex> lock(mutex);
-    // The instantiated npugraphExec_t has been destroyed. We can't blindly
-    // delete and npuFree the mempool its capture used, because
+    // When a graph releases its pool, we can't blindly delete and npuFree
+    // the mempool its capture used, because
     //  1. other graph(s) might share the same pool
     //  2. the user might still hold references to output tensors allocated
     //  during capture.

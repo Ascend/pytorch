@@ -456,6 +456,36 @@ std::optional<NPUStream> currentConditionalSaveStream() {
   return it->second.graph->current_conditional_save_stream();
 }
 
+// Routes allocations of the innermost active capture (the root capture, or the conditional
+// body on top of conditional_model_ri_stack_) to the graph's pool. The caller has already
+// ended the previous routing. Mirrors pytorch/pytorch#201639.
+// child_model_ri names a body that is not on conditional_model_ri_stack_ yet, as is the case
+// when entering one; the stack is authoritative when it is null.
+void NPUGraph::route_pool_to_innermost_capture(aclmdlRI child_model_ri) {
+  if (child_model_ri != nullptr) {
+    begin_allocate_to_pool(capture_dev_, mempool_id_, create_child_allocate_filter(child_model_ri));
+  } else if (conditional_model_ri_stack_.empty()) {
+    NPUGRAPH_LOGD(
+        "NPUGRAPH Conditional restore root allocate filter: model_ri=%p, mempool_id=(%lu,%lu)",
+        static_cast<void*>(model_ri_),
+        mempool_id_.first,
+        mempool_id_.second);
+    begin_allocate_to_pool(capture_dev_, mempool_id_, create_allocate_filter());
+  } else {
+    NPUGRAPH_LOGD(
+        "NPUGRAPH Conditional restore parent allocate filter: parent_model_ri=%p, mempool_id=(%lu,%lu)",
+        static_cast<void*>(conditional_model_ri_stack_.top()),
+        mempool_id_.first,
+        mempool_id_.second);
+    begin_allocate_to_pool(capture_dev_, mempool_id_, create_child_allocate_filter(conditional_model_ri_stack_.top()));
+  }
+  // beginAllocateToPool takes a reference on the pool, but the graph already holds one for
+  // the whole capture (taken in capture_begin, released in reset()). Drop the new one, or
+  // each conditional node would keep the pool from becoming freeable after reset().
+  c10_npu::NPUCachingAllocator::releasePool(capture_dev_, mempool_id_);
+  at::getHostAllocator(at::kPrivateUse1)->release_pool(mempool_id_);
+}
+
 void NPUGraph::reset() {
   // I'd prefer these checks throw exceptions, not print warnings,
   // but the destructor calls reset(), and at least one CI build
@@ -705,7 +735,7 @@ void NPUGraph::begin_capture_to_conditional_node(const at::Tensor& scalar_npu_pr
   // allocations are made.
   c10_npu::NPUCachingAllocator::endAllocateToPool(capture_dev_, mempool_id_);
   at::getHostAllocator(at::kPrivateUse1)->end_allocate_to_pool(mempool_id_);
-  begin_allocate_to_pool(capture_dev_, mempool_id_, create_child_allocate_filter(child_model_ri));
+  route_pool_to_innermost_capture(child_model_ri);
 
   // Self-created stream, not one from the shared rotating pool: the pool is finite and the root
   // capture stream comes from it too, so deep enough nesting wraps around to a stream that is
@@ -785,6 +815,10 @@ void NPUGraph::end_capture_to_conditional_node() {
       mempool_id_.first,
       mempool_id_.second);
 
+  // Mirrors pytorch/pytorch#191483.
+  c10_npu::NPUCachingAllocator::endAllocateToPool(capture_dev_, mempool_id_);
+  at::getHostAllocator(at::kPrivateUse1)->end_allocate_to_pool(mempool_id_);
+
   conditional_node_streams_.pop();
   conditional_model_ri_stack_.pop();
 
@@ -795,23 +829,7 @@ void NPUGraph::end_capture_to_conditional_node() {
   TORCH_INTERNAL_ASSERT(!conditional_save_raw_streams_.empty(), "Missing save stream for conditional node.");
   conditional_save_raw_streams_.pop();
 
-  c10_npu::NPUCachingAllocator::endAllocateToPool(capture_dev_, mempool_id_);
-  at::getHostAllocator(at::kPrivateUse1)->end_allocate_to_pool(mempool_id_);
-  if (conditional_model_ri_stack_.empty()) {
-    NPUGRAPH_LOGD(
-        "NPUGRAPH Conditional restore root allocate filter: model_ri=%p, mempool_id=(%lu,%lu)",
-        static_cast<void*>(model_ri_),
-        mempool_id_.first,
-        mempool_id_.second);
-    begin_allocate_to_pool(capture_dev_, mempool_id_, create_allocate_filter());
-  } else {
-    NPUGRAPH_LOGD(
-        "NPUGRAPH Conditional restore parent allocate filter: parent_model_ri=%p, mempool_id=(%lu,%lu)",
-        static_cast<void*>(conditional_model_ri_stack_.top()),
-        mempool_id_.first,
-        mempool_id_.second);
-    begin_allocate_to_pool(capture_dev_, mempool_id_, create_child_allocate_filter(conditional_model_ri_stack_.top()));
-  }
+  route_pool_to_innermost_capture();
 
   bool rng_or_generators_changed = false;
   for (const auto& [generator_state, wholegraph_increment] : captured_generator_states_) {

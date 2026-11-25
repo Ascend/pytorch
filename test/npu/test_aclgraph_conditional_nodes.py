@@ -18,6 +18,35 @@ def _pred_to_bool(pred):
     return bool(pred.detach().cpu().item())
 
 
+_COND_CAPTURE_SUPPORTED = None
+
+
+def _conditional_capture_supported():
+    """Probe once whether the driver and firmware support conditional model capture.
+
+    A failed probe is contained: the conditional handle is created before the
+    child capture begins, so a failure leaves no active capture behind.
+    """
+    global _COND_CAPTURE_SUPPORTED
+    if _COND_CAPTURE_SUPPORTED is None:
+        _COND_CAPTURE_SUPPORTED = False
+        probe = torch.npu.NPUGraph()
+        try:
+            pred = torch.zeros((), device="npu", dtype=torch.bool)
+            scalar = torch.zeros((), device="npu")
+            with torch.npu.graph(probe):
+                probe.begin_capture_to_if_node(pred)
+                scalar.add_(1.0)
+                probe.end_capture_to_conditional_node()
+            torch.npu.synchronize()
+            _COND_CAPTURE_SUPPORTED = True
+        except RuntimeError:
+            pass
+        finally:
+            probe.reset()
+    return _COND_CAPTURE_SUPPORTED
+
+
 @unittest.skip("Conditional ModelRI RTS interfaces are unavailable in the current UT environment")
 class TestACLGraphConditionalNodes(unittest.TestCase):
     def setUp(self):
@@ -768,6 +797,41 @@ class TestACLGraphWhileLoop(unittest.TestCase):
         # Back outside the bodies the shared stream is in use again.
         self.assertIsNone(torch_npu._C._npu_current_conditional_save_stream())
         g.reset()
+
+
+class TestACLGraphConditionalNodePool(unittest.TestCase):
+    def setUp(self):
+        if not torch.npu.is_available():
+            self.skipTest("requires npu")
+        torch.npu.set_device(0)
+        if not _conditional_capture_supported():
+            self.skipTest("requires driver and firmware with conditional model capture support")
+
+    def test_conditional_nodes_release_pool(self):
+        # Every conditional node re-routes allocations to the graph's pool, which
+        # used to leave two extra pool references per node behind so the pool
+        # could never be freed after reset().
+        # Mirrors pytorch/pytorch#201639.
+        for nested in (False, True):
+            with self.subTest(nested=nested):
+                pred = torch.zeros((), device="npu", dtype=torch.bool)
+                x = torch.zeros((), device="npu")
+                pool = torch.npu.MemPool()
+                self.assertEqual(pool.use_count(), 1)
+                g = torch.npu.NPUGraph()
+                # capture_begin() takes the pool token, not the MemPool itself.
+                with torch.npu.graph(g, pool=pool.id):
+                    for _ in range(3):
+                        g.begin_capture_to_if_node(pred)
+                        x.add_(1.0)
+                        if nested:
+                            g.begin_capture_to_if_node(pred)
+                            x.add_(1.0)
+                            g.end_capture_to_conditional_node()
+                        g.end_capture_to_conditional_node()
+                self.assertEqual(pool.use_count(), 2)
+                g.reset()
+                self.assertEqual(pool.use_count(), 1)
 
 
 if __name__ == "__main__":
