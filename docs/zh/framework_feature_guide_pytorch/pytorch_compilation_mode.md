@@ -15,6 +15,10 @@ torch.compile\(\)包含如下核心组件：
 |NPUGraph（aclgraph）|硬件级下沉优化（NPU操作录屏）|捕获一系列NPU操作（如 kernel 调用、内存拷贝）组成静态图缓存在NPU device设备上；一次捕获、多次复跑，避免重复的 kernel 启动开销（kernel launch overhead）。|
 |NPUGraph Tree|动态形状路由与子图管理|管理多个有关联的 NPUGraphs，让 NPUGraph的优化收益能覆盖动态形状场景，而非仅局限于固定形状，优化段图场景多个子图的内存使用。|
 
+> [!NOTICE]
+>
+> - Inductor后端需安装最新版本的triton-ascend，具体可参考[LINK](https://gitcode.com/Ascend/triton-ascend/blob/master/docs/sources/getting-started/installation.md)。
+> - 使用NPUGraph_EX后端前，请安装TorchNPU插件，并在运行模型的Python环境中执行 `python -m pip install "packaging>=21.3"`。缺少 `packaging` 时，首次编译会报 `ModuleNotFoundError`。
 
 ## 使用场景
 
@@ -24,10 +28,6 @@ NPUGraph后端：通过torch.compile(backend="npugraphs")使能，利用NPUGraph
 
 ## 使用指导
 
-> [!NOTICE]  
-> Inductor后端需安装最新版本的triton-ascend，具体可参考[LINK](https://gitcode.com/Ascend/triton-ascend/blob/master/docs/sources/getting-started/installation.md)。
-
-
 接口原型：
 
 ```
@@ -36,23 +36,23 @@ def compile(model, *, fullgraph = False, dynamic = None, backend = "inductor", m
 
 参数说明：
 
--   **model**: 必选参数，要编译的模型或者参数。
--   **fullgraph**：可选参数，是否强制整图编译，默认值为False。
--   **dynamic**：可选参数，是否需要动态shape编译，默认值为None。
--   **backend**：可选参数，编译后端，支持inductor和npugraphs，默认值为inductor。
--   **mode**：可选参数，编译模式，目前支持None（默认值）和"reduce-overhead"。
--   **options**：可选参数，编译选项。目前支持以下：
-    -   triton.cudagraphs
-    -   trace.enabled
-    -   enable\_shape\_handling
+- **model**: 必选参数，要编译的模型或者参数。
+- **fullgraph**：可选参数，是否强制整图编译，默认值为False。
+- **dynamic**：可选参数，是否需要动态shape编译，默认值为None。
+- **backend**：可选参数，编译后端，支持inductor和npugraphs，默认值为inductor。
+- **mode**：可选参数，编译模式，目前支持None（默认值）和"reduce-overhead"。
+- **options**：可选参数，编译选项。目前支持以下：
+    - triton.cudagraphs
+    - trace.enabled
+    - enable\_shape\_handling
 
--   **disable**：可选参数，是否关闭torch.compile能力，默认值为False。
+- **disable**：可选参数，是否关闭torch.compile能力，默认值为False。
 
 该接口详情可参考原生[torch.compile](https://docs.pytorch.org/docs/stable/generated/torch.compile.html)。
 
 ## 使用样例
 
--   Inductor后端torch.compile\(backend="inductor"\)示例：
+- Inductor后端torch.compile\(backend="inductor"\)示例：
 
     ```Python
     import torch
@@ -97,7 +97,7 @@ def compile(model, *, fullgraph = False, dynamic = None, backend = "inductor", m
     
     ```
 
--   NPUGraph后端torch.compile\(backend="npugraphs"\)示例：
+- NPUGraph后端torch.compile\(backend="npugraphs"\)示例：
 
     ```Python
     # 运行
@@ -141,8 +141,7 @@ def compile(model, *, fullgraph = False, dynamic = None, backend = "inductor", m
 
 ## 约束说明
 
-1.  优化器（optimizer）通常不入图，优化器的step\(\)包含Python侧动态逻辑（如学习率调度、梯度累积、自适应更新规则），难以被静态图捕获。
-2.  torch.compile\(backend="npugraphs"\)必须固定输入形状（捕获后无法修改 batch\_size、序列长度等）。torch.compile\(backend="inductor"\)支持动态形状，但会触发重新编译（增加开销），建议尽量固定形状。
-3.  使用NPUGraph（aclgraph）时需要判断算子在replay时是否需要更新，如需更新，启用update机制。
-4.  仅算子全部为NN算子时，方可使用NPUGraph（aclgraph）。
-
+- 优化器（optimizer）通常不入图，优化器的step\(\)包含Python侧动态逻辑（如学习率调度、梯度累积、自适应更新规则），难以被静态图捕获。
+- torch.compile\(backend="npugraphs"\)必须固定输入形状（捕获后无法修改 batch\_size、序列长度等）。torch.compile\(backend="inductor"\)支持动态形状，但会触发重新编译（增加开销），建议尽量固定形状。
+- 使用NPUGraph（aclgraph）时需要判断算子在replay时是否需要更新，如需更新，启用update机制。
+- 仅算子全部为NN算子时，方可使用NPUGraph（aclgraph）。
