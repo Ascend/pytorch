@@ -7,7 +7,6 @@ from json import JSONDecodeError
 
 from torch_npu.utils._error_code import ErrCode, prof_error
 
-from ....utils._path_manager import PathManager
 from ..prof_bean._event_bean import EventBean
 from ..prof_common_func._constant import Constant, convert_us2ns, print_error_msg
 from ..prof_common_func._file_manager import FileManager
@@ -288,23 +287,6 @@ class CANNFileParser:
         except Exception:
             self.logger.exception("Failed to get CANN localtime diff.")
         return localtime_diff
-
-    def del_summary_and_timeline_data(self):
-        device_paths = ProfilerPathManager.get_device_path(self._cann_path)
-        if not device_paths:
-            self.logger.error(
-                "Delete summary and timeline data failed, the device path is not exist."
-            )
-            return
-        for device_path in device_paths:
-            summary_path = os.path.join(device_path, "summary")
-            timeline_path = os.path.join(device_path, "timeline")
-            PathManager.remove_path_safety(summary_path)
-            PathManager.remove_path_safety(timeline_path)
-
-    def del_output_path_data(self):
-        output_path = os.path.join(self._cann_path, self.MINDSTUDIO_PROFILER_OUTPUT)
-        PathManager.remove_path_safety(output_path)
 
     def _file_dispatch(self):
         all_file_list = ProfilerPathManager.get_output_all_file_list_by_type(
