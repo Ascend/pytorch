@@ -29,7 +29,7 @@ enum class CompatibleKey {
 /**
  check if the compatible impl is enabled, return true or false.
  */
-bool CheckCompatibleImpl();
+C10_NPU_API bool CheckCompatibleImpl();
 bool CheckCompatibleImplFor(CompatibleKey compatible_key);
 bool CheckCompatibleImplBlackListFor(CompatibleKey compatible_key);
 
@@ -37,7 +37,7 @@ bool IsAllowFP32ToFP16();
 bool IsAllowConvHF32();
 bool IsAllowMatmulHF32();
 
-class NpuContext {
+class C10_NPU_API NpuContext {
  public:
   bool npuFillUninitializedMemory() const;
   void setNpuFillUninitializedMemory(bool /*b*/);
@@ -46,7 +46,7 @@ class NpuContext {
   bool _npu_fill_uninitialized_memory = false;
 };
 
-NpuContext& globalNpuContext();
+C10_NPU_API NpuContext& globalNpuContext();
 
 } // namespace env
 } // namespace native

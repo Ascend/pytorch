@@ -1,6 +1,8 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
+
 #include <string>
 #include <cstdarg>
 #include <cstdint>
@@ -18,7 +20,7 @@ enum class LoggingLevel {
 // logging level count
 static const int LOGGING_LEVEL_COUNT = 5;
 
-class Logger {
+class C10_NPU_API Logger {
 public:
     Logger() = default;
     Logger(const std::string &name) : name_(name) {};

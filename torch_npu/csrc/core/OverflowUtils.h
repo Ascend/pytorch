@@ -1,10 +1,11 @@
 #pragma once
 
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace torch_npu {
 namespace utils {
-class OverflowUtil {
+class C10_NPU_API OverflowUtil {
 public:
     ~OverflowUtil();
 

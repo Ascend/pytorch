@@ -44,12 +44,12 @@ public:
     C10_NPU_API static NpuSysCtrl &GetInstance();
 
     // Environment Initialize, return SysStatus
-    SysStatus Initialize(int device_id = -1);
+    C10_NPU_API SysStatus Initialize(int device_id = -1);
 
     SysStatus LazyInitialize(int device_id = -1);
 
     // Change current device from pre_device to device
-    SysStatus ExchangeDevice(int device);
+    C10_NPU_API SysStatus ExchangeDevice(int device);
 
     // Init backwards thread
     SysStatus BackwardsInit();

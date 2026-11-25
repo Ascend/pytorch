@@ -317,8 +317,6 @@ set(TORCH_NPU_PYTHON_SRCS
     ${TORCHNPU_ROOT}/npu/npurt.cpp
     ${TORCHNPU_ROOT}/npu/DataParallelComm.cpp
     ${TORCHNPU_ROOT}/npu/Stress_detect.cpp
-    ${TORCHNPU_ROOT}/npu/NpuSleep.cpp
-    ${TORCHNPU_ROOT}/npu/lazy_fusion.cpp
     ${TORCHNPU_ROOT}/profiler/init.cpp
     ${TORCHNPU_ROOT}/profiler/python/combined_traceback.cpp
     ${TORCHNPU_ROOT}/profiler/profiler_python.cpp
@@ -341,19 +339,11 @@ set(TORCH_NPU_PYTHON_SRCS
     ${TORCHNPU_ROOT}/aten/python_functions_1.cpp
     ${TORCHNPU_ROOT}/sanitizer/PyCallbackTrigger.cpp
     ${TORCHNPU_ROOT}/utils/LazyInit.cpp
-    ${TORCHNPU_ROOT}/inductor/aoti_runner/pybind.cpp
-    ${TORCHNPU_ROOT}/inductor/aoti_package/shape_handling.cpp
     ${TORCHNPU_ROOT}/inductor/dvm/pybind_api.cpp
     ${TORCHNPU_ROOT}/inductor/mlir/cpp_common.cpp
-    ${TORCHNPU_ROOT}/inductor/mlir/mlir_binding.cpp
-    ${TORCHNPU_ROOT}/inductor/static_launcher/runtime.cpp
-    ${TORCHNPU_ROOT}/inductor/static_launcher/fast_launcher.cpp
-    ${TORCHNPU_ROOT}/inductor/static_launcher/bindings.cpp
-    ${PROJECT_SOURCE_DIR}/torch_npu/_inductor/experimental/python_wrapper_fast_launch/csrc/bindings.cpp)
+    ${TORCHNPU_ROOT}/inductor/mlir/mlir_binding.cpp)
 
-if (DEFINED BUILD_LIBTORCH)
-  list(REMOVE_ITEM CPP_SRCS ${TORCH_NPU_PYTHON_SRCS})
-endif()
+list(REMOVE_ITEM CPP_SRCS ${TORCH_NPU_PYTHON_SRCS})
 
 add_library(${PLUGIN_NAME} SHARED ${CPP_SRCS})
 add_dependencies(${PLUGIN_NAME} check_public_environments)
@@ -380,10 +370,6 @@ link_directories(${PYTORCH_INSTALL_DIR}/lib)
 link_directories(${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs)
 
 target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libhccl.so)
-
-if (NOT DEFINED BUILD_LIBTORCH)
-  target_link_libraries(${PLUGIN_NAME} PUBLIC ${PYTORCH_INSTALL_DIR}/lib/libtorch_python.so)
-endif()
 
 target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libascendcl.so)
 target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libacl_op_compiler.so)
@@ -417,6 +403,20 @@ endif()
 
 add_subdirectory(${TORCHNPU_ROOT}/toolkit)
 target_link_libraries(${PLUGIN_NAME} PUBLIC npu_profiler)
+
+if (NOT DEFINED BUILD_LIBTORCH)
+  add_library(torch_npu_python SHARED ${TORCH_NPU_PYTHON_SRCS})
+  if(COMPILER_SUPPORTS_HIDDEN_VISIBILITY)
+    target_compile_options(torch_npu_python PRIVATE "-fvisibility=hidden")
+  endif()
+  target_compile_options(torch_npu_python PRIVATE "-DC10_BUILD_MAIN_LIB")
+  target_link_libraries(torch_npu_python PUBLIC ${PLUGIN_NAME} torch torch_cpu c10 fmt::fmt-header-only)
+  target_link_libraries(torch_npu_python PUBLIC ${PYTORCH_INSTALL_DIR}/lib/libtorch_python.so)
+  target_link_options(torch_npu_python PRIVATE "-Wl,-Bsymbolic-functions,--no-as-needed")
+  set_target_properties(torch_npu_python PROPERTIES BUILD_RPATH "$ORIGIN" INSTALL_RPATH "$ORIGIN")
+  include(GNUInstallDirs)
+  install(TARGETS torch_npu_python LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+endif()
 
 if (DEFINED BUILD_GTEST)
   enable_testing()

@@ -1,5 +1,6 @@
 #pragma once
 
+
 #include <c10/core/Device.h>
 
 #include <acl/acl_rt.h>
@@ -8,6 +9,7 @@
 #include <acl/acl_prof.h>
 #include "torch_npu/csrc/core/npu/interface/HcclInterface.h"
 #include <acl/acl.h>
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 using aclrtHostFunc = void (*)(void *args);
 struct aclrtMemUsageInfo;
@@ -115,7 +117,7 @@ aclError AclrtSetOpWaitTimeout(uint32_t timeout);
  * This API is used to check whether aclrtCreateEventExWithFlag exist
  * Compatible CANN, delete in future
 */
-bool IsExistCreateEventExWithFlag();
+C10_NPU_API bool IsExistCreateEventExWithFlag();
 
 /**
  * This API is used to check whether aclrtValueWait and aclrtValueWrite exist
@@ -152,7 +154,7 @@ aclError AclIpcGetEventHandle(aclrtEvent event, aclrtIpcEventHandle *handle);
 
 aclError AclIpcOpenEventHandle(aclrtIpcEventHandle handle, aclrtEvent *event);
 
-bool IsSupportIpcEvent(bool ignore_error = true);
+C10_NPU_API bool IsSupportIpcEvent(bool ignore_error = true);
 
 aclError AclProfilingInit(const char *profilerResultPath, size_t length);
 aclError AclProfilingStart(const aclprofConfig *profilerConfig);
@@ -165,7 +167,7 @@ aclprofConfig *AclProfilingCreateConfig(
     aclprofAicoreEvents *aicoreEvents,
     uint64_t dataTypeConfig);
 aclError AclProfilingDestroyConfig(const aclprofConfig *profilerConfig);
-const char *AclrtGetSocName();
+C10_NPU_API const char *AclrtGetSocName();
 const char *AclGetSocName();
 aclError AclrtSetDeviceSatMode(aclrtFloatOverflowMode mode);
 
@@ -175,19 +177,19 @@ aclError AclrtGetStreamOverflowSwitch(aclrtStream stream, uint32_t *flag);
 
 aclError AclrtSetOpExecuteTimeOut(uint32_t timeout);
 
-aclError AclrtSetOpExecuteTimeOutV2(uint64_t timeout);
+C10_NPU_API aclError AclrtSetOpExecuteTimeOutV2(uint64_t timeout);
 
 aclError AclrtSynchronizeStreamWithTimeout(aclrtStream stream);
 
 aclError AclrtDestroyStreamForce(aclrtStream stream);
 
-aclError AclrtGetDeviceUtilizationRate(int32_t deviceId, aclrtUtilizationInfo *utilizationInfo);
+C10_NPU_API aclError AclrtGetDeviceUtilizationRate(int32_t deviceId, aclrtUtilizationInfo *utilizationInfo);
 
-aclError AclrtMallocAlign32(void **devPtr, size_t size, aclrtMemMallocPolicy policy);
+C10_NPU_API aclError AclrtMallocAlign32(void **devPtr, size_t size, aclrtMemMallocPolicy policy);
 
 aclError AclrtStreamQuery(aclrtStream stream, aclrtStreamStatus *status);
 
-bool can_device_access_peer(c10::DeviceIndex device_id, c10::DeviceIndex peer_device_id);
+C10_NPU_API bool can_device_access_peer(c10::DeviceIndex device_id, c10::DeviceIndex peer_device_id);
 
 aclError AclrtReserveMemAddress(void **virPtr, size_t size, size_t alignment, void *expectPtr, uint64_t flags,
                                 HcclComm hcclComm = nullptr);
@@ -215,21 +217,21 @@ aclError AclrtGetMemUceInfo(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, 
 
 aclError AclrtGetMemUsageInfo(uint32_t deviceId, aclrtMemUsageInfo *memUsageInfo, size_t inputNum, size_t *outputNum);
 
-aclError AclrtDeviceTaskAbort(int32_t deviceId);
+C10_NPU_API aclError AclrtDeviceTaskAbort(int32_t deviceId);
 
-aclError AclrtMemUceRepair(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, size_t arraySize);
+C10_NPU_API aclError AclrtMemUceRepair(int32_t deviceId, aclrtMemUceInfo* memUceInfoArray, size_t arraySize);
 
 aclError AclrtCmoAsync(void* src, size_t size, aclrtCmoType cmoType, aclrtStream stream);
 
 aclError AclrtGetLastError(aclrtLastErrLevel flag);
 
-aclError AclrtPeekAtLastError(aclrtLastErrLevel flag);
+C10_NPU_API aclError AclrtPeekAtLastError(aclrtLastErrLevel flag);
 
 aclError AclsysGetCANNVersion(aclCANNPackageName name, aclCANNPackageVersion *version);
 
 aclError AclsysGetVersionStr(char *pkgName, char *versionStr);
 
-aclError AclStressDetect(int32_t deviceId, void *workspace, size_t workspaceSize);
+C10_NPU_API aclError AclStressDetect(int32_t deviceId, void *workspace, size_t workspaceSize);
 
 aclError AclrtSynchronizeDeviceWithTimeout(void);
 
@@ -295,7 +297,7 @@ aclError AclrtHostRegister(void *ptr, uint64_t size, aclrtHostRegisterType type,
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-aclError AclrtHostRegisterV2(void *ptr, uint64_t size, uint32_t flag);
+C10_NPU_API aclError AclrtHostRegisterV2(void *ptr, uint64_t size, uint32_t flag);
 
 /**
  * @ingroup AscendCL
@@ -304,7 +306,7 @@ aclError AclrtHostRegisterV2(void *ptr, uint64_t size, uint32_t flag);
  * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-aclError AclrtHostUnregister(void *ptr);
+C10_NPU_API aclError AclrtHostUnregister(void *ptr);
 
 aclError AclrtMallocHostWithCfg(void **ptr, uint64_t size, aclrtMallocConfig *cfg);
 
@@ -345,7 +347,7 @@ aclError AclrtMemcpyBatch(void **dsts, size_t *destMax, void **srcs, size_t *siz
 
 bool IsExistMemcpyBatch();
 
-bool IsExistRtGetStreamId();
+C10_NPU_API bool IsExistRtGetStreamId();
 
 bool IsExistMemcpyBatchAsync();
 
@@ -380,9 +382,9 @@ bool AclrtPointerGetAttributesExist();
 
 aclError AclrtSetStreamAttribute(aclrtStream stream, aclrtStreamAttr stmAttrType, aclrtStreamAttrValue *value);
 
-bool IsExistDeviceGetUuid();
+C10_NPU_API bool IsExistDeviceGetUuid();
 
-aclError AclrtDeviceGetUuid(int32_t deviceId, aclrtUuid *uuid);
+C10_NPU_API aclError AclrtDeviceGetUuid(int32_t deviceId, aclrtUuid *uuid);
 
 aclError AclrtGetPrimaryCtxState(int32_t deviceId, uint32_t* flags, int32_t* activate);
 
@@ -394,13 +396,13 @@ bool IsExistAclrtGetErrorVerbose();
 
 aclError AclrtGetErrorVerbose(int32_t deviceId, aclrtErrorInfo *errorInfo);
 
-bool IsExistAclrtRepairError();
+C10_NPU_API bool IsExistAclrtRepairError();
 
-aclError AclrtRepairError(int32_t deviceId, const aclrtErrorInfo *errorInfo);
+C10_NPU_API aclError AclrtRepairError(int32_t deviceId, const aclrtErrorInfo *errorInfo);
 
-bool IsExistAclrtGetDeviceInfo();
+C10_NPU_API bool IsExistAclrtGetDeviceInfo();
 
-aclError AclrtGetDeviceInfo(uint32_t deviceId, aclrtDevAttr attr, int64_t *value);
+C10_NPU_API aclError AclrtGetDeviceInfo(uint32_t deviceId, aclrtDevAttr attr, int64_t *value);
 
 aclError AclrtGetLogicDevIdByUserDevId(const int32_t userDevid, int32_t *const logicDevId);
 

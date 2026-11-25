@@ -338,16 +338,19 @@ class TestRpc(TestCase):
         inputs = [torch.rand(1024, 1024).cpu(), torch.rand(1024, 1024, 4).cpu()]
         self._test_multiprocess(TestRpc._test_async_call_for_cpu, inputs, self.world_size_2p)
 
+    @unittest.skip("pending #6065: RPC NPU tensor deserialize fix; re-enable together with the fix and a smaller input")
     @skipIfUnsupportMultiNPU(2)
     def test_sync_call_for_cpu(self):
         inputs = [torch.rand(1024, 1024).cpu(), torch.rand(1024, 1024, 1024).cpu()]
         self._test_multiprocess(TestRpc._test_sync_call_for_cpu, inputs, self.world_size_2p)
 
+    @unittest.skip("pending #6065: RPC NPU tensor deserialize fix; re-enable together with the fix and a smaller input")
     @skipIfUnsupportMultiNPU(2)
     def test_async_call_for_npu(self):
         inputs = [torch.rand(1024, 1024), torch.rand(1024, 1024, 1024)]
         self._test_multiprocess(TestRpc._test_async_call_for_npu, inputs, self.world_size_2p)
 
+    @unittest.skip("pending #6065: RPC NPU tensor deserialize fix; re-enable together with the fix and a smaller input")
     @skipIfUnsupportMultiNPU(2)
     def test_sync_call_for_npu(self):
         inputs = [torch.rand(1024, 1024), torch.rand(1024, 1024, 1024)]

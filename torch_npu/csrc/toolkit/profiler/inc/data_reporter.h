@@ -1,5 +1,7 @@
 #pragma once
 
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
+
 #include "torch_npu/csrc/profiler/containers.h"
 #include "torch_npu/csrc/profiler/python_tracer_types.h"
 
@@ -106,7 +108,7 @@ private:
     c10::weak_intrusive_ptr<c10::TensorImpl> weak_self_;
 };
 
-struct TensorMetadata {
+struct C10_NPU_API TensorMetadata {
     TensorMetadata() = default;
     explicit TensorMetadata(const at::Tensor &t);
 
@@ -365,7 +367,7 @@ struct MemoryData : BaseReportData {
     std::vector<uint8_t> encode();
 };
 
-struct PythonTracerFuncData : BaseReportData {
+struct C10_NPU_API PythonTracerFuncData : BaseReportData {
     uint64_t process_id{ 0 };
     torch_npu::profiler::AppendOnlyList<torch_npu::profiler::python_tracer::TraceEvent> events;
     PythonTracerFuncData(uint64_t process_id,
@@ -377,7 +379,7 @@ struct PythonTracerFuncData : BaseReportData {
 
 enum class PythonTracerHashDataType { VALUE = 1 };
 
-struct PythonTracerHashData : BaseReportData {
+struct C10_NPU_API PythonTracerHashData : BaseReportData {
     std::vector<std::pair<uint64_t, std::string>> hash_data;
     PythonTracerHashData(std::vector<std::pair<uint64_t, std::string>> hash_data)
         : BaseReportData(0, "torch.python_tracer_hash"), hash_data(std::move(hash_data))
@@ -387,7 +389,7 @@ struct PythonTracerHashData : BaseReportData {
 
 enum class ParamTensorDataType { MODULE_PARAM = 1, OPTIMIZER_PARAM = 2 };
 
-struct ParamTensorData : BaseReportData {
+struct C10_NPU_API ParamTensorData : BaseReportData {
     std::vector<std::pair<uint64_t, std::vector<ModuleParam>>> module_param_data;
     std::vector<std::pair<uint64_t, std::vector<OptimizerParam>>> optimizer_param_data;
     ParamTensorData(std::vector<std::pair<uint64_t, std::vector<ModuleParam>>> module_param_data,

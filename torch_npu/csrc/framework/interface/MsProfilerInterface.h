@@ -3,6 +3,7 @@
 
 #include <acl/acl_prof.h>
 #include "torch_npu/csrc/core/npu/NPUException.h"
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace at_npu {
 namespace native {
@@ -15,7 +16,7 @@ aclError AclprofSetConfig(aclprofConfigType configType, const char* config, size
 
 aclError AclprofGetSupportedFeatures(size_t* featuresSize, void** featuresData);
 
-aclError AclProfilingMarkEx(const char *msg, size_t msgLen, aclrtStream stream);
+C10_NPU_API aclError AclProfilingMarkEx(const char *msg, size_t msgLen, aclrtStream stream);
 }
 }
 

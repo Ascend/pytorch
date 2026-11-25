@@ -1,5 +1,6 @@
 #pragma once
 
+
 #include <atomic>
 #include <memory>
 #include <mutex>
@@ -24,6 +25,7 @@
 #endif
 #include <c10d/logger.hpp>
 #include <c10d/debug.h>
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace c10d_npu {
 
@@ -112,7 +114,7 @@ struct BucketAccumulator {
 
 C10_DECLARE_TYPED_REGISTRY(TimerRegistry, c10::DeviceType, Timer, std::unique_ptr, c10::Device);
 
-class Reducer {
+class C10_NPU_API Reducer {
 public:
     // The constructor takes a list of variables for every model replica.
     // The bucket assignment for this reducer is specified as a list of
@@ -606,7 +608,7 @@ private:
 // The index of tensors[i] assigned to bucket is tensor_indices[i],
 // when tensor_indices is empty, the index of tensors[i] assigned to
 // bucket is i.
-std::tuple<std::vector<std::vector<size_t>>, std::vector<size_t>> compute_bucket_assignment_by_size(
+C10_NPU_API std::tuple<std::vector<std::vector<size_t>>, std::vector<size_t>> compute_bucket_assignment_by_size(
     const std::vector<at::Tensor>& tensors,
     const std::vector<size_t>& bucket_size,
     const std::vector<bool>& expect_sparse_gradient = {},
@@ -615,7 +617,7 @@ std::tuple<std::vector<std::vector<size_t>>, std::vector<size_t>> compute_bucket
 
 // Verify models across all processes are the same as model on rank 0 with
 // respect to no. of params and matching dtype/size/layout.
-void verify_params_across_processes(
+C10_NPU_API void verify_params_across_processes(
     const c10::intrusive_ptr<c10d::ProcessGroup>& process_group,
     const std::vector<at::Tensor>& params,
     const c10::optional<std::weak_ptr<c10d::Logger>>& logger);

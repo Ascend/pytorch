@@ -4,7 +4,7 @@
 namespace c10_npu {
 
 TORCH_NPU_API bool get_npu_data_unsafe_flag();
-void set_npu_data_unsafe_flag(bool flag);
+C10_NPU_API void set_npu_data_unsafe_flag(bool flag);
 TORCH_NPU_API void check_npu_tensor_is_safe(const at::Tensor& self);
 TORCH_NPU_API void check_npu_tensor_is_safe(const c10::optional<at::Tensor>& self);
 TORCH_NPU_API void check_npu_tensor_is_safe(const at::TensorList& self);

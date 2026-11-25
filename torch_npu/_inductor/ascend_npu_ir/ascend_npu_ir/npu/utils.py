@@ -101,6 +101,7 @@ def _build_npu_ext(obj_name: str, src_path, src_dir) -> str:
         f"-I{cpp_common_dir}",
         f"-L{torch_npu_lib_dir}",
         "-ltorch_npu",
+        "-ltorch_npu_python",
         f"-Wl,-rpath",
         "-std=c++17",
         f"-D_GLIBCXX_USE_CXX11_ABI={ABI_TAG}",
