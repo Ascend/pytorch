@@ -25,7 +25,6 @@ ROOTINFO_EXCHANGE_LOG_KEYWORD = "All-gather scalable HCCL root infos through sto
 ROOTINFO_START_LOG_KEYWORD = "Start generating scalable HCCL root info"
 ROOTINFO_GENERATE_LOG_KEYWORD = "Generate and publish scalable HCCL root info success"
 ORIGINAL_COMM_LOG_KEYWORD = "Create hccl comm by hcclCommInitRootInfoConfig success"
-UNSUPPORTED_SOC_WARNING_KEYWORD = "Scalable RootInfo initialization is supported only on Atlas A2 and A3"
 STDERR_FD = 2
 
 
@@ -127,13 +126,6 @@ class ScalableRootInfoTest(TestCase):
         return f"{base}-{base + 99}"
 
     @staticmethod
-    def _is_scalable_supported_soc():
-        device_name = torch_npu.npu.get_device_name(0)
-        is_a2 = re.fullmatch(r"Ascend910B(?:1|2|2C|3|4|4-1)", device_name) is not None
-        is_a3 = re.fullmatch(r"Ascend910_9(?:391|392|381|382|372|362|363)", device_name) is not None
-        return is_a2 or is_a3
-
-    @staticmethod
     def _has_scalable_interfaces():
         # Query the same library as the HCCL loader, including dependency symbols.
         # Failure to load HCCL itself is an environment error, not a fallback case.
@@ -159,12 +151,10 @@ class ScalableRootInfoTest(TestCase):
     def _assert_path_logs(self, log_dir, world_size, ranks_per_root, rounds):
         # Assert the effective C++ value below, not just the selected path.
         effective_ranks_per_root = 128 if ranks_per_root is None else ranks_per_root
-        valid_ranks_per_root = isinstance(effective_ranks_per_root, int) and effective_ranks_per_root > 0
-        scalable_enabled = valid_ranks_per_root
-        scalable_requested = scalable_enabled and world_size > effective_ranks_per_root
-        scalable_supported_soc = self._is_scalable_supported_soc()
         use_scalable_path = (
-            scalable_requested and scalable_supported_soc and self._has_scalable_interfaces()
+            isinstance(effective_ranks_per_root, int)
+            and 0 < effective_ranks_per_root < world_size
+            and self._has_scalable_interfaces()
         )
         expected_roots = (
             self._expected_roots(world_size, effective_ranks_per_root) if use_scalable_path else {}
@@ -188,10 +178,6 @@ class ScalableRootInfoTest(TestCase):
                 self.assertNotIn(ROOTINFO_EXCHANGE_LOG_KEYWORD, log_text)
                 self.assertNotIn(ROOTINFO_START_LOG_KEYWORD, log_text)
                 self.assertNotIn(ROOTINFO_GENERATE_LOG_KEYWORD, log_text)
-                if scalable_enabled and not scalable_supported_soc:
-                    self.assertEqual(log_text.count(UNSUPPORTED_SOC_WARNING_KEYWORD), 1)
-                else:
-                    self.assertNotIn(UNSUPPORTED_SOC_WARNING_KEYWORD, log_text)
                 continue
 
             self.assertEqual(log_text.count(SCALABLE_COMM_LOG_KEYWORD), rounds)
@@ -291,8 +277,6 @@ class ScalableRootInfoTest(TestCase):
         self._run_case(ranks_per_root=128, run_all_collectives=True)
 
     def test_missing_scalable_interfaces_falls_back(self):
-        if not self._is_scalable_supported_soc():
-            self.skipTest("Requires Atlas A2/A3 to isolate the missing-interface fallback")
         if self._has_scalable_interfaces():
             self.skipTest("Requires an HCCL library missing scalable RootInfo interfaces")
         self._run_case(ranks_per_root=2, run_all_collectives=True)
