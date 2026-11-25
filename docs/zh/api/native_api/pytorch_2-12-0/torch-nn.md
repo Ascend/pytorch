@@ -4769,7 +4769,6 @@
 
 </div>
 
-<!-- npu="910b,A3" id1029 -->
 ### <code><i>class</i></code> torch.nn.LSTMCell
 
 <div style="margin-left: 2em">
@@ -4777,7 +4776,6 @@
 **原生文档**：[torch.nn.LSTMCell](https://pytorch.org/docs/2.12/generated/torch.nn.LSTMCell.html)
 
 **产品支持情况**：
-<!-- end id1029 -->
 
 <!-- npu="910b" id570 -->
 - <term>Atlas A2训练系列产品</term>：支持
@@ -4785,12 +4783,15 @@
 <!-- npu="A3" id571 -->
 - <term>Atlas A3训练系列产品</term>：支持
 <!-- end id571 -->
+<!-- npu="950" id572 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id572 -->
 
 <!-- npu="910b,A3" id1030 -->
 **限制与说明**： 接口暂不支持`jit_compile=False`，如需在该模式下使用，请将"DynamicGRUV2"添加至"NPU_FUZZY_COMPILE_BLACKLIST"选项内，具体操作可参考[添加二进制黑名单示例](../appendixes/example_of_adding_a_binary_blocklist.md)
+<!-- end id1030 -->
 
 </div>
-<!-- end id1030 -->
 
 ### <code><i>class</i></code> torch.nn.GRUCell
 
