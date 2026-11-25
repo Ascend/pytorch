@@ -430,13 +430,64 @@ def _strides_are_canonical(args, strides) -> bool:
     )
 
 
-def _layout_args(extents, symbols: Dict[str, Node]) -> List[Any]:
+def _node_precedes(candidate: Node, consumer: Node) -> bool:
+    """Whether `candidate` is defined before `consumer` in the same graph."""
+    for node in consumer.graph.nodes:
+        if node is consumer:
+            return False
+        if node is candidate:
+            return True
+    return False
+
+
+def _extent_node_before(
+    node: Optional[Node],
+    consumer: Optional[Node],
+    symbols: Optional[Dict[str, Node]] = None,
+    key: Optional[str] = None,
+) -> Optional[Node]:
+    """Return a node producing `node`'s value ahead of `consumer`.
+
+    FX requires arguments to be defined before the node consuming them. A
+    symbolic extent that inductor only materialises further down the graph --
+    ``32*s64`` first spelled out for a later allocation, say -- therefore cannot
+    be handed over as-is.
+
+    The node is moved ahead of the consumer rather than copied: every user is
+    repointed at the hoisted node and the original is dropped, so the extent is
+    still computed exactly once and hoisting costs the graph no extra work.
+    Returns ``None`` when it cannot be hoisted -- one of its inputs is itself
+    defined after the consumer -- leaving the caller to pass the SymInt through.
+    """
+    if node is None or consumer is None:
+        return node
+    if _node_precedes(node, consumer):
+        return node
+    for arg in node.all_input_nodes:
+        if not _node_precedes(arg, consumer):
+            return None
+    with consumer.graph.inserting_before(consumer):
+        hoisted = consumer.graph.node_copy(node)
+    hoisted.meta = dict(node.meta)
+    node.replace_all_uses_with(hoisted)
+    consumer.graph.erase_node(node)
+    if symbols is not None and key is not None:
+        symbols[key] = hoisted
+    return hoisted
+
+
+def _layout_args(
+    extents, symbols: Dict[str, Node], before: Optional[Node] = None
+) -> List[Any]:
     """Spell sizes / strides out as arguments for a graph node.
 
     A symbolic extent is passed as the node that produces it, which is what an
     FXRT executor resolves; when no node produces that expression the SymInt is
     passed through as-is, which the symbolic shape manager resolves from the
     expression itself.
+
+    `before` is the node the arguments are spelled out for. Passing it keeps the
+    arguments defined ahead of their consumer -- see `_extent_node_before`.
     """
     args: List[Any] = []
     for extent in extents:
@@ -445,7 +496,8 @@ def _layout_args(extents, symbols: Dict[str, Node]) -> List[Any]:
             if expr.is_Integer:
                 args.append(int(expr))
                 continue
-            node = symbols.get(str(expr))
+            key = str(expr)
+            node = _extent_node_before(symbols.get(key), before, symbols, key)
             if node is not None:
                 args.append(node)
                 continue
@@ -584,8 +636,8 @@ def _align_views_with_alloc(gm: GraphModule, alloc: Node, holders: List[Node]) -
                 sizes, strides = _layout_extents(value)
                 symbols = _symbol_nodes(gm)
                 args = (
-                    _layout_args(sizes, symbols),
-                    _layout_args(strides, symbols),
+                    _layout_args(sizes, symbols, before=user),
+                    _layout_args(strides, symbols, before=user),
                 )
                 with gm.graph.inserting_before(user):
                     replacement = _as_strided_on(
@@ -659,7 +711,7 @@ def normalize_fresh_allocation_layouts_(gm: GraphModule) -> int:
             if symbols is None:
                 symbols = _symbol_nodes(gm)
             node.args = (
-                node.args[0], _layout_args(contiguous, symbols)
+                node.args[0], _layout_args(contiguous, symbols, before=node)
             ) + tuple(node.args[2:])
             rewritten += 1
             continue
@@ -675,7 +727,7 @@ def normalize_fresh_allocation_layouts_(gm: GraphModule) -> int:
         with gm.graph.inserting_before(node):
             alloc = gm.graph.call_function(
                 node.target,
-                args=(sizes_arg, _layout_args(contiguous, symbols)) + tuple(node.args[2:]),
+                args=(sizes_arg, _layout_args(contiguous, symbols, before=node)) + tuple(node.args[2:]),
                 kwargs=node.kwargs,
             )
         _stamp(alloc, node, plain_value)
