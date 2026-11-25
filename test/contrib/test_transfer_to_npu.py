@@ -667,6 +667,19 @@ class TestTransferToNpu(TestCase):
         ptr = torch.cuda.memory.caching_allocator_alloc(size, 0)
         torch.cuda.memory.caching_allocator_delete(ptr)
 
+    def test_cuda_memory_caching_allocator_enable(self):
+        # 回归：is_initialized 被重定向为 NPU 实现后，torch 的 CUDA-only
+        # caching_allocator_enable 会调用 torch._C 中不存在的
+        # _cuda_cudaCachingAllocator_enable，须提供 NPU 侧兼容实现。
+        torch.randn(4, device='npu')
+        self.assertTrue(torch.cuda.memory.is_initialized())
+        # torch.cuda.caching_allocator_enable 是 torch.cuda.memory 中函数的独立
+        # 别名，两处绑定都须替换。
+        self.assertIs(torch.cuda.caching_allocator_enable,
+                      torch.cuda.memory.caching_allocator_enable)
+        torch.cuda.caching_allocator_enable(False)
+        torch.cuda.caching_allocator_enable(True)
+
     def test_cuda_streams_submodule_redirect(self):
         self.assertIs(torch.cuda.streams.Stream, torch_npu.npu.streams.Stream)
         self.assertIs(torch.cuda.streams.Event, torch_npu.npu.streams.Event)
@@ -728,6 +741,47 @@ class TestTransferToNpu(TestCase):
         s = torch.Stream(device='cuda')
         self.assertEqual(s.device.type, 'npu')
         self.assertIsInstance(s, torch.Stream)
+        # 代理类须保持与原生类的子类关系：Dynamo 通过 issubclass(value, torch.Stream)
+        # 判定是否按 StreamVariable 构造，缺失会导致 graph break 及后续编译错误。
+        self.assertTrue(issubclass(torch_npu.npu.streams.Stream, torch.Stream))
+        self.assertTrue(issubclass(torch_npu.npu.streams.Event, torch.Event))
+
+    def test_torch_compile_cuda_stream_context(self):
+        # 回归：torch.Stream 被重绑为 _StreamProxy 后，torch.cuda.Stream 生成的
+        # npu Stream 仍须命中 issubclass 分支，torch.cuda.stream(...) 建图时不得
+        # graph break，也不能把半初始化的 StreamContext 交给 Dynamo 编译。
+        def fn(x):
+            s1 = torch.cuda.Stream()
+            s2 = torch.cuda.Stream()
+
+            with torch.cuda.stream(s1):
+                a = x + 1
+            e = s1.record_event()
+            s2.wait_event(e)
+            with torch.cuda.stream(s2):
+                b = a * 2
+
+            s1.synchronize()
+            s2.synchronize()
+            return b
+
+        x = torch.randn(1024, device='cuda')
+        expected = fn(x)
+        # Dynamo 的 VariableBuilder 会调用 torch.cuda.get_device_capability() 判断
+        # Triton TMA 能力；torch_npu 在未配置该环境变量时返回 None，会在本用例要
+        # 验证的逻辑之前抛出 TypeError。这里按 NPU 兼容约定临时配置并在结束后还原。
+        capability_env = 'TORCH_NPU_DEVICE_CAPABILITY'
+        saved_capability = os.environ.get(capability_env)
+        if saved_capability is None:
+            os.environ[capability_env] = '8.0'
+        try:
+            result = torch.compile(fn, backend='eager', fullgraph=True)(x)
+        finally:
+            if saved_capability is None:
+                os.environ.pop(capability_env, None)
+            else:
+                os.environ[capability_env] = saved_capability
+        self.assertEqual(result, expected)
 
 if __name__ == "__main__":
     run_tests()
