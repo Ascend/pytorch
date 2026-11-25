@@ -15,6 +15,7 @@
 #pragma once
 
 #include <cstdint>
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace c10_npu {
 
@@ -22,6 +23,6 @@ namespace c10_npu {
  * Sleep for the specified number of cycles on the current NPU stream.
  * Calls CANN's aclnnSleep operator internally.
  */
-void npu_sleep(int64_t cycles);
+C10_NPU_API void npu_sleep(int64_t cycles);
 
 } // namespace c10_npu

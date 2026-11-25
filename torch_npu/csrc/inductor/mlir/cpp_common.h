@@ -4,6 +4,7 @@
 #include <acl/acl_base.h>
 #include <acl/acl_rt.h>
 #include "torch_npu/csrc/inductor/mlir/hacl_rt.h"
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 rtError_t common_launch(char* kernelName, const void* func, uint32_t gridX, void* args, uint32_t argsSize,
                         rtStream_t stream);

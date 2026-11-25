@@ -11,11 +11,12 @@
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace at_npu {
 namespace native {
 
-at::Tensor set_tensor_with_storage_format(
+C10_NPU_API at::Tensor set_tensor_with_storage_format(
     c10::Storage src,
     at::ScalarType storage_scalar_type = at::ScalarType::Undefined);
 

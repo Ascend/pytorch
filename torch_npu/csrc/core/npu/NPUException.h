@@ -41,7 +41,7 @@
         }                                                                    \
     } while (0)
 
-void warn_(const ::c10::Warning& warning);
+TORCH_NPU_API void warn_(const ::c10::Warning& warning);
 
 #define TORCH_NPU_WARN(...)                                      \
     warn_(::c10::Warning(                                        \
@@ -84,7 +84,7 @@ enum class ErrCode {
     GE = 300
 };
 
-std::string formatErrorCode(SubModule submodule, ErrCode errorCode);
+TORCH_NPU_API std::string formatErrorCode(SubModule submodule, ErrCode errorCode);
 
 #define PTA_ERROR(error) formatErrorCode(SubModule::PTA, error)
 #define OPS_ERROR(error) formatErrorCode(SubModule::OPS, error)
@@ -319,9 +319,9 @@ void record_mem_hbm_ecc_error();
 
 void set_mem_uce_info(MemUceInfo& info);
 
-MemUceInfo get_mem_uce_info();
+C10_NPU_API MemUceInfo get_mem_uce_info();
 
-void clear_mem_uce_info();
+C10_NPU_API void clear_mem_uce_info();
 
 std::string handleDeviceTaskAbort(int errorCode);
 
@@ -335,17 +335,17 @@ std::string handleLinkError(int errorCode);
 
 std::string handleHcclOpRetryFailed(int errorCode);
 
-std::string getDeviceErrorMessage(int errorCode);
+C10_NPU_API std::string getDeviceErrorMessage(int errorCode);
 
 std::string handleSuspectRemoteError(int errorCode);
 
-bool isCannOOM(const std::string &errMsg);
+C10_NPU_API bool isCannOOM(const std::string &errMsg);
 
 bool ShouldAppendDeviceErrorVerbose();
 
-DeviceErrorInfo get_device_error_info();
+C10_NPU_API DeviceErrorInfo get_device_error_info();
 
-void clear_device_error_info();
+C10_NPU_API void clear_device_error_info();
 
 bool repair_device_error();
 

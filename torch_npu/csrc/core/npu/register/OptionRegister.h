@@ -7,6 +7,7 @@
 #include <string>
 #include <unordered_map>
 #include <c10/util/Optional.h>
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace c10_npu {
 namespace option {
@@ -83,15 +84,15 @@ public:
 /**
   This API is used to store key-value pairs
   */
-void SetOption(const std::map<std::string, std::string>& options);
+C10_NPU_API void SetOption(const std::map<std::string, std::string>& options);
 /**
   This API is used to store key-value pair
   */
-void SetOption(const std::string& key, const std::string& val);
+C10_NPU_API void SetOption(const std::string& key, const std::string& val);
 /**
   This API is used to load value by key
   */
-c10::optional<std::string> GetOption(const std::string& key);
+C10_NPU_API c10::optional<std::string> GetOption(const std::string& key);
 
 #define TORCH_NPU_REGISTER_OPTION(name)                             \
     REGISTER_OPTION_UNIQ(name, name, cli)

@@ -1,8 +1,10 @@
 #pragma once
+
 #include <algorithm>
 #include <c10/core/Device.h>
 #include <torch_npu/csrc/core/npu/GetAffinityCPUInfo.h>
 #include <set>
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace c10_npu {
 
@@ -19,10 +21,10 @@ enum ThreadType {
 };
 
 void SetThreadType(ThreadType type);
-void SetThreadAffinity(c10::DeviceIndex device);
-void SetThreadAffinity(ThreadType type);
-void SetThreadAffinity(const CoreIdList core_ids);
-void SetThreadAffinity(int core_start, int core_end);
+C10_NPU_API void SetThreadAffinity(c10::DeviceIndex device);
+C10_NPU_API void SetThreadAffinity(ThreadType type);
+C10_NPU_API void SetThreadAffinity(const CoreIdList core_ids);
+C10_NPU_API void SetThreadAffinity(int core_start, int core_end);
 
 bool NeedMainThreadBind();
 bool SetThreadAffinityInInitialize();

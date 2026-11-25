@@ -1,4 +1,5 @@
 #pragma once
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 #include <ctime>
 #include <unistd.h>
@@ -18,7 +19,7 @@
 namespace torch_npu {
 namespace toolkit {
 namespace profiler {
-class Utils {
+class C10_NPU_API Utils {
 public:
     static bool IsFileExist(const std::string &path)
     {

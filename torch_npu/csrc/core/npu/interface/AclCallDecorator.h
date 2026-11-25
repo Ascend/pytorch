@@ -2,11 +2,12 @@
 
 #include <sstream>
 #include "torch_npu/csrc/logging/LogContext.h"
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace torch_npu {
 namespace acl_log {
 
-bool ShouldLogAclApi(const char* api_name);
+C10_NPU_API bool ShouldLogAclApi(const char* api_name);
 
 inline std::shared_ptr<npu_logging::Logger>& GetAclLogger()
 {

@@ -773,7 +773,7 @@ setup(
             CppExtension(
                 'torch_npu._C',
                 sources=["torch_npu/csrc/InitNpuBindings.cpp"],
-                libraries=["torch_npu"],
+                libraries=["torch_npu", "torch_npu_python"],
                 include_dirs=include_directories,
                 extra_compile_args=extra_compile_args + ['-fstack-protector-all'] + ['-D__FILENAME__=\"InitNpuBindings.cpp\"'],
                 library_dirs=["lib"],

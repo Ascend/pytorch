@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace c10_npu {
 namespace option {
@@ -10,7 +11,7 @@ namespace option {
 /**
   FunctionLoader is used to store function address in the process.
   */
-class FunctionLoader {
+class C10_NPU_API FunctionLoader {
 public:
     /**
         ctr
@@ -41,7 +42,7 @@ namespace register_function {
 /**
   this class is used to register
   */
-class FunctionRegister {
+class C10_NPU_API FunctionRegister {
 public:
     /**
         Singleton
@@ -69,7 +70,7 @@ private:
 /**
   FunctionRegisterBuilder is the helper of FunctionRegister.
   */
-class FunctionRegisterBuilder {
+class C10_NPU_API FunctionRegisterBuilder {
 public:
     /**
         ctr

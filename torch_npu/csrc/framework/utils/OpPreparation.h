@@ -3,6 +3,7 @@
 
 #include "torch_npu/csrc/framework/utils/NPUDefinition.h"
 #include "torch_npu/csrc/framework/OpCommand.h"
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace at_npu {
 namespace native {
@@ -26,7 +27,7 @@ public:
     static at::Tensor copy_scalar_to_device(const c10::Scalar &cpu_scalar, at::ScalarType scalar_data_type);
     static at::Tensor copy_scalar_to_device(const c10::Scalar &cpu_scalar, at::ScalarType scalar_data_type,
                                             const c10::Device device);
-    static at::Tensor copy_tensor_host_to_device(const at::Tensor &cpu_tensor);
+    C10_NPU_API static at::Tensor copy_tensor_host_to_device(const at::Tensor &cpu_tensor);
 
     static bool is_scalar_wrapped_to_tensor(const at::Tensor &tensor);
     static int64_t get_tensor_npu_format(const at::Tensor &tensor);

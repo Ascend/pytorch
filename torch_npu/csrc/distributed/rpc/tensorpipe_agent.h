@@ -13,6 +13,8 @@
 
 #include <torch/csrc/distributed/c10d/PrefixStore.hpp>
 #include <torch/csrc/distributed/c10d/Store.hpp>
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
+
 
 // Forward-declare the TensorPipe classes we need, to avoid including its
 // headers in PyTorch's ones and thus have it become a public dependency.
@@ -115,7 +117,7 @@ struct AggregatedNetworkData {
 // payloads through the fastest available transport or channel. It acts like
 // a hybrid RPC transport, providing shared memory (linux) and TCP (linux
 // & mac) support.
-class TensorPipeAgent : public RpcAgent {
+class C10_NPU_API TensorPipeAgent : public RpcAgent {
 public:
     TensorPipeAgent(const c10::intrusive_ptr<::c10d::Store> &store, std::string selfName, worker_id_t selfId,
                     c10::optional<int> worldSize, TensorPipeRpcBackendOptions opts,

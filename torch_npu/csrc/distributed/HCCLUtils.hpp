@@ -15,6 +15,7 @@
 #include <c10/util/Optional.h>
 #include <hccl/hccl.h>
 #include <hccl/hccl_types.h>
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 #define HCCL_CHECK_ERROR(err_code, ...)                                      \
     do {                                                                     \
@@ -74,12 +75,12 @@ extern HcclResult hcclCommInitClusterInfoConfig(const char *clusterInfo, uint32_
 extern HcclResult hcclCreateSubCommConfig(HcclComm *comm, uint32_t rankNum, uint32_t *rankIds, uint64_t subCommId, uint32_t subCommRankId,
     HcclCommConfig* config, HcclComm *subComm);
 extern HcclResult hcclCommWorkingDevNicSet(HcclComm comm, uint32_t *ranks, bool *useBackup, uint32_t nRanks);
-extern HcclResult hcclCommDestroy(HcclComm comm);
-extern HcclResult hcclBroadcast(void *buf, uint64_t count, HcclDataType dataType, uint32_t root, HcclComm comm, aclrtStream stream);
+C10_NPU_API HcclResult hcclCommDestroy(HcclComm comm);
+C10_NPU_API HcclResult hcclBroadcast(void *buf, uint64_t count, HcclDataType dataType, uint32_t root, HcclComm comm, aclrtStream stream);
 extern HcclResult hcclCommInitRootInfo(uint32_t nRanks, const HcclRootInfo *rootInfo, uint32_t rank, HcclComm *comm);
-extern HcclResult hcclCommInitAll(uint32_t ndev, int32_t *devices, HcclComm *comms);
+C10_NPU_API HcclResult hcclCommInitAll(uint32_t ndev, int32_t *devices, HcclComm *comms);
 
-HcclDataType getHcclDataType(at::ScalarType type);
+C10_NPU_API HcclDataType getHcclDataType(at::ScalarType type);
 
 std::string getHcclDataTypeSerialString(HcclDataType type);
 
@@ -87,7 +88,7 @@ bool isFileExists(const std::string& path);
 
 bool checkFilePathReadable(const std::string& file);
 
-bool isSupportHcclCommName();
+C10_NPU_API bool isSupportHcclCommName();
 
 c10::optional<c10_npu::NPUStream> getHcclStreamByBufferName(const std::string &name, c10::DeviceIndex device_index);
 

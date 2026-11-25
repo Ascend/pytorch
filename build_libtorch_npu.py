@@ -197,10 +197,8 @@ def run_cmake():
     if check_tensorpipe_valid(BASE_DIR):
         cmake_args.append("-DBUILD_TENSORPIPE=on")
 
-    if os.getenv("_GLIBCXX_USE_CXX11_ABI") is not None:
-        cmake_args.append(
-            "-DGLIBCXX_USE_CXX11_ABI=" + os.getenv("_GLIBCXX_USE_CXX11_ABI")
-        )
+    use_cxx11_abi = os.getenv("_GLIBCXX_USE_CXX11_ABI") != "0"
+    cmake_args.append("-DGLIBCXX_USE_CXX11_ABI=" + ("1" if use_cxx11_abi else "0"))
 
     if os.getenv("_ABI_VERSION") is not None:
         cmake_args.append("-DABI_VERSION=" + os.getenv("_ABI_VERSION"))
