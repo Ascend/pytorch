@@ -57,12 +57,13 @@ on:
         description: 'Apply the triton-ascend C++20 patch before running'
         required: true
         type: boolean
-        default: true
+        default: false
 
 # NOTE: on push events the `inputs` context is empty, so every reference
 # below carries an explicit `|| fallback` that encodes the push default
 # (upstream main, torch_npu master, 4 shards, 8 parallel,
-# patch_triton_cxx20=true — matching the nightly a3/a5 pipelines).
+# patch_triton_cxx20=false — temporarily disabled 2026-11-25 together
+# with the nightly a3/a5 pipelines; manual dispatch can still opt in).
 
 permissions:
   id-token: write
@@ -400,7 +401,8 @@ jobs:
       device_env: 'privateuse1,cpu'
       # workflow_dispatch 注入的输入可能是字符串 "true"，直接透传会让被调用方
       # 的 boolean 入参类型校验失败。显式与 true / 'true' 比较，结果恒为布尔值。
-      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 == true || inputs.patch_triton_cxx20 == 'true' || github.event_name == 'push' }}
+      # 2026-11-25 临时禁用：push 事件不再强制开启，与 nightly a3/a5 保持一致。
+      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 == true || inputs.patch_triton_cxx20 == 'true' }}
       cases_artifact_name: cases-shards-a3
 
   # ==========================================================================
@@ -488,7 +490,8 @@ jobs:
       device_env: 'privateuse1,cpu'
       # workflow_dispatch 注入的输入可能是字符串 "true"，直接透传会让被调用方
       # 的 boolean 入参类型校验失败。显式与 true / 'true' 比较，结果恒为布尔值。
-      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 == true || inputs.patch_triton_cxx20 == 'true' || github.event_name == 'push' }}
+      # 2026-11-25 临时禁用：push 事件不再强制开启，与 nightly a3/a5 保持一致。
+      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 == true || inputs.patch_triton_cxx20 == 'true' }}
       cases_artifact_name: cases-shards-a5
 
   # ==========================================================================
@@ -551,7 +554,8 @@ jobs:
       device_env: 'privateuse1,cpu'
       # workflow_dispatch 注入的输入可能是字符串 "true"，直接透传会让被调用方
       # 的 boolean 入参类型校验失败。显式与 true / 'true' 比较，结果恒为布尔值。
-      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 == true || inputs.patch_triton_cxx20 == 'true' || github.event_name == 'push' }}
+      # 2026-11-25 临时禁用：push 事件不再强制开启，与 nightly a3/a5 保持一致。
+      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 == true || inputs.patch_triton_cxx20 == 'true' }}
       cases_artifact_name: cases-shards-pass-a3
 
   shard-pass-a5:
@@ -602,7 +606,8 @@ jobs:
       device_env: 'privateuse1,cpu'
       # workflow_dispatch 注入的输入可能是字符串 "true"，直接透传会让被调用方
       # 的 boolean 入参类型校验失败。显式与 true / 'true' 比较，结果恒为布尔值。
-      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 == true || inputs.patch_triton_cxx20 == 'true' || github.event_name == 'push' }}
+      # 2026-11-25 临时禁用：push 事件不再强制开启，与 nightly a3/a5 保持一致。
+      patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 == true || inputs.patch_triton_cxx20 == 'true' }}
       cases_artifact_name: cases-shards-pass-a5
 
   # ==========================================================================

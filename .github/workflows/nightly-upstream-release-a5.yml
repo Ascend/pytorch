@@ -97,9 +97,10 @@ jobs:
       # this image is the original hotspot (549 npu_utils compile
       # failures without the patch, see nightly-main-full-a5.yml). The C++20-only
       # ATen headers apply to the 2.15-era headers as well. See the
-      # Patch triton cxx20 step in _nightly_test-category.yml. Flip to
-      # false to disable.
-      patch_triton_cxx20: true
+      # Patch triton cxx20 step in _nightly_test-category.yml.
+      # Temporarily disabled 2026-11-25 (not needed for now);
+      # flip back to true to re-enable.
+      patch_triton_cxx20: false
 
   # AI 失败用例分析（Trae CLI headless）：仅分析本 run 中 failed/error/timeout
   # 的测试用例根因，报告上传 Guiyang OBS 并在 job Summary 打印匿名下载链接。

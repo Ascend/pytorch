@@ -67,5 +67,7 @@ jobs:
       # Validated on nightly-a3 run 39538533016: 199 graph npu_utils
       # failures -> 0, global failures -1035, no side effects.
       # See the Patch triton cxx20 step in _nightly_test-category.yml.
-      patch_triton_cxx20: true
+      # Temporarily disabled 2026-11-25 (not needed for now);
+      # flip back to true to re-enable.
+      patch_triton_cxx20: false
 
