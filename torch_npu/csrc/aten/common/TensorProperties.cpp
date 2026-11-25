@@ -8,7 +8,7 @@ namespace at_npu {
 namespace native {
 
 at::Tensor NPUNativeFunctions::contiguous(const at::Tensor& self, c10::MemoryFormat memory_format) {
-  if (self.is_contiguous(memory_format)) {
+  if (self.is_contiguous_or_false(memory_format)) {
     return self;
   }
 
