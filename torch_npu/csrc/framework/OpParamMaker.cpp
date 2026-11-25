@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <atomic>
 #include <mutex>
 #include <unordered_map>
 #include <ATen/record_function.h>
@@ -25,13 +26,11 @@ namespace at_npu {
 namespace native {
 
 std::recursive_mutex deterministic_launch_mutex;
-
-struct ThreadLocalDeterministicState {
-  bool valid = false;
-  uint32_t applied_level = 0;
-};
-
-static thread_local ThreadLocalDeterministicState tls_deterministic_state;
+static std::atomic<int64_t> g_applied_deterministic_level{-1};
+// AclrtCtxSetSysParamOpt takes effect per context (one per device), so every
+// thread must apply level 0 at least once on its own context before the
+// snapshot cache can be skipped.
+static thread_local int64_t tls_applied_deterministic_level{-1};
 
 void OpAttrMaker::Set(aclopAttr* attr, const string& name, bool value) {
   aclopSetAttrBool(attr, name.c_str(), value);
@@ -165,16 +164,16 @@ aclError RunWithDeterministicSnapshot(
 }
 
 void ApplyDeterministicSnapshot(const c10_npu::DeterministicSnapshot& snapshot, bool isOpapi) {
-  if (tls_deterministic_state.valid && tls_deterministic_state.applied_level == snapshot.effective_level &&
-      tls_deterministic_state.applied_level == 0) {
+  if (snapshot.effective_level == 0 && g_applied_deterministic_level.load(std::memory_order_acquire) == 0 &&
+      tls_applied_deterministic_level == 0) {
     return;
   }
   {
     std::lock_guard<std::recursive_mutex> lock(deterministic_launch_mutex);
     ApplyDeterministicSnapshotLocked(snapshot, isOpapi);
+    g_applied_deterministic_level.store(snapshot.effective_level, std::memory_order_release);
   }
-  tls_deterministic_state.valid = true;
-  tls_deterministic_state.applied_level = snapshot.effective_level;
+  tls_applied_deterministic_level = snapshot.effective_level;
 }
 
 void ApplyLegacyDeterministicLevelLocked(const int64_t level, bool isOpapi, int64_t cur_level) {
@@ -228,6 +227,8 @@ void ApplyDeterministicLevel(int64_t level, bool deterministicAlgorithmsStatus, 
   }
   std::lock_guard<std::recursive_mutex> lock(deterministic_launch_mutex);
   ApplyDeterministicLevelLocked(level, isOpapi);
+  // Keep the snapshot cache consistent with the level applied via this exported API.
+  g_applied_deterministic_level.store(level, std::memory_order_release);
 }
 
 void SetDeterministic(bool isOpapi) {
