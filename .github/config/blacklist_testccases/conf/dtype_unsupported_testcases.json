@@ -7210,7 +7210,7 @@
     "log": [
       "requires rank > 0"
     ],
-    "category": "dtype not supported",
+    "category": "cann not supported",
     "nodeids": {
       "test/export/test_opinfo_schema.py::TestOpInfoPRIVATEUSE1::test_schema_check_op_nanmedian_npu_float32": {"cann": "|aclnnNanMedian", "issue": "https://gitcode.com/Ascend/pytorch/issues/6058"},
       "test/export/test_opinfo_schema.py::TestOpInfoPRIVATEUSE1::test_schema_check_op_nanmedian_npu_int32": {"cann": "|aclnnNanMedian", "issue": "https://gitcode.com/Ascend/pytorch/issues/6058"},
@@ -7441,7 +7441,7 @@
     "log": [
       "interpolationMode 2 should be in range [0, 1]"
     ],
-    "category": "dtype not supported",
+    "category": "cann not supported",
     "nodeids": {
       "test/functorch/test_ops.py::TestOperatorsDevicePRIVATEUSE1::test_grad_nn_functional_grid_sample_npu_float32": {"cann": "aclnnGridSampler3D|aclnnGridSampler3D", "issue": "https://gitcode.com/Ascend/pytorch/issues/5913"},
       "test/functorch/test_ops.py::TestOperatorsDevicePRIVATEUSE1::test_jvp_nn_functional_grid_sample_npu_float32": {"cann": "aclnnGridSampler3D|aclnnGridSampler3D", "issue": "https://gitcode.com/Ascend/pytorch/issues/5913"},
@@ -7817,7 +7817,7 @@
     "log": [
       "input must be half, float, int or short or bfloat16"
     ],
-    "category": "dtype not supported",
+    "category": "cann not supported",
     "nodeids": {
       "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_autodiff__foreach_zero_inplace_npu_complex128": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5160"},
       "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_autodiff__foreach_zero_inplace_npu_float64": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5160"},
@@ -7974,7 +7974,7 @@
     "log": [
       "The size of tensor self [10, 10] must match the size of tensor exponent [11, 11]"
     ],
-    "category": "dtype not supported",
+    "category": "cann not supported",
     "nodeids": {
       "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_pow_npu_bfloat16": {"cann": "aclnnInplacePowTensorTensor|aclnnInplacePowTensorTensor", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"},
       "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_pow_npu_float16": {"cann": "aclnnInplacePowTensorTensor|aclnnInplacePowTensorTensor", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"},
@@ -7991,7 +7991,7 @@
     "log": [
       "The size of tensor selfRef [10, 10] must match the size of tensor other [11, 11]"
     ],
-    "category": "dtype not supported",
+    "category": "cann not supported",
     "nodeids": {
       "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_sub_npu_bfloat16": {"cann": "aclnnInplaceSub|aclnnInplaceSub", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"},
       "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_sub_npu_float16": {"cann": "aclnnInplaceSub|aclnnInplaceSub", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"},
@@ -8044,7 +8044,7 @@
     "log": [
       "Integers to negative integer powers are not allowed"
     ],
-    "category": "dtype not supported",
+    "category": "cann not supported",
     "nodeids": {
       "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_int_tensor_pow_neg_ints_npu": {"cann": "|aclnnPowTensorScalar", "issue": "https://gitcode.com/Ascend/pytorch/issues/5917"},
       "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_pow_npu_int16": {"cann": "|aclnnPowTensorScalar", "issue": "https://gitcode.com/Ascend/pytorch/issues/5917"},
@@ -8101,8 +8101,9 @@
   },
   {
     "log": [
-      "Promote type DT_INT16 should be in dtype support list",
-      "promoteType dtype DT_UINT64 should be in dtype support list"
+      "DT_INT16 should be in dtype support list",
+      "DT_UINT64 should be in dtype support list",
+      "DT_UINT8 should be in dtype support list"
     ],
     "category": "dtype not supported",
     "nodeids": {
@@ -8111,7 +8112,8 @@
       "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values__refs_remainder_npu_int16": {"cann": "aclnnRemainderTensorTensor|aclnnRemainderTensorTensor", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"},
       "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values_remainder_npu_int16": {"cann": "aclnnRemainderTensorTensor|aclnnRemainderTensorTensor", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"},
       "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values__refs_eq_npu_uint64": {"cann": "aclnnEqTensor|", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"},
-      "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values_eq_npu_uint64": {"cann": "aclnnEqTensor|", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"}
+      "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values_eq_npu_uint64": {"cann": "aclnnEqTensor|", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"},
+      "test/test_ops.py::TestCommonPRIVATEUSE1::test_python_ref_torch_fallback__refs_gcd_npu_uint8": {"cann": "aclnnGcd|", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"}
     }
   },
   {
@@ -9077,7 +9079,7 @@
     "log": [
       "Autograd not support dtype: Long"
     ],
-    "category": "dtype not supported",
+    "category": "cann not supported",
     "nodeids": {
       "test/test_ops.py::TestCommonPRIVATEUSE1::test_noncontiguous_samples_fft_fftshift_npu_complex64": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5177"},
       "test/test_ops.py::TestCommonPRIVATEUSE1::test_noncontiguous_samples_fft_ifftshift_npu_complex64": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5177"},
@@ -9166,15 +9168,6 @@
   },
   {
     "log": [
-      "type DT_UINT8 should be in dtype support list"
-    ],
-    "category": "dtype not supported",
-    "nodeids": {
-      "test/test_ops.py::TestCommonPRIVATEUSE1::test_python_ref_torch_fallback__refs_gcd_npu_uint8": {"cann": "aclnnGcd|", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"}
-    }
-  },
-  {
-    "log": [
       "call aclnnGridSampler3D failed|expect input grid and out to have same batch size"
     ],
     "category": "dtype not supported",
@@ -9195,7 +9188,7 @@
     "log": [
       "Out type should be integral but got DT_BOOL"
     ],
-    "category": "dtype not supported",
+    "category": "cann not supported",
     "nodeids": {
       "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_type_promotion_gcd_npu": {"cann": "aclnnGcd|aclnnGcd", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"}
     }
@@ -9204,7 +9197,7 @@
     "log": [
       "Self and exponent dtype are bool is not supported"
     ],
-    "category": "dtype not supported",
+    "category": "cann not supported",
     "nodeids": {
       "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_binary_op_list_error_cases__foreach_pow_npu_bool": {"cann": "aclnnInplacePowTensorTensor|aclnnInplacePowTensorTensor", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"}
     }
@@ -9213,7 +9206,7 @@
     "log": [
       "padding size should be less than the corresponding self dimension"
     ],
-    "category": "dtype not supported",
+    "category": "cann not supported",
     "nodeids": {
       "test/test_nn.py::TestNNDeviceTypePRIVATEUSE1::test_pad_npu_float64": {"cann": "aclnnReflectionPad2d|aclnnReflectionPad2d", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"}
     }
@@ -9222,7 +9215,7 @@
     "log": [
       "Dim of self should be last 2 dims"
     ],
-    "category": "dtype not supported",
+    "category": "cann not supported",
     "nodeids": {
       "test/test_ops.py::TestCommonPRIVATEUSE1::test_errors_tril_npu": {"cann": "aclnnTril|aclnnTril", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"}
     }
@@ -9234,6 +9227,15 @@
     "category": "dtype not supported",
     "nodeids": {
       "test/test_ops.py::TestCommonPRIVATEUSE1::test_errors_triu_npu": {"cann": "aclnnTriu|aclnnTriu", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"}
+    }
+  },
+  {
+    "log": [
+      "call aclnnAddmm failed|The k-axis of the two inputs are different"
+    ],
+    "category": "dtype not supported",
+    "nodeids": {
+      "test/test_sparse_csr.py::TestSparseCSRDeviceNPU::test_addmm_errors_npu_float32": {"cann": "aclnnAddmm|aclnnAddmm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"}
     }
   }
 ]

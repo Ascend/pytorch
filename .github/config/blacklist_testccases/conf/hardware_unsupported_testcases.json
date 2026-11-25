@@ -28265,7 +28265,7 @@
     "log": [
       "Torch not compiled with CUDA enabled|test/distributed/rpc/cuda/test_tensorpipe_agent.py"
     ],
-    "category": "device not supported",
+    "category": "cann not supported",
     "nodeids": {
       "test/distributed/rpc/cuda/test_tensorpipe_agent.py::TensorPipeCudaDistAutogradTest::test_gpu_simple": {"cann": "", "issue": ""},
       "test/distributed/rpc/cuda/test_tensorpipe_agent.py::TensorPipeCudaDistAutogradTest::test_gpu_to_cpu_continuation": {"cann": "", "issue": ""},
@@ -28890,7 +28890,7 @@
   },
   {
     "log": [
-      "Self dtype DT_DOUBLE should be in dtype support list"
+      "DT_DOUBLE should be in dtype support list"
     ],
     "category": "device not supported",
     "nodeids": {
@@ -28942,15 +28942,7 @@
       "test/test_unary_ufuncs.py::TestUnaryUfuncsPRIVATEUSE1::test_reference_numerics_small_nn_functional_relu_npu_float64": {"cann": "aclnnRelu|aclnnRelu", "issue": "https://gitcode.com/Ascend/pytorch/issues/5155"},
       "test/test_unary_ufuncs.py::TestUnaryUfuncsPRIVATEUSE1::test_relu_signed_zero_npu_float64": {"cann": "aclnnRelu|aclnnRelu", "issue": "https://gitcode.com/Ascend/pytorch/issues/5155"},
       "test/test_modules.py::TestModulePRIVATEUSE1::test_grad_nn_ReLU_npu_float64": {"cann": "aclnnRelu|aclnnRelu", "issue": "https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops.py::TestCommonPRIVATEUSE1::test_python_ref__refs_nn_functional_relu_npu_float64": {"cann": "aclnnRelu|aclnnRelu", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314"}
-    }
-  },
-  {
-    "log": [
-      "promoteType dtype DT_DOUBLE should be in dtype support list"
-    ],
-    "category": "device not supported",
-    "nodeids": {
+      "test/test_ops.py::TestCommonPRIVATEUSE1::test_python_ref__refs_nn_functional_relu_npu_float64": {"cann": "aclnnRelu|aclnnRelu", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314"},
       "test/functorch/test_ops.py::TestOperatorsDevicePRIVATEUSE1::test_vmap_autograd_grad_nn_functional_l1_loss_npu_float64": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5917"},
       "test/inductor/test_torchinductor_opinfo.py::TestInductorOpInfoNPU::test_comprehensive_nn_functional_l1_loss_npu_float64": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5917"},
       "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_nn_functional_l1_loss_npu_float64": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
@@ -29062,7 +29054,7 @@
     "log": [
       "Type promoting not supported. Got Double and Float"
     ],
-    "category": "dtype not supported",
+    "category": "device not supported",
     "nodeids": {
       "test/test_modules.py::TestModulePRIVATEUSE1::test_forward_nn_PReLU_npu_float64": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5151"},
       "test/test_modules.py::TestModulePRIVATEUSE1::test_grad_nn_PReLU_npu_float64": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5151"},
@@ -29107,7 +29099,7 @@
     "log": [
       "All tensors must have the same dtype, got input1: double, input2: double, weight: float, bias: float"
     ],
-    "category": "dtype not supported",
+    "category": "device not supported",
     "nodeids": {
       "test/test_modules.py::TestModulePRIVATEUSE1::test_forward_nn_Bilinear_npu_float64": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5151"},
       "test/test_modules.py::TestModulePRIVATEUSE1::test_grad_nn_Bilinear_npu_float64": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5151"},
@@ -29257,15 +29249,6 @@
     "category": "device not supported",
     "nodeids": {
       "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace_linalg_svdvals_npu_complex128": {"cann": "aclnnSvd|aclnnSvd", "issue": "https://gitcode.com/Ascend/pytorch/issues/5917"}
-    }
-  },
-  {
-    "log": [
-      "call aclnnAddmm failed|The k-axis of the two inputs are different"
-    ],
-    "category": "dtype not supported",
-    "nodeids": {
-      "test/test_sparse_csr.py::TestSparseCSRDeviceNPU::test_addmm_errors_npu_float32": {"cann": "aclnnAddmm|aclnnAddmm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"}
     }
   }
 ]
