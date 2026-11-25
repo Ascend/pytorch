@@ -23,7 +23,7 @@ on:
         default: ''
 
 env:
-  PYTORCH_BRANCH: "release/2.15"
+  PYTORCH_BRANCH: "release/2.16"
   PYTHON_VERSION: "3.11"
   # ── 运行参数 ──
   CASE_TIMEOUT: "1200"
@@ -295,7 +295,7 @@ stages:
           PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
           NIGHTLY_DATE: ${{ jobs.resolve.outputs.nightly_date }}
           CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
-          NPU_LABEL: ${{ env.NPU_LABEL_REG_2 }}
+          NPU_LABEL: ${{ env.NPU_LABEL_REG }}
 
       test_reg_npu_10:
         name: test-reg-npu-10
@@ -309,7 +309,7 @@ stages:
           PYTORCH_BRANCH: ${{ env.PYTORCH_BRANCH }}
           NIGHTLY_DATE: ${{ jobs.resolve.outputs.nightly_date }}
           CONTAINER_OPTIONS: ${{ env.CONTAINER_OPTS_NPU }}
-          NPU_LABEL: ${{ env.NPU_LABEL_REG_2 }}
+          NPU_LABEL: ${{ env.NPU_LABEL_REG }}
 
   # Stage 4: 报告 (always 执行)
   stage_report:
