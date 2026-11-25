@@ -1,18 +1,17 @@
 # Copyright (c) 2026, Huawei Technologies Co., Ltd
 #
 import os
-import re
+import types
 import unittest
 from contextlib import ExitStack
 from unittest import mock
 
-from packaging.version import Version
-
 os.environ.setdefault("TORCHINDUCTOR_NPU_BACKEND", "triton_experimental")
 
 import torch
-from torch._inductor import config
-from torch._inductor.graph import GraphLowering
+from torch._inductor import config, metrics
+from torch._inductor.codegen.triton import TritonScheduling
+from torch._inductor.codegen.wrapper import PythonWrapperCodegen
 from torch.testing._internal.common_utils import TestCase, run_tests
 
 import torch_npu  # noqa: F401
@@ -21,17 +20,9 @@ from torch_npu._inductor.triton_experimental import lowering, lowering_fallback_
 
 aten = torch.ops.aten
 prims = torch.ops.prims
-TORCH_216 = Version(torch.__version__).release[:2] == (2, 16)
-TRITON_CODEGEN_SKIP_REASON = "Temporarily disabled pending TritonEx codegen validation on PyTorch 2.16"
 
 
 class TestLoweringFallbackBlacklist(TestCase):
-    @staticmethod
-    def _triton_kernel_count(body):
-        compiled = body.count("async_compile.triton(")
-        inlined = len(re.findall(r"(?m)^@npu_triton_heuristics\.\w+\(", body))
-        return max(compiled, inlined)
-
     def test_policy(self):
         for expected, ops in (
             (False, (aten.logical_and, aten.logical_and.default, aten.logical_and.out,
@@ -105,19 +96,53 @@ class TestLoweringFallbackBlacklist(TestCase):
         self.assertEqual(upstream.call_count, 1)
 
     def _compile(self, fn, args):
-        source = []
-        torch._dynamo.reset()
-        compiled = torch.compile(fn, fullgraph=True, options={"npu_backend": "triton_experimental"})
-        with (config.patch("force_disable_caches", True),
-              config.patch("implicit_fallbacks", False),
-              mock.patch.object(GraphLowering, "save_output_code", source.append)):
-            actual = compiled(*args)
-        torch.npu.synchronize()
-        body = "\n".join(line for line in "\n".join(source).splitlines()
-                         if not line.lstrip().startswith("#"))
-        return actual, body
+        defined_kernels = {}
+        launched_triton = []
+        fallback_ops = []
 
-    @unittest.skipIf(TORCH_216, TRITON_CODEGEN_SKIP_REASON)
+        orig_define_kernel = TritonScheduling.define_kernel
+        orig_generate_kernel_call = PythonWrapperCodegen.generate_kernel_call
+        orig_generate_fallback_kernel = PythonWrapperCodegen.generate_fallback_kernel
+
+        def capture_define_kernel(sched, src_code, node_schedule, kernel, *extra, **kw):
+            kernel_name = orig_define_kernel(sched, src_code, node_schedule, kernel, *extra, **kw)
+            defined_kernels[kernel_name] = src_code
+            return kernel_name
+
+        def capture_kernel_call(wrapper, kernel_name, call_args, *posargs, **kwargs):
+            if kwargs.get("triton", True):
+                launched_triton.append(kernel_name)
+            return orig_generate_kernel_call(wrapper, kernel_name, call_args, *posargs, **kwargs)
+
+        def capture_fallback_kernel(wrapper, node, *extra, **kw):
+            fallback_ops.append(getattr(node, "op_overload", None))
+            return orig_generate_fallback_kernel(wrapper, node, *extra, **kw)
+
+        torch._dynamo.reset()
+        metrics.reset()
+        compiled = torch.compile(fn, fullgraph=True, options={"npu_backend": "triton_experimental"})
+        with ExitStack() as stack:
+            stack.enter_context(config.patch("force_disable_caches", True))
+            stack.enter_context(config.patch("implicit_fallbacks", False))
+            stack.enter_context(mock.patch.object(TritonScheduling, "define_kernel", capture_define_kernel))
+            stack.enter_context(mock.patch.object(PythonWrapperCodegen, "generate_kernel_call", capture_kernel_call))
+            stack.enter_context(mock.patch.object(
+                PythonWrapperCodegen, "generate_fallback_kernel", capture_fallback_kernel
+            ))
+            try:
+                actual = compiled(*args)
+            finally:
+                gen_count = metrics.generated_kernel_count
+                torch._dynamo.reset()
+        torch.npu.synchronize()
+        trace = types.SimpleNamespace(
+            defined_kernels=defined_kernels,
+            launched_triton=launched_triton,
+            fallback_ops=fallback_ops,
+            generated_kernel_count=gen_count,
+        )
+        return actual, trace
+
     @unittest.skipUnless(torch.npu.is_available(), "requires an NPU")
     def test_logical_and_codegen_and_fusion(self):
         def fused(x, y):
@@ -126,14 +151,16 @@ class TestLoweringFallbackBlacklist(TestCase):
         args = (torch.randn(257, 513, device="npu"), torch.randn(257, 513, device="npu"))
         for fn in (aten.logical_and.default, fused):
             with self.subTest(fn=fn):
-                actual, body = self._compile(fn, args)
+                actual, trace = self._compile(fn, args)
                 torch.testing.assert_close(actual, fn(*args), rtol=0, atol=0)
-                self.assertNotIn("torch.ops.aten.logical_and.", body)
-                self.assertEqual(self._triton_kernel_count(body), 1)
-                self.assertEqual(body.count(".run("), 1)
+                self.assertNotIn(aten.logical_and.default, trace.fallback_ops)
+                self.assertEqual(len(trace.defined_kernels), 1, trace.defined_kernels.keys())
+                self.assertEqual(trace.launched_triton, list(trace.defined_kernels))
+                self.assertEqual(trace.generated_kernel_count, 1)
                 if fn is fused:
-                    self.assertRegex(body, r"tmp\d+ & tmp\d+")
-                    self.assertIn("tl.where(", body)
+                    kernel_src = next(iter(trace.defined_kernels.values()))
+                    self.assertRegex(kernel_src, r"tmp\d+ & tmp\d+")
+                    self.assertIn("tl.where(", kernel_src)
 
     @unittest.skipUnless(torch.npu.is_available(), "requires an NPU")
     def test_native_precision(self):
@@ -146,12 +173,13 @@ class TestLoweringFallbackBlacklist(TestCase):
         for op, host_args in cases:
             with self.subTest(op=op, dtype=host_args[0].dtype):
                 expected = op(*host_args)
-                actual, body = self._compile(op, tuple(t.npu() for t in host_args))
+                actual, trace = self._compile(op, tuple(t.npu() for t in host_args))
                 torch.testing.assert_close(actual.cpu(), expected, rtol=0, atol=0)
-                self.assertIn(f"torch.ops.{op}(", body)
-                self.assertEqual(self._triton_kernel_count(body), 0)
+                self.assertIn(op, trace.fallback_ops)
+                self.assertFalse(trace.defined_kernels)
+                self.assertFalse(trace.launched_triton)
+                self.assertEqual(trace.generated_kernel_count, 0)
 
-    @unittest.skipIf(TORCH_216, TRITON_CODEGEN_SKIP_REASON)
     @unittest.skipUnless(torch.npu.is_available(), "requires an NPU")
     def test_mutation_and_alias(self):
         x, y = torch.randn(17, 31, device="npu"), torch.randn(1, 31, device="npu")
@@ -166,11 +194,14 @@ class TestLoweringFallbackBlacklist(TestCase):
         def update(tensors, additions):
             aten._foreach_add_.List(tensors, additions)
 
-        actual, body = self._compile(update, (values, increments))
+        actual, trace = self._compile(update, (values, increments))
         self.assertIsNone(actual)
         for actual, reference in zip(values, expected):
             torch.testing.assert_close(actual.cpu(), reference, rtol=0, atol=0)
-        self.assertGreater(self._triton_kernel_count(body), 0)
+        self.assertTrue(trace.defined_kernels)
+        self.assertEqual(set(trace.launched_triton), set(trace.defined_kernels))
+        self.assertGreater(trace.generated_kernel_count, 0)
+        self.assertEqual(trace.fallback_ops, [])
 
 
 if __name__ == "__main__":
