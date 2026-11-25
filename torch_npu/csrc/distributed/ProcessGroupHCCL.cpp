@@ -3067,19 +3067,13 @@ void ProcessGroupHCCL::createHCCLCommOrigin(
     const int64_t ranksPerRoot =
         commType == HcclCommType::DEFAULT ? c10_npu::option::OptionsManager::GetHcclRanksPerRoot() : -1;
     if (ranksPerRoot > 0) {
-        if (!IsA2A3Soc()) {
-            TORCH_NPU_WARN_ONCE(
-                "Scalable RootInfo initialization is supported only on Atlas A2 and A3. "
-                "The current SoC is unsupported; falling back to the original RootInfo initialization path.");
-        } else {
-            const uint32_t numRanks = static_cast<uint32_t>(getSize());
-            // Fall back to the original path if the HCCL library lacks the scalable interfaces.
-            if (numRanks > ranksPerRoot && hcclCommInitRootInfoScalableExist()) {
-                // Overflow-safe ceiling division: 512 ranks with ranksPerRoot=127 require 5 roots.
-                const uint32_t numRoots = (numRanks - 1) / static_cast<uint32_t>(ranksPerRoot) + 1;
-                createHCCLCommScalable(devices, commConfig, hcclComms, streamVal, numRoots);
-                return;
-            }
+        const uint32_t numRanks = static_cast<uint32_t>(getSize());
+        // Fall back to the original path if the HCCL library lacks the scalable interfaces.
+        if (numRanks > ranksPerRoot && hcclCommInitRootInfoScalableExist()) {
+            // Overflow-safe ceiling division: 512 ranks with ranksPerRoot=127 require 5 roots.
+            const uint32_t numRoots = (numRanks - 1) / static_cast<uint32_t>(ranksPerRoot) + 1;
+            createHCCLCommScalable(devices, commConfig, hcclComms, streamVal, numRoots);
+            return;
         }
     }
 
