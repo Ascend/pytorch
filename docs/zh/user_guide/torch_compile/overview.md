@@ -74,3 +74,10 @@ torch.compile(model, *, fullgraph=False, dynamic=None, backend="inductor",
 | [报告问题](https://docs.pytorch.org/docs/2.14/user_guide/torch_compiler/compile/programming_model.reporting_issues.html) | 梳理编译问题的定位与反馈流程，涵盖后端对比、版本二分排查及独立复现示例构建，帮助整理便于分析的问题报告。 |
 | [PyTorch 2.0 NNModule支持](https://docs.pytorch.org/docs/2.14/user_guide/torch_compiler/torch.compiler_nn_module.html) | 说明torch.compile对nn.Module的特殊处理机制，重点列出前向、反向及state_dict相关Hook的支持情况、使用限制与变更检测配置。 |
 | [torch.compile的Autograd语义差异](https://docs.pytorch.org/docs/2.14/user_guide/torch_compiler/torch.compiler_backward.html) | 介绍编译模式与动态图模式下的Autograd语义差异，重点介绍反向传播中的autocast假设及backward_pass_autocast的配置方法。 |
+
+NPUGraph_EX与TorchAir-GE后端的完整功能项、各功能的专属约束、问题定界方法及API参考，由《TorchAir》手册维护，本手册不重复维护。遇到以下场景时，请查阅对应文档。
+
+| 后端 | 需查阅扩展内容的场景 | 文档链接 |
+|------|----------|---------|
+| NPUGraph_EX | 配置`options`中的基础/进阶/DFX功能项（force_eager、内存复用、静态Kernel编译、编译缓存、多流、SuperKernel等）；查询某功能的专属约束；异常问题定界；使用torch.npu.npugraph_ex相关API | 《TorchAir》中的 "[npugraph_ex](https://gitcode.com/Ascend/torchair/blob/master/docs/zh/npugraph_ex/quick_start.md)" 章节 |
+| TorchAir-GE | 配置`compiler_config`下的功能项（debug、export、fusion_config、experimental_config、ge_config等）；查询某功能的专属约束；使用torchair、torchair.ge、torchair.scope等API | 《TorchAir》中的 "[GE图模式](https://gitcode.com/Ascend/torchair/blob/master/docs/zh/ascend_ir/quick_start.md)" 章节 |
