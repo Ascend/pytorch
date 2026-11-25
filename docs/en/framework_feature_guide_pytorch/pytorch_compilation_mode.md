@@ -18,6 +18,12 @@ torch.compile() includes the following core components:
 | NPUGraph_EX | Lightweight high-performance graph backend | Integrates ACLGraph's graph offloading scheduling capability, superimposing NPU-friendly graph optimizations and compilation cache reuse on PyTorch FX graphs to further accelerate compilation and execution of large models on NPUs. |
 | NPUGraph Tree | Dynamic shape routing and subgraph management | Manages multiple related NPUGraphs, extending the optimization benefits of NPUGraph to cover dynamic shape scenarios rather than being limited to fixed shapes, and optimizing memory usage across multiple subgraphs in segmented graph scenarios. |
 
+> [!NOTICE]
+>
+> - The Inductor backend requires the latest version of the Triton-Ascend dependency package. For details, refer to the [Triton-Ascend documentation](https://gitcode.com/Ascend/triton-ascend/blob/master/docs/sources/getting-started/installation.md).<br>
+> - When using the Inductor backend in MLIR mode, the Torch-MLIR dependency package must be additionally installed. It can be downloaded from the [Torch-MLIR archive](https://repo.oepkgs.net/ascend/pytorch/vllm/torch/).
+> - Before using the NPUGraph_EX backend, install the TorchNPU plugin and run `python -m pip install "packaging>=21.3"` in the Python environment used to run the model. If `packaging` is missing, the first compilation fails with `ModuleNotFoundError`.
+
 ## Use Cases
 
 Inductor backend: Enabled via `torch.compile(backend="inductor")`, focusing on reducing Python overhead and kernel launch overhead. Through the collaboration of Dynamo and Inductor, it automatically performs operator fusion and generation without altering the model logic, improving training or inference throughput. It is particularly suitable for scenarios with a high number of iterations and moderate per-step computation.
@@ -31,11 +37,6 @@ NPUGraph backend: Enabled via `torch.compile(backend="npugraphs")`, which levera
 NPUGraph_EX backend: Enabled via `torch.compile(backend="npugraph_ex")`, which accelerates large model inference based on ACLGraph scheduling and FX graph optimization, and integrates quickly and seamlessly with mainstream serving frameworks.
 
 ## Usage Guide
-
-> [!NOTICE]
->
-> The Inductor backend requires the latest version of the Triton-Ascend dependency package. For details, refer to the [Triton-Ascend documentation](https://gitcode.com/Ascend/triton-ascend/blob/master/docs/sources/getting-started/installation.md).<br>
-> When using the Inductor backend in MLIR mode, the Torch-MLIR dependency package must be additionally installed. It can be downloaded from the [Torch-MLIR archive](https://repo.oepkgs.net/ascend/pytorch/vllm/torch/).
 
 Interface prototype:
 
@@ -185,7 +186,19 @@ For details about this API, refer to the native [torch.compile](https://docs.pyt
 
 ## Constraints
 
-1. The optimizer is typically not included in the graph. The optimizer's step\(\) involves Python-side dynamic logic (such as learning rate scheduling, gradient accumulation, and adaptive update rules), which is difficult to capture in graph mode.
-2. torch.compile\(backend="npugraphs"\) requires fixed input shapes (batch\_size, sequence length, etc. cannot be modified after capture). torch.compile\(backend="inductor"\) supports dynamic shapes, but this triggers recompilation (incurring additional overhead). It is recommended to keep shapes fixed whenever possible.
-3. When using NPUGraph (ACLGraph), determine whether operators need to be updated during the replay phase based on their characteristics. If updates are required, enable the corresponding update mechanism. For details on the mechanism, see [NPUGraph](pytorch_npugraph_desc.md).
-4. NPUGraph (ACLGraph) can only be used when all operators are NN operators.
+- The optimizer is typically not included in the graph. The optimizer's step\(\) involves Python-side dynamic logic (such as learning rate scheduling, gradient accumulation, and adaptive update rules), which is difficult to capture in graph mode.
+- torch.compile\(backend="npugraphs"\) requires fixed input shapes (batch\_size, sequence length, etc. cannot be modified after capture). torch.compile\(backend="inductor"\) supports dynamic shapes, but this triggers recompilation (incurring additional overhead). It is recommended to keep shapes fixed whenever possible.
+- When using NPUGraph (ACLGraph), determine whether operators need to be updated during the replay phase based on their characteristics. If updates are required, enable the corresponding update mechanism. For details on the mechanism, see [NPUGraph](pytorch_npugraph_desc.md).
+- NPUGraph (ACLGraph) can only be used when all operators are NN operators.
+
+## Reference Documents
+
+### NPUGraph_EX
+
+This page provides only the minimal example and general constraints of the NPUGraph_EX backend from the torch.compile perspective. The complete feature items supported by `options`, the specific constraints and configuration methods of each feature, troubleshooting methods, and API references are maintained in the "[npugraph_ex](https://gitcode.com/Ascend/torchair/blob/26.0.0/docs/en/npugraph_ex/quick_start.md)" chapter of *TorchAir*. See the following content.
+
+- [npugraph_ex Quick Start](https://gitcode.com/Ascend/torchair/blob/26.0.0/docs/en/npugraph_ex/quick_start.md): usage constraints, torch.compile parameter descriptions in aclgraph mode, the basic/advanced/DFX feature list, troubleshooting, and feature extension.
+- [Basic Features](https://gitcode.com/Ascend/torchair/blob/26.0.0/docs/en/npugraph_ex/basic/basic.md): force_eager, force_recapture, FX graph optimization passes, memory reuse, static kernel compilation, frozen parameters, collective communication graphs, and other features and their constraints.
+- [Advanced Features](https://gitcode.com/Ascend/torchair/blob/26.0.0/docs/en/npugraph_ex/advanced/advanced.md): model compilation cache, multi-stream expression, AI Core and Vector Core core limiting, custom FX graph optimization passes, SuperKernel, and other features and their constraints.
+- [DFX Features](https://gitcode.com/Ascend/torchair/blob/26.0.0/docs/en/npugraph_ex/dfx/dfx.md): graph compilation debug information saving, operator Data Dump, and multi-stream concurrent deadlock detection.
+- [API Reference](https://gitcode.com/Ascend/torchair/blob/26.0.0/docs/en/npugraph_ex/api/api.md): torch.npu.npugraph_ex, compile_fx, CompilerConfig, register_replacement, and scope interfaces.

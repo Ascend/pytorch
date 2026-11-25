@@ -16,6 +16,12 @@ torch.compile\(\)包含如下核心组件：
 | NPUGraph_EX        |轻量化高性能图后端| 融合了ACLGraph的图下沉调度能力，在PyTorch FX图上叠加亲和NPU的图优化和编译缓存复用等能力，进一步加速大模型在NPU上编译运行。                                |
 | NPUGraph Tree      |动态形状路由与子图管理| 管理多个有关联的 NPUGraphs，让 NPUGraph的优化收益能覆盖动态形状场景，而非仅局限于固定形状，优化段图场景多个子图的内存使用。                                  |
 
+> [!NOTICE]
+>
+> - 使用Inductor后端前，请先安装v3.2.1版本的Triton Ascend。该版本仅支持PyTorch 2.7.1和2.9.0。具体信息请参考[Triton Ascend](https://github.com/triton-lang/triton-ascend/blob/release/3.2.1/README_zh.md)。
+> - Inductor后端使用MLIR模式时需额外安装Torch-MLIR依赖包，可以在[Torch-MLIR归档地址](https://repo.oepkgs.net/ascend/pytorch/vllm/torch/)下载。
+> - 使用NPUGraph_EX后端前，请安装TorchNPU插件，并在运行模型的Python环境中执行 `python -m pip install "packaging>=21.3"`。缺少 `packaging` 时，首次编译会报 `ModuleNotFoundError`。
+
 ## 使用场景
 
 Inductor后端：通过torch.compile(backend="inductor")使能，以降低Python开销和kernel启动开销为核心，通过Dynamo+Inductor协同，在不改变模型逻辑的前提下，自动进行算子融合和生成，提升训练或推理的吞吐量，尤其适合迭代次数多、单步计算量中等的场景。
@@ -29,12 +35,6 @@ NPUGraph后端：通过torch.compile(backend="npugraphs")使能，利用NPUGraph
 NPUGraph_EX后端：通过torch.compile(backend="npugraph_ex")使能，基于ACLGraph调度和FX图优化，对大模型推理进行加速，并与主流服务化框架快速、无缝地对接。
 
 ## 使用指导
-
-> [!NOTICE]
->
-> - 使用Inductor后端前，请先安装v3.2.1版本的Triton Ascend。该版本仅支持PyTorch 2.7.1和2.9.0。具体信息请参考[Triton Ascend](https://github.com/triton-lang/triton-ascend/blob/release/3.2.1/README_zh.md)。
-> - Inductor后端使用MLIR模式时需额外安装Torch-MLIR依赖包，可以在[Torch-MLIR归档地址](https://repo.oepkgs.net/ascend/pytorch/vllm/torch/)下载。
-> - Inductor后端使用MLIR模式时需额外安装Torch-MLIR依赖包，可以在[Torch-MLIR归档地址](https://repo.oepkgs.net/ascend/pytorch/vllm/torch/)下载。
 
 接口原型：
 
@@ -184,7 +184,19 @@ def compile(model, *, fullgraph = False, dynamic = None, backend = "inductor", m
 
 ## 约束说明
 
-1. 优化器（optimizer）通常不入图，优化器的step\(\)包含Python侧动态逻辑（如学习率调度、梯度累积、自适应更新规则），难以被静态图捕获。
-2. torch.compile\(backend="npugraphs"\)必须固定输入形状（捕获后无法修改 batch\_size、序列长度等）。torch.compile\(backend="inductor"\)支持动态形状，但会触发重新编译（增加开销），建议尽量固定形状。
-3. 使用NPUGraph（ACLGraph）时，需根据算子特性判断在重放（replay）阶段是否需要更新。若需要更新，请启用相应的update机制。具体机制说明请参阅 [NPUGraph](pytorch_npugraph_desc.md)。
-4. 仅算子全部为NN算子时，方可使用NPUGraph（ACLGraph）。
+- 优化器（optimizer）通常不入图，优化器的step\(\)包含Python侧动态逻辑（如学习率调度、梯度累积、自适应更新规则），难以被静态图捕获。
+- torch.compile\(backend="npugraphs"\)必须固定输入形状（捕获后无法修改 batch\_size、序列长度等）。torch.compile\(backend="inductor"\)支持动态形状，但会触发重新编译（增加开销），建议尽量固定形状。
+- 使用NPUGraph（ACLGraph）时，需根据算子特性判断在重放（replay）阶段是否需要更新。若需要更新，请启用相应的update机制。具体机制说明请参阅 [NPUGraph](pytorch_npugraph_desc.md)。
+- 仅算子全部为NN算子时，方可使用NPUGraph（ACLGraph）。
+
+## 参考文档
+
+### NPUGraph_EX
+
+本页仅提供NPUGraph_EX后端在torch.compile视角下的最小示例与通用约束。`options`支持的完整功能项、各功能的专属约束与配置方式、问题定界方法及API参考，由《TorchAir》中的 "[npugraph_ex](https://gitcode.com/Ascend/torchair/blob/26.0.0/docs/zh/npugraph_ex/quick_start.md)" 章节维护，请查阅以下内容。
+
+- [npugraph_ex快速上手](https://gitcode.com/Ascend/torchair/blob/26.0.0/docs/zh/npugraph_ex/quick_start.md)：使用约束、torch.compile参数在aclgraph模式下的说明、基础/进阶/DFX功能清单、问题定界与功能拓展。
+- [基础功能](https://gitcode.com/Ascend/torchair/blob/26.0.0/docs/zh/npugraph_ex/basic/basic.md)：force_eager、force_recapture、FX图优化Pass、内存复用、静态Kernel编译、固定权重类输入地址、集合通信入图等功能及各自的约束。
+- [进阶功能](https://gitcode.com/Ascend/torchair/blob/26.0.0/docs/zh/npugraph_ex/advanced/advanced.md)：模型编译缓存、多流表达、AI Core和Vector Core限核、自定义FX图优化Pass、SuperKernel等功能及各自的约束。
+- [DFX功能](https://gitcode.com/Ascend/torchair/blob/26.0.0/docs/zh/npugraph_ex/dfx/dfx.md)：图编译Debug信息保存、算子Data Dump、多流并发死锁检测。
+- [API参考](https://gitcode.com/Ascend/torchair/blob/26.0.0/docs/zh/npugraph_ex/api/api.md)：torch.npu.npugraph_ex、compile_fx、CompilerConfig、register_replacement及scope接口。
