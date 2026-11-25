@@ -21,6 +21,13 @@ if(NOT TARGET torch_npu OR NOT DEFINED FXRT_INSTALL_DST)
   message(FATAL_ERROR "fxrt is built only as part of torch_npu (BUILD_FXRT and FXRT_INSTALL_DST)")
 endif()
 
+# Keep linker outputs outside the wheel staging tree. install_fxrt recreates
+# that tree on each build; deleting a declared output makes Ninja/Make relink it
+# even when none of its sources or dependencies changed.
+set(FXRT_LEGACY_LIB_DIR "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lib")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lib")
+
 # Runtime search paths for the wheel layout: fxrt libraries sit in
 # torch_npu/fxrt/lib, nanobind modules in torch_npu/fxrt, and the torch_npu
 # libraries they link (libtorch_npu.so and its PUBLIC dependencies such as
@@ -99,8 +106,7 @@ endif()
 # wheel's torch_npu/fxrt, mirroring torchair's install_torchair target.
 # ---------------------------------------------------------------------------
 file(MAKE_DIRECTORY ${FXRT_INSTALL_DST})
-# Operator libraries are copied below and deleted from the global lib dir
-# afterwards, so the copy has to wait for every one of them to be linked.
+# Wait for every operator library before copying artifacts into the wheel.
 set(FXRT_OP_LIBS ops_cpu_aten ops_cpu_symbolic ops_ascend_aclnn ops_ascend_aclnn_common
                  ops_ascend_autofuse ops_ascend_composite ops_ascend_custom ops_ascend_hccl
                  ops_ascend_mem)
@@ -150,11 +156,12 @@ add_custom_target(install_fxrt ALL
         COMMAND bash -c "cp ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/_fxrt_config*.so ${FXRT_INSTALL_DST}/"
         COMMAND bash -c "cp ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/_fxrt_aclgraph_config*.so ${FXRT_INSTALL_DST}/"
         COMMAND bash -c "cp ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/_fxrt_torch*.so ${FXRT_INSTALL_DST}/"
-        # fxrt artifacts were redirected into the global lib dir by
-        # CMAKE_LIBRARY_OUTPUT_DIRECTORY; remove them so the wheel does not
-        # ship a duplicate copy under torch_npu/lib/.
-        COMMAND bash -c "rm -f ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/_fxrt_*.so ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libfxrt*.so ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libhardware_abstract.so ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libhardware_ascend.so ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libhardware_cpu.so ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libexecution_engine.so ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libkernel.so ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libops_*.so ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libfxrt_ir_obj.a"
-        DEPENDS fxrt _fxrt_api _fxrt_ir _fxrt_collective _fxrt_config _fxrt_aclgraph_config _fxrt_torch
+        # Remove leftovers from older builds that linked into torch_npu/lib.
+        # Current linker outputs stay in the build tree for incremental builds.
+        COMMAND bash -c "rm -f ${FXRT_LEGACY_LIB_DIR}/_fxrt_*.so ${FXRT_LEGACY_LIB_DIR}/libfxrt*.so ${FXRT_LEGACY_LIB_DIR}/libhardware_abstract.so ${FXRT_LEGACY_LIB_DIR}/libhardware_ascend.so ${FXRT_LEGACY_LIB_DIR}/libhardware_cpu.so ${FXRT_LEGACY_LIB_DIR}/libexecution_engine.so ${FXRT_LEGACY_LIB_DIR}/libkernel.so ${FXRT_LEGACY_LIB_DIR}/libops_*.so ${FXRT_LEGACY_LIB_DIR}/libfxrt_ir_obj.a"
+        DEPENDS fxrt _fxrt_api _fxrt_ir _fxrt_collective _fxrt_config _fxrt_aclgraph_config _fxrt_torch _fxrt_torch_bridge
                 hardware_abstract hardware_cpu hardware_ascend execution_engine kernel ops_utils fxrt_profiler fxrt_config fxrt_aclgraph_config fxrt_common
                 ${FXRT_OP_LIBS}
         VERBATIM)
+
+include(${TOP_DIR}/cmake/gert_backend.cmake)

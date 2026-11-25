@@ -25,28 +25,47 @@
  *                       must treat absence as the documented default, never as an error
  *
  * Adding, removing or renaming a line here is a cross-repository contract change. Bump
- * kIrExportSchemaVersion in ir_graph_export.h in the same commit and update the golden
- * expectations in test/fxrt/.
+ * kIrExportSchemaVersion in ir_graph_export.h in the same commit and update the
+ * corresponding contract checks.
  */
 
 // Identity and topology.
 IR_EXPORT_FIELD(name, 1)
 IR_EXPORT_FIELD(kind, 1)
 IR_EXPORT_FIELD(op, 1)
+// Dispatcher overload for custom/torch call ops; absent for ordinary FXRT ops.
+IR_EXPORT_FIELD(overload, 0)
 IR_EXPORT_FIELD(inputs, 1)
 
-// Output layout. shape/sym_shape/dtype are always present; the three layout keys are
-// emitted only for non-dense values, so their absence means "dense, offset 0".
+// Output layout. shape/sym_shape/dtype are always present. stride / storage_shape /
+// storage_offset are emitted only for non-dense values, so their absence means
+// "dense, offset 0". format is the acl/ge format code; absence means FORMAT_ND (2).
+// output_formats is per tuple slot and is omitted when every slot is ND.
 IR_EXPORT_FIELD(shape, 1)
 IR_EXPORT_FIELD(stride, 0)
 IR_EXPORT_FIELD(storage_shape, 0)
 IR_EXPORT_FIELD(storage_offset, 0)
+IR_EXPORT_FIELD(format, 0)
+IR_EXPORT_FIELD(output_formats, 0)
 IR_EXPORT_FIELD(sym_shape, 1)
 IR_EXPORT_FIELD(dtype, 1)
 
 // Scalar-ish operands lifted out of the tensor input list.
 IR_EXPORT_FIELD(axis, 0)
 IR_EXPORT_FIELD(scalar, 0)
+// Ordered channel for every literal Int operand of a node (axis keeps only the last one).
+// Nodes with at most one Int operand need only axis; nodes like div_mod_scalar [x,
+// scalar, mode] need the full list so no operand is dropped.
+IR_EXPORT_FIELD(extra_ints, 0)
+// Symbol channel for extra_ints, index-aligned: a non-empty entry means that slot is a
+// symbolic scalar (a Dynamo-lifted SymInt placeholder) and extra_ints only holds a
+// placeholder there. Emitted only when at least one slot is symbolic; arange [start=0,
+// limit=s27, delta=1, dtype=6] is the case that needs the symbol at its argument
+// position instead of merged into sym_axis.
+IR_EXPORT_FIELD(extra_syms, 0)
+// Symbol channel for axis: non-empty means the axis is a symbolic scalar (a Dynamo-lifted
+// SymInt placeholder) and axis only holds a placeholder value.
+IR_EXPORT_FIELD(sym_axis, 0)
 
 // Int list plus its index-aligned symbol channel. sym_list is only emitted when at least
 // one slot is symbolic; an empty entry in it means "that slot's int_list value is real".
@@ -57,6 +76,8 @@ IR_EXPORT_FIELD(bool_list, 0)
 // Multi-output ops: per-output shape and dtype.
 IR_EXPORT_FIELD(output_shapes, 0)
 IR_EXPORT_FIELD(output_dtypes, 0)
+// Per-output symbolic shape channel, index-aligned with output_shapes.
+IR_EXPORT_FIELD(output_sym_shapes, 0)
 
 // Recursive compile-time metadata that the normalized tensor-only `inputs` cannot carry.
 IR_EXPORT_FIELD(arguments, 0)

@@ -56,6 +56,9 @@ def fetch_acl_headers():
         copied_from_submodule = True
 
     if copied_from_submodule:
+        converter_deps = BASE_DIR / 'fxrt' / 'third_party' / 'prepare_converter_deps.py'
+        if converter_deps.is_file():
+            subprocess.run([sys.executable, str(converter_deps)], check=True)
         if acl_src.is_dir():
             shutil.rmtree(str(acl_src))
             print(" --- Cleaned up acl_src submodule directories")

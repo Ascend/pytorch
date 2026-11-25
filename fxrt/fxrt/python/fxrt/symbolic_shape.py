@@ -133,12 +133,13 @@ class SymbolicShapeManager:
 
         return symbolic_shape
 
-    def from_torch_with_sym(self, torch_value: Any) -> Value:
+    def from_torch_with_sym(self, torch_value: Any, capture_layout: bool = False) -> Value:
         """
         Convert a torch object to fxrt.ir.Value with symbolic shape binding.
 
         Args:
             torch_value: The value from torch (can be Tensor, list, tuple, or nested structures)
+            capture_layout: record non-dense strides on the IR tensor; only for graph feeds
 
         Returns:
             A new FXRT Value with symbolic shape information bound
@@ -159,7 +160,7 @@ class SymbolicShapeManager:
         # Handle tensor case
         if isinstance(torch_value, torch.Tensor):
             # Convert tensor using from_torch
-            fxrt_value = from_torch(torch_value)
+            fxrt_value = from_torch(torch_value, capture_layout=capture_layout)
             # Apply symbolic shape if needed
             symbolic_shape = self.create_symbolic_shape_for_tensor(torch_value)
             if symbolic_shape is not None:

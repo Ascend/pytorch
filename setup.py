@@ -679,6 +679,16 @@ class BdistWheelBuild(bdist_wheel):
         cann_dependencies = ["libhccl.so", "libascendcl.so", "libacl_op_compiler.so", "libge_runner.so",
                              "libgraph.so", "libacl_tdt_channel.so", "libfmk_parser.so", "libascend_protobuf.so",
                              "libascend_ml.so"]
+        # GE/OM2 libraries are runtime dependencies. Never bundle the link
+        # stubs, or require an installed CANN package for auditwheel repair.
+        cann_dependencies += [
+            "libgert.so", "libeager_style_graph_builder_base.so", "libgraph_base.so",
+            "libaihac_symbolizer.so", "libregister.so", "libopp_registry.so",
+            "libruntime.so", "libmetadef.so", "libge_executor.so", "libge_common.so",
+            "libge_common_base.so", "libom2_generator.so", "libom2_executor.so",
+            "libplatform.so", "liblowering.so", "libge_runner_v2.so",
+            "libunified_dlog.so", "libc_sec.so",
+        ]
         other_dependencies = ["libtorch_npu.so", "libnpu_profiler.so", "libgomp.so.1", "libatb.so"]
 
         dependencies = torch_dependencies + cann_dependencies + other_dependencies
@@ -826,6 +836,8 @@ setup(
         'torch_npu': [
             '*.so', 'lib/*.so*',
             'fxrt/*.so', 'fxrt/lib/*.so*',
+            'fxrt/gert_backend/*.py', 'fxrt/gert_backend/rewrites/*.py',
+            'fxrt/gert_backend/*.so', 'fxrt/gert_backend/lib/*.so*',
         ],
         'torchnpugen': [
             '*.py', '**/*.py',

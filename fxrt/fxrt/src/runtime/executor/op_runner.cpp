@@ -69,7 +69,15 @@ void OpRunner::AllocateMemory() {
   // Allocate memory for output tensor.
   for (auto& storage : storagesToAlloc_) {
     if (storage->CheckOwnsData()) {
-      RT_GLOG(EXCEPTION) << "Memory leak for output of operator: " << GetOpName();
+      // Graph outputs are not freed by any node, so on the next execution they still own
+      // the buffer returned to the caller last time. The caller has consumed that output
+      // before re-entering the graph, so recycle the buffer instead of reporting a leak.
+      if (graphOutputStorages_ != nullptr && graphOutputStorages_->count(storage) != 0) {
+        RT_VLOG(VL_RUNTIME_MEMORY) << "Recycle graph output storage of operator: " << GetOpName();
+        storage->FreeMemory();
+      } else {
+        RT_GLOG(EXCEPTION) << "Memory leak for output of operator: " << GetOpName();
+      }
     }
     storage->AllocateMemory();
   }

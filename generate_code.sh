@@ -40,6 +40,11 @@ if [ -f "$SUPER_KERNEL_SRC" ]; then
     echo " --- Copied super_kernel.h"
 fi
 
+# FXRT needs a local header snapshot after the source submodules are cleaned up.
+if [ -f "$CDIR/fxrt/third_party/prepare_converter_deps.py" ]; then
+    "$python_execute" "$CDIR/fxrt/third_party/prepare_converter_deps.py"
+fi
+
 # Clean up submodule working directories
 rm -rf "$ACL_SRC"
 echo " --- Cleaned up acl_src submodule directories"

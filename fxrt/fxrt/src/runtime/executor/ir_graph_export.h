@@ -17,7 +17,7 @@
  *   1. the field list lives in ir_graph_export_fields.inc and is shared with the consumer;
  *   2. bump kIrExportSchemaVersion so a mismatched consumer fails loudly instead of
  *      silently mis-parsing (a dropped field reads back as "unset", not as an error);
- *   3. update the golden expectations in test/fxrt/.
+ *   3. update the corresponding contract checks.
  */
 
 #ifndef __IR_GRAPH_EXPORT_H__
@@ -44,7 +44,7 @@ namespace runtime {
  * that is a producer from before the schema was versioned, which is known to omit the
  * layout and symbol-channel keys. Bump this on any change to ir_graph_export_fields.inc.
  */
-constexpr int kIrExportSchemaVersion = 1;
+constexpr int kIrExportSchemaVersion = 6;
 
 /**
  * @brief Key names of the exported per-node dict.
@@ -92,20 +92,41 @@ struct IrGraphNodeExport {
   std::string name; // Node name (input_0, param_0, op0, etc.)
   std::string kind; // Node kind: input | parameter | op | return
   std::string op; // Operation name (for kind="op")
+  std::string overload; // Dispatcher overload (custom/torch ops)
   std::vector<std::string> inputs; // Input node names
   std::vector<int64_t> shape; // Output tensor shape
   std::vector<int64_t> stride; // Tensor element strides (empty = dense)
   std::vector<int64_t> storage_shape; // Physical storage shape
   int64_t storage_offset{0}; // Element offset into storage
+  // acl/ge format code. 2 is FORMAT_ND. Omitted from the dict when ND.
+  int32_t format{2};
+  // Per-output format, index-aligned with output_shapes. Empty means every
+  // output uses `format` (slot 0) or FORMAT_ND.
+  std::vector<int32_t> output_formats;
   std::vector<std::string> sym_shape; // Symbolic shape expressions
   std::string dtype{"float32"}; // Data type
 
   // Optional axis / concat_dim (e.g. aten.cat). INT64_MIN means unset.
   int64_t axis{std::numeric_limits<int64_t>::min()};
 
+  // Symbol channel for axis: non-empty means the axis is a symbolic scalar expression
+  // (a Dynamo-lifted SymInt placeholder) and axis only holds a placeholder value.
+  std::string sym_axis;
+
   // Optional float/bool scalar operand (e.g. eq_scalar / ge_scalar).
   bool has_scalar{false};
   double scalar{0.0};
+
+  // Ordered channel for every literal Int operand of this node. axis alone cannot carry
+  // more than one Int (last write wins), so nodes with several Int operands (e.g.
+  // div_mod_scalar [x, scalar, mode]) also publish the full ordered list here. Empty for
+  // nodes with zero or one literal Int operand.
+  std::vector<int64_t> extra_ints;
+
+  // Symbol channel for extra_ints, index-aligned: a non-empty entry means that slot is a
+  // symbolic scalar and extra_ints only holds a placeholder there. All entries are empty
+  // for a node whose scalar operands are all literal.
+  std::vector<std::string> extra_syms;
 
   // Optional int list (e.g. expand size / BroadcastTo shape / TopKV2 k); empty means unset.
   // Mirrors GE Const INT64 shape tensors (CreateShapeConstantNode).
@@ -123,6 +144,9 @@ struct IrGraphNodeExport {
   // Multi-output ops (TopKV2): per-output shapes/dtypes. Empty → use shape/dtype only.
   std::vector<std::vector<int64_t>> output_shapes;
   std::vector<std::string> output_dtypes;
+
+  // Per-output symbolic shape expressions. Empty entries are allowed for static outputs.
+  std::vector<std::vector<std::string>> output_sym_shapes;
 
   // Recursive ordered arguments and attributes preserve compile-time metadata
   // that cannot be represented by the normalized tensor-only `inputs` field.

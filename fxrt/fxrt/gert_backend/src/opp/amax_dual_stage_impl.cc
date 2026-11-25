@@ -1,0 +1,237 @@
+/**
+ * Fx-owned dual-stage ReduceMax: wrap aclnnAmaxGetWorkspaceSize / aclnnAmax.
+ * Inputs: x (device), axes (host INT32/INT64 vector). Attr0 keep_dims.
+ */
+
+#include "opp/amax_dual_stage_impl.h"
+
+#include <vector>
+
+#include "common/logger.h"
+#include "opp/aclnn_tensor_utils.h"
+#include "opp/aclnn_api.h"
+#include "exe_graph/runtime/op_execute_launch_context.h"
+#include "exe_graph/runtime/op_execute_prepare_context.h"
+#include "exe_graph/runtime/runtime_attrs.h"
+#include "register/op_impl_registry.h"
+
+
+namespace fx_converter {
+namespace {
+
+struct AmaxOpApiParams {
+  aclOpExecutor *executor = nullptr;
+};
+
+struct AmaxAclArgs {
+  aclTensor *self = nullptr;
+  aclTensor *out = nullptr;
+  aclIntArray *dims = nullptr;
+
+  ~AmaxAclArgs() { Release(); }
+
+  void Release() {
+    DestroyAclTensor(self);
+    DestroyAclTensor(out);
+    if (dims != nullptr) {
+      (void)aclnn_api::aclDestroyIntArray(dims);
+      dims = nullptr;
+    }
+    self = out = nullptr;
+  }
+
+  bool Valid() const { return self != nullptr && out != nullptr && dims != nullptr; }
+};
+
+bool FetchAmaxTensors(gert::OpExecutePrepareContext *ctx, const gert::Tensor **self, const gert::Tensor **axes,
+                      const gert::Tensor **out) {
+  *self = ctx->GetInputTensor(0);
+  *axes = ctx->GetInputTensor(1);
+  *out = ctx->GetOutputTensor(0);
+  if (*self == nullptr || *axes == nullptr || *out == nullptr) {
+    RT_GLOG(ERROR) << "FxAmaxPrepare: missing input/output tensor";
+    return false;
+  }
+  return true;
+}
+
+bool ReadKeepDims(gert::OpExecutePrepareContext *ctx, bool *keep_dims) {
+  *keep_dims = true;
+  const gert::RuntimeAttrs *attrs = ctx->GetAttrs();
+  if (attrs == nullptr) {
+    return true;
+  }
+  const bool *kd = attrs->GetBool(0);
+  if (kd != nullptr) {
+    *keep_dims = *kd;
+  }
+  return true;
+}
+
+bool AxesToInt64Vector(const gert::Tensor *axes, std::vector<int64_t> *dims) {
+  if (axes == nullptr || dims == nullptr) {
+    return false;
+  }
+  const auto &shape = axes->GetStorageShape();
+  size_t n = 0;
+  if (shape.GetDimNum() == 0) {
+    n = 1;
+  } else if (shape.GetDimNum() == 1) {
+    n = static_cast<size_t>(shape.GetDim(0));
+  } else {
+    RT_GLOG(ERROR) << "FxAmaxPrepare: axes must be rank-0/1";
+    return false;
+  }
+  dims->resize(n);
+  if (n == 0) {
+    return true;
+  }
+  if (axes->GetAddr() == nullptr) {
+    return false;
+  }
+  if (axes->GetDataType() == ge::DT_INT32) {
+    const auto *src = static_cast<const int32_t *>(axes->GetAddr());
+    for (size_t i = 0; i < n; ++i) {
+      (*dims)[i] = src[i];
+    }
+  } else {
+    const auto *src = static_cast<const int64_t *>(axes->GetAddr());
+    for (size_t i = 0; i < n; ++i) {
+      (*dims)[i] = src[i];
+    }
+  }
+  return true;
+}
+
+bool BuildAmaxAclArgs(const gert::Tensor *self, const gert::Tensor *axes, const gert::Tensor *out,
+                      AmaxAclArgs *args) {
+  std::vector<int64_t> dim_vals;
+  if (!AxesToInt64Vector(axes, &dim_vals)) {
+    return false;
+  }
+  args->self = ToAclTensor(self);
+  args->out = ToAclTensor(out);
+  args->dims = aclnn_api::aclCreateIntArray(dim_vals.data(), dim_vals.size());
+  if (!args->Valid()) {
+    RT_GLOG(ERROR) << "FxAmaxPrepare: aclCreateTensor/IntArray failed";
+    args->Release();
+    return false;
+  }
+  return true;
+}
+
+bool RunAmaxGetWorkspace(AmaxAclArgs *args, bool keep_dims, AmaxOpApiParams *params, uint64_t *workspace_size) {
+  const aclnnStatus st =
+      aclnn_api::Call(aclnn_api::aclnnAmaxGetWorkspaceSize, static_cast<const aclTensor *>(args->self),
+          static_cast<const aclIntArray *>(args->dims), keep_dims, args->out, workspace_size, &params->executor);
+  args->Release();
+  if (st != kAclnnSuccess || params->executor == nullptr) {
+    RT_GLOG(ERROR) << "FxAmaxPrepare: aclnnAmaxGetWorkspaceSize failed, status=" << st;
+    return false;
+  }
+  return true;
+}
+
+bool CommitPrepareOutputs(gert::OpExecutePrepareContext *ctx, AmaxOpApiParams *params, uint64_t workspace_size) {
+  if (ctx->SetOpApiParamsWithDefaultDeleter(params) != ge::GRAPH_SUCCESS) {
+    RT_GLOG(ERROR) << "FxAmaxPrepare: SetOpApiParams failed";
+    delete params;
+    return false;
+  }
+  if (ctx->SetWorkspaceSizes({workspace_size}) != ge::GRAPH_SUCCESS) {
+    RT_GLOG(ERROR) << "FxAmaxPrepare: SetWorkspaceSizes failed";
+    return false;
+  }
+  return true;
+}
+
+ge::graphStatus AmaxPrepare(gert::OpExecutePrepareContext *ctx) {
+  if (ctx == nullptr) {
+    return ge::GRAPH_FAILED;
+  }
+  const gert::Tensor *self = nullptr;
+  const gert::Tensor *axes = nullptr;
+  const gert::Tensor *out = nullptr;
+  if (!FetchAmaxTensors(ctx, &self, &axes, &out)) {
+    return ge::GRAPH_FAILED;
+  }
+  bool keep_dims = true;
+  (void)ReadKeepDims(ctx, &keep_dims);
+
+  AmaxAclArgs args;
+  if (!BuildAmaxAclArgs(self, axes, out, &args)) {
+    return ge::GRAPH_FAILED;
+  }
+  auto *params = new (std::nothrow) AmaxOpApiParams();
+  if (params == nullptr) {
+    return ge::GRAPH_FAILED;
+  }
+  uint64_t workspace_size = 0;
+  if (!RunAmaxGetWorkspace(&args, keep_dims, params, &workspace_size)) {
+    delete params;
+    return ge::GRAPH_FAILED;
+  }
+  return CommitPrepareOutputs(ctx, params, workspace_size) ? ge::GRAPH_SUCCESS : ge::GRAPH_FAILED;
+}
+
+bool ResolveWorkspace(gert::OpExecuteLaunchContext *ctx, void **workspace, uint64_t *workspace_size) {
+  *workspace = nullptr;
+  *workspace_size = 0;
+  const auto *ws_sizes = ctx->GetWorkspaceSizes();
+  if (ws_sizes != nullptr && ws_sizes->GetSize() > 0) {
+    *workspace_size = static_cast<uint64_t>(ws_sizes->GetData()[0]);
+  }
+  if (*workspace_size == 0) {
+    return true;
+  }
+  const auto *ws_addrs = ctx->GetWorkspaceAddrs();
+  if (ws_addrs == nullptr || ws_addrs->GetSize() == 0 || ws_addrs->GetData()[0] == nullptr) {
+    RT_GLOG(ERROR) << "FxAmaxLaunch: missing workspace addr";
+    return false;
+  }
+  *workspace = ws_addrs->GetData()[0]->GetAddr();
+  return true;
+}
+
+ge::graphStatus AmaxLaunch(gert::OpExecuteLaunchContext *ctx) {
+  if (ctx == nullptr) {
+    return ge::GRAPH_FAILED;
+  }
+  auto *params = reinterpret_cast<AmaxOpApiParams *>(ctx->GetOpApiParams());
+  if (params == nullptr || params->executor == nullptr) {
+    RT_GLOG(ERROR) << "FxAmaxLaunch: missing OpApiParams/executor";
+    return ge::GRAPH_FAILED;
+  }
+  void *workspace = nullptr;
+  uint64_t workspace_size = 0;
+  if (!ResolveWorkspace(ctx, &workspace, &workspace_size)) {
+    return ge::GRAPH_FAILED;
+  }
+  const aclnnStatus st = aclnn_api::Call(aclnn_api::aclnnAmax, workspace, workspace_size, params->executor,
+      ctx->GetStream());
+  if (st != kAclnnSuccess) {
+    RT_GLOG(ERROR) << "FxAmaxLaunch: aclnnAmax failed, status=" << st;
+    return ge::GRAPH_FAILED;
+  }
+  return ge::GRAPH_SUCCESS;
+}
+
+}  // namespace
+
+bool InstallFxAmaxDualStage(const gert::OpImplSpaceRegistryV2Ptr &registry) {
+  if (registry == nullptr) {
+    return false;
+  }
+  auto *funcs = const_cast<gert::OpImplKernelRegistry::OpImplFunctionsV2 *>(registry->GetOpImpl("ReduceMax"));
+  if (funcs == nullptr) {
+    RT_GLOG(ERROR) << "InstallFxAmaxDualStage: GetOpImpl(ReduceMax) returned null";
+    return false;
+  }
+  funcs->op_execute_prepare_func = AmaxPrepare;
+  funcs->op_execute_launch_func = AmaxLaunch;
+  RT_GLOG(INFO) << "Fx dual-stage installed: type=ReduceMax prepare=" << reinterpret_cast<const void *>(AmaxPrepare)
+                << " launch=" << reinterpret_cast<const void *>(AmaxLaunch);
+  return true;
+}
+
+}  // namespace fx_converter

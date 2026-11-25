@@ -2,60 +2,10 @@
 #define __OPS_ASCEND_ACLNN_UTILS_ACLNN_COMMON_META_H__
 
 #include "common/visible.h"
-#include "acl/acl_base.h"
+#include "aclnn_meta_api.h"
 
 namespace fxrt {
 namespace ops {
-
-// Base acl data structure
-typedef struct aclOpExecutor aclOpExecutor;
-typedef struct aclTensor aclTensor;
-typedef struct aclTensorList aclTensorList;
-typedef struct aclScalar aclScalar;
-typedef struct aclIntArray aclIntArray;
-typedef struct aclFloatArray aclFloatArray;
-typedef struct aclBoolArray aclBoolArray;
-
-// Base acl creators
-using _aclCreateTensorFuncPtr = aclTensor* (*)(const int64_t* viewDims,
-                                               uint64_t viewDimsNum,
-                                               aclDataType dataType,
-                                               const int64_t* stride,
-                                               int64_t offset,
-                                               aclFormat format,
-                                               const int64_t* storageDims,
-                                               uint64_t storageDimsNum,
-                                               void* tensorData);
-using _aclCreateScalarFuncPtr = aclScalar* (*)(void* value, aclDataType dataType);
-using _aclCreateIntArrayFuncPtr = aclIntArray* (*)(const int64_t* value, uint64_t size);
-using _aclCreateFloatArrayFuncPtr = aclFloatArray* (*)(const float* value, uint64_t size);
-using _aclCreateBoolArrayFuncPtr = aclBoolArray* (*)(const bool* value, uint64_t size);
-using _aclCreateTensorListFuncPtr = aclTensorList* (*)(const aclTensor* const* value, uint64_t size);
-
-// Base acl deleters
-using _aclDestroyTensorFuncPtr = int (*)(const aclTensor* tensor);
-using _aclDestroyScalarFuncPtr = int (*)(const aclScalar* scalar);
-using _aclDestroyIntArrayFuncPtr = int (*)(const aclIntArray* array);
-using _aclDestroyFloatArrayFuncPtr = int (*)(const aclFloatArray* array);
-using _aclDestroyBoolArrayFuncPtr = int (*)(const aclBoolArray* array);
-using _aclDestroyTensorListFuncPtr = int (*)(const aclTensorList* array);
-using _aclDestroyAclOpExecutorFuncPtr = int (*)(aclOpExecutor* executor);
-
-// Init and finalize
-using _aclnnInitFuncPtr = int (*)(const char*);
-using _aclnnFinalizeFuncPtr = int (*)();
-
-// For reusing aclOpExecutor
-using _aclSetAclOpExecutorRepeatableFuncPtr = int (*)(aclOpExecutor* executor);
-
-// Set the device address ptr for aclTensor
-using _aclSetTensorAddrFuncPtr = int (*)(aclOpExecutor* executor, const size_t index, aclTensor* tensor, void* addr);
-using _aclSetDynamicTensorAddrFuncPtr = int (*)(
-    aclOpExecutor* executor,
-    const size_t index,
-    const size_t relativeIndex,
-    aclTensorList* tensors,
-    void* addr);
 
 #define DECLARE_ACLNN_COMMON_META_FUNC(name) FXRT_EXPORT _##name##FuncPtr name##_ = nullptr
 

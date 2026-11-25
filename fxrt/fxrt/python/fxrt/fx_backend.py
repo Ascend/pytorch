@@ -1,5 +1,9 @@
 """
-A simple torch.fx backend that converts a GraphModule to a fxrt GraphExecutor.
+The public FXRT backend, selecting the default executor or optional GERT executor.
+
+TORCH_NPU_FXRT_EXECUTOR is read when compiling a graph. The unset/default path
+uses GraphExecutor without importing converter modules; GERT validates and loads
+the isolated GE converter before handing the graph to it.
 """
 import inspect
 import os
@@ -33,7 +37,10 @@ from fxrt.full_decomposition import decompose_full_
 from fxrt.dvm_adapter import lower_compiled_kernel_dvm_node
 from fxrt.compiled_kernel_adapter import (
     lower_compiled_kernel_node,
+    normalize_fresh_allocation_layouts_,
     restore_compiled_kernel_arg_layouts_,
+    _rewrite_noncontiguous_empty_strided_,
+    _rewrite_noncontiguous_view_,
     lower_compiled_kernel_autofuse_node,
 )
 
@@ -86,6 +93,10 @@ def _init_fxrt_config():
 
 _GLOBAL_GRAPH_ID = 0
 
+# Set while fx_to_c_graph builds a converter IR. Classic GraphExecutor keeps the
+# base dispatcher name; the converter needs the exact overload for fallback.
+_CONVERTER_GRAPH_BUILD = False
+
 _ARG_MAPPING_HOOKS = {}
 
 _OPS_MAPPING_HOOKS = {}
@@ -93,6 +104,28 @@ _OPS_MAPPING_HOOKS = {}
 _OUTPUT_MAPPING_HOOKS = {}
 
 _PRE_FLATTEN_HOOKS = {}
+
+# Converter-only: demote catalog misses to custom_call. None keeps the
+# classic check_op_support path used by GraphExecutor.
+_OP_SUPPORT_HOOK = None
+_OP_SUPPORT_HOOK_WITH_NODE = False
+
+
+def register_op_support_hook(hook_func):
+    """Install a three-argument hook or a hook accepting an extra FX node."""
+    global _OP_SUPPORT_HOOK  # pylint: disable=global-statement
+    global _OP_SUPPORT_HOOK_WITH_NODE  # pylint: disable=global-statement
+    with_node = False
+    if hook_func is not None:
+        signature = inspect.signature(hook_func)
+        try:
+            signature.bind(None, None, [], None)
+        except TypeError:
+            signature.bind(None, None, [])
+        else:
+            with_node = True
+    _OP_SUPPORT_HOOK = hook_func
+    _OP_SUPPORT_HOOK_WITH_NODE = with_node
 
 
 def _get_node_meta_value(node: Node):
@@ -610,7 +643,9 @@ def _resolve_scalar_arg(arg, name: str):
 # pylint: disable=unused-argument
 def dequant_swiglu_quant_hook(node, input_nodes, executor):
     """Normalize npu_dequant_swiglu_quant args to aclnnDequantSwigluQuant(V1)."""
-    if len(input_nodes) < 13:
+    # 16-slot flattened schema layout (see dequant_swiglu_quant_op_hook); only the first
+    # nine V1 slots are forwarded.
+    if len(input_nodes) < 16:
         err_msg = f"Unsupported npu_dequant_swiglu_quant input size: {len(input_nodes)}"
         raise ValueError(err_msg)
 
@@ -636,14 +671,17 @@ def dequant_swiglu_quant_hook(node, input_nodes, executor):
 # pylint: disable=unused-argument
 def dequant_swiglu_quant_op_hook(op, node, input_nodes, executor):
     """Fallback to custom_call when V2-only controls are used."""
-    if len(input_nodes) < 13:
+    # The flattened schema layout is 16 slots: x, weight_scale, activation_scale, bias,
+    # quant_scale, quant_offset, group_index, activate_left, quant_mode, dst_type,
+    # round_mode, activate_dim, swiglu_mode, clamp_limit, glu_alpha, glu_bias.
+    if len(input_nodes) < 16:
         return Op.custom_call
     try:
         quant_mode = int(_resolve_scalar_arg(input_nodes[8], "quant_mode"))
-        swiglu_mode = int(_resolve_scalar_arg(input_nodes[9], "swiglu_mode"))
-        clamp_limit = float(_resolve_scalar_arg(input_nodes[10], "clamp_limit"))
-        glu_alpha = float(_resolve_scalar_arg(input_nodes[11], "glu_alpha"))
-        glu_bias = float(_resolve_scalar_arg(input_nodes[12], "glu_bias"))
+        swiglu_mode = int(_resolve_scalar_arg(input_nodes[12], "swiglu_mode"))
+        clamp_limit = float(_resolve_scalar_arg(input_nodes[13], "clamp_limit"))
+        glu_alpha = float(_resolve_scalar_arg(input_nodes[14], "glu_alpha"))
+        glu_bias = float(_resolve_scalar_arg(input_nodes[15], "glu_bias"))
     except (TypeError, ValueError):
         return Op.custom_call
 
@@ -1625,7 +1663,17 @@ def mul_op_hook(op, node, input_nodes, executor):
 
 # pylint: disable=unused-argument
 def div_op_hook(op, node, input_nodes, executor):
-    """Get the div op for a given node."""
+    """Get the div op for a given node.
+
+    Both the classic and converter lowerings route div to a plain-division kernel:
+    a rounding_mode would be silently dropped, so reject it before routing.
+    """
+    rounding_mode = node.kwargs.get("rounding_mode", None)
+    if rounding_mode is not None:
+        raise NotImplementedError(
+            f"torch.div with rounding_mode={rounding_mode!r} is not supported: the div "
+            "lowering computes plain division only; use the default rounding_mode=None."
+        )
     if _is_scalar_arg(node.args[0]) or _is_scalar_arg(node.args[1]):
         return Op.div_scalar
     return Op.div
@@ -1673,6 +1721,18 @@ def eq_func_hook(op, node, input_nodes, executor):
         return Op.eq_scalar
     return Op.eq
 
+
+# pylint: disable=unused-argument
+def ne_op_hook(op, node, input_nodes, executor):
+    """Get the ne op: literal-scalar compares route to not_equal for Path C.
+
+    There is no Op.ne_scalar; the converter's not_equal row (NotEqual opp,
+    Arity 2) materializes the trailing scalar as the second tensor input.
+    """
+    if _is_scalar_arg(node.args[0]) or _is_scalar_arg(node.args[1]):
+        return Op.not_equal
+    return Op.ne
+
 def _init_ops_mapping_hooks():
     """Register ops mapping hooks for torch ops."""
     register_ops_mapping_hook(Op.split_with_size_view, split_ops_hook)
@@ -1685,6 +1745,7 @@ def _init_ops_mapping_hooks():
     register_ops_mapping_hook(Op.ge, ge_op_hook)
     register_ops_mapping_hook(Op.lt, lt_op_hook)
     register_ops_mapping_hook(Op.eq, eq_func_hook)
+    register_ops_mapping_hook(Op.ne, ne_op_hook)
     register_ops_mapping_hook(Op.le, le_op_hook)
     register_ops_mapping_hook(Op.add, add_op_hook)
     register_ops_mapping_hook(Op.sub, sub_op_hook)
@@ -1856,6 +1917,7 @@ _OP_MAP = {
     aten.expand.default: Op.expand,
     aten.broadcast_to.default: Op.expand,
     aten.add.Tensor: Op.add,
+    aten.matmul.default: Op.matmul,
     aten.bmm.default: Op.batch_matmul,
     aten.cat.default: Op.cat,
     aten.clone.default: Op.clone,
@@ -2054,6 +2116,23 @@ if TORCH_NPU_INSTALLED:
     _OP_MAP.update(_ATB_OP_MAP)
 
 
+def _resolve_named_torch_op(target):
+    """Resolve a call_method / bare name (e.g. 'square', '__eq__') to aten."""
+    if not isinstance(target, str) or not target:
+        return None
+    # Never getattr(module, '__eq__'): that is the module's own dunder.
+    name = target
+    if name.startswith("__") and name.endswith("__") and len(name) > 4:
+        name = name[2:-2]
+    elif name.startswith("__"):
+        return None
+    aten_ns = getattr(torch.ops, "aten", None)
+    aten_op = getattr(aten_ns, name, None) if aten_ns is not None else None
+    if isinstance(aten_op, (OpOverload, OpOverloadPacket)):
+        return aten_op
+    return None
+
+
 def _convert_operator_to_torch_op(op):
     """Convert python operator to torch operator."""
     operator_map = {
@@ -2081,6 +2160,9 @@ def _convert_operator_to_torch_op(op):
     }
     if op in operator_map:
         return operator_map[op]
+    resolved = _resolve_named_torch_op(op)
+    if resolved is not None:
+        return resolved
     return op
 
 
@@ -2196,7 +2278,7 @@ def _get_op(target):
 
 
 def _check_and_fallback_op_by_backend_support(
-        op: Op, output_value: Any, input_nodes: List[Any]
+        op: Op, output_value: Any, input_nodes: List[Any], fx_node: Node
 ) -> Op:
     """
     Check whether the given op is supported by the target backend; if not, fall back to Op.custom_call.
@@ -2209,6 +2291,10 @@ def _check_and_fallback_op_by_backend_support(
     Returns:
         The same op if supported, or Op.custom_call when unsupported or on check failure.
     """
+    if _OP_SUPPORT_HOOK is not None:
+        if _OP_SUPPORT_HOOK_WITH_NODE:
+            return _OP_SUPPORT_HOOK(op, output_value, input_nodes, fx_node)
+        return _OP_SUPPORT_HOOK(op, output_value, input_nodes)
     if op in (
             Op.custom_call,
             Op.python_call,
@@ -2423,6 +2509,27 @@ def _format_fx_inputs_for_error(args, kwargs, label: str = "FX") -> List[str]:
     return lines
 
 
+_SYM_SCALAR_CLASSES = tuple(
+    c for c in (getattr(torch, "SymInt", None), getattr(torch, "SymFloat", None)) if c is not None
+)
+
+
+def _has_symbolic_scalar_input(args, kwargs) -> bool:
+    """True when any FX arg is a symbolic scalar (a Dynamo-lifted SymInt/SymFloat placeholder)."""
+
+    def _is_sym(item):
+        if bool(_SYM_SCALAR_CLASSES) and isinstance(item, _SYM_SCALAR_CLASSES):
+            return True
+        if isinstance(item, Node):
+            meta = _get_node_meta_value(item)
+            return bool(_SYM_SCALAR_CLASSES) and isinstance(meta, _SYM_SCALAR_CLASSES)
+        if isinstance(item, (list, tuple)):
+            return any(_is_sym(x) for x in item)
+        return False
+
+    return _is_sym(args) or _is_sym(kwargs)
+
+
 class _SymTypeInfo(NamedTuple):
     schema_int_types: Tuple[Any, ...]
     schema_float_types: Tuple[Any, ...]
@@ -2536,12 +2643,15 @@ def _check_runtime_value_against_type(value_type, runtime_v: Any) -> bool:
     return True
 
 
-def _is_value_compatible_with_type(value_type, value: Any) -> bool:
+def _is_value_compatible_with_type(value_type, value: Any, arg_len=None) -> bool:
     """
     Check whether a Python value (or FX Node) is compatible with a torch schema value_type.
 
     This is used to disambiguate between multiple overload schemas, so we keep it intentionally
     conservative: if we cannot confidently decide, we return True to avoid false negatives.
+
+    ``arg_len`` is the schema argument's fixed list size (``Argument.N``); it enables the
+    bare-scalar adaptation for fixed single-element list parameters.
     """
     if isinstance(value, immutable_list):
         value = list(value)
@@ -2549,7 +2659,7 @@ def _is_value_compatible_with_type(value_type, value: Any) -> bool:
     if isinstance(value_type, torch.OptionalType):
         if value is None:
             return True
-        return _is_value_compatible_with_type(value_type.getElementType(), value)
+        return _is_value_compatible_with_type(value_type.getElementType(), value, arg_len)
 
     if isinstance(value_type, torch.ListType):
         elem_type = value_type.getElementType()
@@ -2564,6 +2674,15 @@ def _is_value_compatible_with_type(value_type, value: Any) -> bool:
             if not value:
                 return True
             return all(_is_value_compatible_with_type(elem_type, item) for item in value)
+        # Eager torch accepts a bare scalar for a fixed single-element list parameter
+        # (e.g. torch.amax(x, 0) whose schema dim is int[1]); _argument_to_real_value wraps
+        # the scalar into the one-element list. A SymInt Node stays rejected here: it is a
+        # runtime-resolved value the converter refuses to bake into an attr.
+        if arg_len == 1:
+            runtime_v = _get_example_value_if_node(value)
+            if runtime_v is None:
+                return True
+            return _check_runtime_value_against_type(elem_type, runtime_v)
         return False
 
     runtime_v = _get_example_value_if_node(value)
@@ -2658,7 +2777,7 @@ def _create_args(schema: torch.FunctionSchema, node: Node, custom_args=None, cus
 
         # Additional type compatibility check to narrow down overloads.
         if not skip_type_compat_check and not _is_value_compatible_with_type(
-                schema.arguments[arg_idx].real_type, arg
+                schema.arguments[arg_idx].real_type, arg, schema.arguments[arg_idx].N
         ):
             got_type = _format_type_for_error(arg)
             return flat_args, False, (
@@ -2677,7 +2796,7 @@ def _create_args(schema: torch.FunctionSchema, node: Node, custom_args=None, cus
             kw_value = kwargs[argument.name]
             # Additional type compatibility check for kwargs.
             if not skip_type_compat_check and not _is_value_compatible_with_type(
-                    argument.real_type, kw_value
+                    argument.real_type, kw_value, argument.N
             ):
                 got_type = _format_type_for_error(kw_value)
                 return flat_args, False, (
@@ -2915,7 +3034,19 @@ def _flatten_args(op: Op, node: Node) -> List[Argument]:
         err_parts.append(
             f"Tried {len(sorted_schemas)} schemas:\n" + "\n".join(mismatch_lines)
         )
+        if _has_symbolic_scalar_input(node.args, node.kwargs):
+            err_parts.append(
+                "An input is a symbolic scalar (a Dynamo-lifted SymInt/SymFloat placeholder) "
+                "that this op's schema cannot represent; keep it a literal in the traced body, "
+                "compile with dynamic=False, or mark it static."
+            )
         raise ValueError("\n".join(err_parts))
+    # Preserve the exact schema overload only for converter custom_call.
+    # Classic GraphExecutor OpTorchCall expects the base dispatcher name.
+    if op == Op.custom_call and _CONVERTER_GRAPH_BUILD:
+        schema_name = schema.name
+        overload_name = getattr(schema, "overload_name", "") or "default"
+        return f"{schema_name}.{overload_name}", flat_args
     return op_name, flat_args
 
 
@@ -2944,7 +3075,9 @@ def _map_args(
 def _handle_input_node(node, executor, sym_mgr, env):
     """Handle input node processing."""
     example_value = _get_node_meta_value(node)
-    output_value = sym_mgr.from_torch_with_sym(example_value)
+    # Feeds carry their non-dense strides into the IR so the converter can bake
+    # the exact view; intermediate values keep traveling via the view-op nodes.
+    output_value = sym_mgr.from_torch_with_sym(example_value, capture_layout=True)
     if isinstance(example_value, torch.nn.Parameter):
         env[node] = executor.add_parameter_node(output_value)
     else:
@@ -3049,14 +3182,37 @@ def _prepare_call_args(op, node, executor, env, sym_mgr):
         flat_node_args = _build_python_call_args(node, flat_node_args)
 
     if op == Op.custom_call:
-        if not is_op_registered_by_custom_or_torch(op_name):
+        # Registration is keyed by the base dispatcher name; overload is
+        # carried in the qualified custom-call string for the ABI bridge.
+        if not op_name:
             target_name = _get_target_display_name(node.target, op_name)
-            print(f"Unregistered custom/torch op: {target_name} (op_name={op_name}), fallback to python_call")
+            print(
+                f"Unregistered custom/torch op: {target_name} (op_name={op_name}), "
+                "fallback to python_call"
+            )
+            if not callable(node.target) or isinstance(node.target, str):
+                raise TypeError(
+                    f"custom_call has no torch schema for target {target_name!r}"
+                )
             flat_node_args = _build_python_call_args(node, flat_node_args)
             op = Op.python_call
         else:
-            op_name = op_name.replace("::", ".")
-            flat_node_args = [op_name] + flat_node_args
+            registered_name = (
+                op_name.rsplit(".", 1)[0]
+                if "::" in op_name and "." in op_name
+                else op_name
+            )
+            if not is_op_registered_by_custom_or_torch(registered_name):
+                target_name = _get_target_display_name(node.target, op_name)
+                print(
+                    f"Unregistered custom/torch op: {target_name} (op_name={op_name}), "
+                    "fallback to python_call"
+                )
+                flat_node_args = _build_python_call_args(node, flat_node_args)
+                op = Op.python_call
+            else:
+                op_name = op_name.replace("::", ".")
+                flat_node_args = [op_name] + flat_node_args
     elif op == Op.tuple_getitem:
         op, flat_node_args = getitem_process(node, flat_node_args)
     elif op == Op.setitem:
@@ -3148,7 +3304,7 @@ def _handle_call_node(node, executor, env, sym_mgr):
     output_value = sym_mgr.from_torch_with_sym(example_value)
 
     original_op = op
-    op = _check_and_fallback_op_by_backend_support(op, output_value, input_nodes)
+    op = _check_and_fallback_op_by_backend_support(op, output_value, input_nodes, node)
     if op != original_op:
         op, input_nodes = _prepare_call_args(op, node, executor, env, sym_mgr)
 
@@ -3210,18 +3366,42 @@ def write_fxrt_graph(text, file_name):
 # pylint: disable=unused-argument
 def backend(gm: GraphModule, example_inputs: List[torch.Tensor]):
     """
-    A torch.fx backend that converts a GraphModule to a da.runtime.GraphExecutor,
-    and returns a callable that executes the compiled graph.
+    Compile with the selected executor and return its executable callable.
+
+    The executor is selected once per graph compilation. GERT load failures are
+    reported with their cause; they never fall back to the default executor.
     """
+    executor = os.environ.get("TORCH_NPU_FXRT_EXECUTOR", "default")
+    if executor == "GERT":
+        try:
+            from fxrt.gert_backend._loader import load_backend
+
+            converter_backend = load_backend()
+        except (ImportError, OSError, RuntimeError) as exc:
+            raise RuntimeError(f"GERT not support: {exc}") from None
+        return converter_backend(gm, example_inputs)
+    if executor != "default":
+        raise ValueError(
+            f"Unsupported TORCH_NPU_FXRT_EXECUTOR={executor!r}; expected 'default' or 'GERT'"
+        )
+
     graph_id = _next_unique_graph_id()
     _remove_matched_nodes(gm, _OP_MATCHERS)
     # Before anything else looks at the graph: a compiled kernel addresses its
     # args with the strides its FX node carries, so those have to be pinned down
     # while the view chains that produced them are still there to read.
+    # A permuted (still dense) fresh allocation is turned into plain memory plus
+    # a view first, so the layout FXRT materializes matches what the graph asks
+    # for and the views that follow it stay views instead of being rejected.
+    normalize_fresh_allocation_layouts_(gm)
     restore_compiled_kernel_arg_layouts_(gm)
+    # A non-contiguous empty_strided is a standalone allocation, not a kernel arg,
+    # so the pass above never reaches it; FXRT allocates contiguous only.
+    _rewrite_noncontiguous_empty_strided_(gm)
     if is_enable_dump_ir():
         write_gm_graph(gm, graph_id, get_ir_file_name())
     eliminate_redundant_copy_(gm)
+    _rewrite_noncontiguous_view_(gm)
     decompose_full_(gm)
     _decompose_ops_with_fake_mode(gm)
     _init_pre_flatten_hooks()

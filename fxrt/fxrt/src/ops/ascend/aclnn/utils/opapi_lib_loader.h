@@ -5,10 +5,8 @@
 #include <string>
 #include <unordered_map>
 #include <string_view>
-#include <utility>
-#include <tuple>
-#include <type_traits>
 
+#include "aclnn_op_api.h"
 #include "common/common.h"
 #include "ops/ascend/aclnn/utils/aclnn_common_meta.h"
 
@@ -53,30 +51,6 @@ T LoadCommonMetaApi(const char* apiName) {
 }
 
 #define LOAD_COMMON_META_FUNC(name) name##_ = LoadCommonMetaApi<_##name##FuncPtr>(kName##name##_)
-
-template <typename Tuple, size_t... I>
-auto ConvertToOpApiFunc(const Tuple& params, void* opApiAddr, std::index_sequence<I...>) {
-  using OpApiFunc = int (*)(typename std::decay<decltype(std::get<I>(params))>::type...);
-  auto func = reinterpret_cast<OpApiFunc>(opApiAddr);
-  return func;
-}
-
-template <typename Tuple>
-auto ConvertToOpApiFunc(const Tuple& params, void* opApiAddr) {
-  static constexpr auto size = std::tuple_size<Tuple>::value;
-  return ConvertToOpApiFunc(params, opApiAddr, std::make_index_sequence<size>{});
-}
-
-template <typename Function, typename Tuple, size_t... I>
-auto CallOpApiFunc(Function f, Tuple t, std::index_sequence<I...>) {
-  return f(std::get<I>(t)...);
-}
-
-template <typename Function, typename Tuple>
-auto CallOpApiFunc(Function f, Tuple t) {
-  static constexpr auto size = std::tuple_size<Tuple>::value;
-  return CallOpApiFunc(f, t, std::make_index_sequence<size>{});
-}
 
 } // namespace ops
 } // namespace fxrt

@@ -133,12 +133,14 @@ void Builder::RecordStorageFreePoint() {
   std::unordered_set<ir::Storage*> recordedStorages;
 
   // The output of graph should not be freed by any node.
+  auto graphOutputStorages = std::make_shared<std::unordered_set<ir::Storage*>>();
   auto& graphOutput = graph_->nodes.back()->output;
   ir::VisitAllTensors(graphOutput, [&](const ir::TensorPtr& tensor) {
     auto storage = tensor->GetStorage().get();
     CHECK_IF_NULL(storage);
     RT_VLOG(VL_RUNTIME) << "Record graph output Storage: " << storage;
     (void)recordedStorages.insert(storage);
+    (void)graphOutputStorages->insert(storage);
   });
 
   // Traverse in reverse execution order
@@ -222,6 +224,12 @@ void Builder::RecordStorageFreePoint() {
     }
     auto* opRunner = iter->second;
     opRunner->SetStoragesToAlloc(std::move(storages));
+  }
+
+  // Graph outputs are not freed by any node, so tell every runner which storages
+  // are graph outputs to recycle them when the graph is executed again.
+  for (auto& opRunner : *opRunners_) {
+    opRunner.SetGraphOutputStorages(graphOutputStorages);
   }
 }
 

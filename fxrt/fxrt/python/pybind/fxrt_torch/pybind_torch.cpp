@@ -4,6 +4,7 @@
 
 #include <pybind11/pybind11.h> // Bridge
 #include <torch/extension.h>
+#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <memory>
@@ -302,6 +303,21 @@ std::shared_ptr<GraphInputStaticCache> GetOrCreateGraphCache(uintptr_t graph_key
   return graph_cache_slot;
 }
 
+#ifdef ENABLE_TORCH_NPU
+// Storage shape must describe the physical layout of the tensor as consumed. torch_npu keeps
+// the allocation-time base shape in storage_sizes_ for view tensors, so it no longer matches
+// the logical shape after reshape/slice/permute. For base formats the physical layout is fully
+// described by logical sizes (together with strides and storage offset); only non-base formats
+// (e.g. fractal NZ with padding) require the recorded storage sizes.
+std::vector<int64_t> StorageShapeFromTorch(const at::Tensor& at_tensor) {
+  const auto format = static_cast<ir::MemoryFormat>(at_npu::native::get_npu_format(at_tensor));
+  if (fxrt::ops::IsBaseFormat(format)) {
+    return at_tensor.sizes().vec();
+  }
+  return at_npu::native::get_npu_storage_sizes(at_tensor);
+}
+#endif
+
 // Update an IR tensor's metadata and data pointer from a PyTorch tensor.
 void UpdateTensorFromTorchTensor(ir::Tensor* tensor, const at::Tensor& at_tensor) {
   ir::DataType type = FromTorchDType(at_tensor.scalar_type());
@@ -321,7 +337,7 @@ void UpdateTensorFromTorchTensor(ir::Tensor* tensor, const at::Tensor& at_tensor
     // data_ptr() returns the offset-adjusted pointer, so set storage_offset to 0
     // to avoid double-counting the offset in Tensor::DataPtr()
     tensor->SetStorageOffset(0);
-    tensor->SetStorageShape(at_npu::native::get_npu_storage_sizes(at_tensor));
+    tensor->SetStorageShape(StorageShapeFromTorch(at_tensor));
     RT_GLOG(INFO) << "Update tensor, format=" << ir::FormatEnumToStr(tensor->Format())
                   << ", strides=" << tensor->Strides() << ", storageOffset=" << tensor->StorageOffset()
                   << ", storageShape=" << tensor->StorageShape() << ", isView=" << at_tensor.is_view()
@@ -567,8 +583,15 @@ at::Device ToTorchDevice(const hardware::Device device) {
   return at::Device(deviceType, device.index);
 }
 
-// Create a new fxrt Tensor with a weak ref to torch Tensor data
-ir::TensorPtr FromTorchTensor(const at::Tensor& tensor, bool isFake = false) {
+// Create a new fxrt Tensor with a weak ref to torch Tensor data.
+// captureLayout is set only for graph feeds (inputs / parameters): feeds arrive
+// as data_ptr(), which is already offset-adjusted, so the layout contract is
+// strides-only. Recorded strides let the exporter emit them and the converter
+// bake the view. Symbolic strides cannot be captured into the IR; that is not
+// a loss, because the runtime TensorV2 feed carries the real layout at Execute
+// time. Intermediate values keep the legacy dense-ir form -- their view
+// semantics travel via the view-op nodes.
+ir::TensorPtr FromTorchTensor(const at::Tensor& tensor, bool isFake = false, bool captureLayout = false) {
   ir::DataType type = FromTorchDType(tensor.scalar_type());
   std::vector<int64_t> shape;
   shape.reserve(tensor.dim());
@@ -583,11 +606,29 @@ ir::TensorPtr FromTorchTensor(const at::Tensor& tensor, bool isFake = false) {
   }
 
   auto device = FromTorchDevice(tensor.device());
+  ir::TensorPtr result;
   if (isFake) {
-    return ir::MakeIntrusive<ir::Tensor>(shape, type, device);
+    result = ir::MakeIntrusive<ir::Tensor>(shape, type, device);
   } else {
-    return ir::MakeIntrusive<ir::Tensor>(tensor.data_ptr(), shape, type, device);
+    result = ir::MakeIntrusive<ir::Tensor>(tensor.data_ptr(), shape, type, device);
   }
+  if (captureLayout && !tensor.is_contiguous()) {
+    std::vector<int64_t> strides;
+    strides.reserve(tensor.dim());
+    bool capturable = true;
+    for (const auto& stride : tensor.sym_strides()) {
+      const auto value = stride.maybe_as_int();
+      if (!value.has_value()) {
+        capturable = false;
+        break;
+      }
+      (void)strides.emplace_back(value.value());
+    }
+    if (capturable) {
+      result->SetStrides(strides);
+    }
+  }
+  return result;
 }
 
 ir::StoragePtr CopyStorage(const ir::StoragePtr& srcStorage) {
@@ -892,11 +933,32 @@ void SetDeviceContext() {
 #endif
 }
 
+// FakeTensor rejects get_npu_format. The converter stamps the real feed's acl format
+// on the example before from_torch; without this copy the IR stays FORMAT_ND and
+// AiCore selects an ND binary for a private-format feed.
+void ApplyStampedFormat(nb::handle h, const ir::TensorPtr& tensor) {
+  if (tensor == nullptr || !nb::hasattr(h, "_fx_converter_format")) {
+    return;
+  }
+  const nb::object raw = nb::borrow<nb::object>(h.attr("_fx_converter_format"));
+  if (raw.is_none()) {
+    return;
+  }
+  const int code = nb::cast<int>(raw);
+  // MemoryFormat is int8_t. Negative means "unknown"; keep the ND default.
+  if (code < 0 || code > 127) {
+    return;
+  }
+  tensor->SetFormat(static_cast<ir::MemoryFormat>(static_cast<int8_t>(code)));
+}
+
 // Wrappers for nanobind
-ir::TensorPtr FromTorchTensorWrapper(nb::handle h, bool isFake) {
+ir::TensorPtr FromTorchTensorWrapper(nb::handle h, bool isFake, bool captureLayout) {
   pybind11::handle ph(h.ptr());
   at::Tensor t = ph.cast<at::Tensor>();
-  return FromTorchTensor(t, isFake);
+  ir::TensorPtr result = FromTorchTensor(t, isFake, captureLayout);
+  ApplyStampedFormat(h, result);
+  return result;
 }
 
 nb::object ToTorchTensorWrapper(const ir::TensorPtr& tensor) {
@@ -917,7 +979,7 @@ std::vector<int64_t> GetTorchStorageShape(nb::handle h) {
   at::Tensor tensor = ph.cast<at::Tensor>();
 #ifdef ENABLE_TORCH_NPU
   if (tensor.device().type() == at::DeviceType::PrivateUse1) {
-    return at_npu::native::get_npu_storage_sizes(tensor);
+    return StorageShapeFromTorch(tensor);
   }
 #endif
   // CPU/non-NPU views have no backend padding; their accessible span is completely
@@ -964,15 +1026,69 @@ void ReleaseExternalRange(
  * vouches for, and it is never validated. It lives on the private `_fxrt_torch` module and
  * is not re-exported by the `fxrt` package.
  */
+aclFormat BaseAclFormat(uint32_t format) {
+  switch (format) {
+    case ACL_FORMAT_NC1HWC0:
+    case ACL_FORMAT_FRACTAL_Z:
+    case ACL_FORMAT_NCHW:
+      return ACL_FORMAT_NCHW;
+    case ACL_FORMAT_NHWC:
+      return ACL_FORMAT_NHWC;
+    case ACL_FORMAT_NCDHW:
+      return ACL_FORMAT_NCDHW;
+    default:
+      return ACL_FORMAT_ND;
+  }
+}
+
+void TagAdoptedFormat(at::Tensor* tensor, int32_t format, const std::vector<int64_t>& storageShape) {
+  if (tensor == nullptr || format == static_cast<int32_t>(ACL_FORMAT_ND) || format == 0) {
+    return;
+  }
+  auto* impl = static_cast<torch_npu::NPUStorageImpl*>(tensor->unsafeGetTensorImpl()->storage().unsafeGetStorageImpl());
+  if (impl == nullptr) {
+    return;
+  }
+  auto& desc = impl->npu_desc_;
+  desc.base_sizes_.assign(tensor->sizes().begin(), tensor->sizes().end());
+  desc.base_strides_.assign(tensor->strides().begin(), tensor->strides().end());
+  desc.base_offset_ = 0;
+  desc.data_type_ = tensor->dtype();
+  desc.npu_format_ = static_cast<aclFormat>(format);
+  desc.origin_format_ = BaseAclFormat(static_cast<uint32_t>(format));
+  if (!storageShape.empty()) {
+    desc.storage_sizes_.assign(storageShape.begin(), storageShape.end());
+  }
+  int64_t storage_numel = 1;
+  for (const int64_t dim : desc.storage_sizes_) {
+    storage_numel *= dim;
+  }
+  if (storage_numel > 0) {
+    const size_t bytes = static_cast<size_t>(storage_numel) * tensor->element_size();
+    if (bytes > tensor->storage().nbytes()) {
+      tensor->storage().set_nbytes(bytes);
+    }
+  }
+}
+
+bool HasViewStride(const std::vector<std::vector<int64_t>>& strides, size_t index, const std::vector<int64_t>& shape) {
+  return index < strides.size() && !strides[index].empty() && strides[index].size() == shape.size();
+}
+
 nb::object AdoptExternalDeviceBuffers(
     const std::vector<uintptr_t>& dataPtrs,
     const std::vector<std::vector<int64_t>>& shapes,
     const nb::list& dtypes,
     const std::vector<uintptr_t>& ownedCtxs,
     const std::vector<uintptr_t>& freeFns,
-    int64_t deviceIndex) {
+    int64_t deviceIndex,
+    const std::vector<int32_t>& formats,
+    const std::vector<std::vector<int64_t>>& storageShapes,
+    const std::vector<std::vector<int64_t>>& strides) {
   const size_t count = dataPtrs.size();
-  if (shapes.size() != count || dtypes.size() != count || ownedCtxs.size() != count || freeFns.size() != count) {
+  if (shapes.size() != count || dtypes.size() != count || ownedCtxs.size() != count || freeFns.size() != count ||
+      (!formats.empty() && formats.size() != count) || (!storageShapes.empty() && storageShapes.size() != count) ||
+      (!strides.empty() && strides.size() != count)) {
     ReleaseExternalRange(ownedCtxs, freeFns, 0);
     RT_GLOG(EXCEPTION) << "adopt_external_device_buffers: mismatched record lengths (data_ptrs=" << count
                        << ", shapes=" << shapes.size() << ", dtypes=" << dtypes.size()
@@ -1001,23 +1117,49 @@ nb::object AdoptExternalDeviceBuffers(
   size_t i = 0;
   try {
     for (; i < count; ++i) {
+      const auto device = c10::Device(c10::DeviceType::PrivateUse1, static_cast<c10::DeviceIndex>(deviceIndex));
+      const auto options = at::TensorOptions().dtype(scalarTypes[i]).device(device);
+      if (std::find(shapes[i].begin(), shapes[i].end(), 0) != shapes[i].end()) {
+        tensors.append(nb::cast(at::empty(shapes[i], options)));
+        if (ownedCtxs[i] != 0 && freeFns[i] != 0) {
+          reinterpret_cast<ExternalFreeFn>(freeFns[i])(reinterpret_cast<void*>(ownedCtxs[i]));
+        }
+        continue;
+      }
       if (dataPtrs[i] == 0) {
         RT_GLOG(EXCEPTION) << "adopt_external_device_buffers: null device address for output " << i;
       }
-      const auto device = c10::Device(c10::DeviceType::PrivateUse1, static_cast<c10::DeviceIndex>(deviceIndex));
-      const auto options = at::TensorOptions().dtype(scalarTypes[i]).device(device);
       void* data = reinterpret_cast<void*>(dataPtrs[i]);
 
       at::Tensor tensor;
+      const bool view_stride = HasViewStride(strides, i, shapes[i]);
       if (ownedCtxs[i] != 0 && freeFns[i] != 0) {
         void* ctx = reinterpret_cast<void*>(ownedCtxs[i]);
         auto freeFn = reinterpret_cast<ExternalFreeFn>(freeFns[i]);
-        tensor = at_npu::native::from_blob(data, shapes[i], [ctx, freeFn](void*) { freeFn(ctx); }, options, device);
+        if (view_stride) {
+          tensor = at_npu::native::from_blob(
+              data,
+              shapes[i],
+              strides[i],
+              static_cast<int64_t>(0),
+              [ctx, freeFn](void*) { freeFn(ctx); },
+              options,
+              device);
+        } else {
+          tensor = at_npu::native::from_blob(data, shapes[i], [ctx, freeFn](void*) { freeFn(ctx); }, options, device);
+        }
+      } else if (view_stride) {
+        tensor = at_npu::native::from_blob(data, shapes[i], strides[i], static_cast<int64_t>(0), options, device);
       } else {
         tensor = at_npu::native::from_blob(data, shapes[i], device, options);
       }
       // from_blob returned, so record i is now owned by the tensor and must not be freed
       // by the handler below.
+      if (i < formats.size()) {
+        const std::vector<int64_t> empty;
+        const auto& storage = i < storageShapes.size() ? storageShapes[i] : empty;
+        TagAdoptedFormat(&tensor, formats[i], storage);
+      }
       pybind11::object wrapped = pybind11::cast(tensor);
       tensors.append(nb::steal(wrapped.release().ptr()));
     }
@@ -1033,7 +1175,12 @@ nb::object AdoptExternalDeviceBuffers(
 
 NB_MODULE(_fxrt_torch, m) {
   m.doc() = "PyTorch extension for FXRT";
-  m.def("from_torch", &FromTorchTensorWrapper, nb::arg("tensor"), nb::arg("is_fake") = false);
+  m.def(
+      "from_torch",
+      &FromTorchTensorWrapper,
+      nb::arg("tensor"),
+      nb::arg("is_fake") = false,
+      nb::arg("capture_layout") = false);
   m.def("to_torch", &ToTorchTensorWrapper, nb::rv_policy::reference);
   m.def("get_storage_shape", &GetTorchStorageShape, nb::arg("tensor"));
 #ifdef ENABLE_TORCH_NPU
@@ -1046,6 +1193,9 @@ NB_MODULE(_fxrt_torch, m) {
       nb::arg("owned_ctxs"),
       nb::arg("free_fns"),
       nb::arg("device_index"),
+      nb::arg("storage_formats") = std::vector<int32_t>{},
+      nb::arg("storage_shapes") = std::vector<std::vector<int64_t>>{},
+      nb::arg("strides") = std::vector<std::vector<int64_t>>{},
       "Adopt externally allocated NPU buffers as owning torch tensors. Unsafe: free_fns "
       "are raw function pointers the caller vouches for, each called exactly once.");
 #endif

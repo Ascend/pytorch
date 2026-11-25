@@ -289,6 +289,9 @@ NB_MODULE(_fxrt_ir, m) { // #lizard forgives
               d[ir_export_keys::name] = n.name;
               d[ir_export_keys::kind] = n.kind;
               d[ir_export_keys::op] = n.op;
+              if (!n.overload.empty()) {
+                d[ir_export_keys::overload] = n.overload;
+              }
               d[ir_export_keys::inputs] = n.inputs;
               d[ir_export_keys::shape] = n.shape;
               // Layout keys are omitted for dense values at offset 0, so their absence is
@@ -302,10 +305,33 @@ NB_MODULE(_fxrt_ir, m) { // #lizard forgives
               if (n.storage_offset != 0) {
                 d[ir_export_keys::storage_offset] = n.storage_offset;
               }
+              // 2 is FORMAT_ND. Private formats (FRACTAL_NZ and the rest) must
+              // cross the ABI or the converter rebuilds every tensor as ND.
+              constexpr int32_t kFormatNd = 2;
+              if (n.format != kFormatNd) {
+                d[ir_export_keys::format] = n.format;
+              }
+              if (std::any_of(n.output_formats.begin(), n.output_formats.end(), [](int32_t code) {
+                    return code != kFormatNd;
+                  })) {
+                d[ir_export_keys::output_formats] = n.output_formats;
+              }
               d[ir_export_keys::sym_shape] = n.sym_shape;
               d[ir_export_keys::dtype] = n.dtype;
               if (n.axis != std::numeric_limits<int64_t>::min()) {
                 d[ir_export_keys::axis] = n.axis;
+              }
+              if (!n.sym_axis.empty()) {
+                d[ir_export_keys::sym_axis] = n.sym_axis;
+              }
+              if (!n.extra_ints.empty()) {
+                d[ir_export_keys::extra_ints] = n.extra_ints;
+              }
+              // Emit the aligned symbol channel only when at least one slot is symbolic;
+              // an all-literal node omits it (same contract as sym_list).
+              if (std::any_of(
+                      n.extra_syms.begin(), n.extra_syms.end(), [](const std::string& s) { return !s.empty(); })) {
+                d[ir_export_keys::extra_syms] = n.extra_syms;
               }
               if (n.has_scalar) {
                 d[ir_export_keys::scalar] = n.scalar;
@@ -324,6 +350,9 @@ NB_MODULE(_fxrt_ir, m) { // #lizard forgives
               }
               if (!n.output_dtypes.empty()) {
                 d[ir_export_keys::output_dtypes] = n.output_dtypes;
+              }
+              if (!n.output_sym_shapes.empty()) {
+                d[ir_export_keys::output_sym_shapes] = n.output_sym_shapes;
               }
               if (!n.arguments.empty()) {
                 nb::list arguments;

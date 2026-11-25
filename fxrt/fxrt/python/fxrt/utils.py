@@ -126,9 +126,13 @@ def get_collective_info_from_torch(gm: torch.fx.GraphModule):
                     _extract_and_setup_vllm_group(node)
 
 
-def from_torch(obj: Any) -> Value:  # #lizard forgives
+def from_torch(obj: Any, capture_layout: bool = False) -> Value:  # #lizard forgives
     """
     Convert a torch object to fxrt.ir.Value.
+
+    capture_layout records non-dense strides on the IR tensor; set it only for
+    graph feeds (inputs / parameters). Intermediate values keep the dense-ir
+    form because their view semantics travel via the view-op nodes.
     """
     if isinstance(obj, Value):
         return obj
@@ -143,9 +147,9 @@ def from_torch(obj: Any) -> Value:  # #lizard forgives
         return Value(FxrtTuple([from_torch(e) for e in obj]))
     # pylint: disable=protected-access
     if isinstance(obj, torch._subclasses.FakeTensor):
-        return Value(_fxrt_torch.from_torch(obj, is_fake=True))
+        return Value(_fxrt_torch.from_torch(obj, is_fake=True, capture_layout=capture_layout))
     if isinstance(obj, torch.Tensor):
-        return Value(_fxrt_torch.from_torch(obj))
+        return Value(_fxrt_torch.from_torch(obj, capture_layout=capture_layout))
     if isinstance(obj, (int, float, bool, str)):
         return Value(obj)
     if isinstance(obj, torch.device):

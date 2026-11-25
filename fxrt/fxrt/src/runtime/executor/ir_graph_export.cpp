@@ -113,11 +113,48 @@ std::string DtypeOfValue(const ir::ValuePtr& value) {
 }
 
 /**
+ * @brief Check if a consumer node is the aten.item fold (custom_call whose first
+ * input is the "aten.item" string literal). A rank-0 placeholder consumed only
+ * that way is a Dynamo-lifted scalar the import folds into a constant.
+ */
+bool IsItemFoldConsumer(const ir::NodePtr& node) {
+  if (node == nullptr || node->op != ops::Op_custom_call || node->inputs.empty()) {
+    return false;
+  }
+  const auto& callee = node->inputs[0];
+  return callee != nullptr && callee->output != nullptr && callee->output->IsString() &&
+      callee->output->ToString() == "aten.item";
+}
+
+/**
+ * @brief Check if a feed node is consumed by a compute node as a tensor input.
+ * @param graph IR graph holding the consumer view
+ * @param feed feed node pointer
+ * @return true when any non-fold node takes the feed as an input
+ */
+bool ConsumedAsTensorInput(const ir::Graph& graph, const ir::Node* feed) {
+  if (feed == nullptr) {
+    return false;
+  }
+  for (const auto& node : graph.nodes) {
+    if (node == nullptr || node->op == ops::Op_End || IsItemFoldConsumer(node)) {
+      continue;
+    }
+    const auto& ins = node->inputs;
+    if (std::any_of(ins.begin(), ins.end(), [feed](const ir::NodePtr& in) { return in.get() == feed; })) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * @brief Check if node represents a model feed (input/parameter).
+ * @param graph IR graph holding the consumer view
  * @param node IR node pointer
  * @return true if node is a valid model feed
  */
-bool IsModelFeed(const ir::NodePtr& node) {
+bool IsModelFeed(const ir::Graph& graph, const ir::NodePtr& node) {
   if (node == nullptr || node->output == nullptr || !node->output->IsTensor()) {
     return false;
   }
@@ -125,8 +162,10 @@ bool IsModelFeed(const ir::NodePtr& node) {
   if (tensor == nullptr) {
     return false;
   }
+  // Empty shape without symbolic dims: a Dynamo-lifted scalar (filtered) or a real
+  // rank-0 op input (kept) -- decide by how the graph consumes it.
   if (tensor->Shape().empty() && !tensor->HasSymbolicShape()) {
-    return false;
+    return ConsumedAsTensorInput(graph, node.get());
   }
   return true;
 }
@@ -233,14 +272,19 @@ ValueExport ExportNodeValue(const ir::NodePtr& node, const std::unordered_map<co
 
 std::vector<ValueExport> ExportArguments(
     const ir::NodePtr& node,
+    size_t argument_begin,
     const std::unordered_map<const ir::Node*, std::string>& name_of) {
   std::vector<ValueExport> result;
   const auto& arguments = node->inputs;
-  result.reserve(arguments.size());
+  if (argument_begin > arguments.size()) {
+    return result;
+  }
+  result.reserve(arguments.size() - argument_begin);
   std::transform(
-      arguments.begin(), arguments.end(), std::back_inserter(result), [&name_of](const ir::NodePtr& argument) {
-        return ExportNodeValue(argument, name_of);
-      });
+      arguments.begin() + static_cast<std::ptrdiff_t>(argument_begin),
+      arguments.end(),
+      std::back_inserter(result),
+      [&name_of](const ir::NodePtr& argument) { return ExportNodeValue(argument, name_of); });
   return result;
 }
 
@@ -302,6 +346,48 @@ std::vector<std::string> ResolveReturnArgs(
   return out;
 }
 
+int32_t FormatCode(const ir::TensorPtr& tensor) {
+  constexpr int32_t kFormatNd = 2;
+  if (tensor == nullptr) {
+    return kFormatNd;
+  }
+  const int32_t code = static_cast<int32_t>(tensor->Format());
+  return code < 0 ? kFormatNd : code;
+}
+
+// Copy stride, storage and format onto an exported node. A tuple records one
+// format per slot; the node-level format is slot 0.
+void AttachExportedLayout(const ir::ValuePtr& value, IrGraphNodeExport* exported) {
+  if (value == nullptr || exported == nullptr) {
+    return;
+  }
+  if (value->IsTensor()) {
+    const auto& tensor = value->ToTensor();
+    exported->stride = tensor->Strides();
+    exported->storage_shape = tensor->StorageShape();
+    exported->storage_offset = tensor->StorageOffset();
+    exported->format = FormatCode(tensor);
+    return;
+  }
+  if (!value->IsTuple()) {
+    return;
+  }
+  const auto& tup = value->ToTuple();
+  if (tup == nullptr) {
+    return;
+  }
+  exported->output_formats.clear();
+  exported->output_formats.reserve(tup->Size());
+  for (size_t i = 0; i < tup->Size(); ++i) {
+    const auto& elem = (*tup)[i];
+    const bool is_tensor = elem != nullptr && elem->IsTensor();
+    exported->output_formats.push_back(is_tensor ? FormatCode(elem->ToTensor()) : FormatCode(nullptr));
+  }
+  if (!exported->output_formats.empty()) {
+    exported->format = exported->output_formats.front();
+  }
+}
+
 /**
  * @brief Export graph inputs.
  */
@@ -312,7 +398,7 @@ void ExportIrInputs(
   size_t export_input_idx = 0;
   for (size_t i = 0; i < graph->inputs.size(); ++i) {
     const auto& node = graph->inputs[i];
-    if (!IsModelFeed(node)) {
+    if (!IsModelFeed(*graph, node)) {
       continue;
     }
     const std::string name = "input_" + std::to_string(export_input_idx++);
@@ -327,13 +413,10 @@ void ExportIrInputs(
         SymShapeForExport(node->output),
         DtypeOfValue(node->output));
 
-    // Layout travels with feeds: a non-dense input is only reconstructible from
-    // stride/storage, and ShapeForExport alone cannot express it.
-    const auto& tensor = node->output->ToTensor();
-    auto& exported = out->nodes.back();
-    exported.stride = tensor->Strides();
-    exported.storage_shape = tensor->StorageShape();
-    exported.storage_offset = tensor->StorageOffset();
+    // Layout travels with feeds: stride/storage reconstruct a non-dense view, and
+    // format is what selects a private-format kernel. ShapeForExport is only the
+    // logical size.
+    AttachExportedLayout(node->output, &out->nodes.back());
   }
 }
 
@@ -347,7 +430,7 @@ void ExportIrParameters(
   size_t export_param_idx = 0;
   for (size_t i = 0; i < graph->parameters.size(); ++i) {
     const auto& node = graph->parameters[i];
-    if (!IsModelFeed(node)) {
+    if (!IsModelFeed(*graph, node)) {
       continue;
     }
     const std::string name = "param_" + std::to_string(export_param_idx++);
@@ -362,13 +445,7 @@ void ExportIrParameters(
         SymShapeForExport(node->output),
         DtypeOfValue(node->output));
 
-    // Layout travels with feeds: a non-dense input is only reconstructible from
-    // stride/storage, and ShapeForExport alone cannot express it.
-    const auto& tensor = node->output->ToTensor();
-    auto& exported = out->nodes.back();
-    exported.stride = tensor->Strides();
-    exported.storage_shape = tensor->StorageShape();
-    exported.storage_offset = tensor->StorageOffset();
+    AttachExportedLayout(node->output, &out->nodes.back());
   }
 }
 
@@ -377,19 +454,43 @@ void ExportIrParameters(
  */
 struct ExportOpName {
   std::string name;
+  std::string overload;
   size_t arg_begin = 0;
 };
+
+// Custom-call names arrive from Python as namespace.operator[.overload]. Keep
+// the dispatcher operator and overload separate across the ABI boundary.
+std::pair<std::string, std::string> SplitExportOpName(const std::string& name) {
+  const auto dot = name.rfind('.');
+  if (dot == std::string::npos || dot == 0U || dot + 1U == name.size()) {
+    return {name, ""};
+  }
+  const auto suffix = name.substr(dot + 1U);
+  // The Python dispatcher spells the default overload explicitly.
+  if (suffix == "default") {
+    return {name.substr(0U, dot), suffix};
+  }
+  // Only split the suffix for the standard qualified ATen/custom-call form;
+  // ordinary FXRT operation names (e.g. "topk") remain unchanged.
+  if (name.find('.') != dot) {
+    return {name.substr(0U, dot), suffix};
+  }
+  return {name, ""};
+}
 
 /**
  * @brief Resolve operation name for export.
  */
 ExportOpName ResolveExportOpName(const ir::NodePtr& node) {
-  ExportOpName result{ops::ToStr(node->op), 0};
+  ExportOpName result{ops::ToStr(node->op), "", 0};
   if (node->op == ops::Op_custom_call && !node->inputs.empty()) {
     const auto& name_node = node->inputs[0];
     if (name_node != nullptr && name_node->output != nullptr && name_node->output->IsString()) {
       result.name = name_node->output->ToString();
       result.arg_begin = 1;
+      const auto split = SplitExportOpName(result.name);
+      result.name = split.first;
+      result.overload = split.second;
     }
   }
   return result;
@@ -439,10 +540,41 @@ struct ExportInputs {
   int64_t axis = std::numeric_limits<int64_t>::min();
   bool has_scalar = false;
   double scalar = 0.0;
+  // Ordered list of every literal Int operand. axis only keeps the last one, so nodes
+  // with several Int operands (div_mod_scalar [x, scalar, mode]) need the full list.
+  std::vector<int64_t> extra_ints;
+  // Index-aligned symbol channel for extra_ints: a non-empty entry means that slot is a
+  // symbolic scalar and extra_ints only holds a placeholder there (arange limit=s27
+  // between literal start/delta).
+  std::vector<std::string> extra_syms;
   std::vector<int64_t> int_list;
   std::vector<std::string> sym_list;
   std::vector<int64_t> bool_list;
+  // Symbol channel for a single symbolic scalar: non-empty means one non-tensor input is a
+  // symbolic scalar expression (a Dynamo-lifted SymInt placeholder). The axis is the main
+  // case (ArgMaxV2 dimension / GatherV2 axis / Cumsum axis), but the channel carries any
+  // single symbolic scalar, e.g. a mul_scalar / add_scalar operand.
+  std::string sym_axis;
 };
+
+// Capture a symbolic scalar (a Dynamo-lifted SymInt placeholder or an inline symbolic
+// expression) into the sym_axis channel: axis keeps placeholder 0 and the expression text
+// rides sym_axis so the import side rebuilds a SymbolicVar input instead of failing on an
+// unresolvable name. Only one symbolic scalar can be represented per node; a second symbol
+// keeps the loud unknown_symbol_ failure.
+bool TryCaptureSymAxis(const ir::NodePtr& in, ExportInputs* result) {
+  if (in == nullptr || in->output == nullptr || !in->output->IsSymbol() || result == nullptr ||
+      !result->sym_axis.empty()) {
+    return false;
+  }
+  const auto symbol = in->output->ToSymbol();
+  if (symbol == nullptr) {
+    return false;
+  }
+  result->axis = 0; // placeholder; sym_axis carries the expression
+  result->sym_axis = symbol->ToString();
+  return true;
+}
 
 /**
  * @brief Try to capture int list from tuple.
@@ -588,8 +720,68 @@ ExportInputs CollectFullLikeExportInputs(
       }
       continue;
     }
+    // A symbolic scalar (a Dynamo-lifted SymInt placeholder, e.g. mul_scalar's operand
+    // under dynamic=True) rides the sym_axis channel: the import side rebuilds a
+    // SymbolicVar and the converter refreshes its rank-0 payload per Execute.
+    if (TryCaptureSymAxis(in, &result)) {
+      continue;
+    }
     // Skip dtype / layout / device / pin_memory / memory_format kwargs.
   }
+  return result;
+}
+
+/**
+ * @brief Collect add_scalar / sub_scalar: x to names, other to has_scalar, folding the
+ * trailing aten alpha (default 1) into the scalar so a non-default alpha never drops
+ * silently. A symbolic other (a Dynamo-lifted SymInt placeholder) rides the sym_axis
+ * channel; a symbolic alpha has no channel and keeps the loud unknown_symbol_ failure.
+ */
+ExportInputs CollectAddScalarExportInputs(
+    const ir::NodePtr& node,
+    size_t arg_begin,
+    const std::unordered_map<const ir::Node*, std::string>& name_of) {
+  ExportInputs result;
+  size_t scalar_idx = 0;
+  double alpha = 1.0;
+  for (size_t i = arg_begin; i < node->inputs.size(); ++i) {
+    const auto& in = node->inputs[i];
+    if (in == nullptr || in->output == nullptr) {
+      continue;
+    }
+    auto it = name_of.find(in.get());
+    if (it != name_of.end()) {
+      result.names.push_back(it->second);
+      continue;
+    }
+    if (in->output->IsTensor()) {
+      result.names.push_back("unknown_" + std::to_string(i));
+      continue;
+    }
+    if (in->output->IsDouble() || in->output->IsInt()) {
+      const double value = in->output->IsDouble() ? in->output->ToDouble() : static_cast<double>(in->output->ToInt());
+      if (scalar_idx == 0) {
+        result.has_scalar = true;
+        result.scalar = value;
+      } else {
+        alpha = value;
+      }
+      ++scalar_idx;
+      continue;
+    }
+    if (in->output->IsSymbol()) {
+      // The symbolic operand must be the scalar itself (first scalar slot); anything
+      // later is a symbolic alpha, which cannot be represented.
+      if (scalar_idx == 0 && TryCaptureSymAxis(in, &result)) {
+        ++scalar_idx;
+      } else {
+        result.names.push_back("unknown_symbol_" + std::to_string(i));
+      }
+      continue;
+    }
+    // Skip dtype / layout / device / pin_memory / memory_format kwargs.
+  }
+  result.scalar *= alpha;
   return result;
 }
 
@@ -693,6 +885,43 @@ ExportInputs CollectTopkExportInputs(
 }
 
 /**
+ * @brief Collect argsort: IR order is x, stable(Bool), dim(Int), descending(Bool).
+ * Export axis=dim and bool_list=[stable, descending] in IR order; the import side
+ * rebuilds the bools so the catalog CaptureAttr rules consume them in declaration
+ * order (the generic path would skip the bools and silently sort ascending).
+ */
+ExportInputs CollectArgsortExportInputs(
+    const ir::NodePtr& node,
+    size_t arg_begin,
+    const std::unordered_map<const ir::Node*, std::string>& name_of) {
+  ExportInputs result;
+  for (size_t i = arg_begin; i < node->inputs.size(); ++i) {
+    const auto& in = node->inputs[i];
+    if (in == nullptr || in->output == nullptr) {
+      continue;
+    }
+    auto it = name_of.find(in.get());
+    if (it != name_of.end()) {
+      result.names.push_back(it->second);
+      continue;
+    }
+    if (in->output->IsTensor()) {
+      result.names.push_back("unknown_" + std::to_string(i));
+      continue;
+    }
+    if (in->output->IsBool()) {
+      result.bool_list.push_back(in->output->ToBool() ? 1 : 0);
+      continue;
+    }
+    if (in->output->IsInt()) {
+      result.axis = in->output->ToInt();
+      continue;
+    }
+  }
+  return result;
+}
+
+/**
  * @brief Collect inputs for export.
  */
 /**
@@ -763,6 +992,13 @@ ExportInputs CollectSelectViewExportInputs(
     }
     auto it = name_of.find(in.get());
     if (it != name_of.end()) {
+      // A named SymInt placeholder is the dim: capture it on the sym_axis channel
+      // instead of wiring a bogus tensor-input name.
+      if (in->output != nullptr && in->output->IsSymbol()) {
+        if (TryCaptureSymAxis(in, &result)) {
+          continue;
+        }
+      }
       result.names.push_back(it->second);
       continue;
     }
@@ -770,6 +1006,14 @@ ExportInputs CollectSelectViewExportInputs(
       ints.push_back(in->output->ToInt());
       continue;
     }
+    (void)TryCaptureSymAxis(in, &result);
+  }
+  if (!result.sym_axis.empty()) {
+    // Symbolic dim: a remaining Int is the select index (index_select has none).
+    if (!ints.empty()) {
+      result.int_list = {ints[0]};
+    }
+    return result;
   }
   // Expected: dim, index.
   if (ints.size() >= 2U) {
@@ -993,6 +1237,10 @@ bool TryCollectSpecialExportInputs(
     *out = CollectTopkExportInputs(node, arg_begin, name_of);
     return true;
   }
+  if (op_name == "argsort") {
+    *out = CollectArgsortExportInputs(node, arg_begin, name_of);
+    return true;
+  }
   if (op_name == "constant_pad_nd") {
     *out = CollectConstantPadExportInputs(node, arg_begin, name_of);
     return true;
@@ -1000,6 +1248,11 @@ bool TryCollectSpecialExportInputs(
   if (op_name == "full_like" || op_name == "mul_scalar") {
     // Fills / Muls: scalar → has_scalar (REQUIRED_ATTR value); skip Int→axis.
     *out = CollectFullLikeExportInputs(node, arg_begin, name_of);
+    return true;
+  }
+  if (op_name == "add_scalar" || op_name == "sub_scalar") {
+    // Adds / Subs: scalar → has_scalar, trailing alpha folded in; symbolic → sym_axis.
+    *out = CollectAddScalarExportInputs(node, arg_begin, name_of);
     return true;
   }
   if (op_name == "reduce_sum") {
@@ -1010,7 +1263,9 @@ bool TryCollectSpecialExportInputs(
     *out = CollectSliceViewExportInputs(node, arg_begin, op_name, name_of);
     return true;
   }
-  if (op_name == "select_view" || op_name == "select") {
+  if (op_name == "select_view" || op_name == "select" || op_name == "index_select") {
+    // index_select shares the shape: tensors (x, indices) go to names, the lone Int
+    // dim becomes axis. The generic path would drop the Int silently.
     *out = CollectSelectViewExportInputs(node, arg_begin, name_of);
     return true;
   }
@@ -1042,6 +1297,17 @@ ExportInputs CollectGenericExportInputs(
     // Named producers (including Tuple-output ops such as topk) are graph edges.
     auto named = name_of.find(in.get());
     if (named != name_of.end()) {
+      // A named SymInt/SymFloat placeholder (a Dynamo-lifted scalar graph input) rides the
+      // sym_axis channel: the import side rebuilds every graph input as a meta tensor,
+      // which would silently turn the scalar into a bogus tensor input. A second symbol
+      // cannot be represented and keeps the loud unresolved-name failure.
+      if (in->output != nullptr && in->output->IsSymbol()) {
+        if (TryCaptureSymAxis(in, &result)) {
+          continue;
+        }
+        result.names.push_back("unknown_symbol_" + std::to_string(i));
+        continue;
+      }
       result.names.push_back(named->second);
       continue;
     }
@@ -1054,7 +1320,13 @@ ExportInputs CollectGenericExportInputs(
       continue;
     }
     if (in->output != nullptr && in->output->IsInt()) {
+      // Keep the legacy single-Int channel (last write wins) for existing consumers, and
+      // also append to the ordered list so nodes with several Int operands lose none of
+      // them (div_mod_scalar [x, scalar, mode]: axis alone would drop the scalar).
       result.axis = in->output->ToInt();
+      result.extra_ints.push_back(in->output->ToInt());
+      // Index-aligned symbol slot: a literal Int carries an empty entry.
+      result.extra_syms.emplace_back();
       continue;
     }
     // Skip Bool kwargs (e.g. aten.expand implicit=False); GE Expand has only x + shape.
@@ -1062,6 +1334,22 @@ ExportInputs CollectGenericExportInputs(
       continue;
     }
     if (TryCaptureScalar(in->output, &result.has_scalar, &result.scalar)) {
+      continue;
+    }
+    if (in->output != nullptr && in->output->IsSymbol()) {
+      // An inline symbolic scalar (e.g. a closure int that Dynamo lifted to a SymInt
+      // placeholder) rides the sym_axis channel like a named one. A second symbol keeps
+      // the loud unresolved-name failure instead of being silently dropped (the row attr
+      // default would produce wrong numerics).
+      if (TryCaptureSymAxis(in, &result)) {
+        // Mirror the slot into the ordered channel so multi-scalar nodes (arange
+        // [start, limit=s27, delta, dtype]) keep the symbol at its argument position
+        // instead of only in the single-slot sym_axis channel.
+        result.extra_ints.push_back(0);
+        result.extra_syms.push_back(result.sym_axis);
+        continue;
+      }
+      result.names.push_back("unknown_symbol_" + std::to_string(i));
       continue;
     }
     if (in->output == nullptr || !in->output->IsTensor()) {
@@ -1085,7 +1373,15 @@ ExportInputs CollectExportInputs(
 }
 
 bool UsesOrderedArguments(const std::string& op_name) {
-  return op_name == "empty_strided" || op_name == "compiled_kernel_mutation";
+  return op_name == "empty_strided" || op_name == "compiled_kernel_mutation" || op_name == "python_call";
+}
+
+// tuple_getitem index 1 is INT32 only for TopKV2. Fallback tuples reuse the same op.
+bool TopkIndexForceApplies(const ir::NodePtr& node) {
+  if (node == nullptr || node->op != ops::Op_tuple_getitem) {
+    return true;
+  }
+  return !node->inputs.empty() && node->inputs[0] != nullptr && node->inputs[0]->op == ops::Op_topk;
 }
 
 bool IsExportableComputeOutput(const ir::ValuePtr& value) {
@@ -1113,21 +1409,26 @@ bool IsExportableComputeOutput(const ir::ValuePtr& value) {
 void FillMultiOutputMeta(
     const ir::ValuePtr& value,
     std::vector<std::vector<int64_t>>* output_shapes,
+    std::vector<std::vector<std::string>>* output_sym_shapes,
     std::vector<std::string>* output_dtypes,
     const std::string& op_name) {
-  if (value == nullptr || !value->IsTuple() || output_shapes == nullptr || output_dtypes == nullptr) {
+  if (value == nullptr || !value->IsTuple() || output_shapes == nullptr || output_sym_shapes == nullptr ||
+      output_dtypes == nullptr) {
     return;
   }
   const auto& tup = value->ToTuple();
-  if (tup == nullptr || tup->Size() < 2) {
+  if (tup == nullptr || tup->Size() < 1) {
     return;
   }
   output_shapes->clear();
+  output_sym_shapes->clear();
   output_dtypes->clear();
   output_shapes->reserve(tup->Size());
+  output_sym_shapes->reserve(tup->Size());
   output_dtypes->reserve(tup->Size());
   for (size_t i = 0; i < tup->Size(); ++i) {
     output_shapes->push_back(ShapeForExport((*tup)[i]));
+    output_sym_shapes->push_back(SymShapeForExport((*tup)[i]));
     std::string dt = DtypeOfValue((*tup)[i]);
     // GE TopKV2 indices bins are INT32 on this pack; torch meta is often int64.
     if (op_name == "topk" && i == 1) {
@@ -1173,24 +1474,25 @@ void ExportIrComputeOps(
     const auto inputs = UsesOrderedArguments(op_meta.name)
         ? ExportInputs{}
         : CollectExportInputs(node, op_meta.arg_begin, op_meta.name, name_map);
-    const auto arguments = ExportArguments(node, name_map);
+    const auto arguments = ExportArguments(node, op_meta.arg_begin, name_map);
     const auto attrs = ExportAttrs(node);
 
     std::vector<int64_t> shape;
     std::vector<std::string> sym_shape;
     std::string dtype = "float32";
     std::vector<std::vector<int64_t>> output_shapes;
+    std::vector<std::vector<std::string>> output_sym_shapes;
     std::vector<std::string> output_dtypes;
     if (node->output->IsTensor()) {
       shape = ShapeForExport(node->output);
       sym_shape = SymShapeForExport(node->output);
       dtype = DtypeOfValue(node->output);
-      // GE TopKV2 indices: force int32 when exporting getitem(1).
-      if (op_meta.name == "tuple_getitem" && inputs.axis == 1) {
+      // GE TopKV2 indices: force int32 when exporting getitem(1) of a TopKV2 result.
+      if (op_meta.name == "tuple_getitem" && inputs.axis == 1 && TopkIndexForceApplies(node)) {
         dtype = "int32";
       }
     } else {
-      FillMultiOutputMeta(node->output, &output_shapes, &output_dtypes, op_meta.name);
+      FillMultiOutputMeta(node->output, &output_shapes, &output_sym_shapes, &output_dtypes, op_meta.name);
       if (!output_shapes.empty()) {
         shape = output_shapes[0];
         dtype = output_dtypes[0];
@@ -1220,6 +1522,12 @@ void ExportIrComputeOps(
         output_dtypes,
         arguments,
         attrs);
+    out->nodes.back().overload = op_meta.overload;
+    AttachExportedLayout(node->output, &out->nodes.back());
+    out->nodes.back().sym_axis = std::move(inputs.sym_axis);
+    out->nodes.back().extra_ints = std::move(inputs.extra_ints);
+    out->nodes.back().extra_syms = std::move(inputs.extra_syms);
+    out->nodes.back().output_sym_shapes = std::move(output_sym_shapes);
   }
 }
 

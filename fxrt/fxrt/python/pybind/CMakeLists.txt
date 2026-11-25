@@ -31,4 +31,6 @@ add_subdirectory(fxrt)
 # Add fxrt_torch pybind11 sub module
 if(ENABLE_TORCH_FRONT)
     add_subdirectory(fxrt_torch)
+    # ABI=1 fallback bridge for FxConverter (torch/python call entry points).
+    add_subdirectory(fxrt_bridge)
 endif()

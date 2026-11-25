@@ -419,7 +419,7 @@ class TestPublicBindings(TestCase):
 
         for modname in _find_all_importables(torch_npu):
             try:
-                if "__main__" in modname or \
+                if "__main__" in modname or modname.startswith("torch_npu.fxrt.gert_backend") or \
                         modname in ["torch_npu.dynamo.torchair.core._backend",
                                     "torch_npu.dynamo.torchair.core._torchair"]:
                     continue

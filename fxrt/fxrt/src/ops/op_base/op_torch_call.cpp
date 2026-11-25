@@ -418,7 +418,6 @@ void OpTorchCall::ConvertInputsToStack(const std::vector<const ir::Value*>& inpu
 void OpTorchCall::ToFxrtTensor(ir::Value* output, torch::jit::IValue&& ivalue) const {
   CHECK_IF_NULL(output);
   if (ivalue.isTensor() && output->IsTensor()) {
-    auto& tensor = ivalue.toTensor();
     auto& outTensor = output->ToTensor();
     CHECK_IF_NULL(outTensor);
     auto& outTensorStorage = outTensor->GetStorage();
@@ -427,6 +426,7 @@ void OpTorchCall::ToFxrtTensor(ir::Value* output, torch::jit::IValue&& ivalue) c
     // Ref/view output: the runtime has aliased its Storage to the input's (UpdateRefNodeOutputValue +
     // SetOwnsStorage(false)), so refresh the metadata only. Taking ownership again would double-free.
     if (!outTensor->CheckOwnsStorage()) {
+      auto& tensor = ivalue.toTensor();
       RT_VLOG(VL_OPS) << "OpTorchCall: output " << qualifiedOpName_
                       << " does not own storage (ref/view), update metadata only";
       // The ref alias is set up by the runtime (UpdateRefNodeOutputValue aliases the output Storage to the
@@ -448,16 +448,23 @@ void OpTorchCall::ToFxrtTensor(ir::Value* output, torch::jit::IValue&& ivalue) c
       return;
     }
 
+    // A plain output that reuses an input's storage but has no schema ref pair (e.g. a custom op
+    // returning one of its inputs as a saved-for-backward tensor). Taking ownership of that storage
+    // would double-free it, while declaring the alias in the schema makes AOTAutograd functionalization
+    // reject the op entirely. Break the aliasing with a clone so the runtime can own the result safely.
+    {
+      const auto& srcStorage = ivalue.toTensor().storage();
+      if (srcStorage && srcStorage.data() != nullptr &&
+          inputStorageDataPtrs_.count(const_cast<void*>(srcStorage.data())) != 0) {
+        RT_VLOG(VL_OPS) << "OpTorchCall: output " << qualifiedOpName_
+                        << " shares storage with an input but declares no ref pairs; cloning to take ownership";
+        ivalue = ivalue.toTensor().clone();
+      }
+    }
+
+    auto& tensor = ivalue.toTensor();
     auto data_ptr = tensor.storage().set_data_ptr(std::move(c10::DataPtr())); // return the original data ptr.
     auto* data = data_ptr.get();
-    // Safety net: a plain output that reuses an input's storage means the operator really is a ref/view
-    // but did not declare it. Throwing before SetDataPtrFromAten leaves no double-owning Storage behind.
-    if (inputStorageDataPtrs_.count(data) != 0) {
-      RT_GLOG(EXCEPTION) << "OpTorchCall: output " << qualifiedOpName_
-                         << " shares storage with an input but declares no ref pairs. Refusing to take "
-                         << "ownership (would double-free the device memory); the operator should be "
-                         << "recognised as a ref/view or the schema aliased accordingly.";
-    }
     auto deleter = data_ptr.get_deleter();
     auto* data_to_release = data_ptr.release_context();
     outTensorStorage->SetDataPtrFromAten(data, data_to_release, deleter, tensor.storage().nbytes());

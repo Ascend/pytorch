@@ -13,18 +13,25 @@ which the fx backend tries first.
 
 A compiled kernel's index arithmetic is frozen at codegen time against the
 layout its FX node carries, so this module also owns the graph pass that pins
-that layout down -- see :func:`restore_compiled_kernel_arg_layouts_`.
+that layout down -- see :func:`restore_compiled_kernel_arg_layouts_` -- and the
+pass that turns a permuted allocation FXRT cannot serve into plain memory plus a
+view, see :func:`normalize_fresh_allocation_layouts_`.
 """
 
 import importlib
 import os
+from itertools import permutations
 from typing import Any, Dict, List, Optional, Tuple
 
 import torch
+from torch._subclasses.fake_tensor import FakeTensor
 from torch.fx.graph_module import GraphModule
 from torch.fx.node import Argument, Node
 
 from fxrt.ir import Op
+from fxrt.view_offset import (
+    ViewOffsetSemantics, has_absolute_as_strided_offset, set_view_offset_semantics,
+)
 
 _HOP_NAME = "compiled_kernel_wrapper_mutation"
 _HOP_MODULE = "fxrt.compiled_kernel_hop"
@@ -260,6 +267,15 @@ def _same_extent(lhs, rhs) -> bool:
     return bool(lhs_expr == rhs_expr)
 
 
+def _same_extents(lhs, rhs) -> bool:
+    """Compare two sizes / strides lists element by element, guard-free."""
+    lhs = list(lhs)
+    rhs = list(rhs)
+    return len(lhs) == len(rhs) and all(
+        _same_extent(left, right) for left, right in zip(lhs, rhs)
+    )
+
+
 def _contiguous_strides(sizes: List[Any]) -> List[Any]:
     """Strides a freshly allocated contiguous buffer of this shape would have."""
     strides = [1] * len(sizes)
@@ -284,6 +300,410 @@ def _layout_is_plain(value: torch.Tensor) -> bool:
         if not _same_extent(actual, wanted):
             return False
     return True
+
+
+_STRIDED_ALLOC_NAMES = frozenset({
+    "empty_strided",
+    "new_empty_strided",
+})
+
+_FRESH_ALLOC_NAMES = frozenset({
+    "empty",
+    "empty_strided",
+    "empty_like",
+    "new_empty",
+    "new_empty_strided",
+    "zeros",
+    "zeros_like",
+    "full",
+    "full_like",
+})
+
+# Ops that only re-index the buffer they are handed, so their own metadata can be
+# reproduced as an as_strided over that buffer.
+_REINDEX_NAMES = frozenset({
+    "reshape",
+    "view",
+    "_unsafe_view",
+    "flatten",
+    "unflatten",
+    "squeeze",
+    "unsqueeze",
+    "permute",
+    "transpose",
+    "t",
+    "select",
+    "narrow",
+    "slice",
+    "alias",
+    "detach",
+    "as_strided",
+})
+
+# Those of them that materialize a copy whenever the source layout cannot be
+# viewed as the requested shape.
+_COPYING_REINDEX_NAMES = frozenset({
+    "reshape",
+    "view",
+    "_unsafe_view",
+    "flatten",
+    "unflatten",
+})
+
+
+def _target_name(target) -> str:
+    """Short operator name of an FX call target (torch function or OpOverload)."""
+    schema = getattr(target, "_schema", None)
+    qualified = getattr(schema, "name", None)
+    if isinstance(qualified, str):
+        # OpOverload: "aten::reshape", where str(target) would only say "default".
+        return qualified.rsplit("::", 1)[-1]
+    name = getattr(target, "__name__", None)
+    if isinstance(name, str) and name.isidentifier():
+        return name
+    return str(target).rsplit(".", 1)[-1]
+
+
+def _is_fresh_allocation(node: Node) -> bool:
+    """Whether the node allocates the buffer it produces, so nothing else aliases it."""
+    if node.op != "call_function":
+        return False
+    return _target_name(node.target) in _FRESH_ALLOC_NAMES
+
+
+def _is_dense_permutation(value: torch.Tensor) -> bool:
+    """Whether the layout is a dense permutation of a contiguous layout.
+
+    Such a buffer covers exactly ``numel()`` elements, so a plain contiguous
+    allocation of the same shape is large enough to be viewed with its strides.
+    """
+    if not _same_extent(value.storage_offset(), 0):
+        return False
+    sizes = list(value.shape)
+    strides = list(value.stride())
+    live = [dim for dim in range(len(sizes)) if not _same_extent(sizes[dim], 1)]
+    if not live:
+        return True
+    for order in permutations(live):
+        expected = 1
+        for dim in order:
+            if not _same_extent(strides[dim], expected):
+                break
+            expected = expected * sizes[dim]
+        else:
+            return True
+    return False
+
+
+def _contiguous_layout(value: torch.Tensor) -> bool:
+    """Whether a contiguous allocation would address `value` identically.
+
+    Symbolic extents are compared as expressions, so a buffer whose shape is
+    only known at run time is recognized as plain instead of being rewritten
+    into an allocation plus a redundant view.
+    """
+    return _layout_is_plain(value)
+
+
+def _is_strided_empty(target) -> bool:
+    """Whether the target spells an allocation's layout out as a stride list."""
+    return _target_name(target) == "empty_strided"
+
+
+def _layout_extents(value: torch.Tensor):
+    """The (sizes, strides) a view of `value` has to spell out."""
+    return list(value.shape), list(value.stride())
+
+
+def _extent_arg_value(arg):
+    """The size / stride a graph argument stands for."""
+    return _node_meta_value(arg) if isinstance(arg, Node) else arg
+
+
+def _strides_are_canonical(args, strides) -> bool:
+    """Whether a node's stored stride arguments already spell `strides` out."""
+    if not isinstance(args, (list, tuple)) or len(args) != len(strides):
+        return False
+    return all(
+        _same_extent(_extent_arg_value(arg), stride)
+        for arg, stride in zip(args, strides)
+    )
+
+
+def _layout_args(extents, symbols: Dict[str, Node]) -> List[Any]:
+    """Spell sizes / strides out as arguments for a graph node.
+
+    A symbolic extent is passed as the node that produces it, which is what an
+    FXRT executor resolves; when no node produces that expression the SymInt is
+    passed through as-is, which the symbolic shape manager resolves from the
+    expression itself.
+    """
+    args: List[Any] = []
+    for extent in extents:
+        if isinstance(extent, torch.SymInt):
+            expr = extent.node.expr
+            if expr.is_Integer:
+                args.append(int(expr))
+                continue
+            node = symbols.get(str(expr))
+            if node is not None:
+                args.append(node)
+                continue
+        args.append(extent)
+    return args
+
+
+def _plain_meta(value: torch.Tensor, sizes) -> torch.Tensor:
+    """Metadata of a freshly allocated contiguous buffer of `sizes`.
+
+    A fake tensor stays fake, so the example describes a buffer of its own
+    instead of aliasing the tensor it was derived from. Symbolic extents are
+    materialized inside the tensor's own fake mode, since the device dispatcher
+    only accepts extents it can turn into an IntArrayRef.
+    """
+    strides = _contiguous_strides(list(sizes))
+    if isinstance(value, FakeTensor):
+        with value.fake_mode:
+            return torch.empty_strided(
+                list(sizes), strides, dtype=value.dtype, device=value.device
+            )
+    return value.as_strided(list(sizes), strides, 0)
+
+
+def _set_meta_value(node: Node, value) -> None:
+    """Store `value` where the backends look a node's example tensor up."""
+    stored = False
+    for key in ("example_value", "val"):
+        if key in node.meta:
+            node.meta[key] = value
+            stored = True
+    if not stored:
+        node.meta["example_value"] = value
+
+
+def _stamp(node: Node, source: Node, value) -> None:
+    """Give a freshly emitted node the metadata of the node it replaces."""
+    node.meta.update(source.meta)
+    _set_meta_value(node, value)
+
+
+def _mark_absolute_storage_offset(node: Node) -> Node:
+    """Declare that `node`'s offset addresses a root buffer's storage directly.
+
+    The adapter spells out exactly the layout its fake tensor reports: the offset
+    is `Tensor.storage_offset()`, i.e. absolute in the storage of a base it
+    validated to start at element 0 (or a feed whose storage origin FXRT already
+    tracks). Inductor's wrapper, by contrast, emits offsets relative to the
+    immediate input and marks those nodes itself; copying the replaced node's
+    provenance would therefore misclassify this call. The converter classifies
+    host-graph views from this metadata and rejects an unclassified one, so the
+    absolute contract has to be restated on every node this adapter emits.
+    """
+    return set_view_offset_semantics(node, ViewOffsetSemantics.ABSOLUTE)
+
+
+def _as_strided_on(gm: GraphModule, base: Node, sizes, strides, offset,
+                   source: Node, value) -> Node:
+    """Emit an `as_strided` over `base` that carries `value` as its example."""
+    node = gm.graph.call_function(torch.as_strided, args=(base, sizes, strides, offset))
+    _stamp(node, source, value)
+    return _mark_absolute_storage_offset(node)
+
+
+def _reindex_relation(candidate: Node, holder_value: torch.Tensor) -> str:
+    """How `candidate` relates to the buffer its producer holds.
+
+    ``"view"`` when the node only re-indexes that buffer, ``"copy"`` when the
+    node materializes the data (a reshape of a layout it cannot view), and
+    ``""`` when the node is not a pure re-index of it.
+    """
+    if candidate.op != "call_function" or _target_name(candidate.target) not in _REINDEX_NAMES:
+        return ""
+    if not candidate.args or not isinstance(candidate.args[0], Node):
+        return ""
+    value = _node_meta_value(candidate)
+    if not isinstance(value, torch.Tensor):
+        return ""
+    if not isinstance(holder_value, torch.Tensor):
+        return ""
+    if _shares_storage(value, holder_value):
+        return "view"
+    if not _same_extent(value.storage_offset(), 0):
+        return ""
+    if not _same_extent(value.numel(), holder_value.numel()):
+        return ""
+    name = _target_name(candidate.target)
+    if name not in _COPYING_REINDEX_NAMES:
+        # permute / transpose / slice / squeeze & co. are views by construction.
+        return "view"
+    # Inductor rebuilds metadata instead of tracing views, so ask PyTorch what
+    # this shape does to the producer's layout.
+    try:
+        probe = holder_value.reshape(list(value.shape))
+    except Exception:  # pylint: disable=broad-exception-caught
+        return ""
+    if _shares_storage(probe, holder_value):
+        return "view" if _same_extents(probe.stride(), value.stride()) else ""
+    if (
+        _same_extents(probe.shape, value.shape)
+        and _same_extents(probe.stride(), _contiguous_strides(list(value.shape)))
+        and _same_extent(probe.storage_offset(), 0)
+    ):
+        return "copy"
+    return ""
+
+
+def _align_views_with_alloc(gm: GraphModule, alloc: Node, holders: List[Node]) -> int:
+    """Re-root the views of a permuted buffer on its plain allocation.
+
+    A view of the permuted buffer is folded into an `as_strided` over the plain
+    allocation -- identical address arithmetic, without the layout that FXRT's
+    View op refuses to read. A reshape that PyTorch would copy stays a reshape,
+    but its input is made contiguous first, which is what its lowering wants and
+    what the eager result is anyway.
+    """
+    touched = 0
+    seen = set()
+    pending = list(holders)
+    while pending:
+        holder = pending.pop()
+        if holder in seen:
+            continue
+        seen.add(holder)
+        holder_value = _node_meta_value(holder)
+        if not isinstance(holder_value, torch.Tensor):
+            continue
+        for user in list(holder.users):
+            if not user.args or user.args[0] is not holder:
+                continue
+            relation = _reindex_relation(user, holder_value)
+            if not relation:
+                continue
+            value = _node_meta_value(user)
+            if relation == "view":
+                sizes, strides = _layout_extents(value)
+                symbols = _symbol_nodes(gm)
+                args = (
+                    _layout_args(sizes, symbols),
+                    _layout_args(strides, symbols),
+                )
+                with gm.graph.inserting_before(user):
+                    replacement = _as_strided_on(
+                        gm, alloc, args[0], args[1], 0, user, value)
+                user.replace_all_uses_with(replacement)
+                gm.graph.erase_node(user)
+                pending.append(replacement)
+            else:
+                with gm.graph.inserting_before(user):
+                    copied = gm.graph.call_function(
+                        torch.ops.aten.clone.default,
+                        args=(holder,),
+                        kwargs={"memory_format": torch.contiguous_format},
+                    )
+                # The copy keeps the buffer's shape and becomes contiguous.
+                _stamp(copied, user, _plain_meta(holder_value, holder_value.shape))
+                user.replace_input_with(holder, copied)
+            touched += 1
+    return touched
+
+
+def normalize_fresh_allocation_layouts_(gm: GraphModule) -> int:
+    """Make every strided allocation FXRT can actually serve.
+
+    FXRT only allocates contiguous buffers and rejects an ``empty_strided`` that
+    asks for anything else. Inductor does emit permuted output layouts -- a
+    fused kernel writing a matmul result straight into the transposed buffer,
+    for one -- so the buffer is allocated plain and the layout is spelled out as
+    an ``as_strided`` where it is consumed: at the compiled-kernel boundary, and
+    folded into every view that follows, because FXRT's View op cannot read a
+    non-contiguous input.
+
+    Only dense permutations are rewritten -- symbolic extents included, since a
+    permutation covers exactly ``numel()`` elements no matter what the extents
+    are -- so the contiguous allocation is always large enough.
+
+    Args:
+        gm: The host FX graph, modified in place.
+
+    Returns:
+        The number of allocations rewritten.
+    """
+    rewritten = 0
+    symbols: Optional[Dict[str, Node]] = None
+    for node in list(gm.graph.nodes):
+        if node.op != "call_function" or _target_name(node.target) not in _STRIDED_ALLOC_NAMES:
+            continue
+        value = _node_meta_value(node)
+        if not isinstance(value, torch.Tensor):
+            continue
+        if _contiguous_layout(value):
+            # The buffer is already addressable, but inductor spells its layout
+            # out with ``empty_strided``. FXRT's converter only accepts strides
+            # it can prove contiguous at conversion time, which a stride that
+            # still carries a symbol is not, so such a buffer is allocated
+            # without spelling its strides out at all. Strides that only differ
+            # in a length-1 dimension never reach the address arithmetic and are
+            # simply restated.
+            if len(node.args) < 2:
+                continue
+            contiguous = _contiguous_strides(list(value.shape))
+            if not all(isinstance(extent, int) for extent in contiguous):
+                if not _is_strided_empty(node.target):
+                    continue
+                node.target = torch.empty
+                node.args = (node.args[0],) + tuple(node.args[2:])
+                rewritten += 1
+                continue
+            if _strides_are_canonical(node.args[1], contiguous):
+                continue
+            if symbols is None:
+                symbols = _symbol_nodes(gm)
+            node.args = (
+                node.args[0], _layout_args(contiguous, symbols)
+            ) + tuple(node.args[2:])
+            rewritten += 1
+            continue
+        if not _is_dense_permutation(value) or len(node.args) < 2:
+            continue
+        sizes_arg, strides_arg = node.args[0], node.args[1]
+        sizes = list(value.shape)
+        contiguous = _contiguous_strides(sizes)
+        plain_value = value.as_strided(sizes, contiguous, 0)
+        view_value = plain_value.as_strided(sizes, list(value.stride()), 0)
+        if symbols is None:
+            symbols = _symbol_nodes(gm)
+        with gm.graph.inserting_before(node):
+            alloc = gm.graph.call_function(
+                node.target,
+                args=(sizes_arg, _layout_args(contiguous, symbols)) + tuple(node.args[2:]),
+                kwargs=node.kwargs,
+            )
+        _stamp(alloc, node, plain_value)
+        with gm.graph.inserting_before(node):
+            view = _as_strided_on(gm, alloc, sizes_arg, strides_arg, 0, node, view_value)
+        # Consumers first, then whatever is left of the buffer node becomes the
+        # explicit layout view the compiled kernels are handed.
+        _align_views_with_alloc(gm, alloc, [node])
+        node.replace_all_uses_with(view)
+        gm.graph.erase_node(node)
+        rewritten += 1
+
+    if rewritten:
+        gm.graph.lint()
+        gm.recompile()
+    return rewritten
+
+
+def _replace_uses_except(arg: Node, replacement: Node) -> None:
+    """Point every user of `arg` but the inserted view itself at `replacement`.
+
+    ``Node.replace_all_uses_with`` would also rewrite the view that roots at
+    `arg`, making the node its own argument.
+    """
+    for user in list(arg.users):
+        if user is replacement:
+            continue
+        user.replace_input_with(arg, replacement)
 
 
 def _view_chain_base(arg: Node, value: torch.Tensor) -> Tuple[Node, List[Node]]:
@@ -320,6 +740,10 @@ def _as_graph_extent(value, symbols: Dict[str, Node], what: str, arg: Node):
     """Turn a size / stride / offset into something an FX node can take."""
     if isinstance(value, int):
         return value
+    if isinstance(value, Node):
+        # Already a graph node computing this extent (e.g. a shared ``32*s64``
+        # symint node reused as a stride); use it as-is.
+        return value
     if isinstance(value, torch.SymInt):
         expr = value.node.expr
         if expr.is_Integer:
@@ -338,22 +762,98 @@ def _as_graph_extent(value, symbols: Dict[str, Node], what: str, arg: Node):
     )
 
 
-def _rewrite_arg_to_as_strided(
-        gm: GraphModule, arg: Node, value: torch.Tensor, symbols: Dict[str, Node]
-) -> Node:
-    """Insert an as_strided that reproduces `value`'s layout on its base buffer."""
-    base, _ = _view_chain_base(arg, value)
-    if base is arg:
-        raise RuntimeError(
-            f"Compiled-kernel arg '{arg.name}' needs the layout "
-            f"stride={tuple(value.stride())} offset={value.storage_offset()}, but it is "
-            f"produced directly by '{arg.target}' rather than by a view of another "
-            f"buffer, and FXRT hands a freshly produced tensor to the kernel contiguous. "
-            f"The kernel would index memory that is not laid out the way it expects."
-        )
+_ALLOC_TARGETS = (
+    torch.ops.aten.empty_strided.default,
+    torch.ops.aten.empty_strided,
+    torch.empty_strided,
+)
 
-    base_value = _node_meta_value(base)
-    if not isinstance(base_value, torch.Tensor) or not _same_extent(base_value.storage_offset(), 0):
+
+def _is_dense_direct_alloc(node: Node, value: torch.Tensor) -> bool:
+    """Whether `node` directly allocates a dense-but-non-contiguous buffer.
+
+    FXRT allocates contiguous, so an ``empty_strided`` whose strides are not
+    contiguous cannot be lowered as-is. When the layout is still dense and
+    non-overlapping, it addresses exactly as many elements as a contiguous
+    buffer of the same shape, so it can be reproduced as a contiguous
+    allocation viewed with those strides (see :func:`_synthesize_contiguous_base`).
+    A layout that is not dense (gaps, overlaps) has no such equivalent and is
+    left for the caller to reject.
+    """
+    if node.op != "call_function" or node.target not in _ALLOC_TARGETS:
+        return False
+    from torch._prims_common import (  # pylint: disable=import-outside-toplevel
+        is_non_overlapping_and_dense_or_false,
+    )
+    return bool(is_non_overlapping_and_dense_or_false(value))
+
+
+def _synthesize_contiguous_base(
+        gm: GraphModule, arg: Node, value: torch.Tensor, symbols: Dict[str, Node]
+) -> Tuple[Node, torch.Tensor]:
+    """Insert a contiguous ``empty_strided`` of `value`'s shape to root a view on.
+
+    The allocation mirrors the original node's ``aten.empty_strided`` call -- same
+    op and same kwargs (notably ``device``, whose spelling FXRT's device
+    resolution is sensitive to: the inductor nodes carry ``device='npu'`` as a
+    bare string, and reconstructing a ``torch.device('npu', 0)`` instead makes
+    FXRT fall back to CPU) -- only with contiguous strides. ``_as_graph_extent``
+    turns the (possibly symbolic) sizes and the contiguous strides derived from
+    them into graph-visible extents. The returned fake lets the caller express
+    the view as a genuine as_strided of this base, keeping storage identity.
+    """
+    sizes = [_as_graph_extent(dim, symbols, "size", arg) for dim in value.shape]
+    base_fake = value.new_empty(value.shape)  # contiguous: offset 0, dense strides
+    cstrides = [_as_graph_extent(st, symbols, "stride", arg) for st in base_fake.stride()]
+    kwargs = dict(arg.kwargs) if arg.op == "call_function" else {}
+    kwargs.setdefault("dtype", value.dtype)
+    kwargs.setdefault("device", value.device)
+    with gm.graph.inserting_after(arg):
+        base = gm.graph.call_function(
+            torch.ops.aten.empty_strided.default, args=(sizes, cstrides), kwargs=kwargs,
+        )
+    base.meta["val"] = base_fake
+    base.meta["example_value"] = base_fake
+    return base, base_fake
+
+
+def _rewrite_arg_to_as_strided(
+        gm: GraphModule, arg: Node, value: torch.Tensor, symbols: Dict[str, Node],
+        *, preserve_feed_offsets: bool = False,
+) -> Node:
+    """Insert an as_strided that reproduces `value`'s layout on a base buffer.
+
+    When `arg` is a view of another buffer, the as_strided roots at that buffer.
+    When `arg` is produced directly by a dense ``empty_strided`` allocation,
+    there is no such buffer, so a contiguous one of the same extent is
+    synthesized and the layout expressed as a view over it. A direct allocation
+    whose layout is not dense cannot be reproduced this way and is rejected.
+    """
+    base, _ = _view_chain_base(arg, value)
+    anchor = arg
+    synthesized_base_fake = None
+    self_rooted = base is arg
+    # A placeholder is not produced by FXRT: it arrives from the caller with its
+    # true (guarded) layout, so re-root the as_strided on the placeholder itself
+    # (an identity view that redeclares the layout the kernel was built for).
+    if self_rooted and arg.op != "placeholder":
+        if not _is_dense_direct_alloc(arg, value):
+            raise RuntimeError(
+                f"Compiled-kernel arg '{arg.name}' needs the layout "
+                f"stride={tuple(value.stride())} offset={value.storage_offset()}, but it is "
+                f"produced directly by '{arg.target}' rather than by a view of another "
+                f"buffer, and its layout is not dense, so FXRT cannot reproduce it on a "
+                f"contiguous allocation. The kernel would index memory that is not laid "
+                f"out the way it expects."
+            )
+        base, synthesized_base_fake = _synthesize_contiguous_base(gm, arg, value, symbols)
+        anchor = base
+
+    base_value = value if self_rooted else _node_meta_value(base)
+    feed_root = base.op == "placeholder"
+    if not self_rooted and not (preserve_feed_offsets and feed_root) and (
+            not isinstance(base_value, torch.Tensor)
+            or not _same_extent(base_value.storage_offset(), 0)):
         raise RuntimeError(
             f"Compiled-kernel arg '{arg.name}' roots at '{base.name}', which does not start "
             f"at the beginning of its storage; as_strided composes storage offsets, so the "
@@ -362,14 +862,35 @@ def _rewrite_arg_to_as_strided(
 
     sizes = [_as_graph_extent(dim, symbols, "size", arg) for dim in value.shape]
     strides = [_as_graph_extent(dim, symbols, "stride", arg) for dim in value.stride()]
-    offset = _as_graph_extent(value.storage_offset(), symbols, "storage offset", arg)
+    # Converter feeds use storage-base pointers plus a live offset endpoint.
+    # Express an inherited view as its delta from the *sampled feed*, so the
+    # current Execute's origin replaces that sample rather than adding to it.
+    # Explicit public absolute views terminate this inheritance.
+    feed_relative = preserve_feed_offsets and feed_root and not has_absolute_as_strided_offset(arg)
+    storage_offset = value.storage_offset()
+    if feed_relative:
+        if not isinstance(base_value, torch.Tensor):
+            raise RuntimeError(f"Compiled-kernel arg '{arg.name}' has no feed layout metadata")
+        storage_offset = storage_offset - base_value.storage_offset()
+    offset = _as_graph_extent(storage_offset, symbols, "storage offset", arg)
 
-    # Right after the node it replaces, so every user of that node -- which all
-    # come later -- can be moved across without breaking topological order.
-    with gm.graph.inserting_after(arg):
+    # Right after the node it roots at, so every later user can move across
+    # without breaking topological order.
+    with gm.graph.inserting_after(anchor):
         replacement = gm.graph.call_function(torch.as_strided, args=(base, sizes, strides, offset))
-    # Same tensor, reached a different way: it carries the same metadata.
     replacement.meta.update(arg.meta)
+    set_view_offset_semantics(
+        replacement, ViewOffsetSemantics.FEED_RELATIVE if feed_relative else ViewOffsetSemantics.ABSOLUTE
+    )
+    if synthesized_base_fake is not None:
+        # The view must share the synthesized base's storage, not the original
+        # allocation's, so a later pass that re-walks this node (e.g. when the
+        # buffer feeds a second kernel) can trace it back to the contiguous base.
+        view_fake = synthesized_base_fake.as_strided(
+            value.shape, value.stride(), value.storage_offset()
+        )
+        replacement.meta["val"] = view_fake
+        replacement.meta["example_value"] = view_fake
     return replacement
 
 
@@ -380,7 +901,114 @@ def _erase_unused_view_nodes(gm: GraphModule, candidates) -> None:
             gm.graph.erase_node(node)
 
 
-def restore_compiled_kernel_arg_layouts_(gm: GraphModule) -> int:
+def _flat_extent(sizes, strides, symbols, node):
+    """Element count a (sizes, strides) layout can address: sum((size-1)*stride)+1.
+
+    A layout's reachable offsets are exactly the multiples-of-stride grid up to this
+    count, so a contiguous allocation of this many elements always covers it --
+    whatever the strides are, overlapping or not. Sizes and strides may both be
+    symbolic (graph extents), where the arithmetic is carried by SymInt.
+    """
+    def _extent(value, what):
+        if isinstance(value, int):
+            return value
+        return _as_graph_extent(value, symbols, what, node)
+
+    total = 1
+    for dim, stride in zip(sizes, strides):
+        total = total + (_extent(dim, "size") - 1) * _extent(stride, "stride")
+    return total
+
+
+def _has_symbolic(values) -> bool:
+    """Whether an extent list carries a symbolic value (SymInt or a computing node)."""
+    return any(isinstance(v, (torch.SymInt, Node)) for v in values)
+
+
+def _rewrite_noncontiguous_empty_strided_(gm: GraphModule) -> int:
+    """Express every symbolic or non-contiguous ``empty_strided`` as alloc + as_strided.
+
+    FXRT's own ``empty_strided`` only allocates contiguous layouts, and the converter
+    can only prove contiguity for concrete strides. A symbolic stride such as
+    ``32*s64`` *is* contiguous, but the converter compares expression trees rather
+    than proving them equal, so it rejects it. Rewriting keeps symbolic
+    ``empty_strided`` out of the converter entirely: the strides move onto an
+    ``as_strided``, which the converter does lower symbolically.
+
+    Two shapes of rewrite, chosen by what the layout actually is:
+
+    * Dense/contiguous (``_layout_is_plain``) -- allocate ``empty(sizes)``, whose
+      contiguous strides are exactly the ones needed, and view it with the original
+      strides. No stride arithmetic at all, so symbolic sizes and strides both work.
+    * Non-contiguous with concrete sizes and strides -- allocate the flat element
+      count the layout addresses (see :func:`_flat_extent`) and view it.
+
+    Anything else (symbolic *and* non-contiguous) is left for the caller to reject:
+    its flat extent would need symbolic stride arithmetic the graph cannot express.
+    """
+    symbols = None
+    rewritten = 0
+    for node in list(gm.graph.nodes):
+        if node.op != "call_function" or node.target not in _ALLOC_TARGETS:
+            continue
+        value = _node_meta_value(node)
+        if not isinstance(value, torch.Tensor):
+            continue
+        args = node.args
+        if len(args) < 2 or not isinstance(args[0], (list, tuple)) or not isinstance(args[1], (list, tuple)):
+            continue
+        sizes, strides = list(args[0]), list(args[1])
+        if not sizes or len(sizes) != len(strides):
+            continue
+        plain = _layout_is_plain(value)
+        symbolic = _has_symbolic(sizes) or _has_symbolic(strides)
+        if plain and not _has_symbolic(strides):
+            # Concrete contiguous layout: FXRT allocates this natively and the
+            # converter proves it. Symbolic sizes are valid when the contiguous strides
+            # remain concrete, so keep those allocations native too.
+            continue
+        if plain:
+            alloc_sizes = sizes
+        elif not symbolic:
+            if symbols is None:
+                symbols = _symbol_nodes(gm)
+            alloc_sizes = [_flat_extent(sizes, strides, symbols, node)]
+        else:
+            continue  # symbolic non-contiguous: needs symbolic stride arithmetic.
+
+        kwargs = dict(node.kwargs)
+        kwargs.setdefault("dtype", value.dtype)
+        kwargs.setdefault("device", value.device)
+        # Fake for the base must be contiguous with the allocation's own shape. In the
+        # plain case that shape is value's (a symbolic graph extent, not an int tuple),
+        # so build it from `value` rather than from the node args.
+        base_fake = value.new_empty(value.shape) if plain else value.new_empty(tuple(alloc_sizes))
+        with gm.graph.inserting_before(node):
+            base = gm.graph.call_function(torch.ops.aten.empty.memory_format, args=(alloc_sizes,), kwargs=kwargs)
+            base.meta["val"] = base_fake
+            base.meta["example_value"] = base_fake
+            view = gm.graph.call_function(
+                torch.ops.aten.as_strided.default,
+                args=(base, tuple(sizes), tuple(strides), value.storage_offset()),
+            )
+        view_fake = base_fake.as_strided(value.shape, value.stride(), value.storage_offset())
+        view.meta["val"] = view_fake
+        view.meta["example_value"] = view_fake
+        _mark_absolute_storage_offset(view)
+        node.replace_all_uses_with(view)
+        gm.graph.erase_node(node)
+        rewritten += 1
+    if rewritten:
+        gm.graph.lint()
+        gm.recompile()
+    return rewritten
+    if rewritten:
+        gm.graph.lint()
+        gm.recompile()
+    return rewritten
+
+
+def restore_compiled_kernel_arg_layouts_(gm: GraphModule, *, preserve_feed_offsets: bool = False) -> int:
     """Give every compiled kernel its arguments in the layout it was built for.
 
     A compiled kernel's index arithmetic is frozen against the layout the FX node
@@ -394,12 +1022,17 @@ def restore_compiled_kernel_arg_layouts_(gm: GraphModule) -> int:
 
     Args:
         gm: The host FX graph, modified in place.
+        preserve_feed_offsets: The converter supplies feed storage-base pointers
+            and a separate live origin. Preserve that contract at creation;
+            the basic runtime retains its existing tensor argument contract.
 
     Returns:
         The number of arguments rewritten.
     """
     symbols: Optional[Dict[str, Node]] = None
     bypassed = set()
+    stale_allocs = []
+    created = set()
     rewritten = 0
 
     for node in list(gm.graph.nodes):
@@ -410,6 +1043,11 @@ def restore_compiled_kernel_arg_layouts_(gm: GraphModule) -> int:
         for index, arg in enumerate(hop_args):
             if not isinstance(arg, Node):
                 continue
+            # A replacement this pass already synthesized is correct by
+            # construction (a view rooted at a contiguous base); re-walking it
+            # would needlessly nest another as_strided.
+            if arg in created:
+                continue
             value = _node_meta_value(arg)
             if not isinstance(value, torch.Tensor) or _layout_is_plain(value):
                 continue
@@ -417,23 +1055,35 @@ def restore_compiled_kernel_arg_layouts_(gm: GraphModule) -> int:
             if symbols is None:
                 symbols = _symbol_nodes(gm)
             _, stepped = _view_chain_base(arg, value)
-            replacement = _rewrite_arg_to_as_strided(gm, arg, value, symbols)
+            # A dense direct allocation is rewritten into a contiguous base plus
+            # a view; the original empty_strided node is then dead and must not
+            # survive to be lowered (FXRT's empty_strided rejects its stride).
+            direct_alloc = _is_dense_direct_alloc(arg, value)
+            replacement = _rewrite_arg_to_as_strided(
+                gm, arg, value, symbols, preserve_feed_offsets=preserve_feed_offsets
+            )
+            created.add(replacement)
 
             if index in mutated_arg_indices:
                 # The lowering rebinds a mutated arg's node to the kernel op so
                 # everything downstream reads what the kernel wrote. Move every
                 # user across, or the ones left behind would read the buffer as
                 # it was before the launch.
-                arg.replace_all_uses_with(replacement)
+                _replace_uses_except(arg, replacement)
             else:
                 args = list(node.kwargs.get("args"))
                 args[index] = replacement
                 node.kwargs = {**node.kwargs, "args": tuple(args)}
 
+            if direct_alloc:
+                stale_allocs.append(arg)
             bypassed.update(stepped)
             rewritten += 1
 
     if rewritten:
+        for alloc in dict.fromkeys(stale_allocs):
+            if not alloc.users:
+                gm.graph.erase_node(alloc)
         _erase_unused_view_nodes(gm, bypassed)
         gm.graph.lint()
         gm.recompile()
@@ -532,3 +1182,66 @@ def lower_compiled_kernel_autofuse_node(
         output_value = sym_mgr.from_torch_with_sym(output_example)
         env[output_node] = add_tuple_getitem_node(executor, sym_mgr, tuple_node, idx, output_value)
     return True
+
+
+_VIEW_TARGETS = tuple(
+    target
+    for target in (
+        getattr(torch.ops.aten.view, "default", None),
+        getattr(torch.ops.aten.reshape, "default", None),
+        getattr(torch.ops.aten._unsafe_view, "default", None),
+        torch.reshape,
+    )
+    if target is not None
+)
+
+
+def _rewrite_noncontiguous_view_(gm: GraphModule) -> int:
+    """Materialize non-contiguous views that FXRT cannot represent directly.
+
+    Keep a reshape unchanged when it can be represented as a view. Its original
+    strides may be consumed by later as_strided nodes; cloning first would make
+    those strides index a different layout.
+    """
+    changed = 0
+    for node in list(gm.graph.nodes):
+        if node.op != "call_function" or node.target not in _VIEW_TARGETS:
+            continue
+        if not node.args:
+            continue
+        src = node.args[0]
+        if not isinstance(src, Node):
+            continue
+        value = _node_meta_value(src)
+        if not isinstance(value, torch.Tensor) or value.is_contiguous():
+            continue
+        if node.target is torch.ops.aten.reshape.default:
+            try:
+                value.view(node.args[1])
+            except Exception:
+                pass
+            else:
+                continue
+        with gm.graph.inserting_before(node):
+            cont = gm.graph.call_function(
+                torch.ops.aten.clone.default, (src,), {"memory_format": torch.contiguous_format}
+            )
+        cval = value.clone(memory_format=torch.contiguous_format)
+        cont.meta["val"] = cval
+        cont.meta["example_value"] = cval
+        node.args = (cont,) + tuple(node.args[1:])
+        try:
+            shape = node.args[1]
+            if node.target in (torch.ops.aten.view.default, torch.ops.aten._unsafe_view.default):
+                nval = cval.view(shape)
+            else:
+                nval = cval.reshape(shape)
+            node.meta["val"] = nval
+            node.meta["example_value"] = nval
+        except Exception:
+            pass
+        changed += 1
+    if changed:
+        gm.graph.lint()
+        gm.recompile()
+    return changed

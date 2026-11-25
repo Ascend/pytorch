@@ -226,6 +226,21 @@ bool IsTorchTensorStandardLayout(const at::Tensor& atTensor) {
   return false;
 }
 
+#ifdef ENABLE_TORCH_NPU
+// Storage shape must describe the physical layout of the tensor as consumed. torch_npu keeps
+// the allocation-time base shape in storage_sizes_ for view tensors, so it no longer matches
+// the logical shape after reshape/slice/permute. For base formats the physical layout is fully
+// described by logical sizes (together with strides and storage offset); only non-base formats
+// (e.g. fractal NZ with padding) require the recorded storage sizes.
+static std::vector<int64_t> StorageShapeFromTorch(const at::Tensor& atTensor) {
+  const auto format = static_cast<ir::MemoryFormat>(at_npu::native::get_npu_format(atTensor));
+  if (IsBaseFormat(format)) {
+    return atTensor.sizes().vec();
+  }
+  return at_npu::native::get_npu_storage_sizes(atTensor);
+}
+#endif
+
 void UpdateTensorFromTorch(const ir::TensorPtr& tensor, const at::Tensor& atTensor) {
 #ifdef ENABLE_TORCH_NPU
   auto device = tensor->GetDevice();
@@ -234,7 +249,7 @@ void UpdateTensorFromTorch(const ir::TensorPtr& tensor, const at::Tensor& atTens
     tensor->SetFormat(static_cast<ir::MemoryFormat>(npuFormat));
     tensor->SetStrides(atTensor.strides().vec());
     tensor->SetStorageOffset(atTensor.storage_offset());
-    tensor->SetStorageShape(at_npu::native::get_npu_storage_sizes(atTensor));
+    tensor->SetStorageShape(StorageShapeFromTorch(atTensor));
     RT_VLOG(VL_OPS) << "Update tensor from torch, format=" << ir::FormatEnumToStr(tensor->Format())
                     << ", strides=" << tensor->Strides() << ", storageOffset=" << tensor->StorageOffset()
                     << ", storageShape=" << tensor->StorageShape() << ", isView=" << atTensor.is_view()

@@ -5,6 +5,7 @@
 #include <utility>
 #include <memory>
 #include <functional>
+#include <unordered_set>
 
 #include "ops/operator.h"
 #include "ir/graph.h"
@@ -150,6 +151,17 @@ class OpRunner {
   }
 
   /**
+   * @brief Sets the storages that are exposed as graph outputs.
+   *
+   * Graph outputs are not freed by any node, so they still own their buffer when
+   * the graph is executed again. These storages must be recycled instead of being
+   * reported as leaks.
+   */
+  void SetGraphOutputStorages(std::shared_ptr<std::unordered_set<ir::Storage*>> graphOutputStorages) {
+    graphOutputStorages_ = std::move(graphOutputStorages);
+  }
+
+  /**
    * @brief Sets the tensors that should be updated before operator execution.
    * @param tensorsToUpdate Vector of tensors to update.
    */
@@ -205,6 +217,9 @@ class OpRunner {
 
   // Storages that should be allocated by this operator.
   std::vector<ir::Storage*> storagesToAlloc_;
+
+  // Graph output storages, which are recycled rather than treated as leaks.
+  std::shared_ptr<std::unordered_set<ir::Storage*>> graphOutputStorages_{nullptr};
 
   // Input values for the operator.
   std::vector<const ir::Value*> input_;
