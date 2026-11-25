@@ -12,7 +12,7 @@ import numpy as np
 
 import torch
 import torch_npu
-import torch_npu.testing
+import torch_npu.testing  # noqa: F401  # side-effect import
 import torch.autograd.forward_ad as fwAD
 from torch import inf, nan
 from torch.testing._internal.common_utils import (
@@ -36,7 +36,6 @@ from torch.testing._internal.common_device_type import (
     dtypesIfCPU,
     deviceCountAtLeast,
     precisionOverride,
-    onlyNativeDeviceTypes,
     skipIf,
     ops,
     OpDTypes,
@@ -56,7 +55,6 @@ from torch.testing._internal.common_dtype import (
 )
 from torch.testing._internal.common_methods_invocations import (
     binary_ufuncs,
-    binary_ufuncs_and_refs,
     generate_elementwise_binary_tensors,
     generate_elementwise_binary_small_value_tensors,
     generate_elementwise_binary_large_value_tensors,
@@ -65,6 +63,16 @@ from torch.testing._internal.common_methods_invocations import (
     generate_elementwise_binary_with_scalar_samples,
     generate_elementwise_binary_with_scalar_and_type_promotion_samples,
 )
+
+try:
+    from torch.testing._internal.common_methods_invocations import binary_ufuncs_and_refs
+except ImportError:
+    # COMPAT: pytorch removed binary_ufuncs_and_refs after v2.11; rebuild it the
+    # same way it was defined there.
+    from torch.testing._internal.common_methods_invocations import ops_and_refs
+    from torch.testing._internal.opinfo.core import BinaryUfuncInfo
+    binary_ufuncs_and_refs = tuple(
+        op for op in ops_and_refs if isinstance(op, BinaryUfuncInfo))
 
 if TEST_SCIPY:
     import scipy.special
@@ -75,7 +83,7 @@ if TEST_SCIPY:
 class TestBinaryUfuncs(TestCase):
     # Generic tests for elementwise binary (AKA binary universal (u) functions (funcs))
     # below contiguous tensor results are compared with a variety of noncontiguous results.
-    #   It would be interesting to have the lhs and rhs have different discontiguities.
+    #   It would be interesting to have the lhs and rhs have different discontinuities.
 
     # Helper for comparing torch tensors and NumPy arrays
     # should this or assertEqual also validate that strides are equal?
@@ -2463,7 +2471,7 @@ class TestBinaryUfuncs(TestCase):
             # Verify Value
             self.assertEqual(torch_result, expected)
             # Verify Sign
-            # Use double copysign to verify the correctnes of 0.0 and -0.0, since
+            # Use double copysign to verify the correctness of 0.0 and -0.0, since
             # it always True for self.assertEqual(0.0 == -0.0). So, we use 1 as the
             # magnitude to verify the sign between torch and numpy results, elementwise.
             # Special case: NaN conversions between FP32 and FP16 is not bitwise
@@ -4042,7 +4050,7 @@ class TestBinaryUfuncs(TestCase):
             for i in complex_exponents if exp_dtype.is_complex else exponents:
                 out_dtype_scalar_exp = (
                     torch.complex128
-                    if base_dtype.is_complex or type(i) == complex
+                    if base_dtype.is_complex or type(i) is complex
                     else torch.float64
                 )
                 expected_scalar_exp = torch.from_numpy(np.float_power(to_np(base), i))
@@ -4070,7 +4078,7 @@ class TestBinaryUfuncs(TestCase):
         for i in complex_exponents if base_dtype.is_complex else exponents:
             out_dtype_scalar_base = (
                 torch.complex128
-                if exp_dtype.is_complex or type(i) == complex
+                if exp_dtype.is_complex or type(i) is complex
                 else torch.float64
             )
             expected_scalar_base = torch.from_numpy(np.float_power(i, to_np(exp)))
@@ -4085,9 +4093,9 @@ class TestBinaryUfuncs(TestCase):
     def test_float_power_exceptions(self, device):
         def _promo_helper(x, y):
             for i in (x, y):
-                if type(i) == complex:
+                if type(i) is complex:
                     return torch.complex128
-                elif type(i) == torch.Tensor and i.is_complex():
+                elif type(i) is torch.Tensor and i.is_complex():
                     return torch.complex128
             return torch.double
 

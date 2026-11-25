@@ -29,14 +29,14 @@ def assert_npu_tensor(tensor, name):
         raise AssertionError(f"{name} must be on NPU, got {tensor.device}")
 
 
-def run_dispatcher_fmax_out():
-    x = torch.tensor([1.0, float("nan"), 3.0], dtype=torch.float32, device="npu")
-    y = torch.tensor([2.0, 4.0, float("nan")], dtype=torch.float32, device="npu")
-    expected = torch.tensor([2.0, 4.0, 3.0], dtype=torch.float32)
+def run_dispatcher_special_zeta():
+    # fmax 已注册 NPU kernel，不再作为 fallback 载体；改用尚未注册的 torch.special.zeta
+    x = torch.tensor([1.0, 2.0, 3.0], dtype=torch.float32, device="npu")
+    y = torch.tensor([2.0, 1.0, 0.0], dtype=torch.float32, device="npu")
+    expected = torch.special.zeta(x.cpu(), y.cpu())
     for _ in range(2):
-        out = torch.empty_like(x)
-        torch.fmax(x, y, out=out)
-        assert_npu_tensor(out, "fmax.out result")
+        out = torch.special.zeta(x, y)
+        assert_npu_tensor(out, "special.zeta result")
         torch.testing.assert_close(out.cpu(), expected)
 
 
@@ -70,8 +70,8 @@ def run_normal_npu():
 
 torch.npu.set_device(0)
 case = sys.argv[1]
-if case == "dispatcher_fmax_out":
-    run_dispatcher_fmax_out()
+if case == "dispatcher_special_zeta":
+    run_dispatcher_special_zeta()
 elif case == "sparse_csr_sum":
     run_sparse_csr("sum")
 elif case == "sparse_csr_prod":
@@ -147,17 +147,17 @@ class TestCpuFallbackControl(TestCase):
         for env_value in (None, "0"):
             with self.subTest(env_value=env_value):
                 self._assert_fallback_allowed(
-                    "dispatcher_fmax_out",
+                    "dispatcher_special_zeta",
                     env_value,
                     "will fall back to run on the CPU",
-                    "aten::fmax.out",
+                    "aten::special_zeta",
                 )
 
     def test_dispatcher_fallback_disabled(self):
         self._assert_fallback_blocked(
-            "dispatcher_fmax_out",
+            "dispatcher_special_zeta",
             "will fall back to run on the CPU",
-            "aten::fmax.out",
+            "aten::special_zeta",
         )
 
     def test_sparse_csr_sum_fallback_default_and_explicitly_allowed(self):
