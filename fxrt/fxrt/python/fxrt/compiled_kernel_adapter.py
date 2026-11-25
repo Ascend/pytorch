@@ -1113,16 +1113,17 @@ def lower_compiled_kernel_autofuse_node(
     if not isinstance(metadata, dict) or metadata.get("backend") != "inductor_autofuse":
         return False
 
-    # fx_converter's historical metadata names the adapter shared object and
-    # kernel shared object.  The native path intentionally uses only wrapper.so;
-    # derive its sibling path without changing the metadata producer.
+    # The adapter is per kernel and sits beside kernel.so; wrapper.so may be a
+    # shared wrapper_common artifact. Use explicit metadata to retain both paths.
     adapter_path = metadata.get("adapter_path")
     kernel_path = metadata.get("kernel_path")
     if not isinstance(adapter_path, str) or not adapter_path:
         raise RuntimeError("AutoFuse kernel metadata requires a non-empty adapter_path")
     if not isinstance(kernel_path, str) or not kernel_path:
         raise RuntimeError("AutoFuse kernel metadata requires a non-empty kernel_path")
-    wrapper_path = os.path.join(os.path.dirname(adapter_path), "wrapper.so")
+    wrapper_path = metadata.get("wrapper_path")
+    if not isinstance(wrapper_path, str) or not wrapper_path:
+        wrapper_path = os.path.join(os.path.dirname(adapter_path), "wrapper.so")
     kernel_key = metadata.get("kernel_key", "")
     if kernel_key is None:
         kernel_key = ""

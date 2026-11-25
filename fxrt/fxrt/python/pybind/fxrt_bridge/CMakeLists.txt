@@ -6,7 +6,7 @@
 
 # Add fxrt_torch_bridge nanobind sub module. The bridge calls only torch and
 # torch_npu C++ APIs -- no fxrt symbols -- so it does not link fxrt_common.
-nanobind_add_module(_fxrt_torch_bridge fx_torch_bridge.cc)
+nanobind_add_module(_fxrt_torch_bridge PROTECT_STACK fx_torch_bridge.cc)
 target_include_directories(_fxrt_torch_bridge PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../include)

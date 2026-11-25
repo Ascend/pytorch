@@ -207,7 +207,7 @@ set_target_properties(mrt_fx_converter PROPERTIES
 )
 install(TARGETS mrt_fx_converter LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
 
-nanobind_add_module(_fxrt_fx_converter api/pybind_fx_converter.cc)
+nanobind_add_module(_fxrt_fx_converter PROTECT_STACK api/pybind_fx_converter.cc)
 target_link_libraries(_fxrt_fx_converter PRIVATE mrt_fx_converter)
 target_compile_definitions(_fxrt_fx_converter PRIVATE
   FXC_EXPECTED_IR_SCHEMA_VERSION=${FXC_EXPECTED_IR_SCHEMA_VERSION})

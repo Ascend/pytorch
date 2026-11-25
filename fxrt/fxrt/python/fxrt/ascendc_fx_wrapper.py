@@ -64,9 +64,10 @@ class _AscendcKernelLauncher:
         return {
             "backend": "inductor_autofuse",
             "adapter_path": os.path.join(
-                os.path.dirname(wrapper_path), "autofuse_adapter.so"
+                os.path.dirname(kernel_path), "autofuse_adapter.so"
             ),
             "kernel_path": kernel_path,
+            "wrapper_path": wrapper_path,
         }
 
 
