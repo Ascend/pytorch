@@ -16,6 +16,7 @@ jobs:
       image: swr.cn-north-4.myhuaweicloud.com/pytorch_images_x86/pytorchx86:v_03
     steps:
       - name: checkout
+        continue-on-error: true
         uses: checkout
         with:
           ref: refs/merge-requests/${{ atomgit.event.pull_request.number }}/merge
@@ -23,6 +24,7 @@ jobs:
           allow-unsafe-pr-checkout: true
 
       - name: download modify_files.txt
+        continue-on-error: true
         uses: download-artifact
         with:
           name: modify_files.txt
@@ -36,18 +38,28 @@ jobs:
           path: precise
 
       - name: compare selections
-        continue-on-error: true
+        if: always()
         env:
           TARGET_BRANCH: ${{ atomgit.event.pull_request.base.ref }}
           COMMENT_BODY: ${{ atomgit.event.comment.body }}
         run: |
+          # This step is best-effort: always exit 0 so it stays green.
+          set +e
           python3 .gitcode/scripts/compare_selection.py \
             --modify-files modify_files.txt \
             --precise-dir precise \
             --output selection_comparison.txt \
             --target-branch "${TARGET_BRANCH}" \
             --comment-body "${COMMENT_BODY}"
-          cat selection_comparison.txt
+          rc=$?
+          if [ "${rc}" -ne 0 ]; then
+            echo "::warning::selection comparison failed (exit ${rc}); continuing without the comparison result"
+            if [ ! -f selection_comparison.txt ]; then
+              printf 'precise status: failed\n' > selection_comparison.txt
+            fi
+          fi
+          cat selection_comparison.txt 2>/dev/null || true
+          exit 0
 
       - name: upload comparison
         if: always()
@@ -60,9 +72,10 @@ jobs:
 
       - name: write job summary
         if: always()
-        continue-on-error: true
         run: |
-          python3 - <<'PYEOF' >> "$ATOMGIT_STEP_SUMMARY"
+          # This step is best-effort: always exit 0 so it stays green.
+          set +e
+          python3 - <<'PYEOF' >> "${ATOMGIT_STEP_SUMMARY:-/dev/stdout}"
           from pathlib import Path
 
           print("## Selection Compare")
@@ -144,3 +157,4 @@ jobs:
                   print(f"- `{repo_relative(path)}`")
               print()
           PYEOF
+          exit 0

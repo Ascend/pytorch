@@ -182,7 +182,10 @@ def distributed_files(modify_files):
             tmp_path, keep_core=False, deleted_files=distributed_deleted_files()
         )
     finally:
-        Path(tmp_path).unlink(missing_ok=True)
+        try:
+            Path(tmp_path).unlink()
+        except FileNotFoundError:
+            pass
 
 
 def pipeline_extra_files(modify_files, target_branch, comment_body):

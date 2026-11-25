@@ -86,7 +86,7 @@ jobs:
         id: select
         if: ${{ steps.coverage.outcome == 'success' }}
         continue-on-error: true
-        uses: openlibing/test-action/precision-test@v1.0.12
+        uses: openlibing/test-action/precision-test@v1.0.14
         with:
           repo: torch_npu
           gitcode-pr: ${{ atomgit.repository }}#${{ atomgit.event.pull_request.number }}

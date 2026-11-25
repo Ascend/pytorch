@@ -273,7 +273,6 @@ stages:
         name: precise_select
         select: selected_by_default
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && env.target_branch == 'master' }}
-        continue-on-error: true
         uses: .gitcode/workflows/precise_select.yml
 
   stage_3:
@@ -365,7 +364,6 @@ stages:
         name: selection_compare
         select: selected_by_default
         if : ${{ jobs.Detect_file_changes.outputs.need_build_ut == 'yes' && env.target_branch == 'master' }}
-        continue-on-error: true
         uses: .gitcode/workflows/selection_compare.yml
 
   stage_4:

@@ -312,7 +312,7 @@ jobs:
       - name: generate-test-case-map
         if: ${{ always() && steps.check_merged.outputs.ready == 'true' }}
         continue-on-error: true
-        uses: openlibing/test-action/precision-test@v1.0.12
+        uses: openlibing/test-action/precision-test@v1.0.14
         with:
           repo: torch_npu
           build-map: true
