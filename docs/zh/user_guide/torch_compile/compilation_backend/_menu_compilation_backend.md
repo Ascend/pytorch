@@ -9,3 +9,5 @@
 - **[AOT\_Eager](aot_eager.md)**
 
 - **[TorchAir-GE](torchair_ge_backend.md)**
+
+- **[FXRT](fxrt.md)**

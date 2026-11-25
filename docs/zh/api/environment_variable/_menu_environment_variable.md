@@ -236,6 +236,9 @@
   <!-- npu="950,A3,910b,910" id58 -->
   - [TORCHINDUCTOR_NPU_BACKEND](inductor/TORCHINDUCTOR_NPU_BACKEND.md)
   <!-- end id58 -->
+  <!-- npu="950" id80 -->
+  - [TORCH_NPU_FXRT_EXECUTOR](inductor/TORCH_NPU_FXRT_EXECUTOR.md)
+  <!-- end id80 -->
   <!-- npu="950,A3,910b,910" id59 -->
   - [TORCH_CACHING_PRECOMPILE](inductor/TORCH_CACHING_PRECOMPILE.md)
   <!-- end id59 -->

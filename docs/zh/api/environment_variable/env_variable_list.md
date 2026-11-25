@@ -174,6 +174,7 @@
 | 环境变量名称 | 简介 |
 | --- | --- |
 |[TORCHINDUCTOR_NPU_BACKEND](inductor/TORCHINDUCTOR_NPU_BACKEND.md)|通过该环境变量可配置图模式下的优化模式，支持Triton、DVM、Ascend C等优化模式。|
+|[TORCH_NPU_FXRT_EXECUTOR](inductor/TORCH_NPU_FXRT_EXECUTOR.md)|通过此环境变量可选择FXRT图运行时的执行器，支持默认执行器和GERT执行器。|
 
 ### 缓存与编译并发
 

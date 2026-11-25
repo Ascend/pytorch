@@ -10,3 +10,4 @@
     - [NPUGraph\_EX](compilation_backend/npugraph_ex.md)
     - [AOT\_Eager](compilation_backend/aot_eager.md)
     - [TorchAir-GE](compilation_backend/torchair_ge_backend.md)
+    - [FXRT](compilation_backend/fxrt.md)
