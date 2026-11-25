@@ -445,7 +445,7 @@ TORCH_NPU_API void ApplyDeterministicLevel(
     bool isOpapi);
 void SetDeterministic(bool isOpapi = true);
 void SetDeterministicOps(bool deterministicAlgorithmsStatus = false);
-void ApplyDeterministicSnapshot(const c10_npu::DeterministicSnapshot& snapshot, bool isOpapi = true);
+C10_NPU_API void ApplyDeterministicSnapshot(const c10_npu::DeterministicSnapshot& snapshot, bool isOpapi = true);
 extern std::recursive_mutex deterministic_launch_mutex;
 
 } // namespace native

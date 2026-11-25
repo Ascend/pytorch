@@ -27,7 +27,7 @@ void init();
 c10::DataPtr malloc_with_stream(size_t size, aclrtStream stream);
 void emptyCache(int device, bool check_error = true);
 void recordHistory(bool enabled, CreateContextFn context_recorder, RecordContext when);
-SnapshotInfo snapshot();
+C10_NPU_API SnapshotInfo snapshot();
 DeviceStats getDeviceStats(int device);
 
 } // namespace NPUWorkspaceAllocator

@@ -114,7 +114,7 @@ public:
 private:
     c10::Stream stream_;
 };
-NPUStream getStreamFromPool(const int priority, c10::DeviceIndex device = -1);
+C10_NPU_API NPUStream getStreamFromPool(const int priority, c10::DeviceIndex device = -1);
 
 C10_NPU_API NPUStream getNPUStreamFromPool(c10::DeviceIndex device = -1);
 
@@ -128,15 +128,15 @@ C10_NPU_API NPUStream getCurrentNPUStream(c10::DeviceIndex device_index = -1);
 
 NPUStream getCurrentSecondaryStream(c10::DeviceIndex device_index = -1);
 
-aclrtStream getCurrentNPUStreamNoWait(c10::DeviceIndex device_index = -1);
+C10_NPU_API aclrtStream getCurrentNPUStreamNoWait(c10::DeviceIndex device_index = -1);
 
-NPUStatus emptyAllNPUStream(bool check_error = true);
+C10_NPU_API NPUStatus emptyAllNPUStream(bool check_error = true);
 
 std::string getRepoInfo();
 
 void setRepoErrMsg(const char* errmsg);
 
-void setDefaultStreamsStatus(c10::DeviceIndex device_index, RepoStatus status);
+C10_NPU_API void setDefaultStreamsStatus(c10::DeviceIndex device_index, RepoStatus status);
 
 C10_NPU_API bool npuSynchronizeDevice(bool check_error = true);
 
@@ -148,9 +148,9 @@ C10_NPU_API void setCurrentNPUStream(NPUStream stream);
 
 std::ostream& operator<<(std::ostream& stream, const NPUStream& s);
 
-void recovery_all_npu_streams(c10::DeviceIndex device_index);
+C10_NPU_API void recovery_all_npu_streams(c10::DeviceIndex device_index);
 
-NPUStream getNPUStreamFromSyncLaunchPool(c10::DeviceIndex device_index = -1);
+C10_NPU_API NPUStream getNPUStreamFromSyncLaunchPool(c10::DeviceIndex device_index = -1);
 
 bool StreamInitFlag(c10::DeviceIndex device_index);
 

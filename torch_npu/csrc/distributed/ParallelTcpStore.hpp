@@ -27,6 +27,7 @@
 #include "c10d/TCPStore.hpp"
 #include "StoreClient.hpp"
 #include "ParallelTcpServer.hpp"
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 namespace c10d {
 namespace torch_npu {
 class Proxy;
@@ -71,7 +72,7 @@ private:
 };
 } // torch_npu
 
-class ParallelTcpStore : public Store {
+class C10_NPU_API ParallelTcpStore : public Store {
 public:
     explicit ParallelTcpStore(const std::string &host, const bool &agentRun, const uint32_t &agentPid,
         const bool &enableTiered, const TCPStoreOptions &opts = {});

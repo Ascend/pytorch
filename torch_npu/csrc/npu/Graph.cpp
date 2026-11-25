@@ -728,7 +728,7 @@ void TORCH_NPU_API THNPGraph_init(PyObject* module) {
 
                 c10_npu::graph_task_update_begin(stream, handle);
 
-                auto fia_result = op_api::npu_fused_infer_attention_score_out_symint(
+                auto fia_result = c10_npu::npu_fused_infer_attention_score_out_for_graph(
                     query, key, value,
                     pse_shift, atten_mask, actual_seq_lengths, actual_seq_lengths_kv,
                     dequant_scale1, quant_scale1, dequant_scale2, quant_scale2, quant_offset2,

@@ -37,7 +37,7 @@ struct NpuTraceConfig {
 
 C10_NPU_API int8_t GetTraceLevel();
 
-class ProfilerMgr {
+class C10_NPU_API ProfilerMgr {
 public:
     void Init(const std::string &path, bool npu_trace);
     void Warmup(const NpuTraceConfig &npu_config, bool cpu_trace);
