@@ -81,8 +81,6 @@ LOWERING_FALLBACK_NAMES = frozenset(
         "_c10d_functional.all_gather_into_tensor",
         "_c10d_functional.all_gather_into_tensor_coalesced",
         "_c10d_functional.all_gather_into_tensor_out",
-        "_c10d_functional.all_reduce",
-        "_c10d_functional.all_reduce_",
         "_c10d_functional.all_reduce_coalesced",
         "_c10d_functional.all_reduce_coalesced_",
         "_c10d_functional.all_to_all_single",
@@ -92,9 +90,7 @@ LOWERING_FALLBACK_NAMES = frozenset(
         "_c10d_functional.irecv",
         "_c10d_functional.isend",
         "_c10d_functional.reduce_scatter_tensor",
-        "_c10d_functional.reduce_scatter_tensor_coalesced",
         "_c10d_functional.reduce_scatter_tensor_out",
-        "_c10d_functional.wait_tensor",
 
         # _dtensor
         "_dtensor.shard_dim_alltoall",

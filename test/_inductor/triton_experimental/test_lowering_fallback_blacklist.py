@@ -35,6 +35,10 @@ class TestLoweringFallbackBlacklist(TestCase):
     def test_policy(self):
         for expected, ops in (
             (False, (aten.logical_and, aten.logical_and.default, aten.logical_and.out,
+                     torch.ops._c10d_functional.all_reduce.default,
+                     torch.ops._c10d_functional.all_reduce_.default,
+                     torch.ops._c10d_functional.reduce_scatter_tensor_coalesced.default,
+                     torch.ops._c10d_functional.wait_tensor.default,
                      aten.hypot.default, aten.contiguous.default, aten.mul_.Scalar)),
             (True, (aten.embedding.default, aten.cumprod.default, aten.frexp.Tensor,
                     aten.frexp.Tensor_out, aten.bitwise_left_shift.Tensor, prims.bitwise_xor.default,
