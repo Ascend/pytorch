@@ -148,7 +148,7 @@ Ascend PyTorch Profiler可全面采集PyTorch训练/在线推理场景下的性�
     - 须保证Ascend PyTorch Profiler接口的调用与要采集的业务流程在同一个进程内。
     - Ascend PyTorch Profiler接口进行采集任务时，进程与Device之间的关系如下：
         - 多进程多Device场景：支持每个Device下分别设置一个采集进程。
-        - 单进程多Device场景：支持。须配套PyTorch 2.1.0post14、2.5.1post2、2.6.0及之后的版本。
+        - 单进程多Device场景：支持，须配套PyTorch 2.1.0post14、2.5.1post2、2.6.0及之后的版本。
         - 多进程单Device场景：需要保证多进程之间的采集动作是串行的，即各个采集动作不在同一时间开始，且各个采集动作须包含完整的启动和停止。
 
 - 数据落盘约束
@@ -181,7 +181,7 @@ Ascend PyTorch Profiler可全面采集PyTorch训练/在线推理场景下的性�
 
 **执行采集**
 
-1. 在昇腾NPU环境下创建训练脚本（pytorch_main.py文件）并添加Ascend PyTorch Profiler接口工具，完整代码如下。
+1. 在昇腾NPU环境下创建训练脚本（pytorch_main.py文件）并添加Ascend PyTorch Profiler接口工具，完整代码如下：
 
    <details>
    <summary><b>单击展开示例</b></summary>
@@ -868,7 +868,7 @@ Ascend PyTorch Profiler可全面采集PyTorch训练/在线推理场景下的性�
 
     性能数据结果文件详细介绍请参见[输出结果文件说明](#输出结果文件说明)。
 
-    请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/system_tuning.md)》将解析后的性能数据文件进行可视化展示和分析。
+    请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/system_tuning/system_tuning_overview.md)》将解析后的性能数据文件进行可视化展示和分析。
 
     可以使用[性能分析工具（msprof-analyze）](https://gitcode.com/Ascend/msprof-analyze/blob/master/docs/zh/quick_start/msprof-analyze_quick_start.md)辅助分析性能数据。
 
@@ -887,7 +887,7 @@ dynamic\_profile动态采集，主要功能是在执行模型训练/在线推理
 
 详细介绍请参见《[torch_npu.profiler接口列表](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-profiler/torch_npu-profiler_list.md)》。
 
-**表 1**  动态采集方式说明
+**表 1** 动态采集方式说明
 
 | 动态采集方式                                                 | 说明                                                         |
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -914,7 +914,7 @@ dynamic\_profile动态采集，主要功能是在执行模型训练/在线推理
    > - 该方式仅支持训练场景。
    > - 该方式下dynamic\_profile不支持采集第一个迭代（step0）的数据。
    > - 该方式依赖torch原生Optimizer.step\(\)划分训练过程中Profiling的step，不支持自定义Optimizer场景。
-   > - PROF\_CONFIG\_PATH指定的路径可自定义（要求有读写权限），路径格式仅支持由字母、数字和下划线组成的字符串，不支持软链接，例如"/home/xxx/profiler\_config\_path"。
+   > - PROF\_CONFIG\_PATH指定的路径可自定义（要求有读写权限），路径格式仅支持由字母、数字和下划线组成的字符串，不支持软链接，例如“/home/xxx/profiler\_config\_path”。
 
 2. 启动训练任务。
 3. 重新开启一个命令行窗口，修改profiler\_config.json配置文件用以使能Profiling任务。
@@ -938,7 +938,7 @@ dynamic\_profile动态采集，主要功能是在执行模型训练/在线推理
 
     性能数据结果文件详细介绍请参见[输出结果文件说明](#输出结果文件说明)。
 
-    请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/system_tuning.md)》将解析后的性能数据文件进行可视化展示和分析。
+    请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/system_tuning/system_tuning_overview.md)》将解析后的性能数据文件进行可视化展示和分析。
 
     可以使用[性能分析工具（msprof-analyze）](https://gitcode.com/Ascend/msprof-analyze/blob/master/docs/zh/quick_start/msprof-analyze_quick_start.md)辅助分析性能数据。
 
@@ -981,7 +981,7 @@ dynamic\_profile动态采集，主要功能是在执行模型训练/在线推理
 
     性能数据结果文件详细介绍请参见[输出结果文件说明](#输出结果文件说明)。
 
-    请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/system_tuning.md)》将解析后的性能数据文件进行可视化展示和分析。
+    请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/system_tuning/system_tuning_overview.md)》将解析后的性能数据文件进行可视化展示和分析。
 
     可以使用[性能分析工具（msprof-analyze）](https://gitcode.com/Ascend/msprof-analyze/blob/master/docs/zh/quick_start/msprof-analyze_quick_start.md)辅助分析性能数据。
 
@@ -1028,7 +1028,7 @@ dynamic\_profile动态采集，主要功能是在执行模型训练/在线推理
 
     性能数据结果文件详细介绍请参见[输出结果文件说明](#输出结果文件说明)。
 
-    请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/system_tuning.md)》将解析后的性能数据文件进行可视化展示和分析。
+    请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/system_tuning/system_tuning_overview.md)》将解析后的性能数据文件进行可视化展示和分析。
 
     可以使用[性能分析工具（msprof-analyze）](https://gitcode.com/Ascend/msprof-analyze/blob/master/docs/zh/quick_start/msprof-analyze_quick_start.md)辅助分析性能数据。
 
@@ -1204,9 +1204,9 @@ dynamic\_profile动态采集，主要功能是在执行模型训练/在线推理
 
 打点数据使用MindStudio Insight工具打开，可视化效果如下：
 
-**图 1**  打点结果示例
+**图 1** 打点结果示例
 
-![](../figures/profiler/dot_result.png "../figures/profiler/dot_result.png")
+![MindStudio Insight 中的 MsTx 时间线，展示 optimizer_stop 打点的位置和时间详情](../figures/profiler/dot_result.png)
 
 mstx功能默认采集通信算子、dataloader耗时、保存检查点接口耗时的性能数据，数据内容格式分别为：
 
@@ -1270,7 +1270,7 @@ mstx采集结果数据详细介绍请参见[msproftx数据说明](https://gitcod
 
 **功能说明**
 
-以自定义字符串键（key）和字符串值（value）的形式添加添加元数据（Metadata）。
+以自定义字符串键（key）和字符串值（value）的形式添加元数据（Metadata）。
 
 元数据可用于标记性能数据，通过自定义的方式帮助用户理解当前所采集数据的归类或其他信息，具体信息自定义即可。
 
@@ -1386,8 +1386,8 @@ with torch_npu.profiler.profile(
 
 执行采集并导出memory\_timeline.html后，可视化效果如下：
 
-**图 1**  memory\_timeline
-![](../figures/profiler/memory_timeline.png "../figures/profiler/memory_timeline.png")
+**图 1** memory\_timeline
+![memory_timeline内存时间线图，横轴为占用时间、纵轴为各类别显存占用，标出最大分配与预留总量](../figures/profiler/memory_timeline.png)
 
 - Time\(ms\)：为横坐标，表示tensor类型对内存的占用时间，单位ms。
 - Memory\(GB\)：为纵坐标，表示tensor类型占用的内存大小，单位GB。
@@ -1477,8 +1477,8 @@ if __name__ == "__main__":
 
 完成子线程采集后，生成的子线程性能数据如下：
 
-**图 1**  子线程性能数据
-![](../figures/profiler/child_thread_profile_data.png "../figures/profiler/child_thread_profile_data.png")
+**图 1** 子线程性能数据
+![子线程性能数据timeline，主线程与两个子线程并行执行，aten前缀timeline为采集到的torch算子](../figures/profiler/child_thread_profile_data.png)
 
 上图中Thread 455385为主线程，Profiler可正常采集，本功能场景无需关注。另外两个线程中aten前缀的timeline即为本功能采集的torch算子数据。
 
@@ -1527,7 +1527,7 @@ if __name__ == "__main__":
 
     性能数据结果文件详细介绍请参见[输出结果文件说明](#输出结果文件说明)。
 
-    请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/system_tuning.md)》将解析后的性能数据文件进行可视化展示和分析。
+    请参见《[MindStudio Insight系统调优](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/system_tuning/system_tuning_overview.md)》将解析后的性能数据文件进行可视化展示和分析。
 
     可以使用[性能分析工具（msprof-analyze）](https://gitcode.com/Ascend/msprof-analyze/blob/master/docs/zh/quick_start/msprof-analyze_quick_start.md)辅助分析性能数据。
 
@@ -1592,14 +1592,14 @@ if __name__ == "__main__":
 
   PLATFORM目录详细介绍请参见[PLATFORM_{timestamp}](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#platform_timestamp)。
 
-- PyTorch的场景调用export\_chrome\_trace方法时，Ascend PyTorch Profiler接口会将解析的trace数据写入到\*.json文件中，其中\*为文件名，不存在该文件时在指定路径下自动创建。
+- PyTorch场景调用export\_chrome\_trace方法时，Ascend PyTorch Profiler接口会将解析的trace数据写入到\*.json文件中，其中\*为文件名，不存在该文件时在指定路径下自动创建。
 
 ### timeline和summary数据<a id="timeline和summary数据"></a>
 
 **trace\_view.json**
 
-**图 1**  trace\_view
-![](../figures/profiler/trace_view.png "../figures/profiler/trace_view.png")
+**图 1** trace\_view
+![trace_view整体时间线，自上而下分为上层应用、CANN层、底层NPU数据与算子详情的四个区域](../figures/profiler/trace_view.png)
 
 如图1所示，trace数据主要展示如下区域：
 
@@ -1612,27 +1612,24 @@ if __name__ == "__main__":
 >
 > trace\_view.json支持使用MindStudio Insight工具、`chrome://tracing/`和`https://ui.perfetto.dev/`打开。
 
-**图 2**  trace\_view（record\_shapes）
-![](../figures/profiler/trace_view_record_shapes.png "../figures/profiler/trace_view_record_shapes.png")
+**图 2** trace\_view（record\_shapes）
+![开启record_shapes后的trace_view，上层应用算子额外展示Input Dims与Input type信息](../figures/profiler/trace_view_record_shapes.png)
 
 开启record\_shapes时，trace\_view中的上层应用算子会显示Input Dims和Input type信息。
 
-**图 3**  trace\_view（with\_stack）
-![](../figures/profiler/trace_view_with_stack.png "../figures/profiler/trace_view_with_stack.png")
+与record\_shapes相同，开启with\_stack时，trace\_view中的上层应用算子会显示Call stack信息。
 
-开启with\_stack时，trace\_view中的上层应用算子会显示Call stack信息。
+**图 3** trace\_view（GC）
+![开启GC检测后的trace_view，Python GC层时间段标识本次垃圾回收的执行耗时](../figures/profiler/trace_view_GC.png)
 
-**图 4**  trace\_view（GC）
-![](../figures/profiler/trace_view_GC.png "../figures/profiler/trace_view_GC.png")
-
-图4采集结果中Python GC层的时间段为本次GC执行的时间。
+图3采集结果中Python GC层的时间段为本次GC执行的时间。
 
 GC执行时，会阻塞当前进程，需要等待GC完成，若GC时间过长，可以通过调整GC参数（可参考[垃圾回收器](https://docs.python.org/zh-cn/3/library/gc.html)中的gc.set\_threshold）来缓解GC造成的进程阻塞。
 
 **kernel\_details.csv**
 
-**图 5**  kernel\_details
-![](../figures/profiler/kernel_details.png "../figures/profiler/kernel_details.png")
+**图 4** kernel\_details
+![kernel_details.csv表格视图，按Step Id、Stream ID、Name、Duration等字段列出NPU算子信息](../figures/profiler/kernel_details.png)
 
 文件包含在NPU上执行的所有算子的信息。若用户前端调用了schedule进行Step打点，则会增加Step Id字段；但若schedule设置了warmup（不为0），且训练/在线推理的每个Step后存在算子异步执行操作，那么这部分算子异步执行操作在warmup阶段执行的算子可能会被采集到，结果为在kernel\_details.csv中没有Step Id字段。
 
@@ -1642,7 +1639,7 @@ GC执行时，会阻塞当前进程，需要等待GC完成，若GC时间过长�
 >
 > 当配置experimental\_config的aic\_metrics参数时，kernel\_details.csv文件将根据experimental\_config参数的aic\_metrics配置增加对应字段，主要增加内容请参见[experimental\_config参数说明](#experimental_config参数说明)，文件内相关字段详细介绍请参见[op\_summary（算子详细信息)](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#op_summary%EF%BC%88%E7%AE%97%E5%AD%90%E8%AF%A6%E7%BB%86%E4%BF%A1%E6%81%AF%EF%BC%89)。
 
-**表 1**  kernel\_details<a name="table1"></a>
+**表 1** kernel\_details<a name="table1"></a>
 
 |字段名|字段解释|
 |--|--|
@@ -1670,12 +1667,12 @@ GC执行时，会阻塞当前进程，需要等待GC完成，若GC时间过长�
 
 **memory\_record.csv**
 
-**图 6**  memory\_record
-![](../figures/profiler/memory_record.png "../figures/profiler/memory_record.png")
+**图 5** memory\_record
+![memory_record.csv 表格，按时间戳显示 APP、PTA 和 PTA+GE 的显存分配、预留和活跃量](../figures/profiler/memory_record.png)
 
 文件包含TorchNPU和GE的显存占用记录，主要记录TorchNPU、GE等组件申请的内存及占用时间。字段信息如[表2](#table2)所示。
 
-**表 2**  memory\_record<a name="table2"></a>
+**表 2** memory\_record<a name="table2"></a>
 
 |字段名|字段解释|
 |--|--|
@@ -1689,8 +1686,8 @@ GC执行时，会阻塞当前进程，需要等待GC完成，若GC时间过长�
 
 **operator\_memory.csv**
 
-**图 7**  operator\_memory
-![](../figures/profiler/operator_memory.png "../figures/profiler/operator_memory.png")
+**图 6** operator\_memory
+![operator_memory.csv表格视图，列出各算子占用的显存大小及分配、释放时间](../figures/profiler/operator_memory.png)
 
 文件包含算子的内存占用明细，主要记录算子在NPU上执行所需内存及占用时间，其中内存由TorchNPU和GE申请。字段信息如[表3](#table3)所示。
 
@@ -1698,7 +1695,7 @@ GC执行时，会阻塞当前进程，需要等待GC完成，若GC时间过长�
 >
 > 若operator\_memory.csv文件中出现负值或空值，详细原因请参见[operator\_memory（CANN算子的内存占用明细）](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/user_guide/profile_data_file_references.md#operator_memory%EF%BC%88cann%E7%AE%97%E5%AD%90%E7%9A%84%E5%86%85%E5%AD%98%E5%8D%A0%E7%94%A8%E6%98%8E%E7%BB%86%EF%BC%89) 的负值空值说明。
 
-**表 3**  operator\_memory<a name="table3"></a>
+**表 3** operator\_memory<a name="table3"></a>
 
 |字段名|字段解释|
 |--|--|
@@ -1720,12 +1717,12 @@ GC执行时，会阻塞当前进程，需要等待GC完成，若GC时间过长�
 
 **npu\_module\_mem.csv**
 
-**图 8**  npu\_module\_mem
-![](../figures/profiler/npu_module_mem.png "../figures/profiler/npu_module_mem.png")
+**图 7** npu\_module\_mem
+![npu_module_mem.csv表格视图，按时间戳记录各组件在NPU上的内存占用情况](../figures/profiler/npu_module_mem.png)
 
 npu\_module\_mem.csv数据在采集进程中自动采集，包含组件级的内存占用情况，主要记录组件在NPU上执行时，当前时刻所占用的内存。字段信息如[表4](#table4)所示。
 
-**表 4**  npu\_module\_mem<a name="table4"></a>
+**表 4** npu\_module\_mem<a name="table4"></a>
 
 |字段名|字段解释|
 |--|--|
@@ -1737,12 +1734,12 @@ npu\_module\_mem.csv数据在采集进程中自动采集，包含组件级的内
 
 **operator\_details.csv**
 
-**图 9**  operator\_details
-![](../figures/profiler/operator_details.png "../figures/profiler/operator_details.png")
+**图 8** operator\_details
+![operator_details.csv表格视图，列出算子Shape、调用栈及Host侧与Device侧耗时](../figures/profiler/operator_details.png)
 
 operator\_details.csv文件包含信息如[表5](#table5)所示。
 
-**表 5**  operator\_details<a name="table5"></a>
+**表 5** operator\_details<a name="table5"></a>
 
 |字段|说明|
 |--|--|
@@ -1758,12 +1755,12 @@ operator\_details.csv文件包含信息如[表5](#table5)所示。
 
 **step\_trace\_time.csv**
 
-**图 10**  step\_trace\_time
-![](../figures/profiler/step_trace_time.png "../figures/profiler/step_trace_time.png")
+**图 9** step\_trace\_time
+![step_trace_time.csv表格视图，按Step列出计算、通信、重叠与空闲时间统计](../figures/profiler/step_trace_time.png)
 
 迭代中计算和通信的时间统计，包含信息如[表6](#table6)所示。
 
-**表 6**  step\_trace\_time<a name="table6"></a>
+**表 6** step\_trace\_time<a name="table6"></a>
 
 |字段|说明|
 |--|--|
@@ -1891,7 +1888,7 @@ data\_preprocess.csv文件记录AI CPU数据，示例和字段说明以[aicpu（
 
 由Ascend PyTorch Profiler接口的profile\_memory参数控制。
 
-**表 5**  格式
+**表 5** 格式
 
 |字段名|类型|含义|
 |--|--|--|
@@ -1909,7 +1906,7 @@ data\_preprocess.csv文件记录AI CPU数据，示例和字段说明以[aicpu（
 
 由Ascend PyTorch Profiler接口的profile\_memory参数控制。
 
-**表 6**  格式
+**表 6** 格式
 
 |字段名|类型|含义|
 |--|--|--|
@@ -1935,7 +1932,7 @@ rankId和deviceId的映射关系数据。
 
 无对应开关，导出ascend\_pytorch\_profiler\_\{Rank\_ID\}.db文件时默认生成。
 
-**表 7**  格式
+**表 7** 格式
 
 |字段名|类型|含义|
 |--|--|--|
@@ -1948,7 +1945,7 @@ rankId和deviceId的映射关系数据。
 
 由Ascend PyTorch Profiler接口torch\_npu.profiler.schedule类的参数控制。
 
-**表 8**  格式
+**表 8** 格式
 
 |字段名|类型|含义|
 |--|--|--|
@@ -1962,7 +1959,7 @@ rankId和deviceId的映射关系数据。
 
 由Ascend PyTorch Profiler接口的gc\_detect\_threshold参数控制。
 
-**表 9**  格式
+**表 9** 格式
 
 |字段名|类型|含义|
 |--|--|--|
@@ -1979,7 +1976,7 @@ RoCE通信接口带宽数据。
 - msprof命令的--sys-io-profiling、--sys-io-sampling-freq
 - Ascend PyTorch Profiler的sys\_io
 
-**表 10**  格式
+**表 10** 格式
 
 |字段名|类型|含义|
 |--|--|--|
@@ -2009,7 +2006,7 @@ RoCE通信接口带宽数据。
 - msprof命令的--sys-io-profiling、--sys-io-sampling-freq
 - Ascend PyTorch Profiler的sys\_io
 
-**表 11**  格式
+**表 11** 格式
 
 |字段名|类型|含义|
 |--|--|--|
@@ -2039,7 +2036,7 @@ HCCS集合通信带宽数据。
 - msprof命令的--sys-interconnection-profiling、--sys-interconnection-freq
 - Ascend PyTorch Profiler的sys\_interconnection
 
-**表 12**  格式
+**表 12** 格式
 
 |字段名|类型|含义|
 |--|--|--|
@@ -2057,7 +2054,7 @@ PCIe带宽数据。
 - msprof命令的--sys-interconnection-profiling、--sys-interconnection-freq
 - Ascend PyTorch Profiler的sys\_interconnection
 
-**表 13**  格式
+**表 13** 格式
 
 |字段名|类型|含义|
 |--|--|--|
@@ -2077,7 +2074,7 @@ PCIe带宽数据。
 |txNonpostLatencyAvg|NUMERIC|发送端PCIe Non-Post模式下的传输时延平均值，单位ns|
 |rxPostMin|NUMERIC|接收端PCIe Post数据传输带宽最小值，单位Byte/s|
 |rxPostMax|NUMERIC|接收端PCIe Post数据传输带宽最大值，单位Byte/s|
-|rxPostAvg|NUMERIC|接收端PCIe Post数据传输带宽平均值，单位Byte/s。|
+|rxPostAvg|NUMERIC|接收端PCIe Post数据传输带宽平均值，单位Byte/s|
 |rxNonpostMin|NUMERIC|接收端PCIe Non-Post数据传输带宽最小值，单位Byte/s|
 |rxNonpostMax|NUMERIC|接收端PCIe Non-Post数据传输带宽最大值，单位Byte/s|
 |rxNonpostAvg|NUMERIC|接收端PCIe Non-Post数据传输带宽平均值，单位Byte/s|
@@ -2091,7 +2088,7 @@ PCIe带宽数据。
 
 **CommAnalyzerBandwidth**
 
-**表 1**  格式
+**表 1** 格式
 
 |字段名|类型|含义|
 |--|--|--|
@@ -2110,7 +2107,7 @@ PCIe带宽数据。
 
 **CommAnalyzerTime**
 
-**表 2**  格式
+**表 2** 格式
 
 |字段名|类型|含义|
 |--|--|--|
@@ -2127,7 +2124,7 @@ PCIe带宽数据。
 
 **CommAnalyzerMatrix**
 
-**表 3**  格式
+**表 3** 格式
 
 |字段名|类型|含义|
 |--|--|--|
@@ -2145,7 +2142,7 @@ PCIe带宽数据。
 
 **StepTraceTime**
 
-**表 4**  格式
+**表 4** 格式
 
 |字段名|类型|含义|
 |--|--|--|
@@ -2165,7 +2162,7 @@ PCIe带宽数据。
 
 ### Ascend PyTorch Profiler接口说明<a id="Ascend-PyTorch-Profiler接口说明"></a>
 
-**表 1**  torch\_npu.profiler.profile和torch\_npu.profiler.\_KinetoProfile配置参数说明
+**表 1** torch\_npu.profiler.profile和torch\_npu.profiler.\_KinetoProfile配置参数说明
 
 |参数名称|可选/必选|说明|
 |--|--|--|
@@ -2174,14 +2171,14 @@ PCIe带宽数据。
 |on_trace_ready|可选|采集结束时自动执行操作，Callable类型。当前支持执行tensorboard_trace_handler函数操作。当采集的数据量过大时，在当前环境下不适合直接解析性能数据，或者采集过程中中断了训练/在线推理进程，只采集了部分性能数据，可以采用[离线解析](#离线解析)。<br/>默认不执行任何操作。<br/>torch_npu.profiler._KinetoProfile不支持该参数。<br/>对于使用共享存储的多卡大集群场景，直接使用on_trace_ready执行tensorboard_trace_handler函数的方式进行性能数据落盘，可能因多卡数据直接落盘到共享存储导致性能膨胀的问题。解决方式请参见[PyTorch多卡大集群场景如何避免性能数据直接落盘到共享存储时导致的性能膨胀问题](#PyTorch多卡大集群场景如何避免性能数据直接落盘到共享存储时导致的性能膨胀问题)。|
 |record_shapes|可选|记录框架层算子的InputShapes、InputTypes数据以及在torch_npu.profiler.ProfilerLevel.Level0时开启记录CANN层算子的Shape和Block Num数据，Bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。|
 |profile_memory|可选|记录算子的显存占用情况，Bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。<br/>开启torch_npu.profiler.ProfilerActivity.CPU时，采集框架显存占用情况；torch_npu.profiler.ProfilerActivity.NPU时，采集CANN的显存占用。<br/>已知在安装有glibc<2.34的环境上采集memory数据，可能触发glibc的一个已知[Bug 19329](https://sourceware.org/bugzilla/show_bug.cgi?id=19329)，通过升级环境的glibc版本可解决此问题。|
-|with_stack|可选|记录算子调用栈，Bool类型。包括框架层及CPU算子层的调用信息。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。<br/>开启torch_npu.profiler.ProfilerActivity.CPU时生效。<br/>开启该配置后会引入额外的性能膨胀。|
+|with_stack|可选|记录算子调用栈，Bool类型，包括框架层及CPU算子层的调用信息。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。<br/>开启torch_npu.profiler.ProfilerActivity.CPU时生效。<br/>开启该配置后会引入额外的性能膨胀。|
 |with_modules|可选|记录modules层级的Python调用栈，即框架层的调用信息，Bool类型。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。<br/>开启torch_npu.profiler.ProfilerActivity.CPU时生效。<br/>开启该配置后会引入额外的性能膨胀。|
 |with_flops|可选|记录算子浮点操作（该参数暂不支持解析性能数据）。取值为：<br/>&#8226; True：开启。<br/>&#8226; False：关闭。<br/>默认关闭。<br/>开启torch_npu.profiler.ProfilerActivity.CPU时生效。|
 |experimental_config|可选|扩展参数，通过扩展配置性能分析工具常用的采集项。支持采集项和详细介绍请参见[experimental_config参数说明](#experimental_config参数说明)。|
 |execution_trace_observer|可选|PyTorch执行轨迹观测器对象。PyTorch执行轨迹以图的形式表示AI/ML工作负载，支持回放基准测试、模拟器和仿真器。当包含此参数时，观测器的start()和stop()方法将在与PyTorch剖析器相同的时间窗口内被调用。<br>调用示例请参见[torch_npu.profiler.profile](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-profiler/torch_npu-profiler-profile.md)。|
 |custom_trace_id_callback|可选|为每一份Profiler数据生成一个trace_id进行标识。<br>调用示例请参见[torch_npu.profiler.profile](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-profiler/torch_npu-profiler-profile.md)。<br>trace_id输出在profiler\_metadata.json文件中。|
 
-**表 2**  torch\_npu.profiler.profile和torch\_npu.profiler.\_KinetoProfile方法说明
+**表 2** torch\_npu.profiler.profile和torch\_npu.profiler.\_KinetoProfile方法说明
 
 |方法名|说明|
 |--|--|
@@ -2194,7 +2191,7 @@ PCIe带宽数据。
 |enable_profiler_in_child_thread|注册Profiler采集回调函数，采集用户子线程下发的torch算子等框架侧数据。该参数中可另外配置torch_npu.profiler.profile的其他参数（包括record_shapes、profile_memory、with_stack、with_flops、with_modules），作为Profiler子线程的采集配置。<br/>与torch_npu.profiler.profile.enable_profiler_in_child_thread配对使用。<br/>详细使用请参见[创建Profiler子线程采集](#创建Profiler子线程采集)。<br/>torch_npu.profiler._KinetoProfile不支持该方法。|
 |disable_profiler_in_child_thread|注销Profiler采集回调函数。与torch_npu.profiler.profile.enable_profiler_in_child_thread配对使用。torch_npu.profiler._KinetoProfile不支持该方法。|
 
-**表 3**  torch\_npu.profiler类、函数说明
+**表 3** torch\_npu.profiler类、函数说明
 
 |类、函数名|说明|
 |--|--|
@@ -2249,7 +2246,7 @@ profiler\_config.json文件内容如下，以默认配置为例：
 }
 ```
 
-**表 1**  参数说明<a name="profiler_config_参数说明"></a>
+**表 1** 参数说明<a name="profiler_config_参数说明"></a>
 
 |参数|可选/必选|说明|
 |--|--|--|
@@ -2259,7 +2256,7 @@ profiler\_config.json文件内容如下，以默认配置为例：
 |analyse|可选|性能数据自动解析开关，取值为：<br/>&#8226; true：开启自动解析。<br/>&#8226; false：关闭自动解析，即手动解析，采集完后的性能数据可以使用[离线解析](#离线解析)。<br/>默认关闭。|
 |record_shapes|可选|记录框架层算子的InputShapes、InputTypes数据以及在profiler_level为Level0开启记录CANN层算子的Shape和Block Num数据。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。|
 |profile_memory|可选|记录算子的显存占用情况。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。<br/>activities开启CPU时，采集框架内存占用情况；activities开启NPU时，采集CANN的显存占用。<br/>已知在安装有glibc<2.34的环境上采集memory数据，可能触发glibc的一个已知[Bug 19329](https://sourceware.org/bugzilla/show_bug.cgi?id=19329)，通过升级环境的glibc版本可解决此问题。|
-|with_stack|可选|记录算子调用栈。包括框架层及CPU算子层的调用信息。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。<br/>activities配置为CPU时生效。|
+|with_stack|可选|记录算子调用栈，包括框架层及CPU算子层的调用信息。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。<br/>activities配置为CPU时生效。|
 |with_flops|可选|记录算子浮点操作（该参数暂不支持解析性能数据）。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。<br/>activities配置为CPU时生效。|
 |with_modules|可选|记录modules层级的Python调用栈，即框架层的调用信息。取值为：<br/>&#8226; true：开启。<br/>&#8226; false：关闭。<br/>默认关闭。<br/>activities配置为CPU时生效。|
 |active|可选|配置采集的迭代数，取值为正整数，默认值为1。|
@@ -2300,7 +2297,7 @@ experimental\_config参数均为可选参数，支持扩展的采集项如下：
 
 experimental\_config参数均为可选参数，支持扩展的采集项如下：
 
-**表 1**  experimental\_config
+**表 1** experimental\_config
 
 |参数|说明|
 |--|--|
@@ -2330,7 +2327,7 @@ torch\_npu.profiler.schedule类用于在采集进程中设置在不同step时的
 torch_npu.profiler.schedule(wait, active, warmup = 0, repeat = 0, skip_first = 0, skip_first_wait = 0)
 ```
 
-**表 1**  参数说明
+**表 1** 参数说明
 
 |参数|可选/必选|说明|
 |--|--|--|
@@ -2339,16 +2336,16 @@ torch_npu.profiler.schedule(wait, active, warmup = 0, repeat = 0, skip_first = 0
 |warmup|可选|预热的step轮数，int类型。默认值为0。建议设置1轮预热。|
 |repeat|可选|重复执行wait + warmup + active的次数，int类型。取值范围为大于等于0的整数，默认值为0。<br>当使用集群分析工具或MindStudio Insight查看时，建议配置repeat = 1（表示执行1次，仅生成一份性能数据），因为：<br>&#8226; repeat > 1，则会在同一目录下生成多份性能数据，此时需要手动将采集的性能数据文件夹分为repeat等份，放到不同文件夹下重新解析，分类方式按照文件夹名称中的时间戳先后。<br>&#8226; repeat = 0时，重复执行的具体次数由总训练步数确定，例如总训练步数为100，wait + active + warmup = 10，skip_first = 10，则repeat = ( 100 - 10 ) / 10 = 9，表示重复执行9次，生成9份性能数据。|
 |skip_first|可选|采集前先跳过的step轮数，int类型。默认值为0。动态Shape场景建议跳过前10轮保证性能数据稳定；对于其他场景，可以根据实际情况自行配置。|
-|skip_first_wait|可选|采集时跳过第一个wait，int类型。默认值为0，表示关闭该参数功能，配置为非0的int值时，表示开启该参数功能。<br>开启该参数功能时，会取消wait参数的第一次wait，即在第一个repeat中的第一个step直接执行下一步动作，但第二个repeat之后仍正常执行。可用于节省采集的时间。|
+|skip_first_wait|可选|是否跳过首轮采集的wait阶段，int类型，默认值为0。设置为非0整数时跳过首轮wait。从第二轮开始，每轮仍等待wait个step。|
 
 > [!NOTE]
 >
-> 建议根据此公式配置schedule：step总数 > = skip_first + ( wait + warmup + active ) * repeat
+> 当`repeat > 0`时，完成指定轮数需要的步数至少为`skip_first + (wait + warmup + active) * repeat`。如果`skip_first_wait`非0，从该值中减去`wait`。`repeat = 0`时，采集会持续循环，直到结束本次 Profiling。
 
 torch\_npu.profiler.schedule类、step和on\_trace\_ready函数使用关系示意图如下：
 
-**图 1**  torch\_npu.profiler.schedule类、step和on\_trace\_ready函数使用关系示意图
-![](../figures/profiler/torch_npu-profiler-schedule.png "../figures/profiler/torch_npu-profiler-schedule.png")
+**图 1** torch\_npu.profiler.schedule类、step和on\_trace\_ready函数使用关系示意图
+![Profiler 先跳过 skip_first 步，再按 wait、warmup 和 active 循环采集，每轮结束调用 on_trace_ready](../figures/profiler/torch_npu-profiler-schedule.png)
 
 设置示例代码如下：
 
