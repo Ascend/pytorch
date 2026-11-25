@@ -139,7 +139,7 @@ class TestMgr:
                         is_remove = True
                     if mode == "not_run_directly":
                         # remove not run directly files
-                        is_folder_in = not test_name.endswith(".py") and "/" + test_name + "/" in test_file
+                        is_folder_in = not test_name.endswith(".py") and "/test/" + test_name + "/" in test_file
                         is_file_in = test_name.endswith(".py") and test_name in test_file
                         if is_folder_in or is_file_in:
                             if test_name in ["jit"] and re.search("|".join(INCLUDE_FILES), test_file):
