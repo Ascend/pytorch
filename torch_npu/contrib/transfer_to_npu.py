@@ -56,10 +56,18 @@ config_path = os.path.join(cur_path, 'apis_config.json')
 
 class _TorchTypeProxyMeta(type(torch.Generator)):
 
-    # Keep isinstance(obj, torch.Generator/Event) working for base C++ objects
-    # when torch.Generator/Event is rebound to a proxy type.
+    # Keep isinstance(obj, torch.Generator/Event/Stream) working for base C++ objects
+    # when torch.Generator/Event/Stream is rebound to a proxy type.
     def __instancecheck__(cls, instance):
         return super().__instancecheck__(instance) or isinstance(instance, cls.__mro__[1])
+
+    # Keep issubclass(TorchNativeType, torch.Generator/Event/Stream) working as
+    # well. Dynamo uses issubclass(value, torch.Stream) to decide whether a
+    # class must be traced as a StreamVariable; without this, rebinding
+    # torch.Stream to _StreamProxy (a *subclass* of the original torch.Stream)
+    # makes npu Stream classes fall through to generic tracing and graph-break.
+    def __subclasscheck__(cls, subclass):
+        return super().__subclasscheck__(subclass) or issubclass(subclass, cls.__mro__[1])
 
 
 class _GeneratorProxy(torch.Generator, metaclass=_TorchTypeProxyMeta):
@@ -108,6 +116,13 @@ class _GradScalerProxy(torch_npu.npu.amp.GradScaler):
             args = args[1:]          # 剥离位置传入的 device（torch 侧首参）
         kwargs.pop("device", None)   # 剥离关键字传入的 device
         super().__init__(*args, **kwargs)
+
+
+def _npu_caching_allocator_enable(value=True):
+    # torch_npu has no caching allocator switch. Since is_initialized now reports
+    # the NPU state, torch's CUDA-only implementation would call the unavailable
+    # torch._C._cuda_cudaCachingAllocator_enable, so keep the call harmless.
+    return None
 
 
 def _get_function_from_string(attribute_string):
@@ -551,6 +566,13 @@ def _init():
     torch.cuda.memory._dump_snapshot = torch.npu.memory._dump_snapshot
     torch.cuda.memory.CUDAPluggableAllocator = torch_npu.npu.memory.NPUPluggableAllocator
     torch.cuda.memory.is_initialized = torch_npu.npu.memory.is_initialized
+    # torch.cuda.caching_allocator_enable is a separate alias of the function in
+    # torch.cuda.memory, so both bindings have to be redirected. Use a native
+    # NPU implementation if torch_npu provides one in the future.
+    _caching_allocator_enable = getattr(torch_npu.npu.memory, 'caching_allocator_enable',
+                                        _npu_caching_allocator_enable)
+    torch.cuda.memory.caching_allocator_enable = _caching_allocator_enable
+    torch.cuda.caching_allocator_enable = _caching_allocator_enable
     torch._C._host_emptyCache = torch_npu._C._npu_hostEmptyCache
 
     # torch.cuda.graphs.* / torch.cuda.random.*
