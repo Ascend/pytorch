@@ -59,5 +59,14 @@ for _ in range(1000):
 
 ## Constraints
 
-1. Before using the TorchAir-GE backend, ensure that the model runs correctly in Ascend NPU single-operator mode (Eager).
-2. The script must first `import torch_npu`, then `import torchair` to function properly.
+- Before using the TorchAir-GE backend, ensure that the model runs correctly in Ascend NPU single-operator mode (Eager).
+- The script must first `import torch_npu`, then `import torchair` to function properly.
+
+## Reference Documents
+
+This page provides only the minimal example and entry-level constraints of the TorchAir-GE backend from the torch.compile perspective. The complete feature items supported by `compiler_config`, the specific constraints and configuration methods of each feature, and Ascend IR-related APIs are maintained in the "[GE Graph Mode](https://gitcode.com/Ascend/torchair/blob/26.1.0/docs/en/ascend_ir/quick_start.md)" chapter of *TorchAir*. See the following content.
+
+- [GE Graph Mode Quick Start](https://gitcode.com/Ascend/torchair/blob/26.1.0/docs/en/ascend_ir/quick_start.md): usage method, torch.compile parameter descriptions in Ascend IR mode, and CompilerConfig categories and feature list.
+- [GE Graph Mode Features](https://gitcode.com/Ascend/torchair/blob/26.1.0/docs/en/ascend_ir/features/features.md): basic and advanced features (graph structure dump, operator data dump, multi-stream expression, model compilation cache, compute-communication parallelism, core limiting, determinism, and so on) and their constraints.
+- [GE Graph Mode API Reference](https://gitcode.com/Ascend/torchair/blob/26.1.0/docs/en/ascend_ir/api/api.md): torchair, torchair.ge, torchair.scope, torchair.ops, torchair.inference, and torchair.llm_datadist interfaces.
+- [Common Cases and Troubleshooting](https://gitcode.com/Ascend/torchair/blob/26.1.0/docs/en/appendix/cases/cases.md): graph capture failure localization, graph-mode precision comparison, graph-mode performance analysis, and FAQ.

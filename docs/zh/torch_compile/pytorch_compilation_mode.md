@@ -43,3 +43,12 @@ torch.compile(model, *, fullgraph=False, dynamic=None, backend="inductor",
 | NPUGraph_EX | `backend="npugraph_ex"` | ACLGraph图下沉 + FX图优化 + 编译缓存复用 | 大模型推理部署 |
 | AOT_Eager | `backend="aot_eager"` | 不做优化，仅验证图捕获正确性 | 调试、基线性能对比 |
 | TorchAir-GE  | `backend=torchair.get_npu_backend(...)` | 将PyTorch的FX图转换为计算图，并通过GE图引擎实现计算图编译和运行 | 大模型推理部署 |
+
+**参考文档**
+
+NPUGraph_EX与TorchAir-GE后端的完整功能项、各功能的专属约束、问题定界方法及API参考，由《TorchAir》手册维护，本手册不重复维护。遇到以下场景时，请查阅对应文档。
+
+| 后端 | 需查阅扩展内容的场景 | 文档链接 |
+|------|----------|---------|
+| NPUGraph_EX | 配置`options`中的基础/进阶/DFX功能项（force_eager、内存复用、静态Kernel编译、编译缓存、多流、SuperKernel等）；查询某功能的专属约束；异常问题定界；使用torch.npu.npugraph_ex相关API | 《TorchAir》中的 "[npugraph_ex](https://gitcode.com/Ascend/torchair/blob/26.1.0/docs/zh/npugraph_ex/quick_start.md)" 章节 |
+| TorchAir-GE | 配置`compiler_config`下的功能项（debug、export、fusion_config、experimental_config、ge_config等）；查询某功能的专属约束；使用torchair、torchair.ge、torchair.scope等API | 《TorchAir》中的 "[GE图模式](https://gitcode.com/Ascend/torchair/blob/26.1.0/docs/zh/ascend_ir/quick_start.md)" 章节 |

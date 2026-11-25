@@ -59,5 +59,14 @@ for _ in range(1000):
 
 ## 约束说明
 
-1. 使用TorchAir-GE后端前，确保模型已在昇腾NPU单算子模式（Eager）下正确执行。
-2. 脚本中须先`import torch_npu`，再`import torchair`才能正常使用。
+- 使用TorchAir-GE后端前，确保模型已在昇腾NPU单算子模式（Eager）下正确执行。
+- 脚本中须先`import torch_npu`，再`import torchair`才能正常使用。
+
+## 参考文档
+
+本页仅提供TorchAir-GE后端在torch.compile视角下的最小示例与入门约束。`compiler_config`支持的完整功能项、各功能的专属约束与配置方式，以及Ascend IR相关API，由《TorchAir》中的 "[GE图模式](https://gitcode.com/Ascend/torchair/blob/26.1.0/docs/zh/ascend_ir/quick_start.md)" 章节维护，请查阅以下内容。
+
+- [GE图模式快速上手](https://gitcode.com/Ascend/torchair/blob/26.1.0/docs/zh/ascend_ir/quick_start.md)：使用方法、torch.compile参数在Ascend IR模式下的说明、CompilerConfig分类与功能项清单。
+- [GE图模式功能](https://gitcode.com/Ascend/torchair/blob/26.1.0/docs/zh/ascend_ir/features/features.md)：基础功能与进阶功能（图结构dump、算子data dump、多流表达、模型编译缓存、计算与通信并行、限核、确定性等）及各自的约束。
+- [GE图模式API参考](https://gitcode.com/Ascend/torchair/blob/26.1.0/docs/zh/ascend_ir/api/api.md)：torchair、torchair.ge、torchair.scope、torchair.ops、torchair.inference及torchair.llm_datadist接口。
+- [常见案例和定位方法](https://gitcode.com/Ascend/torchair/blob/26.1.0/docs/zh/appendix/cases/cases.md)：入图失败定界与定位、图模式精度比对、图模式性能分析及FAQ。
