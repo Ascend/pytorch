@@ -25,10 +25,17 @@ class _HcclBarrierTestCase(MultiProcessTestCase):
             self.addCleanup(self._reap_workers, self.processes)
 
     def _reap_workers(self, processes):
+        open_processes = []
         for process in processes:
-            if process.is_alive():
+            try:
+                alive = process.is_alive()
+            except ValueError:
+                # MultiProcessTestCase.tearDown() already closed this handle.
+                continue
+            open_processes.append(process)
+            if alive:
                 process.terminate()
-        for process in processes:
+        for process in open_processes:
             process.join(timeout=5)
             if process.is_alive():
                 process.kill()
