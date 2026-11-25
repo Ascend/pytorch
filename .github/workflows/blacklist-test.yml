@@ -25,6 +25,7 @@ on:
       - ci-test
     paths:
       - '.github/workflows/blacklist-test.yml'
+      - '.github/config/blacklist_testccases/conf/a3a5_log_diff_testcases.json'
       - '.github/config/blacklist_testccases/conf/dtype_unsupported_testcases.json'
       - '.github/config/blacklist_testccases/conf/hardware_unsupported_testcases.json'
       - '.github/config/blacklist_testccases/conf/platform_passed_diff.json'

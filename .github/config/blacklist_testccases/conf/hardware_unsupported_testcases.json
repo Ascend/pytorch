@@ -1,6 +1,8 @@
 [
   {
-    "log": ["cannot be larger than 8 dimensions"],
+    "log": [
+      "cannot be larger than 8 dimensions"
+    ],
     "category": "cann not supported",
     "nodeids": {
       "test/functorch/test_ops.py::TestOperatorsDevicePRIVATEUSE1::test_extremal_numerics_cross_entropy_npu": {"cann": "aclnnIsClose; aclnnStack|aclnnIsClose; aclnnStack", "issue": "https://gitcode.com/Ascend/pytorch/issues/6011"},
@@ -5774,23 +5776,8 @@
   },
   {
     "log": [
-      "Only contiguous_format or preserve_format is supported",
-      "not implemented for DT_DOUBLE"
+      "not implemented for DT_COMPLEX"
     ],
-    "category": "device not supported",
-    "nodeids": {
-      "test/inductor/test_torchinductor_opinfo.py::TestInductorOpInfoNPU::test_comprehensive_double_npu_float64": {"cann": "|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/6009, https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/inductor/test_torchinductor_opinfo.py::TestInductorOpInfoNPU::test_comprehensive_to_npu_float16": {"cann": "|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/6009, https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/inductor/test_torchinductor_opinfo.py::TestInductorOpInfoNPU::test_comprehensive_to_npu_float32": {"cann": "|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/6009, https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_fwd_gradients.py::TestFwdGradientsPRIVATEUSE1::test_fn_fwgrad_bwgrad_cdouble_npu_float64": {"cann": "|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/6009, https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_fwd_gradients.py::TestFwdGradientsPRIVATEUSE1::test_fn_fwgrad_bwgrad_double_npu_float64": {"cann": "|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/6009, https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_fwd_gradients.py::TestFwdGradientsPRIVATEUSE1::test_fn_fwgrad_bwgrad_to_npu_float64": {"cann": "|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/6009, https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_fwd_gradients.py::TestFwdGradientsPRIVATEUSE1::test_forward_mode_AD_double_npu_float64": {"cann": "|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/6009, https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_fwd_gradients.py::TestFwdGradientsPRIVATEUSE1::test_forward_mode_AD_to_npu_float64": {"cann": "|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/6009, https://gitcode.com/Ascend/pytorch/issues/6005"}
-    }
-  },
-  {
-    "log": ["not implemented for DT_COMPLEX"],
     "category": "device not supported",
     "nodeids": {
       "test/complex_tensor/test_complex_tensor.py::TestComplexTensorPRIVATEUSE1::test_consistency_acosh_npu_complex128": {"cann": "aclnnIsClose|aclnnIsClose", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314"},
@@ -19351,7 +19338,9 @@
     }
   },
   {
-    "log": ["not implemented for DT_DOUBLE"],
+    "log": [
+      "not implemented for DT_DOUBLE"
+    ],
     "category": "device not supported",
     "nodeids": {
       "test/complex_tensor/test_complex_tensor.py::TestComplexBwdGradientsNPU::test_fn_grad_abs_npu_complex128": {"cann": "aclnnDot|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/6005"},
@@ -28274,93 +28263,8 @@
   },
   {
     "log": [
-      "not implemented for DT_COMPLEX",
-      "not implemented for DT_DOUBLE"
+      "Torch not compiled with CUDA enabled|test/distributed/rpc/cuda/test_tensorpipe_agent.py"
     ],
-    "category": "device not supported",
-    "nodeids": {
-      "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_nn_functional_pad_reflect_npu_complex64": {"cann": "aclnnIndex|aclnnIsClose", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_decomp.py::TestDecompPRIVATEUSE1::test_quick_fft_fftn_npu_float64": {"cann": "aclnnIsClose|aclnnIsClose", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_decomp.py::TestDecompPRIVATEUSE1::test_quick_fft_hfft2_npu_float64": {"cann": "aclnnIsClose|aclnnIsClose", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_decomp.py::TestDecompPRIVATEUSE1::test_quick_fft_hfft_npu_float64": {"cann": "aclnnIsClose|aclnnIsClose", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_decomp.py::TestDecompPRIVATEUSE1::test_quick_fft_hfftn_npu_float64": {"cann": "aclnnIsClose|aclnnIsClose", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_decomp.py::TestDecompPRIVATEUSE1::test_quick_fft_ifft2_npu_float64": {"cann": "aclnnIsClose|aclnnIsClose", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_decomp.py::TestDecompPRIVATEUSE1::test_quick_fft_ifftn_npu_complex128": {"cann": "aclnnIsClose|aclnnIsClose", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_decomp.py::TestDecompPRIVATEUSE1::test_quick_fft_irfft2_npu_float64": {"cann": "aclnnIsClose|aclnnIsClose", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_decomp.py::TestDecompPRIVATEUSE1::test_quick_fft_irfftn_npu_complex128": {"cann": "aclnnIsClose|aclnnIsClose", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops.py::TestCommonPRIVATEUSE1::test_dtypes_index_copy_npu": {"cann": "aclnnIndexCopy; aclnnIndexFill; aclnnInplaceNormal|aclnnIndexCopy; aclnnInplaceNormal", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops.py::TestCommonPRIVATEUSE1::test_dtypes_index_fill_npu": {"cann": "aclnnIndexFill|aclnnIndexFillTensor", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops.py::TestCommonPRIVATEUSE1::test_dtypes_trace_npu": {"cann": "aclnnInplaceIndexFill; aclnnInplaceNormal|aclnnInplaceNormal", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_fwd_gradients.py::TestFwdGradientsPRIVATEUSE1::test_forward_mode_AD_dist_npu_complex128": {"cann": "aclnnInplaceMaskedFillScalar|aclnnNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_fwd_gradients.py::TestFwdGradientsPRIVATEUSE1::test_forward_mode_AD_nn_functional_pairwise_distance_npu_complex128": {"cann": "aclnnInplaceMaskedFillScalar|aclnnNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_fwd_gradients.py::TestFwdGradientsPRIVATEUSE1::test_forward_mode_AD_nn_functional_triplet_margin_loss_npu_complex128": {"cann": "aclnnInplaceMaskedFillScalar|aclnnNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_fwd_gradients.py::TestFwdGradientsPRIVATEUSE1::test_forward_mode_AD_nn_functional_triplet_margin_with_distance_loss_npu_complex128": {"cann": "aclnnInplaceMaskedFillScalar|aclnnNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_linalg_det_npu_complex128": {"cann": "aclnnMatmul|aclnnMatmul", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_linalg_inv_npu_complex128": {"cann": "aclnnMatmul|aclnnMatmul", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_linalg_matrix_power_npu_complex128": {"cann": "aclnnMatmul|aclnnMatmul", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_pca_lowrank_npu_complex128": {"cann": "aclnnMatmul|aclnnMatmul", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_autograd.py::TestAutogradDeviceTypeNPU::test_to_r_to_c_npu": {"cann": "aclnnAbs|aclnnAbs", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_nn_functional_softsign_npu_complex128": {"cann": "aclnnAbs|aclnnAbs", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_inner_npu_complex128": {"cann": "aclnnDot|aclnnDot", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_linalg_vecdot_npu_complex128": {"cann": "aclnnDot|aclnnDot", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_index_put_npu_complex128": {"cann": "aclnnIndexPutImpl|aclnnIndexPutImpl", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_inplace_grad_index_put_npu_complex128": {"cann": "aclnnIndexPutImpl|aclnnIndexPutImpl", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_linspace_tensor_overload_npu_complex64": {"cann": "aclnnIsClose|aclnnIsClose", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_nn_functional_pixel_unshuffle_npu_complex128": {"cann": "aclnnIsClose|aclnnIsClose", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_fwd_gradients.py::TestFwdGradientsPRIVATEUSE1::test_fn_fwgrad_bwgrad_nn_functional_linear_npu_complex128": {"cann": "aclnnAddmm|aclnnAddmm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_column_stack_npu_complex128": {"cann": "aclnnCat|aclnnCat", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_gather_npu_complex128": {"cann": "aclnnGather|aclnnGather", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_inplace_grad_atan_npu_complex128": {"cann": "aclnnInplaceAtan|aclnnInplaceAtan", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/complex_tensor/test_complex_tensor.py::TestComplexBwdGradientsNPU::test_fn_grad_div_no_rounding_mode_npu_complex128": {"cann": "aclnnInplaceIndexFill|aclnnInplaceIndexFill", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_norm_npu_complex128": {"cann": "aclnnInplaceMaskedFillScalar|aclnnInplaceMaskedFillScalar", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_nn_functional_dropout2d_npu_complex64": {"cann": "aclnnInplaceNormal|aclnnInplaceNormal", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_logaddexp_npu_complex128": {"cann": "aclnnLogAddExp|aclnnLogAddExp", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_fwd_gradients.py::TestFwdGradientsPRIVATEUSE1::test_fn_fwgrad_bwgrad_masked_select_npu_complex128": {"cann": "aclnnMaskedSelect|aclnnMaskedSelect", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_mm_npu_complex128": {"cann": "aclnnMm|aclnnMm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_triu_npu_complex128": {"cann": "aclnnTriu|aclnnTriu", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/complex_tensor/test_complex_tensor.py::TestComplexBwdGradientsNPU::test_fn_grad_masked_scatter_npu_complex128": {"cann": "aclnnInplaceMaskedFillScalar|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/complex_tensor/test_complex_tensor.py::TestComplexBwdGradientsNPU::test_fn_grad_prod_npu_complex128": {"cann": "aclnnInplaceOne|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/complex_tensor/test_complex_tensor.py::TestComplexBwdGradientsNPU::test_fn_grad_scatter_add_npu_complex128": {"cann": "aclnnGather|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/complex_tensor/test_complex_tensor.py::TestComplexBwdGradientsNPU::test_fn_grad_split_list_args_npu_complex128": {"cann": "aclnnCat|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/complex_tensor/test_complex_tensor.py::TestComplexBwdGradientsNPU::test_fn_grad_split_npu_complex128": {"cann": "aclnnCat|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/complex_tensor/test_complex_tensor.py::TestComplexBwdGradientsNPU::test_fn_grad_split_with_sizes_npu_complex128": {"cann": "aclnnCat|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_fwd_gradients.py::TestFwdGradientsPRIVATEUSE1::test_fn_fwgrad_bwgrad_nn_functional_pad_circular_npu_complex128": {"cann": "aclnnIsClose|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_fwd_gradients.py::TestFwdGradientsPRIVATEUSE1::test_forward_mode_AD_nn_functional_pad_circular_npu_complex128": {"cann": "aclnnIsClose|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_fwd_gradients.py::TestFwdGradientsPRIVATEUSE1::test_forward_mode_AD_nn_functional_unfold_npu_complex128": {"cann": "aclnnIsClose|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_chunk_npu_complex128": {"cann": "aclnnCat|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_index_copy_npu_complex128": {"cann": "aclnnIndexFill|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_linalg_cond_npu_complex128": {"cann": "aclnnMatmul|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_linalg_householder_product_npu_complex128": {"cann": "aclnnTril|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_linalg_lu_factor_ex_npu_complex128": {"cann": "aclnnMatmul|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_linalg_lu_npu_complex128": {"cann": "aclnnMatmul|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_linalg_svdvals_npu_complex128": {"cann": "aclnnMatmul|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_linalg_tensorsolve_npu_complex128": {"cann": "aclnnMatmul|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_lu_unpack_npu_complex128": {"cann": "aclnnTril|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_nn_functional_unfold_npu_complex128": {"cann": "aclnnIm2colBackward|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_norm_nuc_npu_complex128": {"cann": "aclnnMatmul|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_ormqr_npu_complex128": {"cann": "aclnnTril|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_scatter_add_npu_complex128": {"cann": "aclnnGather|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_scatter_npu_complex128": {"cann": "aclnnGather|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_sgn_npu_complex128": {"cann": "aclnnAbs|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_split_list_args_npu_complex128": {"cann": "aclnnCat|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_split_npu_complex128": {"cann": "aclnnCat|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_split_with_sizes_copy_npu_complex128": {"cann": "aclnnCat|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_split_with_sizes_npu_complex128": {"cann": "aclnnCat|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_trace_npu_complex128": {"cann": "aclnnInplaceIndexFill|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_triangular_solve_npu_complex128": {"cann": "aclnnMatmul|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_unfold_copy_npu_complex128": {"cann": "aclnnUnfoldGrad|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_unfold_npu_complex128": {"cann": "aclnnUnfoldGrad|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_unsafe_chunk_npu_complex128": {"cann": "aclnnCat|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_unsafe_split_npu_complex128": {"cann": "aclnnCat|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_inplace_grad_index_copy_npu_complex128": {"cann": "aclnnIndexFill|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_inplace_grad_scatter_add_npu_complex128": {"cann": "aclnnGather|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_inplace_grad_scatter_npu_complex128": {"cann": "aclnnGather|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_inplace_grad_sgn_npu_complex128": {"cann": "aclnnAbs|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_ops.py::TestCommonPRIVATEUSE1::test_dtypes_linalg_matrix_norm_npu": {"cann": "aclnnMatmul|aclnnMatmul", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314; https://gitcode.com/Ascend/pytorch/issues/6005"}
-    }
-  },
-  {
-    "log": ["Torch not compiled with CUDA enabled|test/distributed/rpc/cuda/test_tensorpipe_agent.py"],
     "category": "device not supported",
     "nodeids": {
       "test/distributed/rpc/cuda/test_tensorpipe_agent.py::TensorPipeCudaDistAutogradTest::test_gpu_simple": {"cann": "", "issue": ""},
@@ -28443,7 +28347,9 @@
     }
   },
   {
-    "log": ["The operator does not support the complex number type"],
+    "log": [
+      "The operator does not support the complex number type"
+    ],
     "category": "device not supported",
     "nodeids": {
       "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_linalg_matrix_norm_npu_complex64": {"cann": "aclnnLinalgVectorNorm|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
@@ -28983,7 +28889,9 @@
     }
   },
   {
-    "log": ["Self dtype DT_DOUBLE should be in dtype support list"],
+    "log": [
+      "Self dtype DT_DOUBLE should be in dtype support list"
+    ],
     "category": "device not supported",
     "nodeids": {
       "test/functorch/test_ops.py::TestOperatorsDevicePRIVATEUSE1::test_vmap_autograd_grad_nn_functional_relu_npu_float64": {"cann": "aclnnRelu|aclnnRelu", "issue": "https://gitcode.com/Ascend/pytorch/issues/5915"},
@@ -29038,7 +28946,9 @@
     }
   },
   {
-    "log": ["promoteType dtype DT_DOUBLE should be in dtype support list"],
+    "log": [
+      "promoteType dtype DT_DOUBLE should be in dtype support list"
+    ],
     "category": "device not supported",
     "nodeids": {
       "test/functorch/test_ops.py::TestOperatorsDevicePRIVATEUSE1::test_vmap_autograd_grad_nn_functional_l1_loss_npu_float64": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5917"},
@@ -29071,7 +28981,10 @@
     }
   },
   {
-    "log": ["has incorrect dtype DT_COMPLEX128"],
+    "log": [
+      "has incorrect dtype DT_COMPLEX128",
+      "has incorrect dtype DT_COMPLEX64"
+    ],
     "category": "device not supported",
     "nodeids": {
       "test/complex_tensor/test_complex_tensor.py::TestComplexTensorPRIVATEUSE1::test_consistency_masked_scatter_npu_complex128": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317, https://gitcode.com/Ascend/pytorch/issues/5314"},
@@ -29089,7 +29002,19 @@
       "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_inplace_grad_masked_scatter_npu_complex128": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
       "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_inplace_gradgrad_masked_scatter_npu_complex128": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
       "test/test_torch.py::TestTorchDeviceTypePRIVATEUSE1::test_masked_scatter_npu_complex128": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
-      "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_masked_scatter_npu_complex128": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314"}
+      "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_masked_scatter_npu_complex128": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314"},
+      "test/complex_tensor/test_complex_tensor.py::TestComplexTensorPRIVATEUSE1::test_consistency_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317, https://gitcode.com/Ascend/pytorch/issues/5314"},
+      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_inplace_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
+      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_outplace_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
+      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_inplace_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
+      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
+      "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_inplace_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
+      "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
+      "test/test_ops.py::TestCommonPRIVATEUSE1::test_noncontiguous_samples_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317, https://gitcode.com/Ascend/pytorch/issues/5314"},
+      "test/test_ops.py::TestCommonPRIVATEUSE1::test_variant_consistency_eager_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317, https://gitcode.com/Ascend/pytorch/issues/5314"},
+      "test/test_ops.py::TestMathBitsNPU::test_conj_view_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317, https://gitcode.com/Ascend/pytorch/issues/5314"},
+      "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317, https://gitcode.com/Ascend/pytorch/issues/5314"},
+      "test/test_torch.py::TestTorchDeviceTypePRIVATEUSE1::test_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"}
     }
   },
   {
@@ -29134,75 +29059,9 @@
     }
   },
   {
-    "log": ["has incorrect dtype DT_COMPLEX64"],
-    "category": "device not supported",
-    "nodeids": {
-      "test/complex_tensor/test_complex_tensor.py::TestComplexTensorPRIVATEUSE1::test_consistency_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317, https://gitcode.com/Ascend/pytorch/issues/5314"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_inplace_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_outplace_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_inplace_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_inplace_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
-      "test/test_ops.py::TestCommonPRIVATEUSE1::test_noncontiguous_samples_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317, https://gitcode.com/Ascend/pytorch/issues/5314"},
-      "test/test_ops.py::TestCommonPRIVATEUSE1::test_variant_consistency_eager_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317, https://gitcode.com/Ascend/pytorch/issues/5314"},
-      "test/test_ops.py::TestMathBitsNPU::test_conj_view_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317, https://gitcode.com/Ascend/pytorch/issues/5314"},
-      "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317, https://gitcode.com/Ascend/pytorch/issues/5314"},
-      "test/test_torch.py::TestTorchDeviceTypePRIVATEUSE1::test_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"}
-    }
-  },
-  {
     "log": [
-      "Input dtype should be either floating point or complex dtypes. Got self DT_COMPLEX128 and target DT_COMPLEX128 instead",
-      "Input dtype should be either floating point or complex dtypes. Got self DT_COMPLEX64 and target DT_COMPLEX64 instead"
+      "Type promoting not supported. Got Double and Float"
     ],
-    "category": "device not supported",
-    "nodeids": {
-      "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_nn_functional_l1_loss_npu_complex128": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_outplace_nn_functional_l1_loss_npu_complex128": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace_nn_functional_l1_loss_npu_complex128": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace_nn_functional_l1_loss_npu_complex128": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
-      "test/test_ops.py::TestCommonPRIVATEUSE1::test_numpy_ref_nn_functional_l1_loss_npu_complex128": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5161"},
-      "test/test_ops.py::TestMathBitsNPU::test_neg_conj_view_nn_functional_l1_loss_npu_complex128": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5161"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_nn_functional_l1_loss_npu_complex128": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_gradgrad_nn_functional_l1_loss_npu_complex128": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
-      "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_nn_functional_l1_loss_npu_complex128": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5161"},
-      "test/test_ops_fwd_gradients.py::TestFwdGradientsPRIVATEUSE1::test_fn_fwgrad_bwgrad_nn_functional_l1_loss_npu_complex128": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317, https://gitcode.com/Ascend/pytorch/issues/5161"},
-      "test/test_ops_fwd_gradients.py::TestFwdGradientsPRIVATEUSE1::test_forward_mode_AD_nn_functional_l1_loss_npu_complex128": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317, https://gitcode.com/Ascend/pytorch/issues/5161"},
-      "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_nn_functional_l1_loss_npu_complex64": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_outplace_nn_functional_l1_loss_npu_complex64": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace_nn_functional_l1_loss_npu_complex64": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace_nn_functional_l1_loss_npu_complex64": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
-      "test/test_ops.py::TestCommonPRIVATEUSE1::test_noncontiguous_samples_nn_functional_l1_loss_npu_complex64": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5161"},
-      "test/test_ops.py::TestCommonPRIVATEUSE1::test_python_ref__refs_nn_functional_l1_loss_npu_complex64": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5161"},
-      "test/test_ops.py::TestCommonPRIVATEUSE1::test_python_ref_executor__refs_nn_functional_l1_loss_executor_aten_npu_complex64": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5161"},
-      "test/test_ops.py::TestCommonPRIVATEUSE1::test_python_ref_torch_fallback__refs_nn_functional_l1_loss_npu_complex64": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5161"},
-      "test/test_ops.py::TestCommonPRIVATEUSE1::test_variant_consistency_eager_nn_functional_l1_loss_npu_complex64": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5161"},
-      "test/test_ops.py::TestMathBitsNPU::test_conj_view_nn_functional_l1_loss_npu_complex64": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5161"},
-      "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_nn_functional_l1_loss_npu_complex64": {"cann": "aclnnL1Loss|aclnnL1Loss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5161"}
-    }
-  },
-  {
-    "log": [
-      "promoteType dtype DT_COMPLEX32 should be in dtype support list",
-      "not implemented for DT_COMPLEX"
-    ],
-    "category": "device not supported",
-    "nodeids": {
-      "test/complex_tensor/test_complex_tensor.py::TestComplexTensorPRIVATEUSE1::test_consistency_eq_npu_complex32": {"cann": "aclnnEqTensor|aclnnEqTensor", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"},
-      "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_batch_vs_slicing_eq_npu_complex32": {"cann": "aclnnEqTensor|aclnnEqTensor", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"},
-      "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_every_other_eq_npu_complex32": {"cann": "aclnnEqTensor|aclnnEqTensor", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"},
-      "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_contig_vs_transposed_eq_npu_complex32": {"cann": "aclnnEqTensor|aclnnEqTensor", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"},
-      "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_eq_npu_complex32": {"cann": "aclnnEqTensor|aclnnEqTensor", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"},
-      "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_reference_numerics_small_values_eq_npu_complex32": {"cann": "aclnnEqTensor|aclnnEqTensor", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_outplace_eq_npu_complex32": {"cann": "aclnnEqTensor|aclnnEqTensor", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315, https://gitcode.com/Ascend/pytorch/issues/5314"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace_eq_npu_complex32": {"cann": "aclnnEqTensor|aclnnEqTensor", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315, https://gitcode.com/Ascend/pytorch/issues/5314"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace_eq_npu_complex32": {"cann": "aclnnEqTensor|aclnnEqTensor", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315, https://gitcode.com/Ascend/pytorch/issues/5314"},
-      "test/test_ops.py::TestCommonPRIVATEUSE1::test_complex_half_reference_testing_eq_npu_complex32": {"cann": "aclnnEqTensor|aclnnEqTensor", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"}
-    }
-  },
-  {
-    "log": ["Type promoting not supported. Got Double and Float"],
     "category": "dtype not supported",
     "nodeids": {
       "test/test_modules.py::TestModulePRIVATEUSE1::test_forward_nn_PReLU_npu_float64": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5151"},
@@ -29245,7 +29104,9 @@
     }
   },
   {
-    "log": ["All tensors must have the same dtype, got input1: double, input2: double, weight: float, bias: float"],
+    "log": [
+      "All tensors must have the same dtype, got input1: double, input2: double, weight: float, bias: float"
+    ],
     "category": "dtype not supported",
     "nodeids": {
       "test/test_modules.py::TestModulePRIVATEUSE1::test_forward_nn_Bilinear_npu_float64": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5151"},
@@ -29259,36 +29120,16 @@
   },
   {
     "log": [
-      "not implemented for DT_COMPLEX",
-      "Only contiguous_format or preserve_format is supported"
+      "out cannot be DT_COMPLEX128, should be in dtype support list",
+      "out cannot be DT_COMPLEX64, should be in dtype support list"
     ],
-    "category": "device not supported",
-    "nodeids": {
-      "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_cdouble_npu_bool": {"cann": "aclnnIsClose|", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314"},
-      "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_cdouble_npu_int32": {"cann": "aclnnIsClose|", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314"},
-      "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_cfloat_npu_int16": {"cann": "|aclnnIsClose", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314"},
-      "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_cfloat_npu_int8": {"cann": "aclnnIsClose|", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314"},
-      "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_cfloat_npu_uint8": {"cann": "|aclnnIsClose", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314"},
-      "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_chalf_npu_complex32": {"cann": "|aclnnInplaceCopy", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314"},
-      "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_cfloat_npu_bool": {"cann": "|aclnnIsClose", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314"},
-      "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_cfloat_npu_int32": {"cann": "|aclnnIsClose", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314"}
-    }
-  },
-  {
-    "log": ["out cannot be DT_COMPLEX128, should be in dtype support list"],
     "category": "device not supported",
     "nodeids": {
       "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_outplace_prod_npu_complex128": {"cann": "aclnnProd|aclnnProd", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
       "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace_prod_npu_complex128": {"cann": "aclnnProd|aclnnProd", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
       "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace_prod_npu_complex128": {"cann": "aclnnProd|aclnnProd", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
       "test/test_ops.py::TestCommonPRIVATEUSE1::test_python_ref_meta__refs_cumprod_npu_complex128": {"cann": "aclnnProdDim|aclnnProdDim", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
-      "test/test_ops.py::TestCommonPRIVATEUSE1::test_python_ref_meta__refs_prod_npu_complex128": {"cann": "aclnnProdDim|aclnnProdDim", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317, https://gitcode.com/Ascend/pytorch/issues/5314"}
-    }
-  },
-  {
-    "log": ["out cannot be DT_COMPLEX64, should be in dtype support list"],
-    "category": "device not supported",
-    "nodeids": {
+      "test/test_ops.py::TestCommonPRIVATEUSE1::test_python_ref_meta__refs_prod_npu_complex128": {"cann": "aclnnProdDim|aclnnProdDim", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317, https://gitcode.com/Ascend/pytorch/issues/5314"},
       "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_outplace_prod_npu_complex64": {"cann": "aclnnProd|aclnnProd", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
       "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace_prod_npu_complex64": {"cann": "aclnnProd|aclnnProd", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
       "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace_prod_npu_complex64": {"cann": "aclnnProd|aclnnProd", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
@@ -29297,7 +29138,9 @@
     }
   },
   {
-    "log": ["AICPU does not support DT_COMPLEX64 for Index"],
+    "log": [
+      "AICPU does not support DT_COMPLEX64 for Index"
+    ],
     "category": "device not supported",
     "nodeids": {
       "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive__unsafe_masked_index_npu_complex64": {"cann": "aclnnIndex|aclnnIndex", "issue": "https://gitcode.com/Ascend/pytorch/issues/5917"},
@@ -29309,106 +29152,8 @@
   },
   {
     "log": [
-      "not implemented for DT_COMPLEX",
-      "AICPU does not support DT_COMPLEX64 for Index"
+      "expected dtype is DT_DOUBLE but found DT_FLOAT16"
     ],
-    "category": "device not supported",
-    "nodeids": {
-      "test/test_ops.py::TestCommonPRIVATEUSE1::test_noncontiguous_samples__unsafe_masked_index_npu_complex64": {"cann": "aclnnIndex|aclnnIndex", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314"},
-      "test/test_ops.py::TestCommonPRIVATEUSE1::test_variant_consistency_eager__unsafe_masked_index_npu_complex64": {"cann": "aclnnIndex|aclnnIndex", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314"},
-      "test/test_ops.py::TestMathBitsNPU::test_conj_view__unsafe_masked_index_npu_complex64": {"cann": "aclnnIndex|aclnnIndex", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314"},
-      "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness__unsafe_masked_index_npu_complex64": {"cann": "aclnnIndex|aclnnIndex", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314"}
-    }
-  },
-  {
-    "log": [
-      "not implemented for DT_COMPLEX",
-      "The dtype or format of the actual input or output parameter of the operator is inconsistent with that defined in the operator prototype OpDef"
-    ],
-    "category": "device not supported",
-    "nodeids": {
-      "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_parity__foreach_add_fastpath_outplace_npu_int16": {"cann": "aclnnIsClose|aclnnForeachAddListV2", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314"},
-      "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_parity__foreach_add_fastpath_outplace_npu_int8": {"cann": "aclnnIsClose|aclnnForeachAddListV2", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314"},
-      "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_parity__foreach_add_fastpath_outplace_npu_uint8": {"cann": "aclnnIsClose|aclnnForeachAddListV2", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314"}
-    }
-  },
-  {
-    "log": [
-      "not implemented for DT_DOUBLE",
-      "The dtype or format of the actual input or output parameter of the operator is inconsistent with that defined in the operator prototype OpDef"
-    ],
-    "category": "device not supported",
-    "nodeids": {
-      "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_autodiff__foreach_norm_outplace_npu_float64": {"cann": "aclnnInplaceMaskedFillScalar|aclnnForeachNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/6005"},
-      "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_autodiff__foreach_cos_inplace_npu_float64": {"cann": "aclnnForeachCos|aclnnForeachCos", "issue": "https://gitcode.com/Ascend/pytorch/issues/5172"},
-      "test/test_foreach.py::TestForeachDevicePRIVATEUSE1::test_autodiff__foreach_pow_outplace_npu_float64": {"cann": "aclnnForeachPowList|aclnnForeachPowList", "issue": "https://gitcode.com/Ascend/pytorch/issues/5173"}
-    }
-  },
-  {
-    "log": [
-      "not implemented for DT_COMPLEX",
-      "Self dtype DT_COMPLEX64 should be in dtype support list"
-    ],
-    "category": "device not supported",
-    "nodeids": {
-      "test/test_masked.py::TestMaskedPRIVATEUSE1::test_mask_layout_sparse_csr_masked_prod_npu_complex64": {"cann": "aclnnIndex|aclnnIndexAdd", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314"},
-      "test/test_sparse_csr.py::TestSparseCompressedDeviceNPU::test_consistency_SparseCSR_masked_prod_npu_complex64": {"cann": "aclnnIndex|aclnnIndexAdd", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314"}
-    }
-  },
-  {
-    "log": [
-      "not implemented for DT_DOUBLE",
-      "has incorrect dtype DT_COMPLEX128"
-    ],
-    "category": "device not supported",
-    "nodeids": {
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_masked_scatter_npu_complex128": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_gradgrad_masked_scatter_npu_complex128": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"}
-    }
-  },
-  {
-    "log": [
-      "Out dtype DT_COMPLEX64 should be in dtype support list",
-      "not implemented for DT_COMPLEX"
-    ],
-    "category": "device not supported",
-    "nodeids": {
-      "test/test_binary_ufuncs.py::TestBinaryUfuncsDevicePRIVATEUSE1::test_type_promotion_le_npu": {"cann": "aclnnLeTensor|aclnnIsClose", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"}
-    }
-  },
-  {
-    "log": [
-      "Self dtype DT_COMPLEX128 should be in dtype support list",
-      "not implemented for DT_DOUBLE"
-    ],
-    "category": "device not supported",
-    "nodeids": {
-      "test/complex_tensor/test_complex_tensor.py::TestComplexBwdGradientsNPU::test_fn_grad_index_select_npu_complex128": {"cann": "aclnnIndexAdd|aclnnLinalgVectorNorm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"},
-      "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_gradgrad_index_select_npu_complex128": {"cann": "aclnnIndexAdd|aclnnIndexAdd", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"}
-    }
-  },
-  {
-    "log": [
-      "not implemented for DT_COMPLEX",
-      "expected dtype Half but got dtype ComplexHalf"
-    ],
-    "category": "device not supported",
-    "nodeids": {
-      "test/test_sparse_csr.py::TestSparseCSRDeviceNPU::test_sparse_csr_unary_inplace_abs_npu_complex32": {"cann": "aclnnAbs|", "issue": "https://gitcode.com/Ascend/pytorch/issues/5314, https://gitcode.com/Ascend/pytorch/issues/5176"}
-    }
-  },
-  {
-    "log": [
-      "not implemented for DT_DOUBLE",
-      "has incorrect dtype DT_COMPLEX64"
-    ],
-    "category": "device not supported",
-    "nodeids": {
-      "test/test_decomp.py::TestDecompPRIVATEUSE1::test_comprehensive_masked_scatter_npu_complex64": {"cann": "aclnnInplaceMaskedScatter|aclnnInplaceMaskedScatter", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"}
-    }
-  },
-  {
-    "log": ["expected dtype is DT_DOUBLE but found DT_FLOAT16"],
     "category": "device not supported",
     "nodeids": {
       "test/test_modules.py::TestModulePRIVATEUSE1::test_errors_nn_NLLLoss_npu_float64": {"cann": "aclnnNLLLoss|aclnnNLLLoss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5200"}
@@ -29416,19 +29161,13 @@
   },
   {
     "log": [
-      "expected dtype is DT_BOOL but found DT_COMPLEX128",
-      "expected dtype is DT_BOOL but found DT_COMPLEX64"
+      "Expected self dtype xxxx dtype xxxxx to be promotable but check failed",
+      "Expected self dtype [DT_FLOAT] and target dtype [DT_DOUBLE] to be promotable but check failed",
+      "Expected self dtype [DT_DOUBLE] and target dtype [DT_DOUBLE] to be promotable but check failed"
     ],
     "category": "device not supported",
     "nodeids": {
-      "test/test_unary_ufuncs.py::TestUnaryUfuncsPRIVATEUSE1::test_isposinf_isneginf_non_boolean_output_npu_complex128": {"cann": "aclnnIsPosInf|aclnnIsPosInf", "issue": "https://gitcode.com/Ascend/pytorch/issues/5198"},
-      "test/test_unary_ufuncs.py::TestUnaryUfuncsPRIVATEUSE1::test_isposinf_isneginf_non_boolean_output_npu_complex64": {"cann": "aclnnIsPosInf|aclnnIsPosInf", "issue": "https://gitcode.com/Ascend/pytorch/issues/5198"}
-    }
-  },
-  {
-    "log": ["Expected self dtype [DT_DOUBLE] and target dtype [DT_DOUBLE] to be promotable but check failed"],
-    "category": "device not supported",
-    "nodeids": {
+      "test/test_nn.py::TestNNDeviceTypePRIVATEUSE1::test_mse_loss_mixed_dtype_grad_npu": {"cann": "aclnnMseLoss|aclnnMseLoss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
       "test/functorch/test_ops.py::TestOperatorsDevicePRIVATEUSE1::test_vmap_autograd_grad_nn_functional_mse_loss_functorch_npu_float64": {"cann": "aclnnMseLoss|aclnnMseLoss", "issue": "https://gitcode.com/Ascend/pytorch/issues/6056"},
       "test/functorch/test_ops.py::TestOperatorsDevicePRIVATEUSE1::test_vmap_autograd_grad_nn_functional_mse_loss_npu_float64": {"cann": "aclnnMseLoss|aclnnMseLoss", "issue": "https://gitcode.com/Ascend/pytorch/issues/6056"},
       "test/inductor/test_torchinductor_opinfo.py::TestInductorOpInfoNPU::test_comprehensive_nn_functional_mse_loss_npu_float64": {"cann": "aclnnMseLoss|aclnnMseLoss", "issue": "https://gitcode.com/Ascend/pytorch/issues/6056"},
@@ -29461,11 +29200,15 @@
       "test/test_ops_fwd_gradients.py::TestFwdGradientsPRIVATEUSE1::test_forward_mode_AD_nn_functional_mse_loss_npu_float64": {"cann": "aclnnMseLoss|aclnnMseLoss", "issue": "https://gitcode.com/Ascend/pytorch/issues/6056"},
       "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_grad_nn_functional_mse_loss_npu_float64": {"cann": "aclnnMseLoss|aclnnMseLoss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
       "test/test_ops_gradients.py::TestBwdGradientsPRIVATEUSE1::test_fn_gradgrad_nn_functional_mse_loss_npu_float64": {"cann": "aclnnMseLoss|aclnnMseLoss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
-      "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_nn_functional_mse_loss_npu_float64": {"cann": "aclnnMseLoss|aclnnMseLoss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5167"}
+      "test/test_schema_check.py::TestSchemaCheckModeOpInfoPRIVATEUSE1::test_schema_correctness_nn_functional_mse_loss_npu_float64": {"cann": "aclnnMseLoss|aclnnMseLoss", "issue": "https://gitcode.com/Ascend/pytorch/issues/5167"},
+      "test/test_nn.py::TestNNDeviceTypePRIVATEUSE1::test_mse_loss_reduced_storage_reduction_mean_mixed_dtype_True_npu_float64": {"cann": "aclnnMseLoss|aclnnMseLoss", "issue": "https://gitcode.com/Ascend/pytorch/issues/6056"},
+      "test/test_nn.py::TestNNDeviceTypePRIVATEUSE1::test_mse_loss_reduced_storage_reduction_sum_mixed_dtype_True_npu_float64": {"cann": "aclnnMseLoss|aclnnMseLoss", "issue": "https://gitcode.com/Ascend/pytorch/issues/6056"}
     }
   },
   {
-    "log": ["DataType support list is|got data type is DT_DOUBLE"],
+    "log": [
+      "DataType support list is|got data type is DT_DOUBLE"
+    ],
     "category": "device not supported",
     "nodeids": {
       "test/test_decomp.py::TestDecompPRIVATEUSE1::test_quick_grid_sampler_2d_npu_float64": {"cann": "aclnnGridSampler2D|aclnnGridSampler2D", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
@@ -29493,7 +29236,9 @@
     }
   },
   {
-    "log": ["complex for input is not implemented"],
+    "log": [
+      "complex for input is not implemented"
+    ],
     "category": "device not supported",
     "nodeids": {
       "test/test_prims.py::TestRefsPRIVATEUSE1::test_linspace_with_complex_input_npu": {"cann": "aclnnLinspace|aclnnLinspace", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"},
@@ -29506,7 +29251,9 @@
     }
   },
   {
-    "log": ["but found input DT_COMPLEX128 and sigma DT_DOUBLE"],
+    "log": [
+      "but found input DT_COMPLEX128 and sigma DT_DOUBLE"
+    ],
     "category": "device not supported",
     "nodeids": {
       "test/test_meta.py::TestMetaPRIVATEUSE1::test_meta_outplace_linalg_svdvals_npu_complex128": {"cann": "aclnnSvd|aclnnSvd", "issue": "https://gitcode.com/Ascend/pytorch/issues/5917"}
@@ -29514,49 +29261,11 @@
   },
   {
     "log": [
-      "the output given to float_power has dtype Float but the operation's result requires dtype Double",
-      "type DT_DOUBLE should be in dtype support list"
+      "call aclnnAddmm failed|The k-axis of the two inputs are different"
     ],
-    "category": "device not supported",
-    "nodeids": {
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_outplace_float_power_npu_bfloat16": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5642"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_outplace_float_power_npu_bool": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5642"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_outplace_float_power_npu_float16": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5642"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_outplace_float_power_npu_float32": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5642"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_outplace_float_power_npu_int16": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5642"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_outplace_float_power_npu_int32": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5642"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_outplace_float_power_npu_int64": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5642"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_outplace_float_power_npu_int8": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5642"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_meta_outplace_float_power_npu_uint8": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5642"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace_float_power_npu_bfloat16": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5642"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace_float_power_npu_bool": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5642"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace_float_power_npu_float16": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5642"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace_float_power_npu_float32": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5642"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace_float_power_npu_int16": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5642"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace_float_power_npu_int32": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5642"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace_float_power_npu_int64": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5642"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace_float_power_npu_int8": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5642"},
-      "test/test_meta.py::TestMetaPRIVATEUSE1::test_dispatch_symbolic_meta_outplace_float_power_npu_uint8": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5642"},
-      "test/test_ops.py::TestCommonPRIVATEUSE1::test_out_float_power_npu_float32": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5150"},
-      "test/test_ops.py::TestCommonPRIVATEUSE1::test_out_warning_float_power_npu": {"cann": "", "issue": "https://gitcode.com/Ascend/pytorch/issues/5150"},
-      "test/test_reductions.py::TestReductionsDevicePRIVATEUSE1::test_nansum_out_dtype_npu_float64": {"cann": "aclnnReduceNansum|aclnnReduceNansum", "issue": "https://gitcode.com/Ascend/pytorch/issues/5909"}
-    }
-  },
-  {
-    "log": ["call aclnnAddmm failed|The k-axis of the two inputs are different"],
     "category": "dtype not supported",
     "nodeids": {
       "test/test_sparse_csr.py::TestSparseCSRDeviceNPU::test_addmm_errors_npu_float32": {"cann": "aclnnAddmm|aclnnAddmm", "issue": "https://gitcode.com/Ascend/pytorch/issues/5315"}
-    }
-  },
-  {
-    "log": [
-      "not implemented for DT_DOUBLE",
-      "DataType support list is|got data type is DT_DOUBLE"
-    ],
-    "category": "device not supported",
-    "nodeids": {
-      "test/test_nn.py::TestNNDeviceTypePRIVATEUSE1::test_grid_sample_3d_bicubic_far_coordinates_padding_mode_border_npu_float64": {"cann": "aclnnGridSampler2D|aclnnGridSampler2D", "issue": "https://gitcode.com/Ascend/pytorch/issues/5317"}
     }
   }
 ]
