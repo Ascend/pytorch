@@ -6,6 +6,7 @@
 
 #include "torch_npu/csrc/framework/utils/NPUDefinition.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace at_npu {
 namespace native {
@@ -22,8 +23,8 @@ class FormatHelper {
   static aclFormat GetBaseFormat(aclFormat format);
   static aclFormat GetFormat(const at::Tensor& tensor);
 
-  static bool IsBaseFormatType(aclFormat format);
-  static bool IsBaseFormatType(const at::Tensor& tensor);
+  static C10_NPU_API bool IsBaseFormatType(aclFormat format);
+  static C10_NPU_API bool IsBaseFormatType(const at::Tensor& tensor);
 
   // Default assumption: the original format are ND, NCHW or NDHWC.
   // So, if original size are 4D, it maybe NCHW or ND and so on.

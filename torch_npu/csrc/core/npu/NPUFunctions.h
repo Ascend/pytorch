@@ -39,7 +39,7 @@ C10_NPU_API c10::DeviceIndex device_count_ensure_non_zero();
  */
 C10_NPU_API aclError GetDevice(int32_t* device);
 
-aclError GetDeviceWithoutSet(int32_t* device);
+C10_NPU_API aclError GetDeviceWithoutSet(int32_t* device);
 
 /**
  * @ingroup torch_npu
@@ -71,7 +71,7 @@ aclError SynchronizeUsedDevices();
 
 aclrtContext GetDeviceContext(int32_t device);
 
-bool isDeviceCtxActive(int32_t device);
+C10_NPU_API bool isDeviceCtxActive(int32_t device);
 
 C10_NPU_API c10::DeviceIndex current_device();
 
@@ -81,37 +81,37 @@ C10_NPU_API void device_synchronize();
 
 C10_NPU_API int ExchangeDevice(int device);
 
-int MaybeExchangeDevice(int to_device);
+C10_NPU_API int MaybeExchangeDevice(int to_device);
 
 void SetTargetDevice();
 
-void LazySetDevice(c10::DeviceIndex device);
+C10_NPU_API void LazySetDevice(c10::DeviceIndex device);
 
-int GetLocalDevice();
+C10_NPU_API int GetLocalDevice();
 
 enum class DevResLimitType { CUBE = 0, VECTOR = 1 };
 
-aclError SetDeviceResLimit(int32_t device, int32_t type, uint32_t value);
+C10_NPU_API aclError SetDeviceResLimit(int32_t device, int32_t type, uint32_t value);
 
 void SetDeviceResLimitFromEnv(c10::DeviceIndex device);
 
 C10_NPU_API uint32_t GetDeviceResLimit(int32_t deviceId, int32_t type);
 
-aclError ResetDeviceResLimit(int32_t deviceId);
+C10_NPU_API aclError ResetDeviceResLimit(int32_t deviceId);
 
-aclError SetStreamResLimit(NPUStream stream, int32_t type, uint32_t value);
+C10_NPU_API aclError SetStreamResLimit(NPUStream stream, int32_t type, uint32_t value);
 
-aclError ResetStreamResLimit(NPUStream stream);
+C10_NPU_API aclError ResetStreamResLimit(NPUStream stream);
 
 C10_NPU_API uint32_t GetStreamResLimit(NPUStream stream, int32_t type);
 
-aclError UseStreamResInCurrentThread(aclrtStream stream);
+C10_NPU_API aclError UseStreamResInCurrentThread(aclrtStream stream);
 
 aclError UnuseStreamResInCurrentThread();
 
 C10_NPU_API uint32_t GetResInCurrentThread(int32_t type);
 
-void SetDeterministicLevel(uint32_t level);
+C10_NPU_API void SetDeterministicLevel(uint32_t level);
 
 enum class DeterministicBackend { Legacy, V2 };
 
@@ -124,7 +124,7 @@ struct DeterministicSnapshot {
 
 uint32_t GetEffectiveDeterministicLevel();
 
-DeterministicSnapshot CaptureDeterministicSnapshot();
+C10_NPU_API DeterministicSnapshot CaptureDeterministicSnapshot();
 
 DeterministicBackend GetDeterministicBackend();
 
@@ -192,9 +192,9 @@ C10_NPU_API inline ModelState& model_state() {
   return model_state_;
 }
 
-bool IsContextInitialized();
+C10_NPU_API bool IsContextInitialized();
 
-bool hasPrimaryContext(c10::DeviceIndex device_index);
+C10_NPU_API bool hasPrimaryContext(c10::DeviceIndex device_index);
 
 std::optional<c10::DeviceIndex> getDeviceIndexWithPrimaryContext();
 

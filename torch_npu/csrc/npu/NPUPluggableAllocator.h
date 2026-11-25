@@ -7,16 +7,17 @@
 
 #include <array>
 #include <mutex>
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace torch::npu::NPUPluggableAllocator {
 
 using streamType = c10_npu::NPUStream;
 
-std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator> getCurrentAllocator();
-std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator> createCustomAllocator(
+C10_NPU_API std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator> getCurrentAllocator();
+C10_NPU_API std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator> createCustomAllocator(
     std::function<void*(size_t, int, aclrtStream)> alloc_fn,
     std::function<void(void*, size_t, int, aclrtStream)> free_fn);
-void changeCurrentAllocator(const std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator>& allocator);
+C10_NPU_API void changeCurrentAllocator(const std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator>& allocator);
 
 struct _AllocationMetadata {
   _AllocationMetadata();
@@ -26,7 +27,7 @@ struct _AllocationMetadata {
   aclrtStream stream;
 };
 
-struct NPUPluggableAllocator : public c10_npu::NPUCachingAllocator::NPUAllocator {
+struct C10_NPU_API NPUPluggableAllocator : public c10_npu::NPUCachingAllocator::NPUAllocator {
   NPUPluggableAllocator(
       std::function<void*(size_t, int, aclrtStream)> alloc_fn,
       std::function<void(void*, size_t, int, aclrtStream)> free_fn);

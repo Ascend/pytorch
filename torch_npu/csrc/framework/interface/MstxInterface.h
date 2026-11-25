@@ -2,11 +2,12 @@
 #define __TORCH_NPU_MSTXINTERFACE__
 
 #include <third_party/mstx/ms_tools_ext.h>
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace at_npu {
 namespace native {
 
-bool IsSupportMstxFunc();
+C10_NPU_API bool IsSupportMstxFunc();
 
 bool IsSupportMstxDomainFunc();
 

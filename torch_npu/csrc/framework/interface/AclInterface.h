@@ -5,6 +5,7 @@
 #include <acl/acl_base.h>
 #include <acl/acl_prof.h>
 #include <acl/acl_op.h>
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace at_npu {
 namespace native {
@@ -71,9 +72,9 @@ aclprofConfig* AclProfilingCreateConfig(
     uint64_t dataTypeConfig);
 aclError AclProfilingDestroyConfig(const aclprofConfig* profilerConfig);
 
-aclError AclopStartDumpArgs(uint32_t dumpType, const char* path);
+C10_NPU_API aclError AclopStartDumpArgs(uint32_t dumpType, const char* path);
 
-aclError AclopStopDumpArgs(uint32_t dumpType);
+C10_NPU_API aclError AclopStopDumpArgs(uint32_t dumpType);
 
 } // namespace native
 } // namespace at_npu

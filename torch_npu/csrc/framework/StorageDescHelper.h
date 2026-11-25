@@ -7,6 +7,7 @@
 
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/framework/utils/NPUDefinition.h"
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace at_npu {
 namespace native {
@@ -35,8 +36,12 @@ class StorageDescHelper {
   // Set Part
   // StorageDesc Init/Set
   static void SetDesc(at::Tensor& dst);
-  static void SetDesc(at::Tensor& dst, const c10::IntArrayRef& size, const c10::IntArrayRef& strides);
-  static void SetDesc(at::Tensor& dst, const c10::IntArrayRef& size, const c10::IntArrayRef& strides, aclFormat format);
+  static C10_NPU_API void SetDesc(at::Tensor& dst, const c10::IntArrayRef& size, const c10::IntArrayRef& strides);
+  static C10_NPU_API void SetDesc(
+      at::Tensor& dst,
+      const c10::IntArrayRef& size,
+      const c10::IntArrayRef& strides,
+      aclFormat format);
   static void SetDesc(
       at::Tensor& dst,
       const c10::IntArrayRef& base_size,

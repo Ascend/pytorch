@@ -14,12 +14,13 @@
 
 #include "torch_npu/csrc/distributed/LCCLUtils.hpp"
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace c10d_npu {
 
 const std::string LCCL_BACKEND_NAME = "lccl";
 
-class ProcessGroupLCCL : public c10d::Backend {
+class C10_NPU_API ProcessGroupLCCL : public c10d::Backend {
  public:
   class WorkLCCL : public c10d::Work, public std::enable_shared_from_this<WorkLCCL> {
    public:

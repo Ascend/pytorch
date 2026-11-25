@@ -112,7 +112,7 @@ jobs:
           echo "------------------------------------------------------------------------------------"
 
           cd ci
-          bash libtorch_resnet.sh python"${{ steps.resolve_pyver.outputs.py_version }}"
+          bash libtorch_npu.sh python"${{ steps.resolve_pyver.outputs.py_version }}"
 
           echo "upload_data=no" >> "$ATOMGIT_OUTPUT"
           if [ -e ${ATOMGIT_WORKSPACE}/time_data.json ]; then

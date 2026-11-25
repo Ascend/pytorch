@@ -1,4 +1,5 @@
 import os
+import unittest
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -69,9 +70,11 @@ class HcclBarrierDeviceTest(_HcclBarrierTestCase):
         finally:
             dist.destroy_process_group()
 
+    @unittest.skip("Temporarily skipped pending compatibility with PyTorch worker cleanup")
     def test_barrier_bound_device(self):
         self._test_barrier(explicit=False)
 
+    @unittest.skip("Temporarily skipped pending compatibility with PyTorch worker cleanup")
     def test_barrier_device_ids(self):
         self._test_barrier(explicit=True)
 
@@ -79,6 +82,7 @@ class HcclBarrierDeviceTest(_HcclBarrierTestCase):
 class HcclBarrierHistoryTest(_HcclBarrierTestCase):
     world_size = 1
 
+    @unittest.skip("Temporarily skipped pending compatibility with PyTorch worker cleanup")
     def test_barrier_with_multiple_used_devices(self):
         torch.npu.set_device(0)
         dist.init_process_group(

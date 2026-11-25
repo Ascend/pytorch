@@ -1,20 +1,22 @@
 #pragma once
+
 #include <c10/core/StorageImpl.h>
 #include "torch_npu/csrc/core/NPUTensorImpl.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace torch_npu {
 
 class NPUBridge {
  public:
   // at::tensor to NPUStorageImpl
-  static NPUStorageImpl* GetNpuStorageImpl(const at::Tensor& tensor);
+  static C10_NPU_API NPUStorageImpl* GetNpuStorageImpl(const at::Tensor& tensor);
 
   // c10::StorageImpl to NPUStorageImpl
-  static NPUStorageImpl* GetNpuStorageImpl(c10::StorageImpl* storageImpl);
+  static C10_NPU_API NPUStorageImpl* GetNpuStorageImpl(c10::StorageImpl* storageImpl);
 
   // c10::Storage to NPUStorageImpl
-  static NPUStorageImpl* GetNpuStorageImpl(c10::Storage&& storage);
+  static C10_NPU_API NPUStorageImpl* GetNpuStorageImpl(c10::Storage&& storage);
 
   // tensor to NPUStorageDesc
   static NPUStorageDesc& GetNpuStorageImplDesc(const at::Tensor& tensor);

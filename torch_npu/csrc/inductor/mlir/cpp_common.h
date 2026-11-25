@@ -4,15 +4,11 @@
 #include <acl/acl_base.h>
 #include <acl/acl_rt.h>
 #include "torch_npu/csrc/inductor/mlir/hacl_rt.h"
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
-rtError_t common_launch(
-    char* kernelName,
-    const void* func,
-    uint32_t gridX,
-    void* args,
-    uint32_t argsSize,
-    rtStream_t stream);
-rtError_t common_launch_dyn(
+C10_NPU_API rtError_t
+common_launch(char* kernelName, const void* func, uint32_t gridX, void* args, uint32_t argsSize, rtStream_t stream);
+C10_NPU_API rtError_t common_launch_dyn(
     char* kernelName,
     void* func,
     void* tiling_func,
@@ -23,5 +19,5 @@ rtError_t common_launch_dyn(
     void* args,
     uint32_t argsSize,
     rtStream_t stream);
-void opcommand_call(const char* name, std::function<int()> launch_call);
+C10_NPU_API void opcommand_call(const char* name, std::function<int()> launch_call);
 #endif // BUILD_LIBTORCH

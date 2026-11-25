@@ -45,6 +45,10 @@ thread_local std::unordered_map<std::string, std::stack<MstxMgr::RangePushContex
 
 MstxMgr::MstxMgr() {}
 
+MstxMgr* MstxMgr::GetInstance() noexcept {
+  return Singleton<MstxMgr>::GetInstance();
+}
+
 void MstxMgr::mark(const char* message, const aclrtStream stream, const char* domain) {
   if (!isMstxEnable()) {
     return;

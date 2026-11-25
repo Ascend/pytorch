@@ -87,17 +87,17 @@ class OptionsManager {
   static std::pair<double, double> GetSilenceSigmaThresh();
   static uint32_t GetHcclBufferSize();
   static uint32_t GetP2PBufferSize();
-  static uint32_t GetTaskQueueEnable();
-  static void SetTaskQueueEnable(int32_t mode);
+  static C10_NPU_API uint32_t GetTaskQueueEnable();
+  static C10_NPU_API void SetTaskQueueEnable(int32_t mode);
   static uint32_t GetPerStreamQueue();
   static uint32_t GetAclOpInitMode();
   static uint32_t GetStreamsPerDevice();
   static char* GetCpuAffinityConf();
-  static bool CheckForceUncached();
-  static std::string GetOomSnapshotDumpPath();
-  static bool IsOomSnapshotEnable();
+  static C10_NPU_API bool CheckForceUncached();
+  static C10_NPU_API std::string GetOomSnapshotDumpPath();
+  static C10_NPU_API bool IsOomSnapshotEnable();
   static bool ShouldPrintWarning();
-  static bool IsCompactErrorOutput();
+  static C10_NPU_API bool IsCompactErrorOutput();
   static uint64_t GetShmemSymmetricSize();
   static char* GetAclInitPath();
 
@@ -110,7 +110,11 @@ class OptionsManager {
       std::pair<double, double> defaultThresh);
 };
 
-void oom_observer(int64_t device = 0, int64_t allocated = 0, int64_t device_total = 0, int64_t device_free = 0);
+C10_NPU_API void oom_observer(
+    int64_t device = 0,
+    int64_t allocated = 0,
+    int64_t device_total = 0,
+    int64_t device_free = 0);
 char* get_and_log_env(const char* env_str);
 
 } // namespace option

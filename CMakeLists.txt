@@ -335,7 +335,6 @@ set(TORCH_NPU_PYTHON_SRCS
     ${TORCHNPU_ROOT}/npu/npurt.cpp
     ${TORCHNPU_ROOT}/npu/DataParallelComm.cpp
     ${TORCHNPU_ROOT}/npu/Stress_detect.cpp
-    ${TORCHNPU_ROOT}/npu/NpuSleep.cpp
     ${TORCHNPU_ROOT}/npu/lazy_fusion.cpp
     ${TORCHNPU_ROOT}/profiler/init.cpp
     ${TORCHNPU_ROOT}/profiler/python/combined_traceback.cpp
@@ -369,9 +368,7 @@ set(TORCH_NPU_PYTHON_SRCS
     ${TORCHNPU_ROOT}/inductor/static_launcher/bindings.cpp
     ${PROJECT_SOURCE_DIR}/torch_npu/_inductor/experimental/python_wrapper_fast_launch/csrc/bindings.cpp)
 
-if (DEFINED BUILD_LIBTORCH)
-  list(REMOVE_ITEM CPP_SRCS ${TORCH_NPU_PYTHON_SRCS})
-endif()
+list(REMOVE_ITEM CPP_SRCS ${TORCH_NPU_PYTHON_SRCS})
 
 add_library(torch_npu_objs OBJECT ${CPP_SRCS})
 add_dependencies(torch_npu_objs check_public_environments)
@@ -436,10 +433,6 @@ target_link_libraries(${PLUGIN_NAME} PUBLIC
   ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libge_runner.so
   ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libgraph.so)
 
-if (NOT DEFINED BUILD_LIBTORCH)
-  target_link_libraries(${PLUGIN_NAME} PUBLIC ${PYTORCH_INSTALL_DIR}/lib/libtorch_python.so)
-endif()
-
 if (DEFINED BUILD_TENSORPIPE)
   target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_INSTALL_LIBDIR}/libtensorpipe.so)
 endif()
@@ -451,6 +444,23 @@ endif()
 
 add_subdirectory(${TORCHNPU_ROOT}/toolkit)
 target_link_libraries(${PLUGIN_NAME} PUBLIC npu_profiler)
+# --- Python adapter shared library for the Python/C++ decoupling ---
+# Holds the Python-binding translation units split out of the torch_npu core library.
+# Dependency direction: torch_npu_python -> torch_npu (never the reverse).
+if (NOT DEFINED BUILD_LIBTORCH)
+  add_library(torch_npu_python SHARED ${TORCH_NPU_PYTHON_SRCS})
+  if(COMPILER_SUPPORTS_HIDDEN_VISIBILITY)
+    target_compile_options(torch_npu_python PRIVATE "-fvisibility=hidden")
+  endif()
+  target_compile_options(torch_npu_python PRIVATE "-DC10_BUILD_MAIN_LIB")
+  target_link_libraries(torch_npu_python PUBLIC ${PLUGIN_NAME} torch torch_cpu c10 fmt::fmt-header-only)
+  target_link_libraries(torch_npu_python PUBLIC ${PYTORCH_INSTALL_DIR}/lib/libtorch_python.so)
+  target_link_options(torch_npu_python PRIVATE "-Wl,-Bsymbolic-functions,--no-as-needed")
+  set_target_properties(torch_npu_python PROPERTIES
+    BUILD_RPATH "$ORIGIN"
+    INSTALL_RPATH "$ORIGIN")
+  install(TARGETS torch_npu_python LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+endif()
 
 # fxrt: built as a top-level subdirectory.
 if (DEFINED BUILD_FXRT)
@@ -483,19 +493,20 @@ if (NOT DEFINED BUILD_LIBTORCH AND SKBUILD)
     CXX_STANDARD_REQUIRED ON
     PREFIX "")
 
-  # Link the exact six libraries the legacy CppExtension linked
+  # Link the six libraries the legacy CppExtension linked
   # (-ltorch_npu -lc10 -ltorch -ltorch_cpu -ltorch_python -lhccl). Full paths
   # are used so torch_npu's PUBLIC interface (ascendcl/ge_runner/tensorpipe/
-  # npu_profiler/...) is NOT propagated into _C's DT_NEEDED, matching the legacy
-  # _C.so exactly. add_dependencies keeps the build order correct.
+  # npu_profiler/...) is NOT propagated into _C's DT_NEEDED, as with the legacy
+  # _C.so. add_dependencies keeps the build order correct.
   target_link_libraries(_C PRIVATE
     ${TORCHNPU_INSTALL_LIBDIR}/libtorch_npu.so
+    $<TARGET_FILE:torch_npu_python>
     ${PYTORCH_INSTALL_DIR}/lib/libtorch.so
     ${PYTORCH_INSTALL_DIR}/lib/libtorch_cpu.so
     ${PYTORCH_INSTALL_DIR}/lib/libc10.so
     ${PYTORCH_INSTALL_DIR}/lib/libtorch_python.so
     ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libhccl.so)
-  add_dependencies(_C ${PLUGIN_NAME})
+  add_dependencies(_C ${PLUGIN_NAME} torch_npu_python)
 
   target_link_options(_C PRIVATE
     "-Wl,-rpath,$ORIGIN/lib"

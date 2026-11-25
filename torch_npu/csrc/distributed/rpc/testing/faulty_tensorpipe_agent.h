@@ -34,7 +34,7 @@ struct FaultyTensorPipeRpcBackendOptions : public TensorPipeRpcBackendOptions {
   int numFailSends;
 };
 
-class FaultyTensorPipeAgent : public TensorPipeAgent {
+class C10_NPU_API FaultyTensorPipeAgent : public TensorPipeAgent {
  public:
   FaultyTensorPipeAgent(
       const c10::intrusive_ptr<::c10d::Store>& store,
@@ -63,8 +63,7 @@ class FaultyTensorPipeAgent : public TensorPipeAgent {
   bool shouldFailMessage(MessageType type) const;
 
  private:
-  std::vector<MessageType> parseMessagesToFailInput(
-      const std::vector<std::string>& messagesToFail) const;
+  std::vector<MessageType> parseMessagesToFailInput(const std::vector<std::string>& messagesToFail) const;
 
   float getDelayForMessage(MessageType type) const;
 

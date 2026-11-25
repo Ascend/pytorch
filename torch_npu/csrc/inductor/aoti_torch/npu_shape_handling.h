@@ -43,7 +43,7 @@ enum class ShapePolicy { TIMES, CUSTOM };
 
 enum class ShapeType { BATCHSIZE = 0, SEQLEN };
 
-class ShapeOpStrategyBase {
+class C10_NPU_API ShapeOpStrategyBase {
  public:
   ShapeOpStrategyBase() = default;
   virtual ~ShapeOpStrategyBase() = default;
@@ -61,7 +61,7 @@ class ShapeOpStrategyBase {
   std::vector<int64_t> m_gears;
 };
 
-class BSShapeOpStrategy : public ShapeOpStrategyBase {
+class C10_NPU_API BSShapeOpStrategy : public ShapeOpStrategyBase {
  public:
   BSShapeOpStrategy() = default;
   virtual ~BSShapeOpStrategy() = default;
@@ -75,7 +75,7 @@ class BSShapeOpStrategy : public ShapeOpStrategyBase {
   int m_dimension;
 };
 
-class SeqShapeOpStrategy : public ShapeOpStrategyBase {
+class C10_NPU_API SeqShapeOpStrategy : public ShapeOpStrategyBase {
  public:
   SeqShapeOpStrategy() = default;
   virtual ~SeqShapeOpStrategy() = default;
@@ -91,7 +91,7 @@ class SeqShapeOpStrategy : public ShapeOpStrategyBase {
   std::vector<int> m_dimensions;
 };
 
-class DefaultBSShapeOp : public BSShapeOpStrategy {
+class C10_NPU_API DefaultBSShapeOp : public BSShapeOpStrategy {
  public:
   void Transform(std::vector<at::Tensor>& inputs, std::vector<std::vector<at::Tensor>>& outputs) override;
 
@@ -114,7 +114,7 @@ class DefaultBSShapeOp : public BSShapeOpStrategy {
   std::vector<uint64_t> m_records;
 };
 
-class DefaultSeqShapeOp : public SeqShapeOpStrategy {
+class C10_NPU_API DefaultSeqShapeOp : public SeqShapeOpStrategy {
  public:
   void Transform(std::vector<at::Tensor>& inputs, std::vector<at::Tensor>& outputs) override;
 
@@ -122,7 +122,7 @@ class DefaultSeqShapeOp : public SeqShapeOpStrategy {
   void TransformValidate(std::vector<at::Tensor>& inputs);
 };
 
-class NPUShapeHandling {
+class C10_NPU_API NPUShapeHandling {
  public:
   NPUShapeHandling()
       : m_bs_strategy(std::make_unique<DefaultBSShapeOp>()),

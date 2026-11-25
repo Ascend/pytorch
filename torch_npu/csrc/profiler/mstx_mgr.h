@@ -9,6 +9,7 @@
 #include "torch_npu/csrc/toolkit/profiler/common/singleton.h"
 #include <string>
 #include <vector>
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace torch_npu {
 namespace profiler {
@@ -19,10 +20,11 @@ const std::string DOMAIN_RECORD_FUNCTION = "record_function";
 const std::string DOMAIN_CACHING = "ptaCaching";
 const std::string DOMAIN_WORKSPACE = "ptaWorkspace";
 
-class MstxMgr : public torch_npu::toolkit::profiler::Singleton<MstxMgr> {
+class C10_NPU_API MstxMgr : public torch_npu::toolkit::profiler::Singleton<MstxMgr> {
   friend class torch_npu::toolkit::profiler::Singleton<MstxMgr>;
 
  public:
+  static MstxMgr* GetInstance() noexcept;
   void mark(const char* message, const aclrtStream stream, const char* domain);
   int rangePush(const char* message, const aclrtStream stream, const char* domain);
   int rangePop(const char* domain);

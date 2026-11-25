@@ -1,6 +1,8 @@
 #ifndef NPUVARIABLES_H
 #define NPUVARIABLES_H
 
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
+
 namespace c10_npu {
 enum class SocVersion {
   UnsupportedSocVersion = -1,
@@ -37,11 +39,11 @@ enum class SocVersion {
 
 void SetSocVersion(const char* const socVersion);
 
-const SocVersion& GetSocVersion();
+C10_NPU_API const SocVersion& GetSocVersion();
 
-bool IsSupportInfNan();
+C10_NPU_API bool IsSupportInfNan();
 
-bool IsBF16Supported();
+C10_NPU_API bool IsBF16Supported();
 
 bool IsAclnnOnly();
 } // namespace c10_npu

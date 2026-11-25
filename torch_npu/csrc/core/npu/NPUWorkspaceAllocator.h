@@ -26,12 +26,12 @@ c10::Allocator* get();
 void init();
 c10::DataPtr malloc_with_stream(size_t size, aclrtStream stream);
 void emptyCache(int device, bool check_error = true);
-void recordHistory(
+C10_NPU_API void recordHistory(
     bool enabled,
     CreateContextFn context_recorder,
     RecordContext when,
     const std::vector<std::string>& skip_actions);
-SnapshotInfo snapshot(bool include_traces = true);
+C10_NPU_API SnapshotInfo snapshot(bool include_traces = true);
 DeviceStats getDeviceStats(int device);
 
 } // namespace NPUWorkspaceAllocator

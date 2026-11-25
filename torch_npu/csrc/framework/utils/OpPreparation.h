@@ -3,6 +3,7 @@
 
 #include "torch_npu/csrc/framework/utils/NPUDefinition.h"
 #include "torch_npu/csrc/framework/OpCommand.h"
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace at_npu {
 namespace native {
@@ -37,7 +38,7 @@ class OpPreparation {
       const c10::Scalar& cpu_scalar,
       at::ScalarType scalar_data_type,
       const c10::Device device);
-  static at::Tensor copy_tensor_host_to_device(const at::Tensor& cpu_tensor);
+  static C10_NPU_API at::Tensor copy_tensor_host_to_device(const at::Tensor& cpu_tensor);
 
   static bool is_scalar_wrapped_to_tensor(const at::Tensor& tensor);
   static int64_t get_tensor_npu_format(const at::Tensor& tensor);
@@ -132,8 +133,8 @@ class OpPreparation {
   TORCH_NPU_API static at::Tensor apply_tensor_without_format(
       c10::IntArrayRef sizes,
       const c10::TensorOptions& options);
-  static at::Tensor unsafe_empty_workspace(uint64_t workspace_size);
-  static at::Tensor unsafe_empty_workspace(uint64_t workspace_size, aclrtStream stream);
+  static C10_NPU_API at::Tensor unsafe_empty_workspace(uint64_t workspace_size);
+  static C10_NPU_API at::Tensor unsafe_empty_workspace(uint64_t workspace_size, aclrtStream stream);
   // DEPRECATED: ApplyTensorWithSizes will be deprecated, please use
   // apply_tensor_with_sizes instead.
   static at::Tensor ApplyTensorWithSizes(c10::IntArrayRef sizes, const c10::TensorOptions& options);

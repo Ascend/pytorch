@@ -1,4 +1,5 @@
 #pragma once
+
 #include <atomic>
 #include <map>
 #include <memory>
@@ -16,6 +17,7 @@
 #include <c10/util/Optional.h>
 #include <hccl/hccl.h>
 #include <hccl/hccl_types.h>
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 #define HCCL_CHECK_ERROR(err_code, ...)                                                                              \
   do {                                                                                                               \
@@ -88,8 +90,8 @@ extern HcclResult hcclCreateSubCommConfig(
     HcclCommConfig* config,
     HcclComm* subComm);
 extern HcclResult hcclCommWorkingDevNicSet(HcclComm comm, uint32_t* ranks, bool* useBackup, uint32_t nRanks);
-extern HcclResult hcclCommDestroy(HcclComm comm);
-extern HcclResult hcclBroadcast(
+C10_NPU_API extern HcclResult hcclCommDestroy(HcclComm comm);
+C10_NPU_API extern HcclResult hcclBroadcast(
     void* buf,
     uint64_t count,
     HcclDataType dataType,
@@ -97,9 +99,9 @@ extern HcclResult hcclBroadcast(
     HcclComm comm,
     aclrtStream stream);
 extern HcclResult hcclCommInitRootInfo(uint32_t nRanks, const HcclRootInfo* rootInfo, uint32_t rank, HcclComm* comm);
-extern HcclResult hcclCommInitAll(uint32_t ndev, int32_t* devices, HcclComm* comms);
+C10_NPU_API extern HcclResult hcclCommInitAll(uint32_t ndev, int32_t* devices, HcclComm* comms);
 
-HcclDataType getHcclDataType(at::ScalarType type);
+C10_NPU_API HcclDataType getHcclDataType(at::ScalarType type);
 
 std::string getHcclDataTypeSerialString(HcclDataType type);
 
@@ -107,7 +109,7 @@ bool isFileExists(const std::string& path);
 
 bool checkFilePathReadable(const std::string& file);
 
-bool isSupportHcclCommName();
+C10_NPU_API bool isSupportHcclCommName();
 
 c10::optional<c10_npu::NPUStream> getHcclStreamByBufferName(const std::string& name, c10::DeviceIndex device_index);
 
@@ -187,7 +189,7 @@ class C10_NPU_API HCCLComm {
 // PTA implementation, with registration and file behavior aligned to community.
 // using DebugInfoWriter = c10d::DebugInfoWriter;
 
-std::string getHcclFlightRecorderDumpPrefix();
+C10_NPU_API std::string getHcclFlightRecorderDumpPrefix();
 
 class TORCH_API DebugInfoWriter {
  public:

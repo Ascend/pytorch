@@ -10,6 +10,7 @@
 
 #include <acl/acl_rt.h>
 #include <acl/acl_base.h>
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace torch_npu {
 
@@ -28,7 +29,7 @@ struct NPUStorageDesc {
   caffe2::TypeMeta data_type_ = caffe2::TypeMeta::Make<uint8_t>();
 };
 
-struct NPUStorageImpl : public c10::StorageImpl {
+struct C10_NPU_API NPUStorageImpl : public c10::StorageImpl {
   explicit NPUStorageImpl(
       use_byte_size_t use_byte_size,
       size_t size_bytes,
@@ -57,7 +58,7 @@ struct NPUStorageImpl : public c10::StorageImpl {
   void* lazy_fusion_data_{nullptr};
 };
 
-c10::intrusive_ptr<c10::StorageImpl> make_npu_storage_impl(
+C10_NPU_API c10::intrusive_ptr<c10::StorageImpl> make_npu_storage_impl(
     c10::StorageImpl::use_byte_size_t,
     c10::SymInt size_bytes,
     c10::DataPtr data_ptr,

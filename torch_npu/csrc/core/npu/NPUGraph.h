@@ -1,11 +1,14 @@
 #pragma once
 
 #include <ATen/Tensor.h>
+#include <ATen/core/ATen_fwd.h>
 #include <c10/core/Device.h>
 #include <c10/util/flat_hash_map.h>
 
 #include <cstdint>
 #include <stack>
+#include <string_view>
+#include <tuple>
 #include <vector>
 #include <functional>
 #include <limits>
@@ -69,6 +72,56 @@ TORCH_NPU_API void graph_task_group_begin(c10_npu::NPUStream stream);
 TORCH_NPU_API NPUTaskGroupHandle graph_task_group_end(c10_npu::NPUStream stream);
 TORCH_NPU_API void graph_task_update_begin(c10_npu::NPUStream stream, NPUTaskGroupHandle handle);
 TORCH_NPU_API void graph_task_update_end(c10_npu::NPUStream stream);
+
+// Core-side forwarder for the ACLGraph fia fast path. op_api:: kernels are
+// declared OP_PLUGIN_HIDDEN, so their definitions must be resolved inside
+// this so; the pybind11 binding in libtorch_npu_python.so calls this
+// function instead of the hidden symbol (a hidden undefined reference there
+// is silently mis-linked by mold into a branch to the so base address).
+TORCH_NPU_API ::std::tuple<at::Tensor&, at::Tensor&> npu_fused_infer_attention_score_out_for_graph(
+    const at::Tensor& query,
+    const at::Tensor& key,
+    const at::Tensor& value,
+    const c10::optional<at::Tensor>& pse_shift,
+    const c10::optional<at::Tensor>& atten_mask,
+    at::OptionalSymIntArrayRef actual_seq_lengths,
+    at::OptionalSymIntArrayRef actual_seq_lengths_kv,
+    const c10::optional<at::Tensor>& dequant_scale1,
+    const c10::optional<at::Tensor>& quant_scale1,
+    const c10::optional<at::Tensor>& dequant_scale2,
+    const c10::optional<at::Tensor>& quant_scale2,
+    const c10::optional<at::Tensor>& quant_offset2,
+    const c10::optional<at::Tensor>& antiquant_scale,
+    const c10::optional<at::Tensor>& antiquant_offset,
+    const c10::optional<at::Tensor>& key_antiquant_scale,
+    const c10::optional<at::Tensor>& key_antiquant_offset,
+    const c10::optional<at::Tensor>& value_antiquant_scale,
+    const c10::optional<at::Tensor>& value_antiquant_offset,
+    const c10::optional<at::Tensor>& block_table,
+    const c10::optional<at::Tensor>& query_padding_size,
+    const c10::optional<at::Tensor>& kv_padding_size,
+    const c10::optional<at::Tensor>& key_shared_prefix,
+    const c10::optional<at::Tensor>& value_shared_prefix,
+    at::OptionalSymIntArrayRef actual_shared_prefix_len,
+    const c10::optional<at::Tensor>& query_rope,
+    const c10::optional<at::Tensor>& key_rope,
+    const c10::optional<at::Tensor>& key_rope_antiquant_scale,
+    int64_t num_heads,
+    double scale,
+    int64_t pre_tokens,
+    int64_t next_tokens,
+    c10::string_view input_layout,
+    int64_t num_key_value_heads,
+    int64_t sparse_mode,
+    int64_t inner_precise,
+    int64_t block_size,
+    int64_t antiquant_mode,
+    int64_t key_antiquant_mode,
+    int64_t value_antiquant_mode,
+    bool softmax_lse_flag,
+    const c10::optional<at::Tensor>& workspace,
+    at::Tensor& attention_out,
+    at::Tensor& softmax_lse);
 TORCH_NPU_API void super_kernel_scope_begin(const char* scope_name);
 TORCH_NPU_API void super_kernel_scope_end(const char* scope_name);
 
