@@ -1312,7 +1312,7 @@
 
 **限制与说明**：
 
-- `self`仅支持fp16，fp32, fp64
+- `self`仅支持fp16，fp32，fp64
 
 <!-- npu="A3" id86 -->
 - <term>Atlas A3训练系列产品</term>额外支持bf16
@@ -1553,7 +1553,7 @@
 - `self`仅支持fp16，fp32
 
 <!-- npu="950" id1386 -->
-- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低
 <!-- end id1386 -->
 
 </div>
@@ -2433,7 +2433,7 @@
 - 可能回退至CPU执行
 
 <!-- npu="950" id1388 -->
-- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同。
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同
 <!-- end id1388 -->
 
 </div>
@@ -2728,7 +2728,7 @@
 - `self`仅支持fp16，fp32
 
 <!-- npu="950" id1389 -->
-- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低
 <!-- end id1389 -->
 
 </div>
@@ -4252,7 +4252,7 @@
 <!-- end id424 -->
 
 <!-- npu="950" id1384 -->
-**限制与说明**：在<term>Ascend 950DT系列产品</term>上，不支持`bool`、`uint8`、`int`、`fp64`、`complex64`、`complex128`数据类型。
+**限制与说明**：在<term>Ascend 950DT系列产品</term>上，不支持`bool`，`uint8`，`int32`，`fp64`、`complex64`、`complex128`数据类型。
 <!-- end id1384 -->
 
 </div>
@@ -4400,7 +4400,7 @@
 **限制与说明**：
 
 - `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool，complex64，complex128
-- 当前NPU上部分接口暂不支持double类型，出于兼容性考虑默认返回fp32，后续完成支持后将正常返回fp64
+- 当前NPU上部分接口暂不支持fp64类型，出于兼容性考虑默认返回fp32，后续完成支持后将正常返回fp64
 - 可能回退至CPU执行
 
 </div>
@@ -4836,7 +4836,7 @@
 - `self`仅支持bf16，fp16，fp32，fp64
 
 <!-- npu="950" id1391 -->
-- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同。
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同
 <!-- end id1391 -->
 
 </div>
@@ -5077,7 +5077,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id526 -->
 
-**限制与说明**： `self`仅支持double
+**限制与说明**： `self`仅支持fp64
 
 </div>
 
@@ -7685,7 +7685,7 @@
 - `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 <!-- npu="950" id1397 -->
-- 在<term>Ascend 950DT系列产品</term>上，`mask`中`True`的数量不能超过`source`的元素数量，否则会报错，与GPU实现一致。
+- 在<term>Ascend 950DT系列产品</term>上，`mask`中`True`的数量不能超过`source`的元素数量，否则会报错，与GPU实现一致
 <!-- end id1397 -->
 
 </div>
@@ -8009,7 +8009,7 @@
 - `self`仅支持fp16，fp32
 
 <!-- npu="950" id1398 -->
-- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低
 <!-- end id1398 -->
 
 </div>
@@ -8749,7 +8749,7 @@
 - 可能回退至CPU执行
 
 <!-- npu="950" id1401 -->
-- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同。
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同
 <!-- end id1401 -->
 
 </div>
@@ -9151,7 +9151,7 @@
 - `self`仅支持bf16，fp16，fp32，uint8，int8，int16，int32，int64，bool
 
 <!-- npu="950" id1402 -->
-- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同。
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同
 <!-- end id1402 -->
 
 </div>
@@ -9874,7 +9874,7 @@
 - `self`仅支持fp32
 
 <!-- npu="950,A3,910b" id1078 -->
-- 在<term>Ascend 950DT系列产品</term>上，输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。
+- 在<term>Ascend 950DT系列产品</term>上，输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异
 <!-- end id1078 -->
 
 </div>
@@ -9926,11 +9926,11 @@
 <!-- npu="A3,910b" id1082 -->
 - 仅在<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>上，且同时满足以下条件时，启用NPU加速：
   - `including_self`为True。
-  - `reduce`为"sum"或"add"。
+  - `reduce`为“sum”或“add”。
   - 输入数据类型为fp32。
 <!-- end id1082 -->
 <!-- npu="950,A3,910b" id1083 -->
-- 除上述场景外的<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>其他配置，以及全部<term>Ascend 950DT系列产品</term>场景，均回退至CPU执行（Fallback）。
+- 除上述场景外的<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>其他配置，以及全部<term>Ascend 950DT系列产品</term>场景，均回退至CPU执行（Fallback）
 <!-- end id1083 -->
 
 </div>
@@ -10984,7 +10984,7 @@
 
 **限制与说明**：
 
-- Atlas A2训练系列产品、Atlas A3训练系列产品：该接口可读取张量实际的存储步长；相关算子处理部分非连续输入时，输出步长传播与原生PyTorch的一致性暂不支持。
+- <term>Atlas A2训练系列产品</term>、<term>Atlas A3训练系列产品</term>：该接口可读取张量实际的存储步长；相关算子处理部分非连续输入时，输出步长传播与原生PyTorch的一致性暂不支持
 
 </div>
 
@@ -11285,7 +11285,7 @@
 - 当前NPU设备仅支持设置`memory_format`为torch.contiguous_format或torch.preserve_format
 
 <!-- npu="950" id1408 -->
-- 在<term>Ascend 950DT系列产品</term>上，不支持转换为`double`数据类型。
+- 在<term>Ascend 950DT系列产品</term>上，不支持转换为`double`数据类型
 <!-- end id1408 -->
 
 </div>
@@ -11605,7 +11605,7 @@
 **限制与说明**：
 
 - `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
-- 由于硬件差异，npu `topk`索引结果与GPU/CPU不一致。当前NPU仅支持返回`sorted`为true的计算结果
+- 由于硬件差异，NPU `topk`索引结果与GPU/CPU不一致。当前NPU仅支持返回`sorted`为true的计算结果
 - 不支持标量`tensor`
 
 </div>
@@ -12106,7 +12106,7 @@
 - 遵循PyTorch社区规范，不再支持对bool类型数据进行处理。针对存量bool类型数据可以通过如下方案进行替换：如果需要输出全True，可以采用`Tensor.bernoulli_(p=1.0)`。如果需要输出均匀分布的bool类型，则采用`Tensor.bernoulli_(p=0.5)`
 
 <!-- npu="950" id1412 -->
-- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同。
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同
 <!-- end id1412 -->
 
 </div>

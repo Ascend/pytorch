@@ -279,7 +279,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id36 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32
+**限制与说明**：`input`仅支持bf16，fp16，fp32
 
 </div>
 
@@ -373,7 +373,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id48 -->
 
-**限制与说明**： `vertices`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**：`vertices`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 

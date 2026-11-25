@@ -4,8 +4,8 @@
 >
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
 > - 本支持清单的范围以[PyTorch社区文档](https://pytorch.org/docs/2.14/)为准，社区文档中未列出的接口不在本清单范围内；已在社区文档中存在但未收录于本清单的API尚未验证，请谨慎使用，我们将在验证完成后更新文档。
-> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
-> - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.14/tensors.html)。
+> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证的产品暂不纳入。
+> - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[torch.Tensor](https://pytorch.org/docs/2.14/tensors.html)。
 
 <div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
 <div style="margin: 8px 0"><font size="5"><b>目录</b></font></div>
@@ -1312,7 +1312,7 @@
 
 **限制与说明**：
 
-- `self`仅支持fp16，fp32, fp64
+- `self`仅支持fp16，fp32，fp64
 
 <!-- npu="A3" id86 -->
 - <term>Atlas A3训练系列产品</term>额外支持bf16
@@ -1553,7 +1553,7 @@
 - `self`仅支持fp16，fp32
 
 <!-- npu="950" id1386 -->
-- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低
 <!-- end id1386 -->
 
 </div>
@@ -1831,16 +1831,16 @@
 **产品支持情况**：
 
 <!-- npu="910b" id154 -->
-- <term>Atlas A2训练系列产品</term>：支持
+- <term>Atlas A2训练系列产品</term>：暂不支持
 <!-- end id154 -->
 <!-- npu="A3" id155 -->
-- <term>Atlas A3训练系列产品</term>：支持
+- <term>Atlas A3训练系列产品</term>：暂不支持
 <!-- end id155 -->
 <!-- npu="950" id156 -->
-- <term>Ascend 950DT系列产品</term>：支持
+- <term>Ascend 950DT系列产品</term>：暂不支持
 <!-- end id156 -->
 
-**限制与说明**： 仅CPU支持
+**限制与说明**：仅支持CPU张量，对NPU张量调用时会报错。
 
 </div>
 
@@ -2433,7 +2433,7 @@
 - 可能回退至CPU执行
 
 <!-- npu="950" id1388 -->
-- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同。
+- 在<term>Ascend 950DT系列产品</term>上，随机数生成行为与GPU实现一致，生成结果与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同
 <!-- end id1388 -->
 
 </div>
@@ -7628,16 +7628,16 @@
 **产品支持情况**：
 
 <!-- npu="910b" id815 -->
-- <term>Atlas A2训练系列产品</term>：支持
+- <term>Atlas A2训练系列产品</term>：暂不支持
 <!-- end id815 -->
 <!-- npu="A3" id816 -->
-- <term>Atlas A3训练系列产品</term>：支持
+- <term>Atlas A3训练系列产品</term>：暂不支持
 <!-- end id816 -->
 <!-- npu="950" id817 -->
-- <term>Ascend 950DT系列产品</term>：支持
+- <term>Ascend 950DT系列产品</term>：暂不支持
 <!-- end id817 -->
 
-**限制与说明**： 仅CPU支持
+**限制与说明**：`self`和`tensor`均须为CPU张量。
 
 </div>
 
@@ -7690,7 +7690,7 @@
 - `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 <!-- npu="950" id1397 -->
-- 在<term>Ascend 950DT系列产品</term>上，`mask`中`True`的数量不能超过`source`的元素数量，否则会报错，与GPU实现一致。
+- 在<term>Ascend 950DT系列产品</term>上，`mask`中`True`的数量不能超过`source`的元素数量，否则会报错，与GPU实现一致
 <!-- end id1397 -->
 
 </div>
@@ -9931,11 +9931,11 @@
 <!-- npu="A3,910b" id1082 -->
 - 仅在<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>上，且同时满足以下条件时，启用NPU加速：
   - `including_self`为True。
-  - `reduce`为"sum"或"add"。
+  - `reduce`为“sum”或“add”。
   - 输入数据类型为fp32。
 <!-- end id1082 -->
 <!-- npu="950,A3,910b" id1083 -->
-- 除上述场景外的<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>其他配置，以及全部<term>Ascend 950DT系列产品</term>场景，均回退至CPU执行（Fallback）。
+- 除上述场景外的<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>其他配置，以及全部<term>Ascend 950DT系列产品</term>场景，均回退至CPU执行（Fallback）
 <!-- end id1083 -->
 
 </div>
@@ -10987,9 +10987,7 @@
 - <term>Ascend 950DT系列产品</term>：不支持
 <!-- end id1201 -->
 
-**限制与说明**：
-
-- Atlas A2训练系列产品、Atlas A3训练系列产品：该接口可读取张量实际的存储步长；相关算子处理部分非连续输入时，输出步长传播与原生PyTorch的一致性暂不支持。
+**限制与说明**：在<term>Atlas A2训练系列产品</term>和<term>Atlas A3训练系列产品</term>上，该接口可读取张量实际的存储步长。部分算子处理非连续输入时，输出步长可能与原生PyTorch不同。
 
 </div>
 
@@ -11290,7 +11288,7 @@
 - 当前NPU设备仅支持设置`memory_format`为torch.contiguous_format或torch.preserve_format
 
 <!-- npu="950" id1408 -->
-- 在<term>Ascend 950DT系列产品</term>上，不支持转换为`double`数据类型。
+- 在<term>Ascend 950DT系列产品</term>上，不支持转换为`double`数据类型
 <!-- end id1408 -->
 
 </div>
@@ -11613,7 +11611,7 @@
 **限制与说明**：
 
 - `self`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64
-- 由于硬件差异，npu `topk`索引结果与GPU/CPU不一致。当前NPU仅支持返回`sorted`为true的计算结果
+- 由于硬件差异，NPU `topk`索引结果与GPU/CPU不一致。当前NPU仅支持返回`sorted`为True的计算结果
 - 不支持标量`tensor`
 
 </div>

@@ -4,7 +4,7 @@
 >
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
 > - 本支持清单的范围以[PyTorch社区文档](https://pytorch.org/docs/2.13/)为准，社区文档中未列出的接口不在本清单范围内；已在社区文档中存在但未收录于本清单的API尚未验证，请谨慎使用，我们将在验证完成后更新文档。
-> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
+> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证的产品暂不纳入。
 > - 在使用支持的CUDA接口时，需要将API名称中的CUDA替换为NPU形式才能使用：将torch.cuda.替换为torch_npu.npu.或torch.npu.。torch_npu.npu.和torch.npu.两种调用方式，功能一致。举例如下：
 >
 >   `torch.cuda.current_device` --> `torch_npu.npu.current_device`<br>
@@ -326,7 +326,7 @@
 
 **限制与说明**：
 
-- 支持的属性范围：`name`、`total_memory`、`L2_cache_size`、`cube_core_num`、`vector_core_num`和`ubuf_size`；原CUDA上支持的其余属性均返回空字段。
+- 支持的属性范围：`name`、`total_memory`、`L2_cache_size`、`cube_core_num`、`vector_core_num`和`ubuf_size`；原生CUDA上支持的其余属性均返回空字段。
 - 容量含义：`ubuf_size`返回ACL查询的原始容量值，表示每颗Vector Core的Unified Buffer容量，单位为字节；打印设备属性对象时按KB展示。
 - CANN要求：`ubuf_size`要求CANN版本不低于`9.0.0.beta2`；CANN版本低于`9.0.0.beta2`时不支持该属性，返回`None`。
 - 硬件范围：仅Ascend 950DT系列产品返回有效值；在Atlas A2、Atlas A3等其他硬件上返回`None`。
@@ -1193,7 +1193,7 @@
 - 受CANN的ACL（Ascend Computing Language）运行时能力限制，存在以下约束：
   - `external=True`事件在同一张图（Graph）内不支持同时执行`record`和`wait`；可拆分为两张图分别执行`record`和`wait`，或同图场景改用普通事件。
   - `external=True`事件首次`record`后不支持在external模式与default模式之间切换；一种模式请使用一个独立的事件实例。
-- 同时开启`enable_timing=True`和`external=True`的事件在图（Graph）内使用时依赖驱动版本，如遇相关报错，建议升级驱动后重试。
+  - 同时开启`enable_timing=True`和`external=True`的事件在图（Graph）内使用时依赖驱动版本，如遇相关报错，建议升级驱动后重试。
 
 <a class="method_anchor" id="torch_cuda_Event_elapsed_time"></a>
 

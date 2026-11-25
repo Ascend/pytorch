@@ -104,7 +104,7 @@
 
 **原生文档**：[torch.backends.cuda.cufft_plan_cache](https://pytorch.org/docs/2.13/backends.html#torch.backends.cuda.cufft_plan_cache)
 
-**NPU 形式名称**：torch.npu.backends.fft_plan_cache
+**NPU形式名称**：torch.npu.backends.fft_plan_cache
 
 **产品支持情况**：
 
@@ -127,7 +127,7 @@
 
 **原生文档**：[torch.backends.cuda.cufft_plan_cache.size](https://pytorch.org/docs/2.13/backends.html#torch.backends.cuda.cufft_plan_cache.size)
 
-**NPU 形式名称**：torch.npu.backends.fft_plan_cache.size
+**NPU形式名称**：torch.npu.backends.fft_plan_cache.size
 
 **产品支持情况**：
 <!-- end id100 -->
@@ -150,7 +150,7 @@
 
 **原生文档**：[torch.backends.cuda.cufft_plan_cache.max_size](https://pytorch.org/docs/2.13/backends.html#torch.backends.cuda.cufft_plan_cache.max_size)
 
-**NPU 形式名称**：torch.npu.backends.fft_plan_cache.max_size
+**NPU形式名称**：torch.npu.backends.fft_plan_cache.max_size
 
 **产品支持情况**：
 <!-- end id102 -->
@@ -175,7 +175,7 @@
 
 **原生文档**：[torch.backends.cuda.cufft_plan_cache.clear](https://pytorch.org/docs/2.13/backends.html#torch.backends.cuda.cufft_plan_cache.clear)
 
-**NPU 形式名称**：torch.npu.backends.fft_plan_cache.clear
+**NPU形式名称**：torch.npu.backends.fft_plan_cache.clear
 
 **产品支持情况**：
 <!-- end id104 -->
@@ -511,9 +511,9 @@
 
 **产品支持情况**：
 
-<!-- npu="910b" id101 -->
+<!-- npu="910b" id305 -->
 - <term>Atlas A2训练系列产品</term>：不支持
-<!-- end id101 -->
+<!-- end id305 -->
 <!-- npu="A3" id102 -->
 - <term>Atlas A3训练系列产品</term>：不支持
 <!-- end id102 -->

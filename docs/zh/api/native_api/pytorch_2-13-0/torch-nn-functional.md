@@ -4,7 +4,7 @@
 >
 > - 若API标注有“限制与说明”，表示该API在昇腾NPU上的支持度和原生版本存在差异，请务必查阅具体说明，以确保适配昇腾NPU平台。
 > - 本支持清单的范围以[PyTorch社区文档](https://pytorch.org/docs/2.13/)为准，社区文档中未列出的接口不在本清单范围内；已在社区文档中存在但未收录于本清单的API尚未验证，请谨慎使用，我们将在验证完成后更新文档。
-> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证产品暂不纳入。
+> - 产品支持范围说明：文档中仅提供已验证的产品信息，未经过验证的产品暂不纳入。
 > - 目录下罗列的模块和原生文档一致，对于模块的相关说明请查看原生文档[LINK](https://pytorch.org/docs/2.13/nn.functional.html)。
 
 <div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
@@ -77,7 +77,7 @@
 - `input`仅支持fp16，fp32
 
 <!-- npu="950" id311 -->
-- 在<term>Ascend 950DT系列产品</term>上，底层卷积计算的W维度不能超过1000000，`torch.ao.nn.intrinsic.ConvBn1d`也受此限制；<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>支持W维度大于1000000的场景。
+- 在<term>Ascend 950DT系列产品</term>上，底层卷积计算的W维度不能超过1000000，`torch.ao.nn.intrinsic.ConvBn1d`也受此限制；<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>支持W维度大于1000000的场景
 <!-- end id311 -->
 
 </div>
@@ -105,8 +105,8 @@
 - `input`仅支持bf16，fp16，fp32
 
 <!-- npu="950" id312 -->
-- 在<term>Ascend 950DT系列产品</term>上，默认高性能实现在`fp32`或`complex64`输入场景下，计算精度与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在差异。将`cube_math_type`设置为`4`可切换至高精度模式以对齐精度，但会影响性能。
-- 在<term>Ascend 950DT系列产品</term>上，底层卷积计算的W维度不支持大于1000000的场景；<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>支持该场景。
+- 在<term>Ascend 950DT系列产品</term>上，默认高性能实现在`fp32`或`complex64`输入场景下，计算精度与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+- 在<term>Ascend 950DT系列产品</term>上，底层卷积计算的W维度不支持大于1000000的场景；<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>支持该场景
 <!-- end id312 -->
 
 </div>
@@ -374,7 +374,7 @@
 - `return_indices`为True时，返回的`argmax`的数据类型为int32
 
 <!-- npu="950" id313 -->
-- 在<term>Ascend 950DT系列产品</term>上，返回的`indices`与上游PyTorch对齐，与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>的结果可能不完全一致。
+- 在<term>Ascend 950DT系列产品</term>上，返回的`indices`与上游PyTorch对齐，与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>的结果可能不完全一致
 <!-- end id313 -->
 
 </div>
@@ -730,13 +730,13 @@
 
 - `query`、`key`、`value`仅支持bf16、fp16和fp32，且所有输入参数须满足以下规格约束：
   - 输入`query`、`key`、`value`的N：batch size，当前只支持[N，head_num, S(L), E(Ev)]的排布方式，取值范围1~2K
-  - 输入`query`的head_num和`key`/`value`的head_num必须成比例关系，即Nq/Nkv必须是非0整数，取值范围1~256
+  - 输入`query`的head_num和`key`/`value`的head_num必须成比例关系,即Nq/Nkv必须是非0整数，取值范围1~256
   - 输入`query`的L：Target sequence length，取值范围1~512K
   - 输入`key`、`value`的S：Source sequence length，取值范围1~512K
   - 输入`query`、`key`、`value`的E：Embedding dimension of the query and key，取值范围1~512
   - 输入`value`的Ev：Embedding dimension of the value，必须与E相等
   - 输入`attn_mask`：当前支持[N, 1, L, S]、[N, head_num, L, S]、[1, 1, L, S]、[L, S]，以及可广播到[N, head_num, L, S]的bool类型mask，例如[L, 1]、[1, S]、[1, 1]等排布方式
-  - 在开启`is_causal`计算时，`attn_mask`必须为None；不开启`is_causal`时，若`attn_mask`输入有效数据，输入数据类型必须是bool类型
+  - `is_causal=True`时，`attn_mask`必须为`None`。`is_causal=False`时，显式掩码的数据类型须为`bool`或与`query`一致的浮点类型。
   - 输入`query`、`key`、`value`的数据类型为bf16、fp16、fp32
   - 通过设置`torch_npu.npu.use_compatible_impl(True)`，支持按SDPA后端选择上下文指定MATH后端，例如：
 
@@ -747,10 +747,10 @@
         out = torch.nn.functional.scaled_dot_product_attention(query, key, value)
     ```
 
-- 与原接口除了规格限制之外差异点：
+- 与原接口除了规格限制之外的差异点：
   - NPU的随机算法部分用DSA硬件实现，算法在DSA引擎固化与GPU算法实现存在差异，导致dropout功能和GPU结果不一致
-  - 当前接口支持输入`query`的head num和`key`/`value`的head num不等长，而原生PyTorch接口不支持
-  - 当前接口传入符合类型要求（`attn_mask`必须为bool或与`query`同dtype，否则直接报错）的非bool类型`attn_mask`时，不会命中融合算子实现路径，而是静默回退到小算子拼接实现，性能存在下降。原生CUDA SDPA支持符合接口要求的浮点加性mask，是否使用融合实现取决于所选后端及其他输入条件。
+  - NPU支持`query`与`key`、`value`的头数不同，需满足上述比例约束。原生PyTorch也可在支持的后端上通过`enable_gqa=True`启用分组查询注意力。
+  - 当前接口传入符合类型要求（`attn_mask`必须为bool或与`query`同dtype，否则直接报错）的非bool类型`attn_mask`时，不会命中融合算子实现路径，而是静默回退到小算子拼接实现，性能存在下降。原生CUDA SDPA支持符合接口要求的浮点加性mask，是否使用融合实现取决于所选后端及其他输入条件
 
 </div>
 
@@ -1190,7 +1190,7 @@
 - `approximate`参数仅支持设置为`tanh`
 
 <!-- npu="950" id318 -->
-- 在<term>Ascend 950DT系列产品</term>上，默认近似算法与上游PyTorch一致，与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同，返回结果可能不完全一致。
+- 在<term>Ascend 950DT系列产品</term>上，默认近似算法与上游PyTorch一致，与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同，返回结果可能不完全一致
 <!-- end id318 -->
 
 </div>
@@ -1700,7 +1700,7 @@
 - `input`仅支持bf16，fp16，fp32
 
 <!-- npu="950" id319 -->
-- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低
 <!-- end id319 -->
 
 </div>
@@ -1728,7 +1728,7 @@
 - `input1`、`input2`、`weight`、`bias`仅支持bf16，fp16，fp32
 
 <!-- npu="950" id320 -->
-- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低
 <!-- end id320 -->
 
 </div>
@@ -2542,7 +2542,7 @@
 
 - 属性`mode`为constant时，`input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 - 属性`mode`非constant时，`input`仅支持fp16，fp32，fp64
-- 在输入`x`为六维以上时可能会出现性能下降
+- 在输入`input`为六维以上时可能会出现性能下降
 
 </div>
 
@@ -2571,7 +2571,7 @@
 - 不支持`scale_factor`
 
 <!-- npu="950" id322 -->
-- 在<term>Ascend 950DT系列产品</term>上，不支持`double`数据类型。
+- 在<term>Ascend 950DT系列产品</term>上，不支持`double`数据类型
 <!-- end id322 -->
 
 </div>

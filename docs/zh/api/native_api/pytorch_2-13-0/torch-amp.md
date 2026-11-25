@@ -51,6 +51,8 @@
 
 **原生文档**：[torch.amp.custom_fwd](https://docs.pytorch.org/docs/2.13/amp.html#torch.amp.custom_fwd)
 
+**NPU 形式名称**：`torch.amp.custom_fwd(device_type="npu")`
+
 **产品支持情况**：
 
 <!-- npu="910b" id25 -->

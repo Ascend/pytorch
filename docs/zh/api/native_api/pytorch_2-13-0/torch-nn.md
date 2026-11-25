@@ -2135,6 +2135,7 @@
   import torch_npu
   torch_npu.npu.config.allow_internal_format = False
   ```
+
 <!-- end id277 -->
 
 </div>
@@ -2588,7 +2589,7 @@
   ```
 
 <!-- npu="950" id1151 -->
-- 在<term>Ascend 950DT系列产品</term>上，返回的`indices`与上游PyTorch对齐，与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>的结果可能不完全一致。
+- 在<term>Ascend 950DT系列产品</term>上，返回的`indices`与上游PyTorch对齐，与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>的结果可能不完全一致
 <!-- end id1151 -->
 
 </div>
@@ -2636,7 +2637,7 @@
 - `input`仅支持fp16，fp32
 
 <!-- npu="950" id1152 -->
-- 在<term>Ascend 950DT系列产品</term>上，输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。
+- 在<term>Ascend 950DT系列产品</term>上，输入包含重复索引时，计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异
 <!-- end id1152 -->
 
 </div>
@@ -3501,7 +3502,7 @@
 - `query`、`key`、`value`仅支持bf16，fp16，fp32
 
 <!-- npu="950" id1153 -->
-- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低。
+- 在<term>Ascend 950DT系列产品</term>上，使用默认高性能实现时，`fp32`或`complex64`输入的计算结果与GPU实现及<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>可能存在精度差异。可将`cube_math_type`设为`4`，切换至高精度模式以对齐精度，但性能会降低
 <!-- end id1153 -->
 
 <a class="method_anchor" id="torch_nn_MultiheadAttention_forward"></a>
@@ -3686,7 +3687,7 @@
 - `approximate`参数仅支持设置为`tanh`
 
 <!-- npu="950" id1020 -->
-- 在<term>Ascend 950DT系列产品</term>上，默认近似算法与上游PyTorch一致，与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同，返回结果可能不完全一致。
+- 在<term>Ascend 950DT系列产品</term>上，默认近似算法与上游PyTorch一致，与<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>不同，返回结果可能不完全一致
 <!-- end id1020 -->
 
 </div>
@@ -5535,7 +5536,7 @@
 **限制与说明**：
 
 - `log_probs`仅支持fp32，fp64
-- 不支持`log_probs` 2D输入
+- 不支持`log_probs`2D输入
 
 </div>
 
@@ -5996,7 +5997,7 @@
 - `input`仅支持bf16，fp16，fp32，fp64
 
 <!-- npu="950" id1025 -->
-- 在<term>Ascend 950DT系列产品</term>上，不支持`double`数据类型。
+- 在<term>Ascend 950DT系列产品</term>上，不支持`double`数据类型
 <!-- end id1025 -->
 
 </div>
