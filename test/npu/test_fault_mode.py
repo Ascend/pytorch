@@ -4,7 +4,6 @@ import traceback
 import torch
 from torch.testing._internal.common_utils import TestCase, run_tests
 from torch.utils.checkpoint import checkpoint
-import torch.distributed as dist
 import torch.nn as nn
 
 from torch_npu.testing.common_utils import SupportedDevices
@@ -107,18 +106,16 @@ class TestMode(TestCase):
             torch.Generator(device="cuda")
 
     def test_not_supported_ops(self):
-        command = ['python', '-c', 'import torch; import torch_npu; t = torch.rand(1, 3, 3).npu();t.fmax(t)']
+        command = ['python', '-c', 'import torch; import torch_npu; t = torch.rand(1, 3, 3).npu();torch.special.zeta(t, t)']
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         message = process.stderr.read()
         process.stderr.close()
         process.stdout.close()
         process.terminate()
         process.wait()
-        self.assertIn(
-            "CAUTION: The operator 'aten::fmax.out' is not currently supported on the NPU backend and will fall back "
-            "to run on the CPU. This may have performance implications. (function npu_cpu_fallback)",
-            message
-        )
+        # 警告算子名可能带 .out 后缀，用子串匹配兼容两种形式
+        self.assertIn("CAUTION: The operator 'aten::special_zeta", message)
+        self.assertIn("will fall back to run on the CPU", message)
 
     def test_param_verification(self):
         with self.assertRaisesRegex(RuntimeError, "Expected all tensors to be on the same device. "
