@@ -12,7 +12,6 @@ from torch._decomp import decomposition_table, remove_decompositions
 from torch._prims_common.wrappers import out_wrapper  # noqa: F401
 import torch.nn.functional as F
 from . import config as npu_config
-from .lowering_common import add_overload
 from .lowering_common import run_once
 
 
@@ -291,20 +290,36 @@ def _register_triton_decompositions():
         DECOMPOSITION_OVERLOAD_OP.append(aten.max_pool2d_with_indices)
 
     def _register_npu_triton_decompositions():
-        overload_op_set = set()
-        add_overload(DECOMPOSITION_OVERLOAD_OP, overload_op_set)
+        remove_decompositions(decompositions, DECOMPOSITION_OVERLOAD_OP)
 
-        for op in overload_op_set:
-            if (op in decompositions):
-                del decompositions[op]
+        def _npu_decomposition(op_list):
+            """Register a decomposition, dropping any earlier entry first.
 
-        @register_decomposition([aten.erfc])
+            ``register_decomposition`` raises `duplicate registrations` when
+            the op is already in the table, and this registrar does run more
+            than once in one process (``_load_backend`` re-enters it, #5681).
+            Popping right here, next to the register, keeps the two paired:
+            a registration added below is covered automatically, instead of
+            needing a hand-kept list of op names. The unpaired ``aten.erfc``
+            entry in such a list is what let #5681 through.
+
+            ``remove_decompositions`` is the same operation this module already
+            uses to drop ops wholesale; reusing it keeps one notion of "take
+            these overloads out of the table" instead of two.
+            """
+            def _decorator(fn):
+                remove_decompositions(decompositions, op_list)
+                return register_decomposition(op_list)(fn)
+
+            return _decorator
+
+        @_npu_decomposition([aten.erfc])
         def erfc(x):
             tensor = torch.ones_like(x) - torch.erf(x)
             return tensor
 
         if enable_fast_gelu:
-            @register_decomposition([aten.gelu])
+            @_npu_decomposition([aten.gelu])
             def gelu(x, approximate: str = "none"):
                 if approximate not in ("none", "tanh"):
                     raise RuntimeError("approximate argument must be either none or tanh.")
@@ -317,8 +332,8 @@ def _register_triton_decompositions():
                 result = x * sigmoid_z
                 return result
 
-        register_decomposition([aten.matmul.default])(_matmul_triton)
-        register_decomposition([aten.matmul_backward.default])(_matmul_backward_inductor)
+        _npu_decomposition([aten.matmul.default])(_matmul_triton)
+        _npu_decomposition([aten.matmul_backward.default])(_matmul_backward_inductor)
 
 
     _register_npu_triton_decompositions()

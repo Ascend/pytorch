@@ -411,7 +411,17 @@ def _apply_npu_cpp_march_default() -> None:
 
 
 def _load_backend():
+    from ..utils._dynamo import _InductorNpuRegistry
     from .lowering_patch import restore_inductor_baseline
+
+    backend = _get_backend()
+    # Idempotency guard (#5681): if we've already loaded this backend,
+    # re-entering would re-run the per-backend decomposition
+    # registrars and hit `RuntimeError: duplicate registrations` in
+    # torch._decomp._add_op_to_registry. Backend *switches* still
+    # work because the new backend value differs from the cached one.
+    if _InductorNpuRegistry._loaded_backend == backend:
+        return
 
     # Reset Inductor globals before each backend switch (mlir <-> triton in one process).
     restore_inductor_baseline()
@@ -419,7 +429,6 @@ def _load_backend():
     # All backends need the NPU ATen device mapping on torch < 2.15.
     patch_device_to_aten()
 
-    backend = _get_backend()
     loader = _BACKEND_LOADERS.get(backend, _load_triton_backend)
     loader()
     from .fx_passes.overlap_scheduling import patch_overlap_scheduling
@@ -428,7 +437,6 @@ def _load_backend():
     # Invalidate cached decompositions after loading the selected backend.
     from torch._inductor.decomposition import fast_random_decomps
     fast_random_decomps.cache_clear()
-    from ..utils._dynamo import _InductorNpuRegistry
     _InductorNpuRegistry._loaded_backend = backend
 
 _load_backend()
