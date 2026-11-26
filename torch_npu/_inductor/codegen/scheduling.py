@@ -196,6 +196,7 @@ class NPUTritonScheduling(TritonScheduling):
     backend_features = OrderedSet(
         [
             BackendFeature.BUCKETIZE,
+            BackendFeature.FOREACH,
             BackendFeature.INPLACE_BUFFERS,
             BackendFeature.MASKED_SCATTER_WITH_INDEX,
             BackendFeature.SCAN,

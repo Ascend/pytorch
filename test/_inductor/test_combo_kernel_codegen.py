@@ -368,6 +368,26 @@ class TestComboKernelNPU(unittest.TestCase):
         torch._dynamo.reset()
         super().tearDown()
 
+    def test_explicit_foreach_without_automatic_combos(self):
+        from torch._inductor.utils import run_and_get_code
+
+        def fn(xs, ys):
+            torch._foreach_mul_(xs, 2.0)
+            torch._foreach_add_(xs, ys)
+            return xs
+
+        xs = [torch.randn(n, device="npu") for n in (1024, 4096)]
+        ys = [torch.randn_like(x) for x in xs]
+        expected = fn([x.clone() for x in xs], ys)
+        with config.patch(combo_kernels=False):
+            actual, sources = run_and_get_code(torch.compile(fn, fullgraph=True), xs, ys)
+        torch.testing.assert_close(actual, expected)
+        torch.testing.assert_close(xs, expected)
+        source = "\n".join(sources)
+        self.assertIn("'num_kernels': 2", source)
+        self.assertIn("'combo_subkernel_meta'", source)
+        self.assertEqual(source.count(".run("), 1)
+
     def test_dynamic_combo_ignores_global_grouped_autotune(self):
         torch.npu.set_device(0)
         torch._dynamo.reset()
