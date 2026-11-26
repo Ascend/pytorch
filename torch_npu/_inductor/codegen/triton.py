@@ -4305,7 +4305,20 @@ class NPUIndexTritonKernel(TritonKernel):
                 if str(axis) in str(index) and (axis not in axis_list):
                     axis_list.append(axis)
 
+        target_shape = tuple(str(s) for s in broadcast_shape)
+        need_broadcast = False
         if len(axis_list) < len(broadcast_shape):
+            need_broadcast = True
+        else:
+            for v in (value if isinstance(value, tuple) else (value,)):
+                v_shape = getattr(v, "shape", None)
+                if v_shape is None:
+                    continue
+                if tuple(str(s) for s in v_shape) != target_shape:
+                    need_broadcast = True
+                    break
+
+        if need_broadcast:
             value = self._map_tuple_or_scalar(
                 lambda v: self.cse.generate(
                     self.compute,
