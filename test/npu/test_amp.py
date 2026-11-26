@@ -1,10 +1,9 @@
-import unittest
 from itertools import chain
 
 import torch
 
-import torch_npu
-from torch_npu.npu.amp import GradScaler, autocast
+import torch_npu  # noqa: F401
+from torch_npu.npu.amp import GradScaler
 from torch_npu.testing.common_utils import SupportedDevices
 from torch_npu.testing.testcase import TestCase, run_tests
 
@@ -54,6 +53,25 @@ class TestAmp(TestCase):
             self.assertTrue(s1.get_backoff_factor() == .5)
             self.assertTrue(s1.get_growth_interval() == 2)
             self.assertTrue(s1._init_growth_tracker == 0)
+
+    def test_grad_scaling_state_dict_from_upstream(self):
+        # torch.amp.GradScaler.state_dict() does not contain the torch_npu-specific
+        # "dynamic" key. Loading such a state dict should keep the current value
+        # instead of raising KeyError.
+        s0 = GradScaler(init_scale=3., growth_factor=4., backoff_factor=.5, growth_interval=2)
+        state = s0.state_dict()
+        state.pop("dynamic")
+
+        for dynamic in True, False:
+            s1 = GradScaler(init_scale=6., growth_factor=7., backoff_factor=.8,
+                            growth_interval=1, dynamic=dynamic)
+            s1.load_state_dict(state)
+            self.assertTrue(s1.get_scale() == 3.)
+            self.assertTrue(s1.get_growth_factor() == 4.)
+            self.assertTrue(s1.get_backoff_factor() == .5)
+            self.assertTrue(s1.get_growth_interval() == 2)
+            self.assertTrue(s1._init_growth_tracker == 0)
+            self.assertTrue(s1._dynamic is dynamic)
 
     def _create_scaling_models_optimizers(self, device="npu"):
         # Create a module+optimizer that will use scaling, and a control module+optimizer

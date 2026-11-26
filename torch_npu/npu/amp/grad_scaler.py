@@ -456,7 +456,7 @@ class GradScaler(BaseGradScaler):
                                "from a disabled instance of GradScaler." + pta_error(ErrCode.VALUE))
 
         super(GradScaler, self).load_state_dict(state_dict)
-        self._dynamic = state_dict["dynamic"]
+        self._dynamic = state_dict.get("dynamic", self._dynamic)
 
     @staticmethod
     def get_npu_overflow_flag():
