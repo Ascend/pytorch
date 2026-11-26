@@ -445,8 +445,7 @@ class WatchdogIntegrationTest(unittest.TestCase):
         # Concurrent user completion checks and shutdown should not lose or duplicate future results.
         self.run_scenario("poll_shutdown")
 
-    def test_shutdown_failure_notifies_pending_result_future(self):
-        # A stream-sync exception should report COMM_ERROR to pending futures before being rethrown.
+    def test_shutdown_sync_failure_propagates_and_allows_retry(self):
         self.run_scenario("shutdown_failure", fault_mode=30)
 
     def test_query_error_preserves_original_exception_after_log_grace(self):

@@ -583,13 +583,11 @@ def run(scenario, root, rank):
         else:
             raise AssertionError("shutdown swallowed the injected stream synchronization error")
         assert "shutdown_sync_error" in markers(), markers()
-        assert future.done(), "shutdown synchronization failure abandoned a future"
-        if rank == 0:
-            assert int(future.value()) == int(result_type.COMM_ERROR), future.value()
-        else:
-            assert int(future.value()) in (int(result_type.SUCCESS), int(result_type.COMM_ERROR))
-        # Verify notification only: current failure paths need not have stopped the monitor.
-        finish_without_shutdown()
+        # The injected exception follows a successful device sync. The watchdog
+        # can still report the completed collective, and shutdown can be retried.
+        wait_until(future.done, "watchdog completion after failed shutdown")
+        assert int(future.value()) == int(result_type.SUCCESS), future.value()
+        pg.shutdown()
     elif scenario == "watchdog_driver_exit":
         arm()
         tensor = torch.ones(16, device=f"npu:{rank}")

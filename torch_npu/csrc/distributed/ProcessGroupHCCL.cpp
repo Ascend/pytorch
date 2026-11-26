@@ -1533,15 +1533,8 @@ bool ProcessGroupHCCL::waitForFutureOrTimeout(
 void ProcessGroupHCCL::shutdown() {
   LOG(INFO) << logPrefix() << "Starting to destroy process group, flushing operations.";
 
-  // Take ownership before the watchdog can discard pending result futures.
-  // No future callbacks are invoked while holding the work-list mutex.
-  std::list<WorkHCCL> pendingWorks;
-  {
-    std::lock_guard<std::mutex> lock(workMetaListMutex_);
-    if (terminateProcessGroup_.exchange(true)) {
-      return;
-    }
-    pendingWorks.splice(pendingWorks.end(), workMetaList_);
+  if (terminateProcessGroup_.load()) {
+    return;
   }
   std::vector<c10_npu::NPUStream> hcclStreamsToSync;
   {
@@ -1553,30 +1546,19 @@ void ProcessGroupHCCL::shutdown() {
 
   // Temporarily use stream synchronization as a substitute for the HCCL finalize API.
   // Only synchronize streams owned by this process group.
-  std::exception_ptr synchronizeException;
-  try {
-    if (hcclStreamsToSync.empty()) {
-      LOG(INFO) << logPrefix() << "Skip shutdown stream synchronization because no HCCL streams were created.";
-    } else {
-      for (const auto& hcclStream : hcclStreamsToSync) {
-        hcclStream.synchronize();
-      }
+  if (hcclStreamsToSync.empty()) {
+    LOG(INFO) << logPrefix() << "Skip shutdown stream synchronization because no HCCL streams were created.";
+  } else {
+    for (const auto& hcclStream : hcclStreamsToSync) {
+      hcclStream.synchronize();
     }
-  } catch (...) {
-    synchronizeException = std::current_exception();
   }
 
-  // Stream synchronization, not queue removal, determines successful completion.
-  // Preserve results already reported by the watchdog (including TIMEOUT).
-  for (auto& work : pendingWorks) {
-    if (work.futureWorkResult_ && !work.futureWorkResult_->completed()) {
-      const auto result =
-          (synchronizeException || work.exception()) ? c10d::WorkResult::COMM_ERROR : c10d::WorkResult::SUCCESS;
-      work.futureWorkResult_->markCompleted(at::IValue(static_cast<uint8_t>(result)));
+  {
+    std::lock_guard<std::mutex> lock(workMetaListMutex_);
+    if (terminateProcessGroup_.exchange(true)) {
+      return;
     }
-  }
-  if (synchronizeException) {
-    std::rethrow_exception(synchronizeException);
   }
 
   if (windowMem_.has_value()) {
@@ -2408,7 +2390,8 @@ void ProcessGroupHCCL::Watchdog::runLoop() {
   bool recordflag = false;
   int kThousandMillis = 1000;
 
-  while (!pg_->terminateProcessGroup_.load()) {
+  bool done = false;
+  while (!done || !pg_->terminateProcessGroup_.load()) {
     bool status_save_enable = c10_npu::option::OptionsManager::CheckStatusSaveEnable();
     if (status_save_enable) {
       auto status_save_path = c10_npu::option::OptionsManager::GetStatusSavePath();
@@ -2431,7 +2414,7 @@ void ProcessGroupHCCL::Watchdog::runLoop() {
 
       ++heartbeat_;
 
-      if (pg_->watchdogStatus == WatchdogStatus::STOP) {
+      if (pg_->watchdogStatus == WatchdogStatus::STOP && !pg_->terminateProcessGroup_.load()) {
         continue;
       }
 
@@ -2615,6 +2598,7 @@ void ProcessGroupHCCL::Watchdog::runLoop() {
         // in case processing is slowed down (but not hung) by NPU API contention
         heartbeat_++;
       }
+      done = pg_->workMetaList_.empty();
     }
 
     if (c10_npu::option::OptionsManager::CheckStatusSaveEnable() && pg_->is_refreshed) {
@@ -2634,8 +2618,6 @@ void ProcessGroupHCCL::Watchdog::runLoop() {
     if (c10_npu::option::OptionsManager::CheckStatusSaveEnable()) {
       pg_->recordHcclStatus(c10_npu::option::OptionsManager::GetStatusSavePath(), true);
     }
-    std::unique_lock<std::mutex> lock(pg_->workMetaListMutex_);
-    pg_->workMetaList_.clear();
   }
 }
 
@@ -4335,7 +4317,7 @@ void ProcessGroupHCCL::workEnqueue(c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL
   }
   if (!blockingWait_) {
     std::lock_guard<std::mutex> lock(workMetaListMutex_);
-    // Pair this check with shutdown's queue transfer under the same mutex.
+    // Pair this check with shutdown under the same mutex.
     if (terminateProcessGroup_.load()) {
       return;
     }
