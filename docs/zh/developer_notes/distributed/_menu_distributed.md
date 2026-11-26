@@ -10,7 +10,7 @@
   - [torch\_npu\_run](./startup_and_fault_tolerance/torch_npu_run.md)
 - [通信策略](./communication_strategy/_menu_communication_strategy.md)
   - [ranktable建链](./communication_strategy/ranktable_link_setup.md)
-  <!-- npu="A3,910b" id1 -->
+  <!-- npu="950,A3,910b" id1 -->
   - [Scalable RootInfo分级建链](./communication_strategy/scalable_rootinfo_link_setup.md)
   <!-- end id1 -->
   <!-- npu="A3,950" id2 -->

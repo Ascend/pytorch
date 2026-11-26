@@ -110,7 +110,7 @@
   <!-- npu="950,A3,910b,910" id33 -->
   - [RANK_TABLE_FILE](collective_communication/RANK_TABLE_FILE.md)
   <!-- end id33 -->
-  <!-- npu="A3,910b" id35 -->
+  <!-- npu="950,A3,910b" id35 -->
   - [TORCH_HCCL_RANKS_PER_ROOT](collective_communication/TORCH_HCCL_RANKS_PER_ROOT.md)
   <!-- end id35 -->
   <!-- npu="A3" id36 -->
