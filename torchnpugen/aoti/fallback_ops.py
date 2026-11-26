@@ -489,6 +489,8 @@ inductor_fallback_ops_npu: dict[str, dict[str, list[str]]] = {
 
 # inductor_fallback_ops_npu is kernel which not support at NPU device now
 inductor_fallback_ops_npu_not_support: dict[str, dict[str, list[str]]] = {
+    "aten.copysign.Tensor": {},
+    "aten.copysign.out": {},
     "aten._scaled_mm.default": {},
     "aten._scaled_grouped_mm.default": {},
     "aten._flash_attention_backward.default": {},
