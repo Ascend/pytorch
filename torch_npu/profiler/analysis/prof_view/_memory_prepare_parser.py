@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
 from collections import defaultdict
 from warnings import warn
 
@@ -30,7 +31,54 @@ from ..prof_common_func._cann_package_manager import CannPackageManager
 
 __all__ = []
 TASK_QUEUE_ENABLE = 'TASK_QUEUE_ENABLE'
-SUPPORTED_OP_NAME_PREFIXES = ('aten::', 'npu::', 'atb::')
+SUPPORTED_OP_NAME_PREFIXES = ('aten::', 'npu::', 'atb::')  # pypto is handled by _is_supported_op_name.
+PYPTO_OP_NAME_PATTERN = re.compile(r'^pypto(?:_pro)?::')
+OP_NAME_NAMESPACE_PATTERN = re.compile(r'^([A-Za-z0-9_]+)\.')
+PYPTO_OP_NAME_ALLOWLIST = frozenset()  # Add normalized full names for pypto ops outside the namespace pattern.
+# Allocation plumbing includes dot-format names and overload suffixes, e.g.
+# aten.empty_like, aten::empty_like., aten::empty.memory_format, npu::empty.
+ALLOC_PLUMBING_PATTERN = re.compile(
+    r'^(?:aten|npu)::(?:empty|empty_like|empty_strided|new_empty|new_empty_strided)(?:\..*)?$'
+)
+
+
+def _normalize_op_name(name: str) -> str:
+    if not name:
+        return name
+    return OP_NAME_NAMESPACE_PATTERN.sub(r'\1::', name, count=1)
+
+
+def _is_pypto_op_name(name: str) -> bool:
+    if not name:
+        return False
+    normalized_name = _normalize_op_name(name)
+    return bool(PYPTO_OP_NAME_PATTERN.match(normalized_name)) or normalized_name in PYPTO_OP_NAME_ALLOWLIST
+
+
+def _is_alloc_plumbing(name: str) -> bool:
+    if not name:
+        return False
+    return bool(ALLOC_PLUMBING_PATTERN.match(_normalize_op_name(name)))
+
+
+def _is_supported_op_name(name: str) -> bool:
+    if not name:
+        return False
+    return name.startswith(SUPPORTED_OP_NAME_PREFIXES) or _is_pypto_op_name(name)
+
+
+def _resolve_pypto_owner(op_node, original_name: str) -> str:
+    """Resolve a plumbing allocation Name to its nearest pypto custom-op ancestor."""
+    if _is_pypto_op_name(original_name):
+        return original_name
+    if not _is_alloc_plumbing(original_name):
+        return original_name
+    current_node = op_node
+    while current_node and current_node.event:
+        if _is_pypto_op_name(current_node.name):
+            return current_node.name
+        current_node = current_node.parent_node
+    return original_name
 
 
 class MemoryPrepareParser(BaseParser):
@@ -51,7 +99,8 @@ class MemoryPrepareParser(BaseParser):
         self._dequeue_tids = set()
         self._torch_ops_index = {}  # {(tid, is_enqueue): index}
         self._dequeue_record_index = {}  # {dequeue_record: index}
-        self._record_to_name = {}  # {record: torch_op.name}
+        self._record_to_name = {}  # {record: resolved Name}
+        self._has_pypto_op = False
         self.torch_ops_tid_dict = defaultdict(list)
         ProfilerLogger.init(self._profiler_path, "MemoryPrepareParser")
         self.logger = ProfilerLogger.get_instance()
@@ -79,20 +128,20 @@ class MemoryPrepareParser(BaseParser):
         self._init_queue_info()
         self._add_pta_memory_data()
 
-    def _find_matched_torch_op_name(self, mem_start_ts: int, tid: int) -> str:
+    def _find_matched_torch_op_node(self, mem_start_ts: int, tid: int):
         is_enqueue = False
         matched_torch_op_idx = self._find_last_torch_op_before_timestamp(mem_start_ts, tid, is_enqueue)
         if matched_torch_op_idx == -1:
             warn("Can't find matched torch ops for a memory record!")
-            return ""
+            return None
         torch_ops = self.torch_ops_tid_dict.get(tid, [])
         matched_torch_op = torch_ops[matched_torch_op_idx]
         while matched_torch_op.end_time < mem_start_ts:
             matched_torch_op = matched_torch_op.parent_node
             if not matched_torch_op or not matched_torch_op.event:
                 warn("Can't find matched torch ops for a memory record!")
-                return ""
-        return matched_torch_op.name
+                return None
+        return matched_torch_op
 
     def _init_queue_info(self):
         self._enqueue_record_dict = {record.corr_id: record for record in self._enqueue_data}
@@ -201,27 +250,28 @@ class MemoryPrepareParser(BaseParser):
     def _find_related_enqueue_record(self, dequeue_record: OpMarkBean) -> OpMarkBean:
         return self._enqueue_record_dict.get(dequeue_record.corr_id)
 
-    def _get_aten_op_name_by_enqueue_record(self, enqueue_record: OpMarkBean) -> str:
+    def _get_aten_op_node_by_enqueue_record(self, enqueue_record: OpMarkBean):
+        # Returns the nearest supported op node (aten/npu/atb/pypto) for the enqueue record.
         is_enqueue = True
         index = self._find_last_torch_op_before_timestamp(enqueue_record.time_ns, enqueue_record.tid, is_enqueue)
         if index == -1:
             warn("Unable to find aten operator according to enqueue record.")
-            return ""
+            return None
         torch_ops = self.torch_ops_tid_dict.get(enqueue_record.tid, [])
         matched_torch_op = torch_ops[index]
-        while index >= 0 and not matched_torch_op.name.startswith(SUPPORTED_OP_NAME_PREFIXES):
+        while not _is_supported_op_name(matched_torch_op.name):
             matched_torch_op = matched_torch_op.parent_node
             if not matched_torch_op or not matched_torch_op.event:
                 warn("Unable to find aten operator according to enqueue record.")
-                return ""
-        return matched_torch_op.name
+                return None
+        return matched_torch_op
 
-    def _find_real_op_name_of_record(self, dequeue_record: OpMarkBean) -> str:
+    def _find_real_op_node_of_record(self, dequeue_record: OpMarkBean):
         enqueue_record = self._find_related_enqueue_record(dequeue_record)
         if enqueue_record is None:
             warn("Unable to find enqueue record according to dequeue record.")
-            return ""
-        return self._get_aten_op_name_by_enqueue_record(enqueue_record)
+            return None
+        return self._get_aten_op_node_by_enqueue_record(enqueue_record)
 
     def _get_op_name_of_record(self, record: MemoryUseBean) -> str:
         op_name = self._record_to_name.get(record)
@@ -229,9 +279,12 @@ class MemoryPrepareParser(BaseParser):
             return op_name
         dequeue_record = self._find_related_dequeue_record(record)
         if dequeue_record is None:
-            op_name = self._find_matched_torch_op_name(record.time_ns, record.tid)
+            matched_torch_op = self._find_matched_torch_op_node(record.time_ns, record.tid)
         else:
-            op_name = self._find_real_op_name_of_record(dequeue_record)
+            matched_torch_op = self._find_real_op_node_of_record(dequeue_record)
+        op_name = matched_torch_op.name if matched_torch_op else ""
+        if self._has_pypto_op:
+            op_name = _resolve_pypto_owner(matched_torch_op, op_name)
         self._record_to_name[record] = op_name
         return op_name
 
@@ -388,3 +441,6 @@ class MemoryPrepareParser(BaseParser):
             self._torch_op_node = FwkFileParser(self._profiler_path).get_torch_op_tree_node(self._torch_op_data)
         if self._torch_op_node:
             self._torch_op_node = self._torch_op_node[1:]
+        self._has_pypto_op = any(
+            op.event and _is_pypto_op_name(op.name) for op in (self._torch_op_node or [])
+        )
