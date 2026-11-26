@@ -26,6 +26,10 @@ jobs:
       image: ${{ inputs.image }}
       env:
         HOME: /root
+        UV_INDEX_URL: "https://mirrors.huaweicloud.com/repository/pypi/simple"
+        UV_INDEX_STRATEGY: "unsafe-best-match"
+        UV_NO_CACHE: 1
+        UV_SYSTEM_PYTHON: 1
       volumes:
         - /usr/local/dcmi:/usr/local/dcmi
         - /usr/local/bin/npu-smi:/usr/local/bin/npu-smi
@@ -43,7 +47,8 @@ jobs:
       - name: Compile torch
         working-directory: /root/build/pytorch/pytorch
         run: |
-          pip3 install -r requirements.txt -i https://mirrors.huaweicloud.com/repository/pypi/simple
+          pip3 install uv
+          uv pip install -r requirements.txt
           export _GLIBCXX_USE_CXX11_ABI=1
           export USE_CUDA=0
           export USE_XNNPACK=0
@@ -51,11 +56,11 @@ jobs:
       - name: Compile and install torch_npu
         working-directory: /root/build/npu/pytorch
         run: |
-          pip3 install -r requirements.txt -i https://mirrors.huaweicloud.com/repository/pypi/simple
+          uv pip install -r requirements.txt
           bash ci/build.sh --python=3.8
-          pip3 install dist/torch_npu*.whl
+          uv pip install dist/torch_npu*.whl
       - name: Do the test
         working-directory: /root/build
         run: |
-          pip3 install -r npu/pytorch/test/requirements.txt -i https://mirrors.huaweicloud.com/repository/pypi/simple --no-deps
+          uv pip install -r npu/pytorch/test/requirements.txt --no-deps
           python npu/pytorch/ci/access_control_test.py
