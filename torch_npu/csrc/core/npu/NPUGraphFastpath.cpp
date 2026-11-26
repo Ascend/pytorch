@@ -36,7 +36,7 @@ namespace c10_npu {
     double scale,
     int64_t pre_tokens,
     int64_t next_tokens,
-    c10::string_view input_layout,
+    std::string_view input_layout,
     int64_t num_key_value_heads,
     int64_t sparse_mode,
     int64_t inner_precise,
