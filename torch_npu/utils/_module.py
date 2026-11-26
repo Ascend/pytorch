@@ -91,8 +91,8 @@ def to(self, *args, **kwargs):
     return self._apply(convert)
 
 
-def cast_weight(self, device):
-    """Cast the weights of ``self`` and of its children to the NPU friendly formats.
+def cast_weight(module, device):
+    """Cast the weights of ``module`` and of its children to the NPU friendly formats.
 
     Internal helper, always call it as ``cast_weight(module, device)``.  It is
     intentionally not installed on ``torch.nn.Module`` because upstream
@@ -179,13 +179,13 @@ def cast_weight(self, device):
     if device is None or "npu" not in str(device):
         return
 
-    current_class = self.__class__
-    _format_cast(self, current_class)
+    current_class = module.__class__
+    _format_cast(module, current_class)
 
-    if not self.children:
+    if not module.children:
         return
 
-    for sub_module in self.children():
+    for sub_module in module.children():
         if isinstance(sub_module, torch.nn.Module):
             cast_weight(sub_module, device)
 

@@ -78,6 +78,20 @@ class ComfyStyleBlock(nn.Module):
         ]
 
 
+class ComfyStyleRealLinearBlock(nn.Module):
+    """ComfyUI style module whose real layers must still receive the format cast."""
+
+    def __init__(self):
+        super().__init__()
+        self.linear = nn.Linear(4, 8)
+        self.nested = nn.Sequential(nn.Linear(8, 4))
+        self.cast_weight_inputs = []
+
+    def cast_weight(self, input):
+        self.cast_weight_inputs.append(input)
+        return input
+
+
 class TestModuleCastWeightDispatch(TestCase):
     def setUp(self):
         super().setUp()
@@ -131,6 +145,58 @@ class TestModuleCastWeightDispatch(TestCase):
     def test_cast_weight_is_not_injected_into_nn_module(self):
         """``cast_weight`` is a generic name owned by upstream frameworks, not by torch_npu."""
         self.assertNotIn("cast_weight", vars(torch.nn.Module))
+
+    def test_plain_module_no_longer_exposes_cast_weight(self):
+        """Direct ``module.cast_weight(device)`` callers must migrate to the helper.
+
+        ``cast_weight`` used to be injected on ``torch.nn.Module``; keeping the
+        generic name there collides with framework hooks, so plain modules no
+        longer expose it.  Frameworks defining their own hook are unaffected.
+        """
+        plain = nn.Module()
+
+        self.assertFalse(hasattr(plain, "cast_weight"))
+        with self.assertRaises(AttributeError):
+            plain.cast_weight(self.device)
+
+        block = ComfyStyleBlock()
+        block.cast_weight(self.device)
+        self.assertEqual(block.cast_weight_inputs, [self.device])
+
+    def test_to_applies_format_cast_through_real_linear(self):
+        """``Module.to`` must still reach the weight format cast on real layers.
+
+        Guards the actual regression: with the old dispatch the root ComfyUI
+        ``cast_weight`` override swallowed the call, so neither the top level
+        nor nested Linear layers received FRACTAL_NZ.
+        """
+        block = ComfyStyleRealLinearBlock()
+        origin_nd = torch.npu.get_mm_bmm_format_nd()
+        torch.npu.set_mm_bmm_format_nd(False)
+        try:
+            block.to(self.device)
+        finally:
+            torch.npu.set_mm_bmm_format_nd(origin_nd)
+
+        self.assertEqual(block.cast_weight_inputs, [])
+        for linear in (block.linear, block.nested[0]):
+            self.assertEqual(linear.weight.device, self.device)
+            self.assertIn(torch_npu.get_npu_format(linear.weight), FRACTAL_NZ_FAMILY)
+
+    def test_npu_applies_format_cast_through_real_linear(self):
+        """``Module.npu`` must still reach the weight format cast on real layers."""
+        block = ComfyStyleRealLinearBlock()
+        origin_nd = torch.npu.get_mm_bmm_format_nd()
+        torch.npu.set_mm_bmm_format_nd(False)
+        try:
+            block.npu()
+        finally:
+            torch.npu.set_mm_bmm_format_nd(origin_nd)
+
+        self.assertEqual(block.cast_weight_inputs, [])
+        for linear in (block.linear, block.nested[0]):
+            self.assertEqual(linear.weight.device, self.device)
+            self.assertIn(torch_npu.get_npu_format(linear.weight), FRACTAL_NZ_FAMILY)
 
     def test_format_cast_still_applied(self):
         """The NPU format cast itself must stay unchanged when the helper is called with a device."""
