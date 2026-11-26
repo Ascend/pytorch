@@ -786,7 +786,9 @@ class CppWrapperNpu(CppWrapperGpu):
         """
         old_prefix = self.prefix
 
-        # Generate C++ declarations for CATLASS kernels (JIT mode only).
+        is_mix_map = getattr(V.graph.wrapper_code, "_catlass_kernel_is_mix", {})
+
+        # Generate C++ declarations for CATLASS kernels.
         self.prefix = IndentedBuffer()
         if not V.graph.aot_mode and self.initialized_kernels:
             import textwrap as _textwrap
@@ -795,7 +797,6 @@ class CppWrapperNpu(CppWrapperGpu):
             # Build reverse lookup: kernel_name -> original src_code
             src_to_kernel = V.graph.wrapper_code.src_to_kernel
             kernel_to_src = {v: k for k, v in src_to_kernel.items()}
-            is_mix_map = getattr(V.graph.wrapper_code, "_catlass_kernel_is_mix", {})
 
             # Ensure <dlfcn.h> is available for dlopen/dlsym.
             self.prefix.writeline("#include <dlfcn.h>")
@@ -874,6 +875,19 @@ static inline void load_{kernel_name}() {{
         self.prefix.splice(catlass_prefix)
         self.prefix.writeline("\n")
         self.prefix.splice(old_prefix)
+
+    def codegen_model_kernels(self):
+        # AOT mode: the community codegen_model_kernels() emits the extern "C"
+        # declarations from kernel.get_signature(), while CATLASS bf16
+        # signatures use the CATLASS-native type name bfloat16_t. The parent
+        # class has already written ``namespace torch::aot_inductor {``, so
+        # declare the alias inside it; both the extern declaration and the
+        # pointer casts in run_impl can then see it.
+        if getattr(self, "_catlass_kernel_is_mix", None):
+            self.prefix.writeline("// CATLASS-native type aliases")
+            self.prefix.writeline("using bfloat16_t = at::BFloat16;")
+            self.prefix.writeline("using half = at::Half;")
+        return super().codegen_model_kernels()
 
     def codegen_tensor_item_npu(
         self, dtype: torch.dtype, tensor: str, scalar: str, indented_buffer=None

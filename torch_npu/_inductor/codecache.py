@@ -294,8 +294,21 @@ class CATLASSCodeCache:
 
 
 def patch_aot_kernel_objects_collector() -> None:
-    """
-    patch collector.aot_kernels_o from CUDACodeCache to CATLASSCodeCache aot_kernels_o
+    """Link AOTI model.so with the CATLASS object-file collection list.
+
+    When building model.so, the community ``AotCodeCompiler.compile`` only reads
+    the object files to link from the GPU kernel collector that owns
+    ``aot_kernels_o`` in ``torch._inductor.codecache`` (one per platform). This
+    patch binds the CATLASS collection list to that collector, which is
+    equivalent to switching the AOTI link step to ``CATLASSCodeCache``: the .o
+    files produced by ``async_compile.catlass`` are linked into model.so like
+    the community template kernels, so the ``extern "C"`` kernel symbols
+    referenced by the AOTI wrapper no longer fail with an undefined symbol at
+    dlopen time.
+
+    The very same list object is bound, so the ``clear()`` executed by the
+    community code after linking also empties the CATLASS list; nothing
+    accumulates across graphs.
     """
     from torch._inductor import codecache as community_codecache
 
@@ -306,3 +319,45 @@ def patch_aot_kernel_objects_collector() -> None:
             and "aot_kernels_o" in vars(collector)
         ):
             collector.aot_kernels_o = CATLASSCodeCache.aot_kernels_o
+
+
+_PERSISTENT_AOTI_PACKAGES: list = []
+
+
+def _catlass_aoti_enabled() -> bool:
+    """Whether CATLASS GEMM templates may be selected in this process."""
+    from torch._inductor import config as inductor_config
+    from torch._inductor.utils import _use_autotune_backend
+
+    return bool(inductor_config.max_autotune) and _use_autotune_backend("CATLASS")
+
+
+def patch_aoti_load_package_persistent() -> None:
+    """Keep loaded CATLASS AOTI packages resident so model.so is not dlclosed.
+
+    On NPU a loaded model.so is bound to the CANN runtime. When the package
+    object is reclaimed, ``AOTIModelPackageLoader``'s destructor dlcloses the
+    .so, and the next profiler session (the NPU autotune CV benchmark starts and
+    stops a profiler for every candidate) segfaults on a dangling pointer. Use
+    the same mitigation as ``PersistentDLLWrapper`` in ``CATLASSCodeCache``:
+    loaded .so files are never unloaded.
+
+    The behavior is scoped to AOTI + CATLASS: only when the CATLASS backend is
+    actually selectable (max autotune on and ``CATLASS`` in the GEMM backends)
+    is a loaded package kept alive. Otherwise the wrapper is a plain passthrough
+    and the default AOTI behavior (unload on release) is preserved.
+    """
+    import torch._inductor.package as inductor_package
+
+    orig_load_package = inductor_package.load_package
+    if getattr(orig_load_package, "_npu_persistent_aoti", False):
+        return
+
+    def load_package(*args, **kwargs):
+        loaded = orig_load_package(*args, **kwargs)
+        if _catlass_aoti_enabled():
+            _PERSISTENT_AOTI_PACKAGES.append(loaded)
+        return loaded
+
+    load_package._npu_persistent_aoti = True
+    inductor_package.load_package = load_package

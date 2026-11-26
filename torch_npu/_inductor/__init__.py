@@ -122,6 +122,7 @@ def _load_triton_backend():
     from .async_compile import patch_async_compile
     from .codecache import (
         patch_aot_kernel_objects_collector,
+        patch_aoti_load_package_persistent,
         patch_get_cpp_wrapper_header,
     )
     from .choices import patch_inductor_choices
@@ -259,6 +260,7 @@ def _load_triton_backend():
     patch_algorithm_selector()
     patch_async_compile()
     patch_aot_kernel_objects_collector()
+    patch_aoti_load_package_persistent()
     patch_scheduler()
     patch_npu_template_fx()
     patch_gen_common_triton_ext_imports()
