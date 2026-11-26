@@ -182,7 +182,6 @@ def _register_triton_decompositions():
         aten.erfc,
         aten.addmm,
         aten.gelu,
-        aten.expm1,
         aten.native_layer_norm,
         aten.repeat_interleave.Tensor,  # perf issue
         *(
@@ -206,11 +205,6 @@ def _register_triton_decompositions():
         for op in overload_op_set:
             if (op in decompositions):
                 del decompositions[op]
-
-        @register_decomposition([aten.expm1])
-        def expm1(x):
-            tensor = torch.exp(x) - torch.ones_like(x)
-            return tensor
 
         @register_decomposition([aten.erfc])
         def erfc(x):
