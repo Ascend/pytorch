@@ -581,15 +581,6 @@ def _patch_model_20():
 
 @register_patch("T5ForConditionalGeneration")
 def _patch_model_24():
-    from torch._higher_order_ops.effects import (
-        _EffectType,
-        _register_effectful_op,
-    )
-
-    _register_effectful_op(
-        torch.ops.aten.native_dropout.default,
-        _EffectType.ORDERED,
-    )
 
     from transformers.models.t5.modeling_t5 import T5ForConditionalGeneration as _T5
 
