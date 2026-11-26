@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate a 3-sheet Excel report for the blacklist pipeline.
+"""Generate the blacklist reports: a 3-sheet Excel plus a flat per-nodeid JSON.
 
 The blacklist-test pipeline now exercises the full blacklist universe U on each
 platform: first the blacklist run (U minus the nodeids recorded as passed), then
@@ -17,11 +17,21 @@ those four result sets into one workbook:
 Every row also carries the nodeid's blacklist metadata (category / reason /
 issue) looked up from the blacklist config files.
 
+The companion JSON is a flat array covering the whole union U, one object per
+nodeid:
+
+    {"nodeid": ..., "a3_status": ..., "a5_status": ...,
+     "a3_log": ..., "a5_log": ...}
+
+Statuses/logs come from the blacklist run when the nodeid was executed there,
+otherwise from the platform's pass run. Unknown nodeids get null.
+
 Usage:
     python3 generate_blacklist_excel.py \
         --reports-root . \
         --config-dir .github/config/blacklist_testccases \
-        --output blacklist-report.xlsx
+        --output blacklist-report.xlsx \
+        --json-output blacklist-report.json
 """
 
 import argparse
@@ -97,11 +107,11 @@ def build_meta_map(config_dir):
 
 
 def load_results(reports_root, name):
-    """Return {nodeid: status} merged from every *_cases.json under `name`."""
+    """Return {nodeid: {"status": str, "message": str}} merged from *_cases.json."""
     reports_dir = Path(reports_root) / name
-    statuses = {}
+    results = {}
     if not reports_dir.is_dir():
-        return statuses
+        return results
     for path in sorted(reports_dir.rglob("*_cases.json")):
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
@@ -110,8 +120,17 @@ def load_results(reports_root, name):
         for case in data.get("cases", []) or []:
             nodeid = case.get("nodeid")
             if nodeid:
-                statuses[nodeid] = case.get("status", "error")
-    return statuses
+                results[nodeid] = {
+                    "status": case.get("status", "error"),
+                    "message": case.get("message") or "",
+                }
+    return results
+
+
+def status_of(results, nodeid):
+    """Return the status string for `nodeid`, or the MISSING placeholder."""
+    entry = results.get(nodeid)
+    return entry["status"] if entry else MISSING
 
 
 def build_report(reports_root, config_dir):
@@ -151,13 +170,13 @@ def build_report(reports_root, config_dir):
     common_rows = [
         meta_row(n)
         + [
-            blacklist_status["a3"].get(n, MISSING),
-            blacklist_status["a5"].get(n, MISSING),
+            status_of(blacklist_status["a3"], n),
+            status_of(blacklist_status["a5"], n),
         ]
         for n in common
     ]
-    a3_rows = [meta_row(n) + [pass_status["a3"].get(n, MISSING)] for n in sorted(passed["a3"])]
-    a5_rows = [meta_row(n) + [pass_status["a5"].get(n, MISSING)] for n in sorted(passed["a5"])]
+    a3_rows = [meta_row(n) + [status_of(pass_status["a3"], n)] for n in sorted(passed["a3"])]
+    a5_rows = [meta_row(n) + [status_of(pass_status["a5"], n)] for n in sorted(passed["a5"])]
 
     return {
         "common": common_rows,
@@ -170,6 +189,44 @@ def build_report(reports_root, config_dir):
             "union": len(union),
         },
     }
+
+
+def build_json_rows(reports_root, config_dir):
+    """Return flat per-nodeid rows covering the whole blacklist union.
+
+    For each nodeid the blacklist-run entry wins over that platform's pass-run
+    entry; a nodeid present in neither gets null status/log.
+    """
+    flatten = load_flatten_module(config_dir)
+    union, _stats = flatten.collect_nodeids(config_dir)
+
+    details = {}
+    for platform in PLATFORMS:
+        # Pass-run entries first so a blacklist-run entry (if any) wins.
+        merged = load_results(reports_root, f"reports-pa{platform[1]}")
+        merged.update(load_results(reports_root, f"reports-{platform}"))
+        details[platform] = merged
+
+    rows = []
+    for nodeid in union:
+        a3 = details["a3"].get(nodeid)
+        a5 = details["a5"].get(nodeid)
+        rows.append(
+            {
+                "nodeid": nodeid,
+                "a3_status": a3["status"] if a3 else None,
+                "a5_status": a5["status"] if a5 else None,
+                "a3_log": a3["message"] if a3 else None,
+                "a5_log": a5["message"] if a5 else None,
+            }
+        )
+    return rows
+
+
+def write_json_report(rows, output):
+    Path(output).write_text(
+        json.dumps(rows, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
 
 
 def write_workbook(report, output):
@@ -213,6 +270,12 @@ def parse_args(argv=None):
         default="blacklist-report.xlsx",
         help="Output .xlsx path (default: blacklist-report.xlsx)",
     )
+    parser.add_argument(
+        "--json-output",
+        default="blacklist-report.json",
+        help="Output JSON path with nodeid/a3_status/a5_status/a3_log/a5_log "
+        "(default: blacklist-report.json)",
+    )
     return parser.parse_args(argv)
 
 
@@ -220,6 +283,9 @@ def main(argv=None):
     args = parse_args(argv)
     report = build_report(args.reports_root, args.config_dir)
     write_workbook(report, args.output)
+
+    json_rows = build_json_rows(args.reports_root, args.config_dir)
+    write_json_report(json_rows, args.json_output)
 
     counts = report["counts"]
     lines = [
@@ -229,11 +295,13 @@ def main(argv=None):
         f"- 公共黑名单 (U - passed_a3 - passed_a5): {counts['common']}",
         f"- a3 pass: {counts['a3']}",
         f"- a5 pass: {counts['a5']}",
+        f"- JSON rows: {len(json_rows)}",
         "",
     ]
     body = "\n".join(lines)
     print(body)
     print(f"written: {args.output}")
+    print(f"written: {args.json_output}")
 
     summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary_path:

@@ -144,6 +144,34 @@ on:
           Per-round retry concurrency, comma-separated (e.g. '8,1' = round 1
           with 8 workers, round 2 serially). Default '1' = strictly serial.
           Only used when retry_failed_cases is true.
+      # Opt-in confirmation pass for blacklist-style categories: a blacklisted
+      # case is EXPECTED to fail, so the cases worth re-running are the ones
+      # that reported passed/skipped (they would become removal candidates).
+      # A case that fails any confirmation round keeps the failing status and
+      # stays in the blacklist. Default false keeps other callers untouched.
+      retry_passed_cases:
+        required: false
+        type: boolean
+        default: false
+        description: >-
+          Opt-in: after each shard run, re-run its passed/skipped cases to
+          confirm them before removal candidates are reported. Only meaningful
+          for blacklist categories (cases are expected to fail).
+      retry_passed_rounds:
+        required: false
+        type: string
+        default: '2'
+        description: >-
+          TOTAL executions per case including the main run (string). '2' = one
+          confirmation round. A case that fails any round keeps a failing
+          status. Only used when retry_passed_cases is true.
+      retry_passed_max_workers:
+        required: false
+        type: string
+        default: '8'
+        description: >-
+          Concurrent workers per confirmation round. Only used when
+          retry_passed_cases is true.
 
 jobs:
   test:
@@ -476,6 +504,35 @@ jobs:
             --max-workers "${{ inputs.retry_max_workers || '1' }}" \
             --verbose \
             2>&1 | tee /tmp/retry_${{ inputs.category }}_${{ matrix.shard }}.log
+
+      # Opt-in confirmation pass for blacklist categories. Blacklisted cases
+      # are EXPECTED to fail, so passed/skipped cases are the ones worth
+      # re-running: they would otherwise be reported as removal candidates on
+      # the strength of a single (possibly flaky) pass. Runs BEFORE the parse
+      # step so every downstream consumer sees the confirmed outcome.
+      - name: Confirm passed/skipped cases for ${{ inputs.category }} shard ${{ matrix.shard }}/${{ inputs.num_shards }}
+        id: confirm_passed
+        if: always() && inputs.retry_passed_cases && steps.run_tests.outcome != 'skipped'
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+          export LD_LIBRARY_PATH="$(python3 -c 'import sys; print(sys.prefix)')/lib:$LD_LIBRARY_PATH"
+
+          # Ensure the pinned plog dir exists before confirmation workers start.
+          mkdir -p "${ASCEND_PROCESS_LOG_PATH}"
+
+          python ci-scripts/.github/scripts/retry_passed_cases.py \
+            --cases-file "test-reports/shard_${{ steps.prefix.outputs.result_prefix }}-${{ matrix.shard }}_cases.json" \
+            --test-dir pytorch/test \
+            --report-dir test-reports \
+            --retry-report-dir test-reports/retry-passed \
+            --timeout 500 \
+            --device-env "${{ inputs.device_env }}" \
+            --statuses passed,skipped \
+            --max-rounds ${{ inputs.retry_passed_rounds || '2' }} \
+            --max-workers ${{ inputs.retry_passed_max_workers || '8' }} \
+            --verbose \
+            2>&1 | tee /tmp/retry_passed_${{ inputs.category }}_${{ matrix.shard }}.log
 
       - name: Parse test results
         id: parse_results

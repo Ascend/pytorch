@@ -405,6 +405,10 @@ jobs:
       # 2026-11-25 临时禁用：push 事件不再强制开启，与 nightly a3/a5 保持一致。
       patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 == true || inputs.patch_triton_cxx20 == 'true' }}
       cases_artifact_name: cases-shards-a3
+      # Blacklisted cases are expected to FAIL, so passed/skipped cases are
+      # re-run once to confirm them before they are reported as removal
+      # candidates (2 executions total: main run + 1 confirmation round).
+      retry_passed_cases: true
 
   # ==========================================================================
   # A5
@@ -494,6 +498,9 @@ jobs:
       # 2026-11-25 临时禁用：push 事件不再强制开启，与 nightly a3/a5 保持一致。
       patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 == true || inputs.patch_triton_cxx20 == 'true' }}
       cases_artifact_name: cases-shards-a5
+      # Same confirmation pass as a3: passed/skipped cases are re-run once so
+      # a single flaky pass does not put a case on the removal list.
+      retry_passed_cases: true
 
   # ==========================================================================
   # PASS cases: nodeids recorded as passed on a platform (platform_passed_diff
@@ -771,8 +778,10 @@ jobs:
       # Combine the blacklist run (reports-a3/reports-a5) and the pass run
       # (reports-pa3/reports-pa5) into a single 3-sheet Excel: 公共黑名单
       # (= full union - passed_a3 - passed_a5), a3 pass, a5 pass. Requires
-      # openpyxl on the runner (installed inline below).
-      - name: Generate blacklist Excel report
+      # openpyxl on the runner (installed inline below). The same script also
+      # writes a flat JSON covering the whole union with the per-platform
+      # status and observed error log of every nodeid.
+      - name: Generate blacklist Excel + JSON reports
         if: always()
         continue-on-error: true
         run: |
@@ -780,15 +789,18 @@ jobs:
           python3 .github/scripts/blacklist-test/scripts/generate_blacklist_excel.py \
             --reports-root . \
             --config-dir .github/config/blacklist_testccases \
-            --output blacklist-report.xlsx
+            --output blacklist-report.xlsx \
+            --json-output blacklist-report.json
 
-      - name: Upload blacklist Excel report
+      - name: Upload blacklist Excel + JSON reports
         if: always()
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: blacklist-report
-          path: blacklist-report.xlsx
+          path: |
+            blacklist-report.xlsx
+            blacklist-report.json
           retention-days: 30
 
   # ==========================================================================
