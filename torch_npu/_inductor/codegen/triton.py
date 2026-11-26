@@ -5243,6 +5243,69 @@ class NPUIndexTritonKernel(TritonKernel):
 
         return result_var
 
+    # IR ops that perform no arithmetic: pure data movement plus index and mask
+    # construction.  A kernel built only from these is a pure copy, where the
+    # fp16/bf16 -> fp32 promotion on load only adds a conversion pair.
+    _PURE_COPY_OPS = frozenset(
+        {
+            "load",
+            "store",
+            "where",
+            "get_index",
+            "index_expr",
+            "constant",
+            "masked_subblock",
+            "ge",
+            "gt",
+            "lt",
+            "le",
+            "eq",
+            "ne",
+            "and_",
+            "or_",
+            "not_",
+        }
+    )
+    # Structural nodes carry no computation: `ops` is the handler every block
+    # calls its ops on, `output` only marks the block result.  Skip them by
+    # node kind instead of listing their names as if they were ops.
+    _PURE_COPY_STRUCTURAL = frozenset({"placeholder", "output"})
+    # IR node names are uniquified per graph (constant_1, masked_subblock1, ...).
+    # Strip that suffix before the exact lookup.
+    _PURE_COPY_SUFFIX = re.compile(r"_?\d+$")
+
+    def _kernel_is_pure_copy(self) -> bool:
+        """fp16->fp32 upcast is wasted on load/store-only kernels (pure copies)."""
+        cached = getattr(self, "_pure_copy_cache", None)
+        if cached is not None:
+            return cached
+        result = True
+        try:
+            for entry in V.kernel.node_schedule:
+                # SchedulerNode carries the LoopBody directly on ._body.
+                body = getattr(entry, "_body", None)
+                if body is None:
+                    result = False
+                    break
+                graphs = [body.root_block.graph]
+                graphs += [blk.graph for blk in body.subblocks.values()]
+                for graph in graphs:
+                    for ir_op in graph.nodes:
+                        if ir_op.op in self._PURE_COPY_STRUCTURAL:
+                            continue
+                        base = self._PURE_COPY_SUFFIX.sub("", ir_op.name)
+                        if base not in self._PURE_COPY_OPS:
+                            result = False
+                            break
+                    if not result:
+                        break
+                if not result:
+                    break
+        except Exception:
+            result = False
+        self._pure_copy_cache = result
+        return result
+
     # broadcast, permute handling
     def load(self, name: str, index: sympy.Expr):
         """
@@ -5335,6 +5398,7 @@ class NPUIndexTritonKernel(TritonKernel):
         if (
             dtype in (torch.float16, torch.bfloat16)
             and config.triton.codegen_upcast_to_fp32
+            and not self._kernel_is_pure_copy()
         ):
             line += ".to(tl.float32)"
             dtype = torch.float32

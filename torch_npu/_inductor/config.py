@@ -178,6 +178,15 @@ if not enable_inplace_buffers:
 inductor_config.triton.coalesce_tiling_analysis = False
 inductor_config.triton.mix_order_reduction = False
 
+# cat lowering decision chain (see lowering.py). Torch core has no fallback
+# knob and defaults max_pointwise_cat_inputs to 8, so both NPU-side values live
+# here instead of torch/_inductor/config.py.
+# Segments above this skip the decision chain and go straight to ATen.
+max_cat_fallback_inputs = 20
+# pointwise_cat inlines every segment into a single kernel; past 4 segments the
+# per-element segment dispatch costs more than the saved intermediate write.
+max_pointwise_cat_inputs = 4
+
 enable_fast_gelu = os.getenv("TORCHINDUCTOR_ENABLE_FAST_GELU", "0") == "1"
 allow_embedding_dense_backward_lowering = os.getenv(
     "TORCHINDUCTOR_ENABLE_EMBEDDING_DENSE_BACKWARD_LOWERING", "0"
