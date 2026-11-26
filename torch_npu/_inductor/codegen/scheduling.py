@@ -195,6 +195,7 @@ class NPUTritonScheduling(TritonScheduling):
     backend_features = OrderedSet(
         [
             BackendFeature.BUCKETIZE,
+            BackendFeature.FOREACH,
             BackendFeature.INPLACE_BUFFERS,
             BackendFeature.MASKED_SCATTER_WITH_INDEX,
             BackendFeature.SCAN,
@@ -533,37 +534,55 @@ class NPUTritonScheduling(TritonScheduling):
         return None
 
     def codegen_combo_kernel(self, combo_kernel_node):
-        subkernel_nodes = combo_kernel_node.get_subkernel_nodes()
-        custom_part_algorithm = combo_kernel_node.use_custom_partition_algo
-        enable_autotune = combo_kernel_node.enable_autotune
-        mixed_sizes = config.combo_kernel_allow_mixed_sizes > 1 or (
-            config.combo_kernel_allow_mixed_sizes == 1 and custom_part_algorithm
-        )
-
-        kernel_code_list = self.generate_combo_kernel_code(
-            subkernel_nodes, custom_part_algorithm, enable_autotune, mixed_sizes,
-        )
-
-        # Validate every partition before allocating buffers or emitting any
-        # wrapper code. A failed check can then fall back to ordinary kernels.
-        for src_code, kernel, _ in kernel_code_list:
-            with V.set_kernel_handler(kernel):
-                self.make_ttir_for_check(src_code)
-
-        for src_code, kernel, node_group in kernel_code_list:
-            subkernels = kernel.sub_kernels if isinstance(kernel, NPUComboKernel) else [kernel]
-            for subkernel_node, subkernel in zip(node_group, subkernels):
-                with V.set_kernel_handler(subkernel):
-                    for snode in subkernel_node.get_nodes():
-                        snode.mark_run()
-                V.graph.removed_buffers |= subkernel.removed_buffers
-                V.graph.inplaced_to_remove |= subkernel.inplaced_to_remove
-            kernel_name, _ = self.define_kernel(src_code, [combo_kernel_node], kernel, None)
-            self.codegen_comment(combo_kernel_node.snodes, kernel_name)
-            log.debug("ComboKernels: generated kernel %s.", kernel_name)
-            kernel.call_kernel(kernel_name)
-
+        for src_code, kernel, members in self.prepare_combo_kernel(combo_kernel_node):
+            self.emit_combo_partition(combo_kernel_node, src_code, kernel, members)
         self.free_buffers_in_scheduler()
+
+    def prepare_combo_kernel(self, combo_kernel_node, *, allow_partition_fallback=False):
+        custom_algorithm = combo_kernel_node.use_custom_partition_algo
+        per_subkernel_blocks = combo_kernel_node.per_subkernel_blocks
+        if not custom_algorithm:
+            # Upstream explicit foreach nodes omit the per-member block flag.
+            # The NPU foreach heuristic selects tiles via the combo autotuner.
+            per_subkernel_blocks = config.combo_kernel_per_subkernel_blocks
+        mixed_sizes = config.combo_kernel_allow_mixed_sizes > 1 or (
+            config.combo_kernel_allow_mixed_sizes == 1 and custom_algorithm
+        )
+        partitions = self._combo_partition_builders(
+            combo_kernel_node.get_subkernel_nodes(), custom_algorithm,
+            combo_kernel_node.enable_autotune, mixed_sizes,
+            per_subkernel_blocks=per_subkernel_blocks,
+        )
+        prepared = []
+        for members, build in partitions:
+            # Each provisional subkernel was counted before horizontal partitioning.
+            count_without_partition = metrics.generated_kernel_count - len(members)
+            try:
+                src_code, kernel = build()
+                with V.set_kernel_handler(kernel):
+                    self.make_ttir_for_check(src_code)
+            except Exception:
+                if not allow_partition_fallback:
+                    raise
+                metrics.generated_kernel_count = count_without_partition
+                log.debug("Combo partition %s failed preparation; compiling its members individually",
+                          members, exc_info=True)
+                src_code, kernel = None, None
+            prepared.append((src_code, kernel, members))
+        return prepared
+
+    def emit_combo_partition(self, combo_kernel_node, src_code, kernel, node_group):
+        subkernels = kernel.sub_kernels if isinstance(kernel, NPUComboKernel) else [kernel]
+        for subkernel_node, subkernel in zip(node_group, subkernels):
+            with V.set_kernel_handler(subkernel):
+                for snode in subkernel_node.get_nodes():
+                    snode.mark_run()
+            V.graph.removed_buffers |= subkernel.removed_buffers
+            V.graph.inplaced_to_remove |= subkernel.inplaced_to_remove
+        kernel_name, _ = self.define_kernel(src_code, [combo_kernel_node], kernel, None)
+        self.codegen_comment(combo_kernel_node.snodes, kernel_name)
+        log.debug("ComboKernels: generated kernel %s.", kernel_name)
+        kernel.call_kernel(kernel_name)
 
     def generate_combo_kernel_code(
         self,
@@ -575,6 +594,19 @@ class NPUTritonScheduling(TritonScheduling):
         per_subkernel_blocks: bool = False,
     ) -> list[tuple[str | None, Any, Any]]:
 
+        # Benchmark callers request source only and must see compilation failures.
+        return [
+            (*build(), members)
+            for members, build in self._combo_partition_builders(
+                subkernel_nodes, custom_part_algorithm, enable_autotune, mixed_sizes,
+                only_gen_src_code, per_subkernel_blocks,
+            )
+        ]
+
+    def _combo_partition_builders(
+        self, subkernel_nodes, custom_part_algorithm, enable_autotune, mixed_sizes,
+        only_gen_src_code=False, per_subkernel_blocks=False,
+    ):
         fused_node_lists = [node.get_nodes() for node in subkernel_nodes]
         subkernel_map, node_schedule_map = {}, {}
         for pn, nodes in zip(subkernel_nodes, fused_node_lists):
@@ -589,6 +621,7 @@ class NPUTritonScheduling(TritonScheduling):
                 tiling,
                 features=features,
                 optimize_mask=not mixed_sizes,
+                per_subkernel_blocks=per_subkernel_blocks,
             )
             subkernel_map[pn] = subkernel
             node_schedule_map[pn] = NodeInfo(
@@ -607,50 +640,45 @@ class NPUTritonScheduling(TritonScheduling):
             custom_algorithm=custom_part_algorithm,
             kernel_map=subkernel_map,
             node_info_map=node_schedule_map,
+            per_subkernel_blocks=per_subkernel_blocks,
         )
         log.debug(
             "ComboKernels: %d nodes partitioned into %s groups",
             len(subkernel_nodes),
             [len(p) for p in partitions],
         )
-        kernel_code_list = []
-        for node_group in partitions:
-            if len(node_group) == 1:
-                # ABI partitioning constructed a potential combo subkernel.
-                # It is discarded here, so exclude it from emitted-kernel metrics.
-                metrics.generated_kernel_count -= 1
-                if only_gen_src_code:
-                    # The 2.13 benchmark caller reuses the node's cached timing.
-                    kernel_code_list.append((None, None, node_group))
-                else:
-                    node_info = node_schedule_map[node_group[0]]
-                    kernel = self.kernel_type(node_info.tiling, features=node_info.features)
-                    self.codegen_node_schedule_with_kernel(node_info.node_schedule, kernel)
-                    with V.set_kernel_handler(kernel):
-                        src_code = kernel.codegen_kernel()
-                    kernel_code_list.append((src_code, kernel, node_group))
-                continue
-
-            fused_node_lists = [node.get_nodes() for node in node_group]
-            kernel = NPUComboKernel(
-                triton_kernel_cls=self.kernel_type,
-                enable_autotune=enable_autotune,
-                mixed_sizes=mixed_sizes,
-                per_subkernel_blocks=per_subkernel_blocks,
+        for members in partitions:
+            yield members, functools.partial(
+                self._generate_combo_partition, members, subkernel_map, node_schedule_map,
+                enable_autotune, mixed_sizes, only_gen_src_code, per_subkernel_blocks,
             )
 
-            for pn, nodes in zip(node_group, fused_node_lists):
-                self.codegen_node_schedule_with_kernel(
-                    node_schedule_map[pn].node_schedule,
-                    kernel.create_sub_kernel(subkernel_map[pn]),
-                )
+    def _generate_combo_partition(
+        self, members, subkernel_map, node_schedule_map, enable_autotune, mixed_sizes,
+        only_gen_src_code, per_subkernel_blocks,
+    ):
+        if len(members) == 1:
+            metrics.generated_kernel_count -= 1
+            if only_gen_src_code:
+                return None, None
+            info = node_schedule_map[members[0]]
+            kernel = self.kernel_type(info.tiling, features=info.features)
+            self.codegen_node_schedule_with_kernel(info.node_schedule, kernel)
+            with V.set_kernel_handler(kernel):
+                return kernel.codegen_kernel(), kernel
 
-            # Defer graph updates and mark_run until every partition passes
-            # make_ttir_for_check in codegen_combo_kernel.
-
-            src_code = kernel.codegen_kernel()
-            kernel_code_list.append((src_code, kernel, node_group))
-        return kernel_code_list
+        kernel = NPUComboKernel(
+            triton_kernel_cls=self.kernel_type,
+            enable_autotune=enable_autotune,
+            mixed_sizes=mixed_sizes,
+            per_subkernel_blocks=per_subkernel_blocks,
+        )
+        for member in members:
+            self.codegen_node_schedule_with_kernel(
+                node_schedule_map[member].node_schedule,
+                kernel.create_sub_kernel(subkernel_map[member]),
+            )
+        return kernel.codegen_kernel(), kernel
 
     def define_kernel(self, src_code, node_schedule, kernel, traced_graph_hash: str, kernel_graph_hash: str = None):
         wrapper = V.graph.wrapper_code

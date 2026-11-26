@@ -110,6 +110,14 @@ class SequentialComboKernelGrid(BaseSequentialComboKernelGrid):
 
     def generate(self, meta, is_lazy=False):
         combo = self.inductor_meta["combo_grid_meta"]
+        if "subkernel_grids" in combo:
+            grids = [self.product([
+                self.ceildiv(numel, meta.get(block, block)) for numel, block in axes
+            ]) if axes else 1 for axes in combo["subkernel_grids"]]
+            selected = meta.get("NPU_SUBKERNEL", -1)
+            self.x_grid = grids[selected] if selected >= 0 else self.summation(grids)
+            self.y_grid = self.z_grid = 1
+            return
         if "split_numels" not in combo:
             return super().generate(meta, is_lazy=is_lazy)
         block = combo["split_block"]
@@ -1046,20 +1054,9 @@ class NPUCachingAutotuner(CachingAutotuner):
             # All compile tasks have finished. Only an entirely UB-overflow
             # batch supplies feedback to the outer, one-shot search stage.
             if type(self) is NPUCachingAutotuner and len(exceptions) == len(attempted_configs):
-                failures = []
-                for cfg, failure in zip(attempted_configs, exceptions):
-                    match = re.search(
-                        r"ub overflow.*?requires (\d+) bits while (\d+) bits available",
-                        str(failure), re.IGNORECASE,
-                    ) if failure is not None else None
-                    if match is None:
-                        break
-                    required, available = map(int, match.groups())
-                    if not required > available > 0:
-                        break
-                    failures.append((cfg, required, available))
-                else:
-                    error.ub_overflow_failures = tuple(failures)
+                failures = _ub_overflow_failures(attempted_configs, exceptions)
+                if failures:
+                    error.ub_overflow_failures = failures
             raise error
         log.debug(
             "kernel: %s config compile elapsed time: %ss",
@@ -1088,8 +1085,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         if self.launchers:
             raise AssertionError("Before _precompile_worker, launchers must bt empty")
 
-        # Only the ordinary autotuner supports UB retry. Subclasses keep their
-        # existing precompile flow, including costmodel and grouped autotune.
+        # The ordinary tuner retries the whole batch. Subclasses own their search scope.
         if type(self) is not NPUCachingAutotuner:
             self._precompile_current_configs(compile_fn)
             return
@@ -1600,6 +1596,37 @@ class NPUCachingAutotuner(CachingAutotuner):
         plan = self.candidate_plan
         if not self.variant_launcher_map:
             self._refresh_variant_launchers()
+        timings = self._benchmark_candidate_plan(plan, self.compiled_candidate_entries, args, kwargs)
+        candidate_map = {
+            candidate["candidate_id"]: candidate
+            for candidate in plan["candidate_entries"]
+        }
+        for candidate_id, timing in timings.items():
+            candidate = candidate_map.get(candidate_id)
+            if candidate is None:
+                continue
+            self.coordesc_tuner.cache_benchmark_result(
+                config_from_dict(candidate["full_config"]), timing
+            )
+
+        if not timings or all(value == float("inf") for value in timings.values()):
+            raise RuntimeError(
+                f"All runtime block candidates for [{self.fn.__name__}] are not runnable."
+            )
+        if log.isEnabledFor(logging.DEBUG):
+            sorted_timings = sorted(timings.items(), key=lambda item: item[1])
+            for candidate_id, timing in sorted_timings:
+                candidate = candidate_map[candidate_id]
+                log.debug(
+                    "[%s] [%s] runtime_blocks=%s benchmark time: [%f] us",
+                    self.fn.__name__,
+                    candidate["full_config"],
+                    candidate["runtime_blocks"],
+                    timing,
+                )
+        return timings
+
+    def _benchmark_candidate_plan(self, plan, compiled_entries, args, kwargs, benchmark_label="candidate"):
         log.info(
             "%s candidate entry count = %s",
             self.get_fn_name(),
@@ -1613,13 +1640,9 @@ class NPUCachingAutotuner(CachingAutotuner):
         }
         runnable_candidates = []
         prerun_timings = []
-        candidate_map = {
-            candidate["candidate_id"]: candidate
-            for candidate in plan["candidate_entries"]
-        }
         compiled_candidate_ids = {
             entry["candidate"]["candidate_id"]
-            for entry in self.compiled_candidate_entries
+            for entry in compiled_entries
         }
         for candidate in plan["candidate_entries"]:
             candidate_id = candidate["candidate_id"]
@@ -1634,7 +1657,7 @@ class NPUCachingAutotuner(CachingAutotuner):
 
         # Benchmarking stays at candidate granularity even when several candidates
         # share the same compiled launcher through variant deduplication.
-        for entry in self.compiled_candidate_entries:
+        for entry in compiled_entries:
             candidate = entry["candidate"]
             launcher = entry["launcher"]
             runtime_blocks = tuple(value for _, value in candidate["runtime_blocks"])
@@ -1717,7 +1740,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         )
 
         kernel_funcs = [entry["prerun"] for entry in selected_runnable_candidates]
-        batch_timings = self._benchmark_kernel_funcs_batch(kernel_funcs, "candidate")
+        batch_timings = self._benchmark_kernel_funcs_batch(kernel_funcs, benchmark_label)
         if batch_timings is not None:
             for entry, timing in zip(selected_runnable_candidates, batch_timings):
                 timings[entry["candidate_id"]] = timing
@@ -1730,29 +1753,6 @@ class NPUCachingAutotuner(CachingAutotuner):
                     **kwargs,
                 )
 
-        for candidate_id, timing in timings.items():
-            candidate = candidate_map.get(candidate_id)
-            if candidate is None:
-                continue
-            self.coordesc_tuner.cache_benchmark_result(
-                config_from_dict(candidate["full_config"]), timing
-            )
-
-        if not timings or all(value == float("inf") for value in timings.values()):
-            raise RuntimeError(
-                f"All runtime block candidates for [{self.fn.__name__}] are not runnable."
-            )
-        if log.isEnabledFor(logging.DEBUG):
-            sorted_timings = sorted(timings.items(), key=lambda item: item[1])
-            for candidate_id, timing in sorted_timings:
-                candidate = candidate_map[candidate_id]
-                log.debug(
-                    "[%s] [%s] runtime_blocks=%s benchmark time: [%f] us",
-                    self.fn.__name__,
-                    candidate["full_config"],
-                    candidate["runtime_blocks"],
-                    timing,
-                )
         return timings
 
     def _should_skip_autotune_for_determinism(self):
@@ -3349,16 +3349,26 @@ def cached_autotune(
     if (
             not disabled
             and filename is not None
-            and (len(configs) > 1 or inductor_meta.get("coordinate_descent_tuning"))
+            and (len(configs) > 1 or inductor_meta.get("coordinate_descent_tuning") or inductor_meta.get("npu_combo_groups"))
             and not os.environ.get("TRITON_INTERPRET", "0") == "1"
     ):
         configs_hash = hash_configs(configs)
+        if inductor_meta.get("npu_combo_groups"):
+            import hashlib
+            import json
+            configs_hash = hashlib.sha256((configs_hash + json.dumps((
+                inductor_meta.get("npu_combo_strategy"),
+                inductor_meta["npu_combo_groups"],
+                inductor_meta.get("npu_combo_shared_seeds"),
+            ), sort_keys=True)).encode()).hexdigest()
 
         autotune_cache = AutotuneCache.create(inductor_meta, filename, configs_hash)
         if autotune_cache:
             best_config = autotune_cache.read_best(inductor_meta, configs)
             if best_config:
                 configs = [best_config]
+                if inductor_meta.get("npu_combo_groups"):
+                    inductor_meta["npu_combo_cache_hit"] = True
     else:
         if disabled:
             log.debug("autotune caching is disabled by config.force_disable_caches")
@@ -3432,7 +3442,11 @@ def cached_autotune(
                 filename=filename,
             )
 
-        autotuner_cls = caching_autotuner_cls or (
+        combo_autotuner_cls = None
+        if inductor_meta.get("npu_combo_groups") and caching_autotuner_cls is None:
+            from .combo_subkernel_autotune import NPUComboSubkernelAutotuner
+            combo_autotuner_cls = NPUComboSubkernelAutotuner
+        autotuner_cls = caching_autotuner_cls or combo_autotuner_cls or (
             NPUCostModelAutotuner
             if npu_config.enable_costmodel_prefilter
             else NPUCachingAutotuner
@@ -3528,6 +3542,9 @@ def triton_config_npu_index(
 
 def _triton_config_npu_index_combo(size_hints, inductor_meta, triton_meta):
     """Generate candidates for one launch containing all combo subkernels."""
+    if inductor_meta.get("npu_combo_per_subkernel"):
+        from .combo_subkernel_autotune import make_subkernel_configs
+        return make_subkernel_configs(inductor_meta, triton_meta)
     subkernels = inductor_meta["combo_subkernel_meta"]
     axis_names = inductor_meta["axis_names"]
     input_signature = (triton_meta or {}).get("signature", {})
@@ -4255,6 +4272,23 @@ def _measure_prerun_ms(kernel_call_fn):
     end_event.record()
     torch.npu.synchronize()
     return start_event.elapsed_time(end_event)
+
+def _ub_overflow_failures(configs, exceptions):
+    """Return compiler feedback only when every variant failed with UB overflow."""
+    failures = []
+    for cfg, error in zip(configs, exceptions):
+        match = re.search(
+            r"ub overflow.*?requires (\d+) bits while (\d+) bits available",
+            str(error), re.IGNORECASE,
+        )
+        if match is None:
+            return ()
+        required, available = map(int, match.groups())
+        if not required > available > 0:
+            return ()
+        failures.append((cfg, required, available))
+    return tuple(failures)
+
 
 def _select_prerun_top_candidates(
     prerun_timings,

@@ -1,4 +1,5 @@
 import math
+import re
 from typing import Any, Optional
 
 import sympy
@@ -21,7 +22,7 @@ from torch.utils._ordered_set import OrderedSet
 
 from ..codegen.npu_kernel_features import NumelList
 from ..codegen.triton import NPUIndexTritonKernel
-from ..codegen.triton_utils import get_aligned_numel
+from ..codegen.triton_utils import get_aligned_numel, NPUKernelType
 from ..runtime.triton_heuristics import SequentialComboKernelGrid
 from .. import config as npu_config
 
@@ -54,6 +55,7 @@ class NPUComboKernel(ComboKernel):
         tiling: dict[str, sympy.Expr],
         features: SIMDKernelFeatures,
         optimize_mask: bool,
+        per_subkernel_blocks: bool = False,
     ) -> TritonKernel:
         kernel = NPUIndexTritonKernel(
             tiling,
@@ -70,6 +72,12 @@ class NPUComboKernel(ComboKernel):
             if not (axis.is_reduction and kernel.persistent_reduction)
             and not (axis.prefix == "x" and kernel.no_x_dim)
         ]
+        if per_subkernel_blocks:
+            kernel.split_axis = split_axes
+            kernel.combo_multi_axis = True
+            for axis in kernel.sorted_axis:
+                axis.is_split_axis = axis in split_axes
+            return kernel
         selected = split_axes[:1]
         if split_axes and all(isinstance(axis.length, (Integer, int)) for axis in split_axes):
             max_programs = npu_config.num_vector_core * npu_config.combo_kernel_max_waves
@@ -145,9 +153,42 @@ class NPUComboKernel(ComboKernel):
         return partition(nodes)
 
     @staticmethod
+    def _partition_independent_blocks(nodes, kernel_map):
+        # Each branch owns its axes, reduction loops and block ABI. Only
+        # shared backend mode and launcher argument capacity constrain this
+        # partition; scheduler dependency/alias checks happen upstream.
+        groups = []
+        for node in nodes:
+            kind = kernel_map[node].npu_kernel_type
+            modes = {"simt_only", "simd_simt_template"} if kind == NPUKernelType.SIMD_SIMT_MIX else {kind.compile_mode()}
+            for group, common_modes in groups:
+                if modes & common_modes:
+                    group.append(node)
+                    common_modes.intersection_update(modes)
+                    break
+            else:
+                groups.append(([node], modes))
+        partitions = []
+        for group, _ in groups:
+            current, count = [], 0
+            for node in group:
+                rw = len(node.read_writes.reads) + len(node.read_writes.writes)
+                if current and count + rw > config.combo_kernel_max_num_args:
+                    partitions.append(current)
+                    current, count = [], 0
+                current.append(node)
+                count += rw
+            if current:
+                partitions.append(current)
+        return partitions
+
+    @staticmethod
     def horizontal_partition(
-        nodes, triton_scheduling, kernel_map, node_info_map, custom_algorithm=False
+        nodes, triton_scheduling, kernel_map, node_info_map, custom_algorithm=False,
+        per_subkernel_blocks=False,
     ):
+        if per_subkernel_blocks and custom_algorithm:
+            return NPUComboKernel._partition_independent_blocks(nodes, kernel_map)
         original_groups = []
         try:
             if custom_algorithm:
@@ -174,6 +215,10 @@ class NPUComboKernel(ComboKernel):
                 node.group = group
         compatible_partitions = []
         for partition in partitions:
+            if per_subkernel_blocks:
+                # Explicit foreach lists already satisfy upstream partition rules.
+                compatible_partitions.extend(NPUComboKernel._partition_independent_blocks(partition, kernel_map))
+                continue
             groups = {}
             for node in partition:
                 kernel = kernel_map[node]
@@ -234,6 +279,12 @@ class NPUComboKernel(ComboKernel):
         self, code: IndentedBuffer, sub_kernel: TritonKernel, num: int
     ) -> list[str]:
         uniquify_block_sizes = []
+        if self.per_subkernel_blocks:
+            uniquify_block_sizes.extend(f"{axis.name.upper()}BLOCK" for axis in sub_kernel.split_axis)
+            uniquify_block_sizes.extend(
+                f"{axis.name.upper()}BLOCK_SUB" for axis in sub_kernel.tiling_axis
+                if not axis.is_no_loop_axis and not (axis.is_reduction and sub_kernel.persistent_reduction)
+            )
         for tree in sub_kernel.sorted_axis:
             simplified_tree_numel = V.graph.sizevars.simplify(tree.length)
             if isinstance(simplified_tree_numel, (Integer, int)):
@@ -251,7 +302,26 @@ class NPUComboKernel(ComboKernel):
                     code.writeline(f"{tree.name.upper()}BLOCK_SUB: tl.constexpr = {next_power_of_2(val)}")
                 else:
                     code.writeline(f"{tree.name.upper()}BLOCK_SUB: tl.constexpr = {val}")
+        if self.per_subkernel_blocks:
+            # Decode the branch's flattened grid without flattening its memory
+            # indexing. Every axis keeps its own runtime BLOCK and constexpr SUB.
+            code.writeline("local_pid = pid_offset")
+            for index, axis in enumerate(sub_kernel.split_axis):
+                blocks = f"tl.cdiv({axis.name}_numel, {axis.name.upper()}BLOCK_{num})"
+                last = index == len(sub_kernel.split_axis) - 1
+                code.writeline(f"pid_offset_{axis.name} = local_pid" + ("" if last else f" % {blocks}"))
+                if not last:
+                    code.writeline(f"local_pid = local_pid // {blocks}")
+        return uniquify_block_sizes
 
+    def uniquify_block_sizes(self, code, num_kernel, uniquify):
+        if not self.per_subkernel_blocks or not uniquify:
+            return super().uniquify_block_sizes(code, num_kernel, uniquify)
+        # Match full identifiers: BLOCK is a prefix of BLOCK_SUB.
+        pattern = re.compile(r"\b(" + "|".join(map(re.escape, uniquify)) + r")\b")
+        result = IndentedBuffer()
+        result.splice(pattern.sub(lambda m: f"{m.group(0)}_{num_kernel}", code.getvalue()))
+        return result
 
     def jit_line(
         self,
@@ -280,7 +350,19 @@ class NPUComboKernel(ComboKernel):
             "mix_mode": "aiv",
         }
 
-        triton_meta["configs"] = [config_of(signature)]
+        # Runtime BLOCK values are selected by autotune in both shared and
+        # per-subkernel paths. Tensor extents cannot imply divisibility or
+        # equal-to-one specialization for these arguments.
+        attribute_signature = [
+            SizeArg(arg.name, None)
+            if isinstance(arg, SizeArg) and arg.name in self.block_args
+            else arg
+            for arg in signature
+        ]
+        for name in self.block_args:
+            triton_meta["signature"][name] = "i32" if can_use_32bit else "i64"
+            triton_meta["constants"].pop(name, None)
+        triton_meta["configs"] = [config_of(attribute_signature)]
         mutated_args = self.get_mutated_args_sub_kernels()
         inductor_meta = self.sub_kernels[0].create_inductor_meta()
         self.sub_kernels[0]._disable_grouped_autotune(
@@ -297,6 +379,11 @@ class NPUComboKernel(ComboKernel):
         inductor_meta["grid_type"] = dispatch.grid_expr.__name__
         inductor_meta["combo_grid_meta"] = self.combo_grid_meta()
         inductor_meta["combo_subkernel_meta"] = self.autotune_subkernel_meta()
+        inductor_meta["npu_combo_per_subkernel"] = self.per_subkernel_blocks
+        if self.per_subkernel_blocks:
+            inductor_meta["declared_constexpr_names"] = tuple(
+                arg.name for arg in argdefs if arg.is_constexpr
+            )
 
         sub_metas = [sub._kernel_cost_meta() for sub in self.sub_kernels]
         self._kernel_num_gb = sum(meta.get("kernel_num_gb") or 0 for meta in sub_metas)
@@ -359,18 +446,35 @@ class NPUComboKernel(ComboKernel):
         ) -> None:
             if num == 0:
                 cls._calculate_split_blocks(kernel, code)
-                code.splice(f"if pid < num_blocks_{num}:")
+            prefix = "if" if num == 0 else "elif"
+            if kernel.per_subkernel_blocks:
+                # The selector is constexpr. An isolated benchmark compiles
+                # away every other branch and launches only this member's grid.
+                code.splice(f"{prefix} NPU_SUBKERNEL == {num} or (NPU_SUBKERNEL == -1 and pid < num_blocks_{num}):")
                 with code.indent():
-                    code.splice("pid_offset = pid")
+                    offset = "pid" if num == 0 else f"pid - num_blocks_{num - 1}"
+                    code.splice(f"pid_offset = pid if NPU_SUBKERNEL == {num} else {offset}")
             else:
-                code.splice(f"elif pid < num_blocks_{num}:")
+                code.splice(f"{prefix} pid < num_blocks_{num}:")
                 with code.indent():
-                    code.splice(f"pid_offset = pid - num_blocks_{num - 1}")
+                    code.splice("pid_offset = pid" if num == 0 else f"pid_offset = pid - num_blocks_{num - 1}")
 
         @classmethod
         def _calculate_split_blocks(
                 cls, kernel: "ComboKernel", code: IndentedBuffer
         ) -> None:
+            if kernel.per_subkernel_blocks:
+                for i, sub in enumerate(kernel.sub_kernels):
+                    factors = []
+                    for axis in sub.split_axis:
+                        extent = V.graph.sizevars.simplify(axis.length)
+                        if not isinstance(extent, (Integer, int)):
+                            extent = f"{axis.name}_numel_{i}"
+                        factors.append(f"tl.cdiv({extent}, {axis.name.upper()}BLOCK_{i})")
+                    expression = " * ".join(factors) or "1"
+                    previous = f"num_blocks_{i - 1} + " if i else ""
+                    code.writeline(f"num_blocks_{i} = {previous}{expression}")
+                return
             split_numels_list = []
             for i, sub_kernel in enumerate(kernel.sub_kernels):
                 if len(sub_kernel.split_axis) == 0:
@@ -388,9 +492,8 @@ class NPUComboKernel(ComboKernel):
                 if split_numels_list[i] is None:
                     block_str = "1"
                 else:
-                    block_str = (
-                        f"tl.cdiv({split_numels_list[i]}, {kernel.block_args[0]})"
-                    )
+                    block_arg = kernel.block_args[i] if kernel.per_subkernel_blocks else kernel.block_args[0]
+                    block_str = f"tl.cdiv({split_numels_list[i]}, {block_arg})"
                 if i == 0:
                     code.splice(f"num_blocks_{i} = {block_str}")
                 else:
@@ -435,12 +538,16 @@ class NPUComboKernel(ComboKernel):
             signature.append(block_arg)
             argdefs.append(ArgName(block_arg.name))
 
-        for axis in kernel.tiling_axis:
-            if axis.name[0] == 'r' and kernel.persistent_reduction:
-                continue
-            if axis.is_no_loop_axis:
-                continue
-            add_constexpr_arg(f"{axis.name.upper()}BLOCK_SUB")
+        if self.per_subkernel_blocks:
+            add_constexpr_arg("NPU_SUBKERNEL")
+
+        kernels = enumerate(self.sub_kernels) if self.per_subkernel_blocks else [(None, kernel)]
+        for num, member in kernels:
+            for axis in member.tiling_axis:
+                if (axis.name[0] == 'r' and member.persistent_reduction) or axis.is_no_loop_axis:
+                    continue
+                suffix = f"_{num}" if num is not None else ""
+                add_constexpr_arg(f"{axis.name.upper()}BLOCK_SUB{suffix}")
 
     def codegen_blocks(self, code: IndentedBuffer) -> None:
         for block in self.block_args:
@@ -451,8 +558,8 @@ class NPUComboKernel(ComboKernel):
 
     def get_block_args(self) -> list[SizeArg]:
         block_names = {}
-        for sub_kernel in self.sub_kernels:
-            # TODO: we assume all sub_kernels have the same block size
+        for num, sub_kernel in enumerate(self.sub_kernels):
+            # The legacy path shares block sizes.
             for tree in sub_kernel.split_axis:
                 if tree.is_reduction and (
                     not sub_kernel.inside_reduction or sub_kernel.persistent_reduction
@@ -460,7 +567,8 @@ class NPUComboKernel(ComboKernel):
                     continue
                 if tree.prefix == "x" and sub_kernel.no_x_dim:
                     continue
-                block_names[f"{tree.name.upper()}BLOCK"] = tree.length
+                suffix = f"_{num}" if self.per_subkernel_blocks else ""
+                block_names[f"{tree.name.upper()}BLOCK{suffix}"] = tree.length
         self.block_args = list(block_names.keys())
 
         return [SizeArg(name, length) for name, length in block_names.items()]
@@ -589,4 +697,16 @@ class NPUComboKernel(ComboKernel):
                 meta["split_numels"].append(1)
             meta["no_split"].append(not sub_kernel.split_axis)
 
+        if self.per_subkernel_blocks:
+            meta["subkernel_grids"] = []
+            for num, sub in enumerate(self.sub_kernels):
+                axes = []
+                for axis in sub.split_axis:
+                    extent = V.graph.sizevars.simplify(axis.length)
+                    if not isinstance(extent, (Integer, int)):
+                        extent = f"{axis.name}_numel_{num}"
+                    else:
+                        extent = int(extent)
+                    axes.append((extent, f"{axis.name.upper()}BLOCK_{num}"))
+                meta["subkernel_grids"].append(axes)
         return meta

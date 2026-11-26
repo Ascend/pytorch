@@ -18,7 +18,7 @@ def aligned_numel_32byte(numel, dtype_bytes):
 
 def ub_overflow_retry_configs(
     configs, failures, inductor_meta, constexpr_names, runtime_block_names=(),
-    persistent_reduction=False, max_configs=4,
+    persistent_reduction=False, max_configs=4, *, block_suffix="",
 ):
     """Continue below the smallest failed tile, in one bounded batch.
 
@@ -33,7 +33,7 @@ def ub_overflow_retry_configs(
     remap = inductor_meta.get("requires_no_linear_block_remap") is True
     block_names = []
     for axis in tiling_axes:
-        name = axis_names[axis].upper() + ("BLOCK" if remap else "BLOCK_SUB")
+        name = axis_names[axis].upper() + ("BLOCK" if remap else "BLOCK_SUB") + block_suffix
         if name in constexpr_names:
             block_names.append((axis, name))
     if not block_names:

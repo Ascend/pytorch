@@ -265,30 +265,47 @@ class NPUCombinedScheduling(CUDACombinedScheduling, TritonScheduling):
                 subkernel_node.group = max(
                     subnodes, key=lambda snode: int(snode.is_reduction())
                 ).group
-            return self._triton_scheduling.codegen_combo_kernel(node)
+            partitions = self._triton_scheduling.prepare_combo_kernel(node, allow_partition_fallback=True)
         except Exception:
+            # Regrouping or horizontal partitioning failed before a plan existed.
             metrics.generated_kernel_count = kernel_count
-            for snode, group in original_groups:
-                snode.group = group
-            log.debug(
-                "linear combo codegen for node %s raise error, "
-                "fallback to individual kernels",
-                node,
-                exc_info=True,
-            )
+            log.debug("Combo preparation failed for %s; compiling its members individually",
+                      node, exc_info=True)
+            partitions = [(None, None, subkernel_nodes)]
 
-        # Recompute lifetimes at the ordinary kernel boundaries, just as the
-        # no-linear fallback does. Restoring the whole combo's pending frees
-        # after that fallback would emit a second del for graph inputs.
+        backend = self._triton_scheduling
+        if all(kernel is not None for _, kernel, _ in partitions):
+            for src_code, kernel, members in partitions:
+                backend.emit_combo_partition(node, src_code, kernel, members)
+            return backend.free_buffers_in_scheduler()
+
+        fallback_nodes = {
+            snode for _, kernel, members in partitions if kernel is None
+            for member in members for snode in (member, *member.get_nodes())
+        }
+        for snode, group in original_groups:
+            if snode in fallback_nodes:
+                snode.group = group
+
+        # A regular kernel can free buffers immediately. Assign last uses in
+        # actual partition order before emitting the first such kernel.
         scheduler = self.scheduler
         future_used_buffers = OrderedSet(
             scheduler.mutation_real_name.get(name, name)
             for name in node.used_or_aliased_buffer_names()
         ) - node.last_usage
-        for subkernel_node in reversed(subkernel_nodes):
-            subkernel_node.set_last_usage(future_used_buffers, scheduler.mutation_real_name)
-            future_used_buffers.update(subkernel_node.last_usage)
+        for _, _, members in reversed(partitions):
+            for member in reversed(members):
+                member.set_last_usage(future_used_buffers, scheduler.mutation_real_name)
+                future_used_buffers.update(member.last_usage)
         scheduler.buffer_names_to_free.difference_update(node.last_usage)
-        for subkernel_node in subkernel_nodes:
-            scheduler.buffer_names_to_free.update(subkernel_node.last_usage)
-            self.codegen_node(subkernel_node)
+        for src_code, kernel, members in partitions:
+            if kernel is None:
+                for member in members:
+                    scheduler.buffer_names_to_free.update(member.last_usage)
+                    self.codegen_node(member)
+            else:
+                for member in members:
+                    scheduler.buffer_names_to_free.update(member.last_usage)
+                backend.emit_combo_partition(node, src_code, kernel, members)
+        backend.free_buffers_in_scheduler()

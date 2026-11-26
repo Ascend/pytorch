@@ -15,6 +15,7 @@ from torch_npu._inductor import config as npu_config
 from torch_npu._inductor.codegen import split_tiling as split_tiling_module
 from torch_npu._inductor.codegen import triton_combo_kernel as combo_codegen
 from torch_npu._inductor.codegen.npu_combined_scheduling import NPUCombinedScheduling
+from torch_npu._inductor.codegen.scheduling import NPUTritonScheduling
 from torch_npu._inductor.codegen.split_tiling import SplitTiling
 from torch_npu._inductor.codegen.triton import (
     IterationRangesRootNPUIndex,
@@ -22,6 +23,7 @@ from torch_npu._inductor.codegen.triton import (
 )
 from torch_npu._inductor.codegen.triton_combo_kernel import NPUComboKernel
 from torch_npu._inductor.runtime.triton_heuristics import SequentialComboKernelGrid
+from version_mark import runIfVersion
 
 
 def make_axis(name, length, order=0):
@@ -149,7 +151,7 @@ class TestComboKernelCodegen(unittest.TestCase):
             _nolinear_triton_scheduling=SimpleNamespace(
                 group_fn=lambda sizes: tuple(sympy.prod(s) for s in sizes)
             ),
-            _triton_scheduling=SimpleNamespace(codegen_combo_kernel=Mock()),
+            _triton_scheduling=Mock(prepare_combo_kernel=Mock(return_value=[])),
         )
         NPUCombinedScheduling.codegen_combo_kernel(backend, combo)
         self.assertEqual(fused.group, ("npu", (1456, 113)))
@@ -365,6 +367,71 @@ class TestComboKernelNPU(unittest.TestCase):
         torch._dynamo.reset()
         super().tearDown()
 
+    @runIfVersion(max="2.13")
+    def test_combo_fallback_only_splits_failed_partition(self):
+        from torch._inductor.utils import run_and_get_code
+
+        def model(xs):
+            torch._foreach_mul_(xs, 2.0)
+            return xs
+
+        check_ttir = NPUTritonScheduling.make_ttir_for_check
+        normal_calls = []
+        for fail_second in (False, True):
+            partition_sizes = []
+
+            def check(backend, src):
+                if isinstance(V.kernel, NPUComboKernel):
+                    partition_sizes.append(len(V.kernel.sub_kernels))
+                    if fail_second and len(partition_sizes) == 2:
+                        raise RuntimeError("injected TTIR failure in second combo partition")
+                return check_ttir(backend, src)
+
+            torch._dynamo.reset()
+            inputs = [torch.full((n,), 3.0, device="npu") for n in (64, 64, 64, 65536, 65536)]
+            expected = model([x.clone() for x in inputs])
+            with (
+                config.patch(combo_kernels=True, force_disable_caches=True),
+                patch.object(NPUComboKernel, "horizontal_partition",  # Fix the split to isolate fallback.
+                             side_effect=lambda nodes, **kwargs: [nodes[:3], nodes[3:]]),
+                patch.object(NPUTritonScheduling, "make_ttir_for_check", check),
+            ):
+                result, wrappers = run_and_get_code(torch.compile(model, fullgraph=True), inputs)
+            self.assertEqual(partition_sizes, [3, 2])
+            for actual, mutated, ref in zip(result, inputs, expected):
+                torch.testing.assert_close(actual, ref)
+                torch.testing.assert_close(mutated, ref)
+            calls = [line.strip() for code in wrappers for line in code.splitlines() if ".run(" in line]
+            if fail_second:
+                self.assertEqual(len(calls), 3)
+                self.assertEqual(calls[0], normal_calls[0])
+            else:
+                self.assertEqual(len(calls), 2)
+                normal_calls = calls
+
+    @runIfVersion(max="2.13")
+    def test_explicit_foreach_without_automatic_combos(self):
+        from torch._inductor.utils import run_and_get_code
+
+        def fn(xs, ys):
+            torch._foreach_mul_(xs, 2.0)
+            torch._foreach_add_(xs, ys)
+            return xs
+
+        xs = [torch.randn(n, device="npu") for n in (1024, 4096)]
+        ys = [torch.randn_like(x) for x in xs]
+        expected = fn([x.clone() for x in xs], ys)
+        with config.patch(combo_kernels=False):
+            actual, sources = run_and_get_code(torch.compile(fn, fullgraph=True), xs, ys)
+        torch.testing.assert_close(actual, expected)
+        torch.testing.assert_close(xs, expected)
+        source = "\n".join(sources)
+        self.assertIn("'num_kernels': 2", source)
+        self.assertIn("'combo_subkernel_meta'", source)
+        self.assertIn("'npu_combo_per_subkernel': True", source)
+        self.assertEqual(source.count(".run("), 1)
+
+    @runIfVersion(max="2.13")
     def test_dynamic_combo_ignores_global_grouped_autotune(self):
         torch.npu.set_device(0)
         torch._dynamo.reset()

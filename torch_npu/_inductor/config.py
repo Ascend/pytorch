@@ -138,6 +138,9 @@ def __getattr__(name):
 
 combo_kernel_max_waves = 8
 
+# Change the NPU default without overriding an explicit Inductor setting.
+inductor_config._config["combo_kernel_per_subkernel_blocks"].default = True
+
 
 def _obtain_precompile_thread_num() -> int:
     """
