@@ -58281,7 +58281,6 @@
   "test/inductor/test_torchinductor_dynamic_shapes.py::DynamicShapesCpuTests::test_inner_fn_str_and_stride_dynamic_shapes_cpu",
   "test/inductor/test_torchinductor_dynamic_shapes.py::DynamicShapesCpuTests::test_inplace_activations_dynamic_shapes_cpu",
   "test/inductor/test_torchinductor_dynamic_shapes.py::DynamicShapesCpuTests::test_inplace_add_dynamic_shapes_cpu",
-  "test/inductor/test_torchinductor_dynamic_shapes.py::DynamicShapesCpuTests::test_inplace_flip_after_index_put_dynamic_shapes_cpu",
   "test/inductor/test_torchinductor_dynamic_shapes.py::DynamicShapesCpuTests::test_inplace_flip_dynamic_shapes_cpu",
   "test/inductor/test_torchinductor_dynamic_shapes.py::DynamicShapesCpuTests::test_inplace_mixed_dtype_ops_dynamic_shapes_cpu",
   "test/inductor/test_torchinductor_dynamic_shapes.py::DynamicShapesCpuTests::test_inplace_resize_as_dynamic_shapes_cpu",
