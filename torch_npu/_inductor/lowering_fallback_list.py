@@ -9,8 +9,6 @@ import torch
 
 from torch.ops import (
     quantized_decomposed,
-    rngprims,
-    _inductor_test,
     inductor,
     fsdp,
     _c10d_functional,
@@ -43,8 +41,6 @@ prims = torch.ops.prims
 
 
 NPU_EXTRA_FALLBACK_LIST = [
-    _inductor_test.realize,
-    _inductor_test.realize.default,
     associative_scan,
     aten._assert_tensor_metadata,
     aten._assert_tensor_metadata.default,
@@ -278,10 +274,7 @@ NPU_EXTRA_FALLBACK_LIST = [
     aten.scatter_add.out,
     aten.scatter_add_,
     aten.scatter_add_.default,
-    aten.scatter_reduce,
     aten.scatter_reduce_,
-    aten.scatter_reduce.two,
-    aten.scatter_reduce.two_out,
     aten.scatter_reduce_.two,
     aten.set_.source_Tensor,
     aten.sigmoid_,
@@ -416,7 +409,6 @@ NPU_EXTRA_FALLBACK_LIST = [
     prims.reciprocal.default,
     prims.remainder,
     prims.remainder.default,
-    prims.rev.default,
     prims.sign,
     prims.sign.default,
     prims.signbit,
@@ -447,8 +439,6 @@ NPU_EXTRA_FALLBACK_LIST = [
     quantized_decomposed.quantize_per_channel.default,
     quantized_decomposed.quantize_per_tensor.default,
     quantized_decomposed.quantize_per_tensor.tensor,
-    rngprims.philox_rand,
-    rngprims.philox_rand.default,
     while_loop,
     with_effects,
 ]

@@ -100,6 +100,26 @@ def patch_register_philox_rand():
     torch._prims.rng_prims.register_philox_rand()
 
 
+def patch_rng_state_setter_for_npu():
+    from torch._prims_common import CUDARngStateHelper
+
+    if getattr(CUDARngStateHelper.set_torch_state_tensor, "_npu_patched", False):
+        return
+    original_setter = CUDARngStateHelper.set_torch_state_tensor
+
+    def set_torch_state_tensor(seed, offset):
+        if not (hasattr(torch, "npu") and torch.npu.is_available()):
+            return original_setter(seed, offset)
+
+        seed_portion = seed.reshape([1]).view(torch.uint8)
+        offset_portion = offset.reshape([1]).view(torch.uint8)
+        new_state = torch.cat([seed_portion, offset_portion]).cpu()
+        torch.npu.set_rng_state(new_state)
+
+    set_torch_state_tensor._npu_patched = True
+    CUDARngStateHelper.set_torch_state_tensor = staticmethod(set_torch_state_tensor)
+
+
 def patch_register_run_and_save_rng_state_op():
     from torch._prims import rng_prims
     from torch._C import DispatchKey
@@ -238,6 +258,7 @@ def patch_rng_prims_device():
 
 patch_register_run_and_save_rng_state_op()
 patch_register_run_with_rng_state_op()
+patch_rng_state_setter_for_npu()
 patch_philox_rand_offset()
 patch_register_philox_rand()
 patch_rng_prims_device()

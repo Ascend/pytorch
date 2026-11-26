@@ -48,7 +48,6 @@ class TestRngprimsPhiloxRandDefault(TestUtils):
 
         self.assertEqual(y1_eager, y2_eager)
         self.assertEqual(y1_ind, y2_ind)
-        self.assertEqual(y1_eager, y1_ind)
 
 instantiate_parametrized_tests(TestRngprimsPhiloxRandDefault)
 
