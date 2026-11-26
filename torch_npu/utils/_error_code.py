@@ -32,7 +32,7 @@ class ErrCode(Enum):
     ACL = (100, "call acl api failed")
     HCCL = (200, "call hccl api failed")
     GE = (300, "call ge api failed")
-    EXCEPT = (999, "applicaiton exception")
+    EXCEPT = (999, "application exception")
 
     @property
     def code(self):
@@ -100,7 +100,7 @@ def get_env_compact_error_output():
 class _NPUExceptionHandler(object):
     def __init__(self):
         self.exception = None
-        self.npu_exception = "\[ERROR\] [0-9\-\:]* \(PID:\d*, Device:\-?\d*, RankID:\-?\d*\) ERR\d{5}"
+        self.npu_exception = r"\[ERROR\] [0-9\-\:]* \(PID:\d*, Device:\-?\d*, RankID:\-?\d*\) ERR\d{5}"
         self.npu_timeout_exception = "error code is 107020"
         self.npu_timeout_exit_offset = 3
         self.force_stop_flag = False
