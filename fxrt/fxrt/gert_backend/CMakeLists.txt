@@ -175,7 +175,7 @@ target_link_libraries(mrt_fx_converter PUBLIC
 target_link_directories(mrt_fx_converter PUBLIC
   "${_FXC_TORCH_ROOT}/lib"
 )
-set(_FXC_TORCH_POOL_LIBS "-Wl,--no-as-needed;$<TARGET_FILE:torch_npu>;torch;torch_cpu;c10;-Wl,--as-needed")
+set(_FXC_TORCH_POOL_LIBS "-Wl,--no-as-needed;$<TARGET_FILE:torch_npu>;torch;torch_cpu;torch_python;c10;-Wl,--as-needed")
 target_link_libraries(mrt_fx_converter PUBLIC ${_FXC_TORCH_POOL_LIBS})
 add_dependencies(mrt_fx_converter torch_npu)
 # torch_npu's own CANN dependencies are resolved at runtime. Do not require the
