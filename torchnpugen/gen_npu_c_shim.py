@@ -57,7 +57,9 @@ NPU_UNSUPPORTED_OPS = [
     "aten._scaled_mm.default",
     "aten._scaled_grouped_mm.default",
     "aten.scatter_reduce.two",
-    "aten.scatter_reduce.two_out"
+    "aten.scatter_reduce.two_out",
+    "aten.copysign.Tensor",
+    "aten.copysign.out"
 ]
 
 
