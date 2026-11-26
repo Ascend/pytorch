@@ -91,6 +91,14 @@ jobs:
       # reflects real regressions instead of flakes. Defaults apply for
       # the knobs (max cases unlimited, 3 attempts).
       retry_failed_cases: true
+      # Mass-failure guard: when a shard ends with more than 50
+      # failed/error/timeout cases, skip the serial retry entirely —
+      # mass failure means an environmental/compat issue, not per-case
+      # flakes (e.g. the triton cxx20 patch-off nights where graph
+      # shards burned hours retrying 217-664 cases, runs 45697508551 /
+      # 45751799950). Every case keeps its original result; the
+      # comparison is strictly greater-than, so exactly 50 still retries.
+      retry_skip_threshold: '50'
       # triton-ascend -std=c++17 -> c++20 workaround. Confirmed needed on
       # this image via run 45697508551 (junit evidence: npu_utils C++20
       # compile failure), but the 1157 patch-dependent cases were removed

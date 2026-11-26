@@ -93,6 +93,14 @@ def parse_args():
                         help="PYTORCH_TESTING_DEVICE_ONLY_FOR value; must match the main run")
     parser.add_argument("--max-retry-cases", type=int, default=100,
                         help="Max cases to retry serially, 0 = unlimited (default: 100)")
+    parser.add_argument("--skip-if-over", type=int, default=0,
+                        help="Skip the retry entirely when the "
+                             "failed/error/timeout case count exceeds this "
+                             "threshold (0 = disabled; comparison strictly "
+                             "greater-than). Mass failure usually means an "
+                             "environmental/compat issue — retrying hundreds "
+                             "of cases wastes hours and masks the signal, so "
+                             "every case keeps its original result instead.")
     parser.add_argument("--max-attempts", type=int, default=1,
                         help="Max isolated rounds per case, 1 = single "
                              "retry (historical behavior). A case that passes "
@@ -115,6 +123,8 @@ def parse_args():
 
     if args.max_retry_cases < 0:
         parser.error("--max-retry-cases must be >= 0 (0 = unlimited)")
+    if args.skip_if_over < 0:
+        parser.error("--skip-if-over must be >= 0 (0 = disabled)")
     if args.max_attempts < 1:
         parser.error("--max-attempts must be >= 1")
     # Resolve 'auto' workers to the live NPU device count before expanding
@@ -372,6 +382,22 @@ def main() -> int:
             ("retry_attempted", 0),
             ("retry_recovered", 0),
             ("retry_still_failed", 0),
+        ])
+        return 0
+
+    if args.skip_if_over > 0 and len(failed) > args.skip_if_over:
+        print(
+            f"RETRY: {len(failed)} failed/error/timeout case(s) exceed the "
+            f"--skip-if-over threshold of {args.skip_if_over}; skipping the "
+            "retry entirely — mass failure usually indicates an "
+            "environmental/compat issue, so every case keeps its original "
+            "result"
+        )
+        write_github_outputs([
+            ("retry_needed", "false"),
+            ("retry_attempted", 0),
+            ("retry_recovered", 0),
+            ("retry_still_failed", len(failed)),
         ])
         return 0
 

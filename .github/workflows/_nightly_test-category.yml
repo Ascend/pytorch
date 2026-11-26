@@ -99,6 +99,17 @@ on:
           Max failed/error/timeout cases retried serially per shard after
           the main run (0 = unlimited); cases beyond the cap keep their
           original results.
+      retry_skip_threshold:
+        required: false
+        type: string
+        default: '0'
+        description: >-
+          Skip the retry entirely when the shard's failed/error/timeout
+          case count exceeds this threshold (0 = disabled; comparison is
+          strictly greater-than). Mass failure usually means an
+          environmental/compat issue — retrying hundreds of cases wastes
+          hours and masks the signal, so every case keeps its original
+          result instead.
       retry_attempts:
         required: false
         type: string
@@ -475,6 +486,7 @@ jobs:
             --timeout 1200 \
             --device-env "${{ inputs.device_env }}" \
             --max-retry-cases ${{ inputs.retry_max_cases || '0' }} \
+            --skip-if-over ${{ inputs.retry_skip_threshold || '0' }} \
             --max-attempts ${{ inputs.retry_attempts || '3' }} \
             --only-list "${{ inputs.retry_only_list || '' }}" \
             --max-workers "${{ inputs.retry_max_workers || '1' }}" \

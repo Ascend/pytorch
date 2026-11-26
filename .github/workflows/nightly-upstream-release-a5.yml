@@ -88,6 +88,14 @@ jobs:
       # reflects real regressions instead of flakes. Defaults apply for
       # the knobs (max cases unlimited, 3 attempts).
       retry_failed_cases: true
+      # Mass-failure guard: when a shard ends with more than 50
+      # failed/error/timeout cases, skip the serial retry entirely —
+      # mass failure means an environmental/compat issue, not per-case
+      # flakes (e.g. the triton cxx20 patch-off nights where graph
+      # shards burned hours retrying hundreds of cases, runs 45697460340 /
+      # 45697508551). Every case keeps its original result; the
+      # comparison is strictly greater-than, so exactly 50 still retries.
+      retry_skip_threshold: '50'
       runner_label: 'linux-amd64-a5-2'
       test_max_parallel: 3
       # Same dedicated Guiyang wheels bucket as the build job above.
