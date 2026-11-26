@@ -432,7 +432,11 @@ class GradScaler(BaseGradScaler):
                     raise ValueError(reason + pta_error(ErrCode.VALUE))
                 if new_scale.requires_grad:
                     raise ValueError(reason + pta_error(ErrCode.VALUE))
-                self._scale = new_scale
+                # new_scale is used to fill the internal scale tensor, not referenced
+                # directly, so later in-place changes to it cannot affect the scaler.
+                # numel() == 1 is the only shape constraint, so reshape it to the
+                # internal 0-dim scale before copying.
+                _scale.copy_(new_scale.reshape_as(_scale))  # type: ignore[union-attr]
         elif self._dynamic:
             self._npu_update_scale()
 

@@ -2,7 +2,6 @@ from itertools import chain
 
 import torch
 
-import torch_npu  # noqa: F401
 from torch_npu.npu.amp import GradScaler
 from torch_npu.testing.common_utils import SupportedDevices
 from torch_npu.testing.testcase import TestCase, run_tests
@@ -53,6 +52,29 @@ class TestAmp(TestCase):
             self.assertTrue(s1.get_backoff_factor() == .5)
             self.assertTrue(s1.get_growth_interval() == 2)
             self.assertTrue(s1._init_growth_tracker == 0)
+
+    def test_grad_scaling_update_new_scale(self):
+        scaler = GradScaler(init_scale=2.)
+        # Dummy scale() call to ensure the scale tensor is lazily initialized.
+        scaler.scale(torch.full((1,), 4.0, dtype=torch.float32, device="npu"))
+
+        # numel() == 1 is the only shape constraint, so scalar and 1-element
+        # tensors of any shape are all valid new_scale values.
+        for shape in (), (1,), (1, 1):
+            new_scale = torch.full(shape, 1024., dtype=torch.float32, device="npu")
+            scaler.update(new_scale=new_scale)
+            self.assertTrue(scaler.get_scale() == 1024.)
+
+            # new_scale fills the internal scale tensor instead of being referenced
+            # directly, so in-place changes to it must not affect the scaler.
+            new_scale.mul_(2.)
+            self.assertTrue(scaler.get_scale() == 1024.)
+
+        # A following backoff must not write back into the caller's tensor.
+        scaler._has_overflow = True
+        scaler.update()
+        self.assertTrue(scaler.get_scale() == 512.)
+        self.assertTrue(new_scale.item() == 2048.)
 
     def test_grad_scaling_state_dict_from_upstream(self):
         # torch.amp.GradScaler.state_dict() does not contain the torch_npu-specific
