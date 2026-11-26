@@ -415,7 +415,7 @@ class TorchMmoeModel(nn.Module):
         Build the optimizer for training.
 
         Args:
-            loss (torch.Tensor): The loss tensor to minimize.
+            None: the optimizer is chosen from self.params.optimizer.
 
         Returns:
            optim: The operation for applying gradients.

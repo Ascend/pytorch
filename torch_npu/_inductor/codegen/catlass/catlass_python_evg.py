@@ -137,7 +137,7 @@ class CatlassEVGCodegen(CatlassEVGOpsMixIn):
         Args:
             accumulator_node_name: The name of the accumulator node which should contain
                                           the Matmul result before fusion according to the IR graph.
-            epilogue_nodes: The list of scheduler nodes to be fused into the epilogue
+            removed_buffers: Buffers that were removed before this formatter runs
         """
         self.accumulator_node_name: str = accumulator_node_name  #
         self.body: IndentedBuffer = IndentedBuffer(1)  # The body buffer for codegen
