@@ -112,7 +112,7 @@ class TestVarMean(TestUtils):
             self.assertIn("X1BLOCK_SUB", code)
             self.assertIn("_acc_sum = tl.zeros([", code)
             self.assertIn(", 1], tl.float32)", code)
-            self.assertNotIn("_acc_sum_sq", code)
+            self.assertIn("_acc_sum_sq", code)
             self.assertIn("axis=1, keep_dims=True", code)
             self.assertIn("npu_kernel_type': 'simd'", code)
             self.assertIn("'vectorized_welford_axis':", code)
@@ -361,9 +361,10 @@ class TestVarMean(TestUtils):
         npu_config.enable_welford = True
         torch._dynamo.reset()
         try:
-            # Large mean, unit variance: the raw-moment closed form
-            # m2 = sum(x**2) - sum(x)**2/N cancels ~7 digits in fp32, while
-            # the two-pass centered form stays exact.
+            # _generate_tensor scales randn by 2000, so these inputs have
+            # a mean offset of 10000 and a standard deviation near 2000.
+            # Check the raw-moment path on this distribution; this does not
+            # cover cancellation with a large mean and small variance.
             hidden = 512
             rows = 10000.0 + self._generate_tensor((64, hidden), "float32")
             weight = self._generate_tensor((hidden,), "float32")
@@ -383,9 +384,9 @@ class TestVarMean(TestUtils):
 
             self.assertEqual(expected, actual, atol=1e-2, rtol=1e-2)
             code = "\n".join(codes)
-            # Full-static Welford computes m2 from centered values and no
-            # longer materializes the raw-moment accumulator.
-            self.assertNotIn("_acc_sum_sq", code)
+            # Full-static Welford uses sum(x**2) - sum(x)**2/N, which
+            # requires the raw-moment accumulator after the algorithm rollback.
+            self.assertIn("_acc_sum_sq", code)
         finally:
             npu_config.enable_welford = previous
             torch._dynamo.reset()
@@ -457,7 +458,7 @@ class TestVarMean(TestUtils):
             self.assertNotIn("for loop_r", code)
             self.assertNotIn("_acc_count = tl.zeros", code)
             self.assertIn("_acc_sum = tl.zeros([", code)
-            self.assertNotIn("_acc_sum_sq", code)
+            self.assertIn("_acc_sum_sq", code)
             self.assertEqual(code.count("tl.load(in_ptr0"), 1)
         finally:
             npu_config.enable_welford = previous

@@ -1591,21 +1591,37 @@ class NPUIndexTritonKernel(TritonKernel):
         self.full_static_welford_reduction = False
         self.decide_codegen_dims_in_kernel()
 
-    def _activate_post_reduction_codegen(self):
+    def _activate_post_reduction_codegen(self, *, invalidate_cse=True):
+        # Looped Welford and full-tensor persistent Welford have no
+        # vectorized outer axis, but still need a separate epilogue.
         plain_sum_epilogue = (
             self.vectorized_welford_axis is None
             and not self.persistent_reduction
             and self.numof_reduction_axis() == 1
             and getattr(self.find_reduction_node(), "reduction_type", None) == "sum"
         )
+        welford_requires_post_reduction_codegen = (
+            getattr(self.find_reduction_node(), "reduction_type", None)
+            == "welford_reduce"
+            and (
+                not self.persistent_reduction
+                or not any(
+                    axis.prefix != "r" and not axis.is_no_loop_axis
+                    for axis in self.sorted_axis
+                )
+            )
+        )
         if (
-            (self.vectorized_welford_axis is None and not plain_sum_epilogue)
-            or self._original_compute_buf is not None
+            (
+                self.vectorized_welford_axis is None
+                and not welford_requires_post_reduction_codegen
+                and not plain_sum_epilogue
+            )
             or not self.post_loop_combine._lines
         ):
             return
 
-        if not (
+        if invalidate_cse and not (
             self.full_static_welford_reduction
             and npu_config.enable_welford_post_reduction_reuse
         ):
@@ -1613,6 +1629,8 @@ class NPUIndexTritonKernel(TritonKernel):
             # that has exited by the time the epilogue is emitted: drop them
             # from CSE so the epilogue regenerates them from scratch.
             self.cse.invalidate(self.outside_loop_vars)
+        if self._original_compute_buf is not None:
+            return
         # For a full-static Welford reduction the whole reduction extent fits
         # one static SIMD tile: there is no reduction loop, and the epilogue
         # is emitted inside the same loop iteration as the pre-reduction
@@ -3099,13 +3117,9 @@ class NPUIndexTritonKernel(TritonKernel):
                 continue
 
             node = self.range_tree_nodes[symbol]
-            simplified_tree_numel = V.graph.sizevars.simplify(node.length)
-            if isinstance(simplified_tree_numel, (sympy.Integer, int)):
-                val = int(simplified_tree_numel)
-            else:
+            val = self._get_static_reduction_block_size(node)
+            if val is None:
                 continue
-            if self.is_unified_simt_kernel():
-                val = next_power_of_2(val)
             code.writeline(f"{node.name.upper()}BLOCK_SUB: tl.constexpr = {val}")
 
         for axis in self.sorted_axis:
@@ -3412,6 +3426,13 @@ class NPUIndexTritonKernel(TritonKernel):
                 if not have_load_store:
                     indexing_code = None
                 need_axis_loop = have_load_store and (not range_val.is_no_loop_axis)
+                if (
+                    range_val.prefix == "r"
+                    and self.persistent_reduction
+                    and self.numof_reduction_axis() <= 1
+                ):
+                    self.body.splice(self.prefix)
+                    self.prefix.clear()
                 if (
                     range_val.prefix != "r" or not self.persistent_reduction
                 ) and need_axis_loop:
@@ -4547,6 +4568,32 @@ class NPUIndexTritonKernel(TritonKernel):
             or self.npu_kernel_type == NPUKernelType.SIMD_SIMT_MIX
         )
 
+    def _get_static_reduction_block_size(self, node):
+        numel = V.graph.sizevars.simplify(node.length)
+        if not isinstance(numel, (int, sympy.Integer)):
+            return None
+        block = int(numel)
+        return next_power_of_2(block) if self.is_unified_simt_kernel() else block
+
+    def _has_constant_axis_mask(self, node):
+        if (
+            not self.optimize_mask
+            or not self.persistent_reduction
+            or not node.is_reduction
+            or node.is_vectorized_split
+        ):
+            return False
+        # Use the BLOCK_SUB emitted by codegen_static_numels, not an autotune
+        # size hint. Persistent R indices have no program/loop offset, and
+        # set_reduction_runtime_blocks_to_numel fixes split R blocks to numel.
+        block = self._get_static_reduction_block_size(node)
+        return (
+            block is not None
+            and block > 0
+            and V.graph.sizevars.statically_known_gt(node.length, 0)
+            and V.graph.sizevars.statically_known_multiple_of(node.length, block)
+        )
+
     def filter_masks(self, mask_vars, index_vars=None):
         variable_mask_vars = {  # noqa: set_linter
             mask_var
@@ -4650,6 +4697,110 @@ class NPUIndexTritonKernel(TritonKernel):
             return []
         return root.var_list
 
+    def _reduction_value_masks(self, masks):
+        if not self.persistent_reduction:
+            return masks
+        reduction_nodes = [
+            self.range_tree_nodes[axis] for axis in self.reduction_axis_list()
+        ]
+        if not reduction_nodes or not all(
+            self._has_constant_axis_mask(node) for node in reduction_nodes
+        ):
+            return masks
+
+        # All reduction axes must cover their full extent without padding,
+        # including axes flattened by vectorized Welford.
+        # Each output lane is either valid for all reduction elements, or its
+        # result is unobserved. Keep memory masks and result mask metadata;
+        # only omit redundant masks from the reduction input condition.
+        redundant_masks = {
+            f"{node.symbol()}_mask" for node in self.sorted_axis if not node.is_reduction
+        }
+        # 2.10 restores R masks locally for Welford statistics. The proof above
+        # also permits removing these constant R masks here, without changing
+        # the shared load/store mask filtering policy.
+        redundant_masks.update(f"{node.symbol()}_mask" for node in reduction_nodes)
+        return [
+            mask for mask in masks
+            if mask not in redundant_masks or mask == self._load_mask
+        ]
+
+    def welford_reduce(
+        self, result_var, reduction_type, value, where_cond, acc_type, dtype
+    ):
+        """Accumulate Welford over the emitted NPU reduction loops.
+
+        Upstream assumes a single loop with an ``roffset`` variable and an
+        R-last layout. NPU loops may be nested and use a flattened R tile.
+        Use per-lane weight to initialize state, including masked tail lanes,
+        and finalize along the actual reduction dimension after all loops.
+        """
+        accumulator_shape = tuple(self.dense_size_list())
+        accumulator_dtype = upcast_acc_dtype(dtype)
+        accumulators = [
+            self.cse.namedvar(
+                f"{result_var}_{suffix}",
+                dtype=accumulator_dtype,
+                shape=accumulator_shape,
+            )
+            for suffix in ("mean", "m2", "weight")
+        ]
+        mean, m2, weight = accumulators
+        for accumulator in accumulators:
+            self.prefix.writeline(
+                f"{accumulator} = tl.zeros({self.dense_size_str()}, {acc_type})"
+            )
+
+        if reduction_type == "welford_reduce":
+            self.compute.writeline(
+                f"{mean}_next, {m2}_next, {weight}_next = "
+                f"triton_helpers.welford_reduce({value}, {mean}, {m2}, {weight}, False)"
+            )
+            # The first valid sample can occur after the first loop iteration
+            # for a masked lane. Avoid relying on a global loop counter.
+            self.compute.writeline(
+                f"{mean}_next = tl.where({weight} == 0, {value}, {mean}_next)"
+            )
+            self.compute.writeline(
+                f"{m2}_next = tl.where({weight} == 0, 0.0, {m2}_next)"
+            )
+        else:
+            assert reduction_type == "welford_combine"
+            other_mean, other_m2, other_weight = value
+            self.compute.writeline(
+                f"{mean}_next, {m2}_next, {weight}_next = "
+                f"triton_helpers.welford_combine({mean}, {m2}, {weight}, "
+                f"{other_mean}, {other_m2}, {other_weight})"
+            )
+        for accumulator in accumulators:
+            self.compute.writeline(
+                f"{accumulator} = {where_cond(f'{accumulator}_next', accumulator)}"
+            )
+
+        dim = self.reduction_dim()
+        reduced_shape = accumulator_shape[:dim] + accumulator_shape[dim + 1:]
+        reduced = [
+            self.cse.newvar(dtype=accumulator_dtype, shape=reduced_shape)
+            for _ in accumulators
+        ]
+        self.post_loop_combine.writeline(
+            f"{', '.join(map(str, reduced))} = "
+            f"triton_helpers.welford({mean}, {m2}, {weight}, {dim})"
+        )
+        result_shape = list(accumulator_shape)
+        result_shape[dim] = "1"
+        results = (result_var,) + tuple(
+            self.cse.newvar(dtype=dtype, shape=tuple(result_shape))
+            for _ in range(2)
+        )
+        for result, reduced_value in zip(results, reduced):
+            self.post_loop_combine.writeline(
+                f"{result} = {self.reduction_resize(reduced_value, dim)}"
+            )
+        self.outside_loop_vars.update(accumulators)
+        self.outside_loop_vars.update(results)
+        return results
+
     def reduction(
         self,
         dtype: torch.dtype,
@@ -4659,15 +4810,25 @@ class NPUIndexTritonKernel(TritonKernel):
     ) -> CSEVariable | tuple[CSEVariable, ...]:
         if not self.inside_reduction:
             raise RuntimeError("assert self.inside_reduction")
-        if self.persistent_reduction and self.numof_reduction_axis() == 1:
-            masks = {  # noqa: set_linter
-                f"{node.symbol()}_mask"
-                for node in self.sorted_axis
-                if node.name[0] != "r"
-            }
-        else:
-            masks = {f"{node.symbol()}_mask" for node in self.sorted_axis}  # noqa: set_linter
+        masks = {f"{node.symbol()}_mask" for node in self.sorted_axis}  # noqa: set_linter
         self.filter_masks(masks)
+        if self.persistent_reduction and is_welford_reduction(reduction_type):
+            # 2.10 filters persistent R masks from loads/stores for performance.
+            # Statistics still need emitted R masks to exclude padded samples.
+            # Match _codegen_mask so no undefined axis mask is referenced.
+            for node in self.sorted_axis:
+                if node.is_reduction and (
+                    node.is_vectorized_split
+                    or (
+                        node.is_tiling_axis
+                        and (
+                            self.is_unified_simt_kernel()
+                            or not node.is_no_loop_axis
+                            or get_allow_dynamic()
+                        )
+                    )
+                ):
+                    masks.add(f"{node.symbol()}_mask")
         masks = sorted(masks)
         if self._load_mask:
             masks.append(self._load_mask)
@@ -4791,10 +4952,62 @@ class NPUIndexTritonKernel(TritonKernel):
         result_shape[dim] = "1"
         result_var: Any = self.cse.newvar(dtype=torch_acc_type, shape=tuple(result_shape))
         result_var.mask_vars = {var for var in masks if var[0] != "r"}  # noqa: set_linter
-        cond_expr = f"({' & '.join(masks)})"
-        if need_permute:
-            cond_expr = f"{cond_expr}.permute({permute_order})"
-        cond = f"{cond_expr}.reshape({dense_size_str})"
+        value_masks = self._reduction_value_masks(masks)
+        cond_expr = " & ".join(value_masks)
+        if not cond_expr:
+            cond = ""
+        else:
+            num_reduction_axes = self.numof_reduction_axis()
+            vectorized_welford = (
+                self.persistent_reduction and self.vectorized_welford_axis is not None
+            )
+            mask_size_str = vectorized_shape if vectorized_welford else dense_size_str
+            rebuild_axis_masks = self.persistent_reduction or num_reduction_axes > 1
+            if rebuild_axis_masks:
+                value_order = list(reversed(self.golden_var_list))
+                full_shape = self.reduce_analysis.dense_size_list()
+                if vectorized_welford:
+                    # Match the [outer block, flattened reduction] value layout.
+                    value_order = [self.vectorized_welford_axis.symbol()] + list(
+                        self.reduction_axis_list()
+                    )
+                    full_shape = [vector_block] + reduction_blocks
+                mask_terms = []
+                for node in self.sorted_axis:
+                    mask_name = f"{node.symbol()}_mask"
+                    if mask_name not in value_masks or node.symbol() not in value_order:
+                        continue
+                    mask_shape = ["1"] * len(value_order)
+                    mask_shape[value_order.index(node.symbol())] = (
+                        f"{node.name.upper()}BLOCK_SUB"
+                    )
+                    mask_terms.append(
+                        # Axis masks may be scalar True or already have
+                        # singleton dimensions. Normalize to one axis before
+                        # restoring the reduction value's broadcast layout.
+                        f"(tl.ravel(triton_helpers.promote_to_tensor({mask_name})) & "
+                        f"tl.full([{node.name.upper()}BLOCK_SUB], True, tl.int1))"
+                        f".reshape([{', '.join(mask_shape)}])"
+                    )
+                if mask_terms:
+                    cond_expr = " & ".join(mask_terms)
+                    if num_reduction_axes > 1 or vectorized_welford:
+                        cond_expr = f"tl.broadcast_to(({cond_expr}), [{', '.join(full_shape)}])"
+                    else:
+                        cond_expr = f"({cond_expr})"
+            else:
+                cond_expr = f"({cond_expr})"
+            if need_permute:
+                cond_expr = f"({cond_expr}).permute({permute_order})"
+            if self.persistent_reduction and num_reduction_axes == 1:
+                cond = f"tl.broadcast_to({cond_expr}, {mask_size_str})"
+            else:
+                cond = f"tl.reshape({cond_expr}, {mask_size_str})"
+            if rebuild_axis_masks:
+                axis_mask_names = {f"{node.symbol()}_mask" for node in self.sorted_axis}
+                for mask in value_masks:
+                    if mask not in axis_mask_names:
+                        cond = f"({cond}) & ({mask})"
 
         def where_cond(tval, fval):
             if not cond:
@@ -4829,6 +5042,13 @@ class NPUIndexTritonKernel(TritonKernel):
                         shape=masked_value.shape,
                     )
             elif reduction_type == "welford_reduce":
+                # A later fused reduction consumes values generated in the
+                # epilogue. Finalize it there, after its input and accumulation.
+                combine_buffer = (
+                    self.compute
+                    if self._original_compute_buf is not None
+                    else self.post_loop_combine
+                )
                 acc_sum = f"{result_var}_acc_sum"
                 acc_sum_sq = f"{result_var}_acc_sum_sq"
                 acc_count = f"{result_var}_acc_count"
@@ -4847,97 +5067,44 @@ class NPUIndexTritonKernel(TritonKernel):
                     )
                     reduce_dim = 1
                     keep_dims = ", keep_dims=True"
-                    if static_count is None:
-                        if vector_axis.is_split_axis:
-                            vector_upper = (
-                                f"min({vector_axis.name}_offset + "
-                                f"{vector_axis.name.upper()}BLOCK, "
-                                f"{vector_axis.name}_numel)"
-                            )
-                        else:
-                            vector_upper = f"{vector_axis.name}_numel"
-                        valid_row = (
-                            f"{vector_axis.name}_loop_offset + base_{vector_axis.name}"
-                            f" < {vector_upper}"
-                        )
-                        count_increment = (
-                            f"tl.where(({valid_row})[:, None], "
-                            f"{self._reduction_tile_size()}, 0)"
-                        )
                 else:
                     acc_shape = "[1]"
                     accumulator_shape = ("1",)
                     resized_shape = tuple(result_shape)
                     reduce_dim = dim
                     keep_dims = ""
-                    # Count the valid elements of the current tile instead of
-                    # the full tile size: with a dynamic reduction extent the
-                    # persistent tile is zero-padded (other=0.0 loads), so
-                    # acc_sum/acc_sum_sq stay correct but an unmasked count
-                    # would inflate mean's denominator.  Mirror the axis
-                    # codegen mask-emission condition so only masks that are
-                    # actually defined get referenced; when no axis needs a
-                    # mask the tile is fully covered and the plain tile size
-                    # is exact.  The masks can be 1D (single reduction axis)
-                    # or directional 2D (multiple reduction axes), so sum over
-                    # all elements: acc_count is [1]-shaped and only needs the
-                    # total number of valid elements of the tile.
-                    count_axis_masks = [
-                        f"{node.symbol()}_mask"
-                        for node in self.sorted_axis
-                        if node.is_tiling_axis
-                        and (
-                            self.is_unified_simt_kernel()
-                            or (
-                                not node.is_no_loop_axis
-                                or get_allow_dynamic()
-                            )
-                        )
-                    ]
-                    if count_axis_masks:
-                        count_mask = " & ".join(sorted(count_axis_masks))
-                        count_increment = (
-                            f"tl.sum(({count_mask}).to({acc_type}))"
-                        )
-                    else:
-                        count_increment = self._reduction_tile_size()
 
-                # Vectorized Welford state is initialized by the vector axis
-                # indexing code after entering each tile.  Keeping another
-                # copy in prefix both duplicates the definitions and makes
-                # their scope depend on where prefix is spliced.
+                valid = cond if cond else f"tl.full({masked_value}.shape, True, tl.int1)"
+                valid_value = where_cond(masked_value, "0.0")
+                count_increment = f"tl.sum(({valid}).to({acc_type}), axis={reduce_dim}{keep_dims})"
+                # Vector-axis indexing initializes vectorized accumulators.
+                # Only scalar accumulators need initialization in prefix.
                 if vector_axis is None:
-                    # Only the dynamic-count path needs the raw-moment and
-                    # count accumulators: when the reduction numel is
-                    # statically known (full-static below), m2 is computed by
-                    # a centered second pass over masked_value and the count
-                    # is the statically known numel, so neither accumulator
-                    # is required.
                     self.prefix.writeline(
                         f"{acc_sum} = tl.zeros({acc_shape}, {acc_type})"
                     )
+                    self.prefix.writeline(
+                        f"{acc_sum_sq} = tl.zeros({acc_shape}, {acc_type})"
+                    )
                     if static_count is None:
-                        self.prefix.writeline(
-                            f"{acc_sum_sq} = tl.zeros({acc_shape}, {acc_type})"
-                        )
                         self.prefix.writeline(
                             f"{acc_count} = tl.zeros({acc_shape}, {acc_type})"
                         )
                 self.compute.writeline(
-                    f"{acc_sum} += tl.sum({masked_value}, axis={reduce_dim}{keep_dims})"
+                    f"{acc_sum} += tl.sum({valid_value}, axis={reduce_dim}{keep_dims})"
+                )
+                self.compute.writeline(
+                    f"{acc_sum_sq} += tl.sum(({valid_value}) * ({valid_value}), "
+                    f"axis={reduce_dim}{keep_dims})"
                 )
                 if static_count is None:
-                    self.compute.writeline(
-                        f"{acc_sum_sq} += tl.sum({masked_value} * {masked_value}, "
-                        f"axis={reduce_dim}{keep_dims})"
-                    )
                     self.compute.writeline(f"{acc_count} += {count_increment}")
 
-                self.outside_loop_vars |= {acc_sum}
-                self.reduction_result_vars |= {acc_sum}
+                self.outside_loop_vars |= {acc_sum, acc_sum_sq}
+                self.reduction_result_vars |= {acc_sum, acc_sum_sq}
                 if static_count is None:
-                    self.outside_loop_vars |= {acc_sum_sq, acc_count}
-                    self.reduction_result_vars |= {acc_sum_sq, acc_count}
+                    self.outside_loop_vars.add(acc_count)
+                    self.reduction_result_vars.add(acc_count)
 
                 mean = self.cse.newvar(
                     dtype=torch_acc_type, shape=accumulator_shape
@@ -4950,36 +5117,22 @@ class NPUIndexTritonKernel(TritonKernel):
                 )
                 if static_count is None:
                     count_value = acc_count
-                    self.post_loop_combine.writeline(
+                    combine_buffer.writeline(
                         f"{mean} = tl.where({acc_count} == 0.0, 0.0, "
                         f"{acc_sum} / {acc_count})"
                     )
                 else:
                     count_value = f"{static_count}.0"
-                    self.post_loop_combine.writeline(
+                    combine_buffer.writeline(
                         f"{mean} = {acc_sum} / {count_value}"
                     )
+                combine_buffer.writeline(
+                    f"{m2} = {acc_sum_sq} - {acc_sum} * {acc_sum} / {count_value}"
+                )
                 if static_count is None:
-                    self.post_loop_combine.writeline(
-                        f"{m2} = {acc_sum_sq} - {acc_sum} * {acc_sum} / {count_value}"
-                    )
+                    combine_buffer.writeline(f"{weight} = {count_value}")
                 else:
-                    # Scheme A (full-static): the whole reduction extent fits
-                    # one tile with no padding, and masked_value stays live in
-                    # the same loop-iteration scope as the epilogue (no
-                    # reduction loop), so compute m2 directly from its
-                    # centered definition instead of the raw-moment closed
-                    # form sum(x**2) - sum(x)**2/N, whose subtraction loses
-                    # precision to cancellation when mean**2 >> var.
-                    self.post_loop_combine.writeline(
-                        f"{m2} = tl.sum("
-                        f"({masked_value} - {mean}) * ({masked_value} - {mean}), "
-                        f"axis={reduce_dim}{keep_dims})"
-                    )
-                if static_count is None:
-                    self.post_loop_combine.writeline(f"{weight} = {count_value}")
-                else:
-                    self.post_loop_combine.writeline(
+                    combine_buffer.writeline(
                         f"{weight} = tl.full({acc_shape}, {count_value}, {acc_type})"
                     )
 
@@ -4992,13 +5145,13 @@ class NPUIndexTritonKernel(TritonKernel):
                 result_weight = self.cse.newvar(
                     dtype=torch_acc_type, shape=resized_shape
                 )
-                self.post_loop_combine.writeline(
+                combine_buffer.writeline(
                     f"{result_mean} = {self.reduction_resize(mean, reduce_dim)}"
                 )
-                self.post_loop_combine.writeline(
+                combine_buffer.writeline(
                     f"{result_m2} = {self.reduction_resize(m2, reduce_dim)}"
                 )
-                self.post_loop_combine.writeline(
+                combine_buffer.writeline(
                     f"{result_weight} = {self.reduction_resize(weight, reduce_dim)}"
                 )
                 self.outside_loop_vars |= {
@@ -5081,6 +5234,12 @@ class NPUIndexTritonKernel(TritonKernel):
         else:
             self.outside_loop_vars.add(result_var)
             self.reduction_result_vars.add(result_var)
+
+        if not self.persistent_reduction and is_welford_reduction(reduction_type):
+            # Looped reductions may flush their body before DisableReduction
+            # is scheduled. Preserve the accumulation buffers now so the
+            # innermost loop cannot consume and clear their finalization.
+            self._activate_post_reduction_codegen(invalidate_cse=False)
 
         return result_var
 
