@@ -239,7 +239,9 @@ class TestJaggedNestedTensorOps(TestCase):
         expected = torch.softmax(nested, dim=-1)
         got = torch.softmax(nested.to("npu:0"), dim=-1)
         self.assertEqual(got.values().device.type, "npu")
-        torch.testing.assert_close(got.values().cpu(), expected.values(), rtol=0, atol=0)
+        # softmax does real arithmetic on the device, so this comparison keeps
+        # the default floating point tolerance.
+        torch.testing.assert_close(got.values().cpu(), expected.values())
 
     def test_padded_to_nested_to_padded_roundtrip(self):
         lengths = [5, 9, 3]
