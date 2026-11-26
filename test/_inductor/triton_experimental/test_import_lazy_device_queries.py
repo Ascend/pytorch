@@ -50,9 +50,7 @@ def _run_py(code: str, backend: str = None) -> subprocess.CompletedProcess:
 def test_import_inductor_does_not_initialize_npu():
     # Scoped to the triton_experimental chain: its loader (re-)runs inside
     # forked compile workers, so its import must stay free of device
-    # initialization.  Other backends are out of scope (the default
-    # backend's import chain has its own, unrelated eager init, and its
-    # kernel modules never import this chain inside workers).
+    # initialization. The default backend is covered by test_triton_import_lazy_init.
     code = (
         "import torch, torch_npu\n"
         "from unittest import mock\n"
@@ -133,7 +131,7 @@ def test_core_count_consumers_resolve_at_use_time():
             mock.patch.object(cfg, "num_cube_core", cube),
             mock.patch.object(cfg, "num_vector_core", vector),
         ):
-            assert mm_common.NUM_CUBE_CORES == cube
+            assert mm_common.get_num_cube_cores() == cube
             assert _num_vector_core() == vector
             assert SplitTiling._outer_buckets_with_static_axes() == tuple(
                 vector * k for k in range(1, 6)

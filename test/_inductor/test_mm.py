@@ -12,7 +12,7 @@ from unittest import mock
 import torch_npu  # noqa: F401
 import torch_npu._inductor  # noqa: F401
 from torch_npu._inductor.kernel import mm as mm_kernel
-from torch_npu._inductor.kernel.mm_common import NUM_CUBE_CORES
+from torch_npu._inductor.kernel.mm_common import get_num_cube_cores
 
 from testutils import TestUtils
 
@@ -65,7 +65,7 @@ class TestNpuMmKernelHelpers(TestUtils):
         for cfg in configs:
             self.assertEqual(cfg["WIDTH"], cfg["GROUP_M"] * cfg["NUM_BLOCKS_N"])
             self.assertEqual(cfg["NUM_BLOCKS"], cfg["NUM_BLOCKS_M"] * cfg["NUM_BLOCKS_N"])
-            self.assertTrue(1 <= cfg["NUM_SMS"] <= NUM_CUBE_CORES)
+            self.assertTrue(1 <= cfg["NUM_SMS"] <= get_num_cube_cores())
             self.assertEqual(cfg["NUM_TILES_PER_PROGRAM"], _cdiv(cfg["NUM_BLOCKS"], cfg["NUM_SMS"]))
             self.assertEqual(cfg["NUM_BLOCKS_M"] % cfg["GROUP_M"], 0)
         # Dynamic shapes have no tiling to offer.
@@ -80,7 +80,7 @@ class TestNpuMmKernelHelpers(TestUtils):
             self.assertEqual((cfg["BLOCK_N"], cfg["BLOCK_K"]), (64, 64))
             self.assertFalse(cfg["MASKED_N"] or cfg["MASKED_K"])
             self.assertEqual(cfg["BLOCK_M"] % 16, 0)
-            self.assertTrue(1 <= cfg["NUM_PROGS"] <= NUM_CUBE_CORES)
+            self.assertTrue(1 <= cfg["NUM_PROGS"] <= get_num_cube_cores())
         # A[K, M] fits L0A, so M and K are fully loaded and N is streamed.
         configs = mm_kernel._get_npu_resident_a_mm_configs(64, 512, 64, dtype=torch.float16)
         self.assertTrue(configs)
@@ -99,10 +99,10 @@ class TestNpuMmKernelHelpers(TestUtils):
         mm_meta = {"BLOCK_M": 32, "BLOCK_N": 64}
         for args, expected in [((128, 256, mm_meta), (16, 1, 1)), ((129, 257, mm_meta), (25, 1, 1))]:
             self.assertEqual(_call_grid(mm_kernel.npu_mm_grid, *args, cdiv=_cdiv), expected)
-        persistent_meta = {"BLOCK_M": 64, "BLOCK_N": 64, "NUM_SMS": NUM_CUBE_CORES}
+        persistent_meta = {"BLOCK_M": 64, "BLOCK_N": 64, "NUM_SMS": get_num_cube_cores()}
         # The grid is capped at NUM_SMS for many tiles and one program per tile otherwise.
         self.assertEqual(_call_grid(mm_kernel.npu_persistent_mm_grid, 1024, 1024, persistent_meta,
-                                    cdiv=_cdiv, min=min), (NUM_CUBE_CORES, 1, 1))
+                                    cdiv=_cdiv, min=min), (get_num_cube_cores(), 1, 1))
         self.assertEqual(_call_grid(mm_kernel.npu_persistent_mm_grid, 64, 64, persistent_meta,
                                     cdiv=_cdiv, min=min), (1, 1, 1))
         for grid_fn in (mm_kernel.npu_resident_b_mm_grid, mm_kernel.npu_resident_a_mm_grid):

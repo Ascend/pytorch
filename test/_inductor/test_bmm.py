@@ -23,7 +23,7 @@ from torch_npu._inductor.kernel.mm_common import (
     L1_BUFFER_COPIES,
     MMAD_K_FRACTAL,
     MMAD_M_FRACTAL,
-    NUM_CUBE_CORES,
+    get_num_cube_cores,
 )
 
 from testutils import TestUtils
@@ -73,18 +73,18 @@ class TestNpuBmmKernelHelpers(TestUtils):
 
         for n_groups in (1, 2, 8, 27, 28, 29, 30, 56, 100, 1024):
             programs, per_program, ragged = bmm_kernel._split_groups(n_groups)
-            self.assertTrue(1 <= programs <= min(n_groups, NUM_CUBE_CORES))
+            self.assertTrue(1 <= programs <= min(n_groups, get_num_cube_cores()))
             self.assertEqual(per_program, _cdiv(n_groups, programs))
             if ragged:
-                self.assertEqual(programs, min(n_groups, NUM_CUBE_CORES))
+                self.assertEqual(programs, min(n_groups, get_num_cube_cores()))
             else:
                 self.assertEqual(n_groups % programs, 0)
 
-        self.assertAlmostEqual(bmm_kernel._wave_use(NUM_CUBE_CORES), 1.0)
-        self.assertAlmostEqual(bmm_kernel._wave_use(2 * NUM_CUBE_CORES), 1.0)
-        self.assertAlmostEqual(bmm_kernel._wave_use(1), 1.0 / NUM_CUBE_CORES)
+        self.assertAlmostEqual(bmm_kernel._wave_use(get_num_cube_cores()), 1.0)
+        self.assertAlmostEqual(bmm_kernel._wave_use(2 * get_num_cube_cores()), 1.0)
+        self.assertAlmostEqual(bmm_kernel._wave_use(1), 1.0 / get_num_cube_cores())
         self.assertEqual(bmm_kernel._window(1), 1)
-        self.assertEqual(bmm_kernel._window(1024), round(NUM_CUBE_CORES ** 0.5))
+        self.assertEqual(bmm_kernel._window(1024), round(get_num_cube_cores() ** 0.5))
         for m_tiles in (2, 5, 7, 64):
             self.assertTrue(1 <= bmm_kernel._window(m_tiles) <= m_tiles)
 
@@ -166,7 +166,7 @@ class TestNpuBmmKernelHelpers(TestUtils):
         self.assertEqual(len(configs), 1)
         cfg = configs[0]
         self.assertEqual(cfg["TOTAL_GROUPS"], _cdiv(batch, cfg["G"]))
-        self.assertTrue(1 <= cfg["PROGRAMS"] <= NUM_CUBE_CORES)
+        self.assertTrue(1 <= cfg["PROGRAMS"] <= get_num_cube_cores())
         self.assertEqual(cfg["GROUPS_PER_PROGRAM"], _cdiv(cfg["TOTAL_GROUPS"], cfg["PROGRAMS"]))
         self.assertEqual(cfg["SHIFT_Q"], batch % cfg["G"] != 0)
         self.assertEqual(cfg["ROWS"] % MMAD_M_FRACTAL, 0)
@@ -179,7 +179,7 @@ class TestNpuBmmKernelHelpers(TestUtils):
         cfg = configs[0]
         self.assertGreaterEqual(cfg["BLOCK_Q"], 2)
         self.assertEqual(cfg["TOTAL_GROUPS"], _cdiv(batch, cfg["BLOCK_Q"]))
-        self.assertTrue(1 <= cfg["N_GROUP"] <= NUM_CUBE_CORES)
+        self.assertTrue(1 <= cfg["N_GROUP"] <= get_num_cube_cores())
         self.assertEqual(cfg["GROUPS_PER_PROGRAM"], _cdiv(cfg["TOTAL_GROUPS"], cfg["N_GROUP"]))
         self.assertEqual(cfg["MASKED_M"], cfg["M_TILES"] * cfg["BLOCK_M"] != m)
         self.assertEqual(cfg["MASKED_N"], cfg["N_TILES"] * cfg["BLOCK_N"] != n)
@@ -213,7 +213,7 @@ class TestNpuBmmKernelHelpers(TestUtils):
         # One tile over the output: only splitting K can feed the cores.
         self.assertTrue(bmm_kernel._only_k_split_fills_cores(1, 256, 128, 8192))
         self.assertFalse(bmm_kernel._only_k_split_fills_cores(1, 256, 128, 8191))
-        self.assertFalse(bmm_kernel._only_k_split_fills_cores(NUM_CUBE_CORES, 256, 128, 8192))
+        self.assertFalse(bmm_kernel._only_k_split_fills_cores(get_num_cube_cores(), 256, 128, 8192))
         self.assertTrue(bmm_kernel._only_k_split_fills_cores(2, 384, 128, 9000))
 
         mat1 = _FakeNode((4, 8, 16), (128, 16, 1))

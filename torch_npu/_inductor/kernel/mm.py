@@ -33,7 +33,7 @@ from .mm_common import (
     L0B_BYTES,
     L0C_BYTES,
     ACCUM_BYTES,
-    NUM_CUBE_CORES,
+    get_num_cube_cores,
     dtype_to_bytes,
     round_up_to_16,
     round_down_to_16,
@@ -1245,7 +1245,7 @@ def _get_npu_persistent_mm_configs(
         # than blocks lets the persistent loop distribute tiles across
         # cores; launching more programs than blocks wastes cores.
         # No other core count makes sense on a fixed-core-count device.
-        actual_num_cores = min(num_blocks, NUM_CUBE_CORES)
+        actual_num_cores = min(num_blocks, get_num_cube_cores())
         if actual_num_cores == 0:
             continue
         # Compute tiles per program (compile-time constant for loop bound)
@@ -1475,7 +1475,7 @@ def _get_npu_resident_b_mm_configs(
     if n < 16:
         return []
 
-    num_cube_cores = NUM_CUBE_CORES
+    num_cube_cores = get_num_cube_cores()
 
     # too small to use resident b template in m axis.
     if m < 16 * num_cube_cores:
@@ -1603,7 +1603,7 @@ def _get_npu_resident_b_mm_configs(
             if 16 <= opt_block_m <= opt_max_block_m:
                 # Avoid duplicate BLOCK_M
                 if opt_block_m not in [config["BLOCK_M"] for config in configs]:
-                    opt_num_progs = min(NUM_CUBE_CORES, math.ceil(m / opt_block_m))
+                    opt_num_progs = min(get_num_cube_cores(), math.ceil(m / opt_block_m))
                     if opt_num_progs < 1:
                         opt_num_progs = 1
                     opt_m_tail_cnt = _calc_tail_split_cnt(m, opt_block_m, opt_num_progs)
@@ -1771,7 +1771,7 @@ def _get_npu_resident_a_mm_configs(
     if m < 16:
         return []
 
-    num_cube_cores = NUM_CUBE_CORES
+    num_cube_cores = get_num_cube_cores()
 
     # too small to use resident a template in n axis.
     if n < 16 * num_cube_cores:
@@ -1897,7 +1897,7 @@ def _get_npu_resident_a_mm_configs(
             if 16 <= opt_block_n <= opt_max_block_n:
                 # Avoid duplicate BLOCK_N
                 if opt_block_n not in [config["BLOCK_N"] for config in configs]:
-                    opt_num_progs = min(NUM_CUBE_CORES, math.ceil(n / opt_block_n))
+                    opt_num_progs = min(get_num_cube_cores(), math.ceil(n / opt_block_n))
                     if opt_num_progs < 1:
                         opt_num_progs = 1
                     opt_n_tail_cnt = _calc_tail_split_cnt(n, opt_block_n, opt_num_progs)

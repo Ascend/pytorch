@@ -44,7 +44,7 @@ from .mm_common import (
     MIN_WAVES,
     MMAD_K_FRACTAL,
     MMAD_M_FRACTAL,
-    NUM_CUBE_CORES,
+    get_num_cube_cores,
 )
 
 
@@ -98,7 +98,7 @@ def _split_groups(n_groups: int) -> tuple[int, int, bool]:
     best exact split is weighed against a ragged one.  A group is whole, so
     coming up short costs a trip count and no mask.
     """
-    num_cube_cores = NUM_CUBE_CORES
+    num_cube_cores = get_num_cube_cores()
     exact = next((p for p in range(min(n_groups, num_cube_cores), 0, -1)
                   if n_groups % p == 0), 1)
     programs = min(n_groups, num_cube_cores)
@@ -110,7 +110,7 @@ def _split_groups(n_groups: int) -> tuple[int, int, bool]:
 
 def _wave_use(tasks: int) -> float:
     """Share of the core-cycles a task count spends on tasks rather than idle."""
-    num_cube_cores = NUM_CUBE_CORES
+    num_cube_cores = get_num_cube_cores()
     waves = -(-tasks // num_cube_cores)
     return tasks / (waves * num_cube_cores)
 
@@ -121,7 +121,7 @@ def _window(m_tiles: int) -> int:
     About the square root of the core count, so one wave of consecutive tiles
     covers a block roughly as tall as it is wide.
     """
-    return max(1, min(m_tiles, round(NUM_CUBE_CORES ** 0.5)))
+    return max(1, min(m_tiles, round(get_num_cube_cores() ** 0.5)))
 
 
 class _WideIndexNPUTritonTemplate(NPUTritonTemplate):
@@ -1188,7 +1188,7 @@ def _get_npu_bmm_merged_configs(
         batch, m, n, k = int(batch), int(m), int(n), int(k)
     except TypeError:
         return []
-    if batch < 4 * NUM_CUBE_CORES:
+    if batch < 4 * get_num_cube_cores():
         return []
     # K has to be whole fractals already; padding and masking it does not hold
     # here any more than it does in T2, see the note there.  These shapes go
@@ -1393,7 +1393,7 @@ def _get_npu_bmm_batched_configs(
     """
     batch, m, n, k = int(batch), int(m), int(n), int(k)
 
-    if batch <= NUM_CUBE_CORES:
+    if batch <= get_num_cube_cores():
         return []
 
     # K has to be whole fractals already.  Where it is not, this template
@@ -1445,7 +1445,7 @@ def _get_npu_bmm_batched_configs(
     block_q = min(L1_BYTES // l1_per_batch,
                   L0C_DOUBLE_BUFFERED_BYTES
                   // (block_m * block_n * ACCUM_BYTES),
-                  max(1, batch // (MIN_WAVES * NUM_CUBE_CORES)))
+                  max(1, batch // (MIN_WAVES * get_num_cube_cores())))
 
     # Folding several batches into one mmad is the whole of what this template
     # has over the ones that tile the output, so a group of one batch is not
@@ -1586,7 +1586,7 @@ def _only_k_split_fills_cores(batch: int, m: int, n: int, k: int) -> bool:
     if batch < 1:
         return False
     tiles = batch * -(-m // _GATE_BLOCK_M) * -(-n // _GATE_BLOCK_N)
-    return tiles < NUM_CUBE_CORES and k >= _LONG_K
+    return tiles < get_num_cube_cores() and k >= _LONG_K
 
 
 def add_npu_triton_bmm_choices(

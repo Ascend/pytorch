@@ -1,6 +1,6 @@
 import torch
 
-from ..config import num_cube_core
+from .. import config
 
 
 # Cube-side on-chip capacities for Atlas A5, from catlass/arch/arch.hpp.  The
@@ -38,10 +38,6 @@ L0C_SINGLE_BUFFERED = "no-l0c"
 # guessing smaller would admit plans that overrun L1 on the device.
 DEFAULT_ELEM_BYTES = 2
 
-# Resolved the same way the rest of the NPU inductor backend resolves it, so a
-# non-28-core part and an NPU_DEVICE_LIMIT override are both honoured.
-NUM_CUBE_CORES = num_cube_core
-
 # How many block-loop iterations each core should get, so that consecutive
 # iterations have something to overlap with.
 MIN_WAVES = 3
@@ -65,6 +61,10 @@ _DTYPE_BYTES = {
     torch.int16: 2,
     torch.int32: 4,
 }
+
+
+def get_num_cube_cores():
+    return config.num_cube_core
 
 
 def dtype_to_bytes(dtype):
