@@ -2,7 +2,6 @@
 
 from collections import namedtuple, OrderedDict
 from multiprocessing.reduction import ForkingPickler
-import warnings
 import torch
 import numpy as np
 from torch.testing._internal.common_utils import parametrize, instantiate_parametrized_tests
@@ -275,15 +274,17 @@ class TestJaggedNestedTensorOps(TestCase):
         expected = torch.cat([grad.cpu()[index, :length] for index, length in enumerate(lengths)])
         torch.testing.assert_close(values.grad.cpu(), expected, rtol=0, atol=0)
 
-    def test_no_cpu_fallback_warning(self):
+    def test_conversions_run_the_npu_kernels(self):
         lengths = [5, 9, 3]
         parts = _make_jagged_parts(lengths, torch.float32, (3,))
         offsets = torch.tensor([0] + list(torch.cumsum(
             torch.tensor(lengths), 0).tolist()), dtype=torch.int64)
-        nested = torch.nested.as_nested_tensor(parts, layout=torch.jagged).npu()
-        # The registered kernels resolve the implementation at call time, so
-        # counting the calls proves the NPU kernel was reached instead of the
-        # torch_npu CPU fallback.
+        nested = torch.nested.as_nested_tensor(parts, layout=torch.jagged)
+        expected_padded = torch.nested.to_padded_tensor(nested, padding=0.0)
+        nested = nested.to("npu:0")
+        # The registered kernels resolve the implementation at call time, so the
+        # recorded calls prove the NPU path was taken instead of the torch_npu
+        # CPU fallback (whose one-shot TORCH_WARN is not a Python warning).
         calls = []
         originals = {}
 
@@ -297,14 +298,12 @@ class TestJaggedNestedTensorOps(TestCase):
             originals[name] = getattr(_jagged_ops, name)
             setattr(_jagged_ops, name, counting(name, originals[name]))
         try:
-            with warnings.catch_warnings(record=True) as caught:
-                warnings.simplefilter("always")
-                padded = torch.nested.to_padded_tensor(nested, padding=0.0)
-                values = torch.ops.aten._padded_dense_to_jagged_forward(
-                    padded, [offsets.npu()], int(offsets[-1]))
-                torch.ops.aten._jagged_to_padded_dense_forward(
-                    values, [offsets.npu()], [max(lengths)], 0.0)
-                torch.npu.synchronize()
+            padded = torch.nested.to_padded_tensor(nested, padding=0.0)
+            values = torch.ops.aten._padded_dense_to_jagged_forward(
+                padded, [offsets.npu()], int(offsets[-1]))
+            torch.ops.aten._jagged_to_padded_dense_forward(
+                values, [offsets.npu()], [max(lengths)], 0.0)
+            torch.npu.synchronize()
         finally:
             for name, impl in originals.items():
                 setattr(_jagged_ops, name, impl)
@@ -315,8 +314,7 @@ class TestJaggedNestedTensorOps(TestCase):
             "both jagged kernels must run when converting to / from padded dense",
         )
         self.assertEqual({device for _, device in calls}, {"npu"})
-        fallback_warnings = [str(item.message) for item in caught if "fall back" in str(item.message).lower()]
-        self.assertEqual(fallback_warnings, [], "jagged NestedTensor conversions fell back to the CPU")
+        torch.testing.assert_close(padded.cpu(), expected_padded, rtol=0, atol=0)
 
 
 class TestJaggedOpsComposition(TestCase):
