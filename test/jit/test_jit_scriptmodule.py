@@ -1,5 +1,20 @@
+# Copyright (c) 2026 Huawei Technologies Co., Ltd
+# All rights reserved.
+#
+# Licensed under the BSD 3-Clause License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
-Add validation cases for torch.jit.ScriptModule APIs on NPU:
+Add validation cases for torch.jit.ScriptModule APIs on NPU, including half:
 
 PyTorch community lacks sufficient and direct API validations for some APIs, so this file is added.
 This file validates torch.jit.ScriptModule.bfloat16, torch.jit.ScriptModule.buffers,
@@ -391,6 +406,121 @@ class TestJitScriptModuleCodeWithConstants(TestCase):
 
         # 5. Verify the constant is referenced in the code string
         self.assertIn("CONSTANTS.c0", code_str)
+
+
+half_device_type = acc.type if (acc := torch.accelerator.current_accelerator()) else "cpu"
+
+
+class _ScriptHalfLeaf(torch.nn.Module):
+
+    def __init__(self):
+        super().__init__()
+        self.weight = torch.nn.Parameter(torch.tensor([2.0, 3.0]))
+        self.register_buffer('scale', torch.tensor([1.0, 2.0]))
+        self.register_buffer('integer', torch.tensor([2, 3], dtype=torch.int64))
+        self.register_buffer('boolean', torch.tensor([True, False]))
+        self.register_buffer('empty', torch.empty(0))
+
+    def forward(self, x):
+        return x * self.weight + self.scale
+
+
+class _ScriptHalfBranch(torch.nn.Module):
+
+    def __init__(self):
+        super().__init__()
+        self.leaf = _ScriptHalfLeaf()
+
+    def forward(self, x):
+        return self.leaf(x)
+
+
+class _ScriptHalfModel(torch.nn.Module):
+
+    def __init__(self):
+        super().__init__()
+        self.root_weight = torch.nn.Parameter(torch.tensor([1.0, 1.0]))
+        self.register_buffer('root_buffer', torch.tensor([1.0, 1.0]))
+        self.branch = _ScriptHalfBranch()
+
+    def forward(self, x):
+        return self.branch(x) * self.root_weight + self.root_buffer
+
+
+def _make_half_scripted(dtype=torch.float32):
+    return torch.jit.script(_ScriptHalfModel().to(device=half_device_type, dtype=dtype))
+
+
+class TestScriptModuleHalf(TestCase):
+
+    def test_recursive_root_nested_values_device_and_gradient(self):
+        module = _make_half_scripted()
+        module.root_weight.grad = torch.tensor([1.0, 2.0], device=half_device_type)
+        module.branch.leaf.weight.grad = torch.tensor([3.0, 4.0], device=half_device_type)
+        names = ('root_weight', 'root_buffer', 'branch.leaf.weight', 'branch.leaf.scale')
+
+        def resolve(name):
+            value = module
+            for segment in name.split('.'):
+                value = getattr(value, segment)
+            return value
+
+        before = {name: resolve(name).detach().cpu().clone() for name in names}
+        self.assertIs(module.half(), module)
+        for name in names:
+            with self.subTest(name=name):
+                value = resolve(name)
+                self.assertEqual(value.device.type, half_device_type)
+                self.assertEqual(value.dtype, torch.float16)
+                self.assertEqual(value.detach().cpu(), before[name].half())
+        for name, expected in (('root_weight', [1.0, 2.0]), ('branch.leaf.weight', [3.0, 4.0])):
+            grad = resolve(name).grad
+            self.assertIsNotNone(grad)
+            self.assertEqual(grad.device.type, half_device_type)
+            self.assertEqual(grad.dtype, torch.float16)
+            self.assertEqual(grad.cpu(), torch.tensor(expected, dtype=torch.float16))
+        leaf = module.branch.leaf
+        self.assertEqual(leaf.integer.dtype, torch.int64)
+        self.assertEqual(leaf.boolean.dtype, torch.bool)
+        self.assertEqual(leaf.integer.device.type, half_device_type)
+        self.assertEqual(leaf.boolean.device.type, half_device_type)
+        self.assertEqual(leaf.integer.cpu(), torch.tensor([2, 3]))
+        self.assertEqual(leaf.boolean.cpu(), torch.tensor([True, False]))
+        self.assertEqual(leaf.empty.dtype, torch.float16)
+        self.assertEqual(leaf.empty.numel(), 0)
+        y = module(torch.tensor([1.0, 2.0], device=half_device_type, dtype=torch.float16))
+        self.assertEqual(y.device.type, half_device_type)
+        self.assertEqual(y.dtype, torch.float16)
+        self.assertEqual(y.cpu(), torch.tensor([4.0, 9.0], dtype=torch.float16))
+
+    def test_bfloat16_numeric_conversion(self):
+        module = _make_half_scripted(torch.bfloat16)
+        for item in (module.root_weight, module.root_buffer, module.branch.leaf.weight, module.branch.leaf.scale):
+            self.assertEqual(item.dtype, torch.bfloat16)
+        before = module.branch.leaf.weight.detach().cpu().clone()
+        self.assertIs(module.half(), module)
+        self.assertEqual(module.branch.leaf.weight.dtype, torch.float16)
+        self.assertEqual(module.branch.leaf.scale.dtype, torch.float16)
+        self.assertEqual(module.branch.leaf.weight.detach().cpu(), before.half())
+
+    def test_existing_fp16_and_repeat_values(self):
+        module = _make_half_scripted(torch.float16)
+        before = {k: v.detach().cpu().clone() for k, v in module.state_dict().items()}
+        self.assertIs(module.half(), module)
+        self.assertIs(module.half(), module)
+        after = module.state_dict()
+        self.assertEqual(set(before), set(after))
+        for name, value in after.items():
+            self.assertEqual(value.device.type, half_device_type)
+            self.assertEqual(value.dtype, before[name].dtype)
+            self.assertEqual(value.cpu(), before[name])
+
+    def test_empty_module(self):
+        module = torch.jit.script(torch.nn.Identity().to(half_device_type))
+        self.assertIs(module.half(), module)
+        self.assertEqual(list(module.parameters()), [])
+        self.assertEqual(list(module.buffers()), [])
+
 
 if __name__ == "__main__":
     run_tests()
