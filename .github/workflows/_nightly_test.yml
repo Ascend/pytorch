@@ -146,6 +146,18 @@ on:
           Max failed/error/timeout cases retried serially per shard
           (0 = unlimited); cases beyond the cap keep their original
           results. Only used when retry_failed_cases is true.
+      retry_skip_threshold:
+        required: false
+        type: string
+        default: '0'
+        description: >-
+          Skip the retry entirely when the shard's failed/error/timeout
+          case count exceeds this threshold (0 = disabled; comparison is
+          strictly greater-than). Mass failure usually means an
+          environmental/compat issue, so every case keeps its original
+          result instead of burning hours on doomed serial retries.
+          Optional: unset keeps the historical retry behavior. Only used
+          when retry_failed_cases is true.
       retry_attempts:
         required: false
         type: string
@@ -251,6 +263,7 @@ jobs:
       patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 }}
       retry_failed_cases: ${{ inputs.retry_failed_cases }}
       retry_max_cases: ${{ inputs.retry_max_cases }}
+      retry_skip_threshold: ${{ inputs.retry_skip_threshold }}
       retry_attempts: ${{ inputs.retry_attempts }}
       retry_only_list: ${{ inputs.retry_only_list }}
       retry_max_workers: ${{ inputs.retry_max_workers }}
