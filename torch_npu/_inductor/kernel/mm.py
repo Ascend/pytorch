@@ -1,52 +1,39 @@
-import functools
 import logging
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import torch
 import math
-from torch._inductor.autoheuristic.autoheuristic import AutoHeuristicSelectAlgorithm
-from torch._inductor.autoheuristic.autoheuristic_utils import (
-    mm_operations,
-)
 import torch._inductor.codegen
 from torch._inductor.codegen.cpp_gemm_template import CppGemmTemplate
 import torch._inductor.kernel
 from torch._inductor.virtualized import V
 
 from torch._inductor import config as inductor_config, ir
-from torch._inductor.codegen.common import BackendFeature
 from torch._inductor.codegen.rocm.ck_universal_gemm_template import CKGemmTemplate
 from torch._inductor.codegen.wrapper import PythonWrapperCodegen
-from torch._inductor.ir import FixedLayout, FlexibleLayout, is_triton
+from torch._inductor.ir import FlexibleLayout
 from torch._inductor.lowering import register_lowering, fallback_handler
 from torch._inductor.select_algorithm import (
     autotune_select_algorithm,
-    ExternKernelChoice,
     NoValidChoicesError,
-    TritonTemplate,
 )
 from torch._inductor.utils import (
-    load_template,
     use_aten_gemm_kernels,
     use_ck_gemm_template,
     use_cpp_gemm_template,
-    is_pointwise_use,
 )
 from torch._inductor.kernel.mm_common import (
     _is_static_problem,
     addmm_epilogue,
     mm_args,
-    mm_grid,
 )
 from .mm_common import (
     L0A_BYTES,
     L1_BYTES,
-    L1_BUFFER_COPIES,
     L0B_BYTES,
     L0C_BYTES,
     ACCUM_BYTES,
-    NUM_CUBE_CORES,
+    get_num_cube_cores,
     dtype_to_bytes,
     round_up_to_16,
     round_down_to_16,
@@ -136,7 +123,7 @@ _MM_TEMPLATE = """{{def_kernel("A", "B")}}
         idx_m = rm[:, None]
         idx_n = offs_k[None, :]
 {% if MASKED_K and MASKED_M %}
-        {{load_input("A","a",("idx_m","idx_n"),mask="m_mask[:, None] & k_mask[None, :]",other=0.0,indent_width=8,index_shape=("BLOCK_M","BLOCK_K"))}}
+        {{load_input("A","a",("idx_m","idx_n"),mask="m_mask[:, None] & k_mask[None, :]",other=0.0,indent_width=8,index_shape=("BLOCK_M","BLOCK_K"))}}  # noqa: B950
 {% elif MASKED_K %}
         {{load_input("A","a",("idx_m","idx_n"),mask="k_mask[None, :]",other=0.0,indent_width=8,index_shape=("BLOCK_M","BLOCK_K"))}}
 {% elif MASKED_M %}
@@ -147,7 +134,7 @@ _MM_TEMPLATE = """{{def_kernel("A", "B")}}
         idx_m = offs_k[:, None]
         idx_n = rn[None, :]
 {% if MASKED_K and MASKED_N %}
-        {{load_input("B","b",("idx_m","idx_n"),mask="k_mask[:, None] & n_mask[None, :]",other=0.0,indent_width=8,index_shape=("BLOCK_K","BLOCK_N"))}}
+        {{load_input("B","b",("idx_m","idx_n"),mask="k_mask[:, None] & n_mask[None, :]",other=0.0,indent_width=8,index_shape=("BLOCK_K","BLOCK_N"))}}  # noqa: B950
 {% elif MASKED_K %}
         {{load_input("B","b",("idx_m","idx_n"),mask="k_mask[:, None]",other=0.0,indent_width=8,index_shape=("BLOCK_K","BLOCK_N"))}}
 {% elif MASKED_N %}
@@ -272,22 +259,22 @@ _PERSISTENT_MM_TEMPLATE = """
                 idx_m = rm[:, None]
                 idx_n = offs_k[None, :]
 {% if MASKED_K and MASKED_M %}
-                {{load_input("A","a",("idx_m","idx_n"),mask="m_mask[:, None] & k_mask[None, :]",other=0.0,indent_width=16,index_shape=("BLOCK_M","BLOCK_K"))}}
+                {{load_input("A","a",("idx_m","idx_n"),mask="m_mask[:, None] & k_mask[None, :]",other=0.0,indent_width=16,index_shape=("BLOCK_M","BLOCK_K"))}}  # noqa: B950
 {% elif MASKED_K %}
-                {{load_input("A","a",("idx_m","idx_n"),mask="k_mask[None, :]",other=0.0,indent_width=16,index_shape=("BLOCK_M","BLOCK_K"))}}
+                {{load_input("A","a",("idx_m","idx_n"),mask="k_mask[None, :]",other=0.0,indent_width=16,index_shape=("BLOCK_M","BLOCK_K"))}}  # noqa: B950
 {% elif MASKED_M %}
-                {{load_input("A","a",("idx_m","idx_n"),mask="m_mask[:, None]",other=0.0,indent_width=16,index_shape=("BLOCK_M","BLOCK_K"))}}
+                {{load_input("A","a",("idx_m","idx_n"),mask="m_mask[:, None]",other=0.0,indent_width=16,index_shape=("BLOCK_M","BLOCK_K"))}}  # noqa: B950
 {% else %}
                 {{load_input("A","a",("idx_m","idx_n"),indent_width=16,index_shape=("BLOCK_M","BLOCK_K"))}}
 {% endif %}
                 idx_m = offs_k[:, None]
                 idx_n = rn[None, :]
 {% if MASKED_K and MASKED_N %}
-                {{load_input("B","b",("idx_m","idx_n"),mask="k_mask[:, None] & n_mask[None, :]",other=0.0,indent_width=16,index_shape=("BLOCK_K","BLOCK_N"))}}
+                {{load_input("B","b",("idx_m","idx_n"),mask="k_mask[:, None] & n_mask[None, :]",other=0.0,indent_width=16,index_shape=("BLOCK_K","BLOCK_N"))}}  # noqa: B950
 {% elif MASKED_K %}
-                {{load_input("B","b",("idx_m","idx_n"),mask="k_mask[:, None]",other=0.0,indent_width=16,index_shape=("BLOCK_K","BLOCK_N"))}}
+                {{load_input("B","b",("idx_m","idx_n"),mask="k_mask[:, None]",other=0.0,indent_width=16,index_shape=("BLOCK_K","BLOCK_N"))}}  # noqa: B950
 {% elif MASKED_N %}
-                {{load_input("B","b",("idx_m","idx_n"),mask="n_mask[None, :]",other=0.0,indent_width=16,index_shape=("BLOCK_K","BLOCK_N"))}}
+                {{load_input("B","b",("idx_m","idx_n"),mask="n_mask[None, :]",other=0.0,indent_width=16,index_shape=("BLOCK_K","BLOCK_N"))}}  # noqa: B950
 {% else %}
                 {{load_input("B","b",("idx_m","idx_n"),indent_width=16,index_shape=("BLOCK_K","BLOCK_N"))}}
 {% endif %}
@@ -382,7 +369,7 @@ _RESIDENT_B_MM_TEMPLATE = """
     idx_m = rk[:, None]
     idx_n = rn[None, :]
 {% if MASKED_K and MASKED_N %}
-    {{load_input("B","b",("idx_m","idx_n"),mask="k_mask[:, None] & n_mask[None, :]",other=0.0,indent_width=4,index_shape=("BLOCK_K","BLOCK_N"))}}
+    {{load_input("B","b",("idx_m","idx_n"),mask="k_mask[:, None] & n_mask[None, :]",other=0.0,indent_width=4,index_shape=("BLOCK_K","BLOCK_N"))}}  # noqa: B950
 {% elif MASKED_K %}
     {{load_input("B","b",("idx_m","idx_n"),mask="k_mask[:, None]",other=0.0,indent_width=4,index_shape=("BLOCK_K","BLOCK_N"))}}
 {% elif MASKED_N %}
@@ -446,9 +433,9 @@ _RESIDENT_B_MM_TEMPLATE = """
             idx_m = offs_m[:, None]
             idx_n = rk[None, :]
 {% if MASKED_K %}
-            {{load_input("A","a",("idx_m","idx_n"),mask="mask_m[:, None] & k_mask[None, :]",other=0.0,indent_width=12,index_shape=("BLOCK_M","BLOCK_K"))}}
+            {{load_input("A","a",("idx_m","idx_n"),mask="mask_m[:, None] & k_mask[None, :]",other=0.0,indent_width=12,index_shape=("BLOCK_M","BLOCK_K"))}}  # noqa: B950
 {% else %}
-            {{load_input("A","a",("idx_m","idx_n"),mask="mask_m[:, None]",other=0.0,indent_width=12,index_shape=("BLOCK_M","BLOCK_K"))}}
+            {{load_input("A","a",("idx_m","idx_n"),mask="mask_m[:, None]",other=0.0,indent_width=12,index_shape=("BLOCK_M","BLOCK_K"))}}  # noqa: B950
 {% endif %}
             extension.compile_hint(a, "dot_pad_only_k")
             acc = tl.dot(a, b{% if ALLOW_HF32 %}, input_precision="tf32"{% endif %}, out_dtype=ACC_TYPE)
@@ -477,7 +464,7 @@ _RESIDENT_B_MM_TEMPLATE = """
         idx_m = rm[:, None]
         idx_n = rk[None, :]
 {% if MASKED_K and MASKED_M %}
-        {{load_input("A","a",("idx_m","idx_n"),mask="m_mask[:, None] & k_mask[None, :]",other=0.0,indent_width=8,index_shape=("BLOCK_M","BLOCK_K"))}}
+        {{load_input("A","a",("idx_m","idx_n"),mask="m_mask[:, None] & k_mask[None, :]",other=0.0,indent_width=8,index_shape=("BLOCK_M","BLOCK_K"))}}  # noqa: B950
 {% elif MASKED_K %}
         {{load_input("A","a",("idx_m","idx_n"),mask="k_mask[None, :]",other=0.0,indent_width=8,index_shape=("BLOCK_M","BLOCK_K"))}}
 {% elif MASKED_M %}
@@ -641,9 +628,9 @@ _RESIDENT_A_MM_TEMPLATE = """
             idx_m = rk[:, None]
             idx_n = offs_n[None, :]
 {% if MASKED_K %}
-            {{load_input("B","b",("idx_m","idx_n"),mask="k_mask[:, None] & mask_n[None, :]",other=0.0,indent_width=12,index_shape=("BLOCK_K","BLOCK_N"))}}
+            {{load_input("B","b",("idx_m","idx_n"),mask="k_mask[:, None] & mask_n[None, :]",other=0.0,indent_width=12,index_shape=("BLOCK_K","BLOCK_N"))}}  # noqa: B950
 {% else %}
-            {{load_input("B","b",("idx_m","idx_n"),mask="mask_n[None, :]",other=0.0,indent_width=12,index_shape=("BLOCK_K","BLOCK_N"))}}
+            {{load_input("B","b",("idx_m","idx_n"),mask="mask_n[None, :]",other=0.0,indent_width=12,index_shape=("BLOCK_K","BLOCK_N"))}}  # noqa: B950
 {% endif %}
             extension.compile_hint(b, "dot_pad_only_k")
             acc = tl.dot(a, b{% if ALLOW_HF32 %}, input_precision="tf32"{% endif %}, out_dtype=ACC_TYPE)
@@ -672,7 +659,7 @@ _RESIDENT_A_MM_TEMPLATE = """
         idx_m = rk[:, None]
         idx_n = rn[None, :]
 {% if MASKED_K and MASKED_N %}
-        {{load_input("B","b",("idx_m","idx_n"),mask="k_mask[:, None] & n_mask[None, :]",other=0.0,indent_width=8,index_shape=("BLOCK_K","BLOCK_N"))}}
+        {{load_input("B","b",("idx_m","idx_n"),mask="k_mask[:, None] & n_mask[None, :]",other=0.0,indent_width=8,index_shape=("BLOCK_K","BLOCK_N"))}}  # noqa: B950
 {% elif MASKED_K %}
         {{load_input("B","b",("idx_m","idx_n"),mask="k_mask[:, None]",other=0.0,indent_width=8,index_shape=("BLOCK_K","BLOCK_N"))}}
 {% elif MASKED_N %}
@@ -1027,7 +1014,7 @@ def _gen_tile_combos(m, n, k, max_block_dim, dtype=None, is_a_trans=False, is_b_
         if opt_combo not in combos:
             combos.append(opt_combo)
     except Exception as e:
-        log.debug("optimize_tiling failed for m=%d n=%d k=%d: %s", m, n, k, e)
+        log.debug("optimize_tiling failed for m=%d n=%d k=%d: %s", m, n, k, e)  # noqa: G200
 
     return combos
 
@@ -1154,7 +1141,7 @@ def add_npu_triton_mm_choices(
             if choice is not None:
                 choices.append(choice)
         except Exception as e:
-            log.debug(
+            log.debug(  # noqa: G200
                 "Failed to generate NPU triton mm choice with config %s: %s",
                 cfg,
                 e,
@@ -1259,7 +1246,7 @@ def _get_npu_persistent_mm_configs(
         # than blocks lets the persistent loop distribute tiles across
         # cores; launching more programs than blocks wastes cores.
         # No other core count makes sense on a fixed-core-count device.
-        actual_num_cores = min(num_blocks, NUM_CUBE_CORES)
+        actual_num_cores = min(num_blocks, get_num_cube_cores())
         if actual_num_cores == 0:
             continue
         # Compute tiles per program (compile-time constant for loop bound)
@@ -1334,7 +1321,7 @@ def add_npu_persistent_mm_choices(
             if choice is not None:
                 choices.append(choice)
         except Exception as e:
-            log.debug(
+            log.debug(  # noqa: G200
                 "Failed to generate NPU persistent mm choice with config %s: %s",
                 cfg,
                 e,
@@ -1397,7 +1384,7 @@ def add_npu_persistent_addmm_choices(
             if choice is not None:
                 choices.append(choice)
         except Exception as e:
-            log.debug(
+            log.debug(  # noqa: G200
                 "Failed to generate NPU persistent addmm choice with config %s: %s",
                 cfg,
                 e,
@@ -1489,7 +1476,7 @@ def _get_npu_resident_b_mm_configs(
     if n < 16:
         return []
 
-    num_cube_cores = NUM_CUBE_CORES
+    num_cube_cores = get_num_cube_cores()
 
     # too small to use resident b template in m axis.
     if m < 16 * num_cube_cores:
@@ -1531,8 +1518,10 @@ def _get_npu_resident_b_mm_configs(
         max_block_m_l0a = L0A_BYTES // (block_k * dt_bytes)
         # L1 constraint: ((BLOCK_M * BLOCK_K) * L1_BUFFER_COPIES + BLOCK_K * BLOCK_N) * dt_bytes <= L1_BYTES
         # L1 constraint with bias: ((BLOCK_M * BLOCK_K) * L1_BUFFER_COPIES + BLOCK_K * BLOCK_N + BLOCK_N) * dt_bytes <= L1_BYTES
-        max_block_m_l1 = (L1_BYTES // dt_bytes - block_n * block_k) // l1_buffer_copies // block_k if not has_bias \
-                        else (L1_BYTES // dt_bytes - block_n * block_k - block_n) // l1_buffer_copies // block_k
+        if not has_bias:
+            max_block_m_l1 = (L1_BYTES // dt_bytes - block_n * block_k) // l1_buffer_copies // block_k
+        else:
+            max_block_m_l1 = (L1_BYTES // dt_bytes - block_n * block_k - block_n) // l1_buffer_copies // block_k
         max_block_m = min(max_block_m_l0c, max_block_m_l0a, max_block_m_l1)
         # Must be at least one fractal (16)
         max_block_m = max(round_down_to_16(max_block_m), 16)
@@ -1615,7 +1604,7 @@ def _get_npu_resident_b_mm_configs(
             if 16 <= opt_block_m <= opt_max_block_m:
                 # Avoid duplicate BLOCK_M
                 if opt_block_m not in [config["BLOCK_M"] for config in configs]:
-                    opt_num_progs = min(NUM_CUBE_CORES, math.ceil(m / opt_block_m))
+                    opt_num_progs = min(get_num_cube_cores(), math.ceil(m / opt_block_m))
                     if opt_num_progs < 1:
                         opt_num_progs = 1
                     opt_m_tail_cnt = _calc_tail_split_cnt(m, opt_block_m, opt_num_progs)
@@ -1683,7 +1672,7 @@ def add_npu_resident_b_mm_choices(
             if choice is not None:
                 choices.append(choice)
         except Exception as e:
-            log.debug(
+            log.debug(  # noqa: G200
                 "Failed to generate resident-B mm choice with config %s: %s",
                 cfg, e,
             )
@@ -1738,7 +1727,7 @@ def add_npu_resident_b_addmm_choices(
             if choice is not None:
                 choices.append(choice)
         except Exception as e:
-            log.debug(
+            log.debug(  # noqa: G200
                 "Failed to generate resident-B addmm choice with config %s: %s",
                 cfg, e,
             )
@@ -1783,7 +1772,7 @@ def _get_npu_resident_a_mm_configs(
     if m < 16:
         return []
 
-    num_cube_cores = NUM_CUBE_CORES
+    num_cube_cores = get_num_cube_cores()
 
     # too small to use resident a template in n axis.
     if n < 16 * num_cube_cores:
@@ -1823,8 +1812,10 @@ def _get_npu_resident_a_mm_configs(
         max_block_n_l0b = L0B_BYTES // (block_k * dt_bytes)
         # L1 constraint: ((BLOCK_K * BLOCK_N) * L1_BUFFER_COPIES + BLOCK_M * BLOCK_K) * dt_bytes <= L1_BYTES
         # L1 constraint with bias: ((BLOCK_K * BLOCK_N + BLOCK_N) * L1_BUFFER_COPIES + BLOCK_M * BLOCK_K) * dt_bytes <= L1_BYTES
-        max_block_n_l1 = (L1_BYTES // dt_bytes - block_m * block_k) // l1_buffer_copies // block_k if not has_bias \
-                        else (L1_BYTES // dt_bytes - (block_m * block_k)) // l1_buffer_copies // (block_k + 1)
+        if not has_bias:
+            max_block_n_l1 = (L1_BYTES // dt_bytes - block_m * block_k) // l1_buffer_copies // block_k
+        else:
+            max_block_n_l1 = (L1_BYTES // dt_bytes - (block_m * block_k)) // l1_buffer_copies // (block_k + 1)
         max_block_n = min(max_block_n_l0c, max_block_n_l0b, max_block_n_l1)
         # Must be at least one fractal (16)
         max_block_n = max(round_down_to_16(max_block_n), 16)
@@ -1907,7 +1898,7 @@ def _get_npu_resident_a_mm_configs(
             if 16 <= opt_block_n <= opt_max_block_n:
                 # Avoid duplicate BLOCK_N
                 if opt_block_n not in [config["BLOCK_N"] for config in configs]:
-                    opt_num_progs = min(NUM_CUBE_CORES, math.ceil(n / opt_block_n))
+                    opt_num_progs = min(get_num_cube_cores(), math.ceil(n / opt_block_n))
                     if opt_num_progs < 1:
                         opt_num_progs = 1
                     opt_n_tail_cnt = _calc_tail_split_cnt(n, opt_block_n, opt_num_progs)
@@ -1972,7 +1963,7 @@ def add_npu_resident_a_mm_choices(
             if choice is not None:
                 choices.append(choice)
         except Exception as e:
-            log.debug(
+            log.debug(  # noqa: G200
                 "Failed to generate resident-A mm choice with config %s: %s",
                 cfg, e,
             )
@@ -2024,7 +2015,7 @@ def add_npu_resident_a_addmm_choices(
             if choice is not None:
                 choices.append(choice)
         except Exception as e:
-            log.debug(
+            log.debug(  # noqa: G200
                 "Failed to generate resident-A addmm choice with config %s: %s",
                 cfg, e,
             )
@@ -2101,7 +2092,7 @@ def add_npu_triton_addmm_choices(
             if choice is not None:
                 choices.append(choice)
         except Exception as e:
-            log.debug(
+            log.debug(  # noqa: G200
                 "Failed to generate NPU triton addmm choice with config %s: %s",
                 cfg,
                 e,
@@ -2111,13 +2102,13 @@ def add_npu_triton_addmm_choices(
 def is_contiguous_striding(size, stride) -> bool:
     def is_contiguous_row_major(stride, size) -> bool:
         # to support non-contiguous row-major input
-        return V.graph.sizevars.statically_known_equals(stride[1], 1) and \
-               V.graph.sizevars.statically_known_equals(stride[0], size[1])
+        return (V.graph.sizevars.statically_known_equals(stride[1], 1)
+                and V.graph.sizevars.statically_known_equals(stride[0], size[1]))
 
     def is_contiguous_col_major(stride, size) -> bool:
         # to support non-contiguous col-major input
-        return V.graph.sizevars.statically_known_equals(stride[0], 1) and \
-               V.graph.sizevars.statically_known_equals(stride[1], size[0])
+        return (V.graph.sizevars.statically_known_equals(stride[0], 1)
+                and V.graph.sizevars.statically_known_equals(stride[1], size[0]))
 
     return (
         is_contiguous_row_major(stride, size)
@@ -2181,7 +2172,7 @@ def _register_npu_inductor_mm():
                 choices, layout, [mat1, mat2]
             )
             # debug log
-            log.info(f"Choices number after catlass template: {len(choices)}")
+            log.info(f"Choices number after catlass template: {len(choices)}")  # noqa: G004
 
         if is_nonzero and use_ck_gemm_template(layout, m, n, k):
             CKGemmTemplate.add_ck_gemm_choices(choices, layout, [mat1, mat2])
@@ -2211,7 +2202,7 @@ def _register_npu_inductor_mm():
                     len(choices),
                 )
             except Exception as e:
-                log.warning("Failed to add NPU triton mm template choices: %s", e)
+                log.warning("Failed to add NPU triton mm template choices: %s", e)  # noqa: G200
 
         # Add NPU persistent Triton matmul template choices.
         # Uses new_triton_mm.py.jinja with a persistent kernel strategy:
@@ -2233,7 +2224,7 @@ def _register_npu_inductor_mm():
                     len(choices),
                 )
             except Exception as e:
-                log.warning("Failed to add NPU persistent mm template choices: %s", e)
+                log.warning("Failed to add NPU persistent mm template choices: %s", e)  # noqa: G200
 
         # Add NPU resident-B Triton matmul template choices.
         # When N*K fits in L0B, this template loads B once and streams over
@@ -2249,7 +2240,7 @@ def _register_npu_inductor_mm():
                     m, n, k, len(choices),
                 )
             except Exception as e:
-                log.warning("Failed to add NPU resident-B mm template choices: %s", e)
+                log.warning("Failed to add NPU resident-B mm template choices: %s", e)  # noqa: G200
 
         # Add NPU resident-A Triton matmul template choices.
         # When M*K fits in L0A, this template loads A once and streams over
@@ -2265,7 +2256,7 @@ def _register_npu_inductor_mm():
                     m, n, k, len(choices),
                 )
             except Exception as e:
-                log.warning("Failed to add NPU resident-A mm template choices: %s", e)
+                log.warning("Failed to add NPU resident-A mm template choices: %s", e)  # noqa: G200
 
         input_nodes = [mat1, mat2]
 
@@ -2535,7 +2526,7 @@ def _register_npu_inductor_addmm():
                     len(choices),
                 )
             except Exception as e:
-                log.warning("Failed to add NPU triton addmm template choices: %s", e)
+                log.warning("Failed to add NPU triton addmm template choices: %s", e)  # noqa: G200
 
         # Add NPU persistent Triton addmm template choices.
         # Reuses npu_persistent_mm_template with prefix_args=1 + addmm_epilogue,
@@ -2564,7 +2555,7 @@ def _register_npu_inductor_addmm():
                     len(choices),
                 )
             except Exception as e:
-                log.warning("Failed to add NPU persistent addmm template choices: %s", e)
+                log.warning("Failed to add NPU persistent addmm template choices: %s", e)  # noqa: G200
 
         # Add NPU resident-B Triton addmm template choices.
         # Same resident-B strategy (full-load B, streaming M) but with the
@@ -2587,9 +2578,9 @@ def _register_npu_inductor_addmm():
                     "NPU resident-B addmm: added choices "
                     "for addmm(%d, %d, %d), total choices now %d",
                     m, n, k, len(choices),
-                    )
+                )
             except Exception as e:
-                log.warning("Failed to add NPU resident-B addmm template choices: %s", e)
+                log.warning("Failed to add NPU resident-B addmm template choices: %s", e)  # noqa: G200
 
         # Add NPU resident-A Triton addmm template choices.
         # Same resident-A strategy (full-load A, streaming N) but with the
@@ -2614,7 +2605,7 @@ def _register_npu_inductor_addmm():
                     m, n, k, len(choices),
                 )
             except Exception as e:
-                log.warning("Failed to add NPU resident-A addmm template choices: %s", e)
+                log.warning("Failed to add NPU resident-A addmm template choices: %s", e)  # noqa: G200
 
         add_aten_fallback = False
         if len(choices) == 0:

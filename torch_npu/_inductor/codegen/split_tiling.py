@@ -13,7 +13,7 @@ from torch._inductor.virtualized import V
 from .kernel_analysis import IndexAnalysis, find_permute_axis_in_reduction
 from .triton_utils import get_byte_per_numel
 from .. import config as npu_config
-from ..config import num_vector_core, log
+from ..config import log
 from ..runtime.symbolic_grouping import GroupFeatureSpec, GroupedKernelMeta
 
 
@@ -225,7 +225,8 @@ class SplitTiling:
                     return len(self.kernel.split_axis) >= 1
                 else:
                     return len(self.kernel.split_axis) >= 2
-            if val >= num_vector_core and val // ( ( val + num_vector_core - 1) // num_vector_core) > num_vector_core * 0.72:
+            num_vector_core = npu_config.num_vector_core
+            if val >= num_vector_core and val // ((val + num_vector_core - 1) // num_vector_core) > num_vector_core * 0.72:
                 return True
             if len(self.kernel.split_axis) == 3:
                 return True
@@ -563,9 +564,10 @@ class SplitTiling:
     # same k rows per program, so the representative's sub-blocks are right for
     # all of them. Aligning the boundaries anywhere else leaves shapes that want
     # fewer rows sharing a variant tuned for more.
-    _OUTER_BUCKETS_WITH_STATIC_AXES = tuple(
-        num_vector_core * k for k in range(1, 6)
-    )
+
+    @staticmethod
+    def _outer_buckets_with_static_axes():
+        return tuple(npu_config.num_vector_core * k for k in range(1, 6))
 
     # Boundaries for a reduction that owns the whole kernel: no outer axis, no
     # split axis, so grid==1 and the tile alone decides how many passes the loop
@@ -656,7 +658,7 @@ class SplitTiling:
             if axis.name not in split_axis_names and axis.name != dynamic_axis.name:
                 tiling_product *= max(1, self._axis_static_length(axis))
 
-        vector_core = int(num_vector_core)
+        vector_core = int(npu_config.num_vector_core)
         dtype_axis = (
             self.kernel.split_axis[0]
             if self.kernel.split_axis
@@ -715,7 +717,7 @@ class SplitTiling:
                         self._scale_buckets_by_static_factor(
                             self._OUTER_BUCKETS,
                             outer_names,
-                            self._OUTER_BUCKETS_WITH_STATIC_AXES,
+                            self._outer_buckets_with_static_axes(),
                         ),
                     )
                 )
@@ -749,7 +751,7 @@ class SplitTiling:
                     "elementwise_numel",
                     "outer_product",
                     self.all_axis_names(),
-                    (num_vector_core * 4096,),
+                    (npu_config.num_vector_core * 4096,),
                 ),
             )
         if pointwise_layout in ("broadcast", "transpose_broadcast"):
@@ -1007,7 +1009,7 @@ class SplitTiling:
             )
         except TypeError:
             return static_split_axes
-        if split_size_hint < num_vector_core:
+        if split_size_hint < npu_config.num_vector_core:
             return static_split_axes
 
         suffix_axes = [

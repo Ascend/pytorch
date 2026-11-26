@@ -1,3 +1,4 @@
+import functools
 import logging
 import os  # noqa: C101
 import re
@@ -116,7 +117,18 @@ def _obtain_and_limit_cube_vector_core_num():
     )
     return prop, cube_core_num, vector_core_num
 
-prop, num_cube_core, num_vector_core = _obtain_and_limit_cube_vector_core_num()
+# Resolve device properties only when compilation needs them, not during import.
+@functools.lru_cache(maxsize=1)
+def _get_core_nums():
+    return _obtain_and_limit_cube_vector_core_num()
+
+
+def __getattr__(name):
+    if name in ("prop", "num_cube_core", "num_vector_core"):
+        prop, cube, vec = _get_core_nums()
+        return {"prop": prop, "num_cube_core": cube, "num_vector_core": vec}[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 # Shared by combo dispatch-axis selection and all tiling wave budgets.
 combo_kernel_max_waves = 8

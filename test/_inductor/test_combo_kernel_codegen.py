@@ -12,7 +12,6 @@ from torch._inductor.sizevars import SizeVarAllocator
 from torch._inductor.virtualized import V
 
 from torch_npu._inductor import config as npu_config
-from torch_npu._inductor.codegen import split_tiling as split_tiling_module
 from torch_npu._inductor.codegen import triton_combo_kernel as combo_codegen
 from torch_npu._inductor.codegen.npu_combined_scheduling import NPUCombinedScheduling
 from torch_npu._inductor.codegen.split_tiling import SplitTiling
@@ -305,7 +304,7 @@ class TestComboKernelCodegen(unittest.TestCase):
             return [axis.name for axis in selector.kernel.split_axis]
         with (
             V.set_graph_handler(SimpleNamespace(sizevars=sizevars)),
-            patch.object(split_tiling_module, "num_vector_core", 48),
+            patch.object(npu_config, "num_vector_core", 48),
             patch.object(npu_config, "enable_symbolic_shape_group_autotune", True),
         ):
             self.assertEqual(selected_axes(True), ["y0"])
