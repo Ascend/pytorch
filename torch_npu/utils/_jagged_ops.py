@@ -110,8 +110,16 @@ def padded_dense_to_jagged(dense, offsets, total_L=None):
             f"{batch} does not match offsets ({lengths.numel()})"
         )
 
+    if lengths.numel() == 0 or max_len == 0:
+        values = dense.new_zeros((0, *tail))
+    else:
+        flat = dense[: lengths.numel()].reshape(lengths.numel() * max_len, *tail)
+        values = flat[_dense_mask(lengths, max_len).reshape(-1)]
+
+    # The masked read above already sizes the result, so this validation costs
+    # no extra device synchronisation when total_L is supplied.
     if total_L is not None:
-        if int(lengths.clamp(max=max_len).sum()) != int(total_L):
+        if values.shape[0] != int(total_L):
             raise RuntimeError(
                 "_padded_dense_to_jagged_forward(): final offset should match total_L value"
             )
@@ -120,12 +128,7 @@ def padded_dense_to_jagged(dense, offsets, total_L=None):
             "_padded_dense_to_jagged_forward(): found batch item of length "
             f"{int(lengths.max())} when max length specified by padded input is {max_len}"
         )
-
-    if lengths.numel() == 0 or max_len == 0:
-        return dense.new_zeros((0, *tail))
-
-    flat = dense[: lengths.numel()].reshape(lengths.numel() * max_len, *tail)
-    return flat[_dense_mask(lengths, max_len).reshape(-1)]
+    return values
 
 
 def _jagged_to_padded_dense_kernel(values, offsets, max_lengths, padding_value=0.0):
