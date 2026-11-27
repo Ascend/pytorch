@@ -289,7 +289,8 @@ std::shared_ptr<StaticNpuKernel> StaticNpuKernel::Load(
     uint64_t sharedMemDynamicSize,
     bool isPureSimt,
     bool targetSupportFfts,
-    uint64_t trailingPointerCount) {
+    uint64_t trailingPointerCount,
+    uint32_t physicalBlockLimit) {
   TORCH_CHECK(
       IsSupported(),
       "CANN runtime lacks APIs required by the NPU static launcher, "
@@ -313,6 +314,7 @@ std::shared_ptr<StaticNpuKernel> StaticNpuKernel::Load(
   kernel->isPureSimt_ = isPureSimt;
   kernel->targetSupportFfts_ = targetSupportFfts;
   kernel->trailingPointerCount_ = static_cast<size_t>(trailingPointerCount);
+  kernel->physicalBlockLimit_ = physicalBlockLimit;
   kernel->BuildPackedLayout(argKinds);
 
   c10_npu::NPUGuard deviceGuard(device);
@@ -462,7 +464,9 @@ void StaticNpuKernel::LaunchImpl(
     WriteArgs writeArgs) {
   auto stream = reinterpret_cast<aclrtStream>(streamValue);
   TORCH_CHECK(stream != nullptr, "NPU static launcher stream is null");
-  const uint32_t blockCount = ValidateGrid(grid0, grid1, grid2);
+  const uint32_t logicalBlockCount = ValidateGrid(grid0, grid1, grid2);
+  const uint32_t blockCount =
+      physicalBlockLimit_ == 0 ? logicalBlockCount : std::min(logicalBlockCount, physicalBlockLimit_);
 
   std::vector<uint8_t> packed(packedArgsSize_, 0);
   if (targetSupportFfts_) {

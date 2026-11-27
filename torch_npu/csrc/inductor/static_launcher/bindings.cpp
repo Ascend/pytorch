@@ -36,7 +36,8 @@ void RegisterNPUStaticLauncherBindings(PyObject* module) {
           py::arg("shared_mem_dynamic_size"),
           py::arg("is_pure_simt"),
           py::arg("target_support_ffts"),
-          py::arg("trailing_pointer_count"))
+          py::arg("trailing_pointer_count"),
+          py::arg("physical_block_limit") = 0)
       .def_static(
           "_launch_kernel",
           [](const std::shared_ptr<StaticNpuKernel>& kernel,

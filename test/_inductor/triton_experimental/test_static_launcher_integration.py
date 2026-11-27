@@ -584,6 +584,49 @@ class TestTritonExperimentalStaticLauncherUnit(TestCase):
                 static_kernel,
             )
 
+    @config.patch(
+        {
+            "use_static_triton_launcher": True,
+            "strict_static_triton_launcher": True,
+        }
+    )
+    @parametrize("auto_blockify_enabled,expected_limit", [(True, 48), (False, 0)])
+    def test_a5_direct_grid_recipe_keeps_static_launcher(
+        self, auto_blockify_enabled, expected_limit
+    ):
+        static_kernel = self._kernel()
+        binary = SimpleNamespace(
+            metadata=SimpleNamespace(auto_blockify_enabled=auto_blockify_enabled)
+        )
+        inductor_meta = {
+            "npu_dispatch_recipe": {
+                "lines": ["x0_blocks = (xnumel + XBLOCK - 1) // XBLOCK"],
+                "factors": ["x0_blocks"],
+            },
+        }
+        with (
+            mock.patch.object(static_compile_result.device_props, "is_a5", return_value=True),
+            mock.patch.object(
+                static_compile_result,
+                "get_npu_vector_core_count",
+                return_value=48,
+            ),
+            mock.patch.object(
+                NPUStaticArtifactAdapter,
+                "from_compiled_kernel",
+                return_value=static_kernel,
+            ),
+        ):
+            result = NPUStaticTritonCompileResult.can_statically_launch(
+                binary,
+                compile_meta={},
+                inductor_meta=inductor_meta,
+                heuristic_type=HeuristicType.POINTWISE,
+            )
+
+        self.assertIs(result, static_kernel)
+        self.assertEqual(static_kernel.physical_block_limit, expected_limit)
+
     def test_adapter_argument_kinds(self):
         expected = {
             "*fp32": "tensor",
@@ -968,6 +1011,7 @@ class TestTritonExperimentalStaticLauncherUnit(TestCase):
         self, layout, pure_simt, expected_trailing_pointers
     ):
         kernel = self._kernel()
+        kernel.physical_block_limit = 24
         kernel.npu_launch_metadata = self._metadata(
             host_args_layout=layout,
             parallel_mode="simt" if pure_simt else "simd",
@@ -981,16 +1025,19 @@ class TestTritonExperimentalStaticLauncherUnit(TestCase):
         kernel.load_kernel()
 
         self.assertEqual(
-            binding._load_kernel.call_args.args[-1], expected_trailing_pointers
+            binding._load_kernel.call_args.args[-2], expected_trailing_pointers
         )
+        self.assertEqual(binding._load_kernel.call_args.args[-1], 24)
 
     def test_static_kernel_restores_legacy_pickle_state(self):
         state = self._kernel().__getstate__()
         del state["runtime_arg_indices"]
         del state["_c_impl"]
+        del state["physical_block_limit"]
         restored = object.__new__(NPUStaticallyLaunchedTritonKernel)
         restored.__setstate__(state)
         self.assertEqual(restored.runtime_arg_indices, (0, 2))
+        self.assertEqual(restored.physical_block_limit, 0)
         self.assertIsNone(restored._c_impl)
         self.assertEqual(restored.npubin_raw, b"npubin")
 
@@ -1390,6 +1437,7 @@ class TestTritonExperimentalStaticLauncherIntegration(TestCase):
         static_binding = torch_npu._C._StaticNpuLauncher
         original_static_launch = static_binding._launch_kernel
         experimental_launchers = []
+        compile_results = []
         launches = SimpleNamespace(static=0, ordinary=0)
 
         def initialize(kernel, *args, **kwargs):
@@ -1399,6 +1447,7 @@ class TestTritonExperimentalStaticLauncherIntegration(TestCase):
 
         def make_launchers(autotuner, *args, **kwargs):
             result = original_make_launchers(autotuner, *args, **kwargs)
+            compile_results.extend(getattr(autotuner, "compile_results", ()))
             experimental_launchers.extend(
                 bool(getattr(launcher, "_is_static", False))
                 for launcher in autotuner.launchers
@@ -1444,7 +1493,7 @@ class TestTritonExperimentalStaticLauncherIntegration(TestCase):
                 compile_mock.side_effect = AssertionError(
                     "complete static cache hit must not call triton.compile"
                 )
-            yield
+            yield compile_results
 
         # Observe our backend after either string-based or inline codegen, and
         # after cache recovery. Actual launch counts also cover instance fast_run
@@ -1741,9 +1790,72 @@ class TestTritonExperimentalStaticLauncherIntegration(TestCase):
         self.assertGreater(adapt.call_count, 0)
 
     @SupportedDevices(["Ascend910_95", "Ascend950"])
-    def test_a5_group_dispatch_uses_static_launcher(self):
-        # Exercise more logical tiles than physical cores to catch incomplete static dispatch.
-        self._check(self._pointwise, [self._inputs(shape=(1 << 22,))])
+    def test_a5_direct_dispatch_uses_static_launcher(self):
+        from torch_npu._inductor.triton_experimental.device_props import (
+            get_npu_vector_core_count,
+        )
+
+        x, y = self._inputs(shape=(1 << 22,))
+        expected = self._pointwise(x, y)
+        with self._observe_launch() as compile_results:
+            compiled = torch.compile(
+                self._pointwise,
+                fullgraph=True,
+                options={"npu_backend": "triton_experimental"},
+            )
+            actual = compiled(x, y)
+            torch.npu.synchronize()
+
+        torch.testing.assert_close(actual.cpu(), expected.cpu())
+        direct_results = [
+            result
+            for result in compile_results
+            if result.inductor_meta.get("npu_dispatch_recipe")
+        ]
+        self.assertTrue(direct_results)
+        for result in direct_results:
+            self.assertEqual(
+                result.kernel.physical_block_limit,
+                get_npu_vector_core_count(),
+            )
+
+    @SupportedDevices(["Ascend910_95", "Ascend950"])
+    def test_a5_static_direct_dispatch_mutated_arg_runs_once(self):
+        from torch._inductor.utils import run_and_get_code
+        from torch_npu._inductor.triton_experimental.device_props import (
+            get_npu_vector_core_count,
+        )
+
+        def inplace_scale(value):
+            value.mul_(0.25)
+            return value
+
+        value = torch.ones((4, 12, 512, 64), device="npu")
+        expected = torch.full_like(value, 0.25)
+        with self._observe_launch() as compile_results:
+            compiled = torch.compile(
+                inplace_scale,
+                fullgraph=True,
+                options={"npu_backend": "triton_experimental"},
+            )
+            actual, codes = run_and_get_code(compiled, value)
+            torch.npu.synchronize()
+
+        torch.testing.assert_close(actual.cpu(), expected.cpu())
+        torch.testing.assert_close(value.cpu(), expected.cpu())
+        generated = "\n".join(codes)
+        self.assertIn("'mutated_arg_names': ['in_out_ptr0']", generated)
+        direct_results = [
+            result
+            for result in compile_results
+            if result.inductor_meta.get("npu_dispatch_recipe")
+        ]
+        self.assertTrue(direct_results)
+        for result in direct_results:
+            self.assertEqual(
+                result.kernel.physical_block_limit,
+                get_npu_vector_core_count(),
+            )
 
 
     @parametrize("strict", [False, True])

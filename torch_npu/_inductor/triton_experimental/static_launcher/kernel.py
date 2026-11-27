@@ -42,6 +42,7 @@ class NPUStaticallyLaunchedTritonKernel:
         full_constexprs: tuple[int, ...],
         arg_kinds: tuple[str, ...],
         launch_metadata: NPULaunchMetadata,
+        physical_block_limit: int = 0,
         device: int,
         num_warps: int,
         shared: int,
@@ -76,6 +77,11 @@ class NPUStaticallyLaunchedTritonKernel:
         self.full_constexprs = full_constexprs
         self.arg_kinds = arg_kinds
         self.npu_launch_metadata = launch_metadata
+        if not 0 <= physical_block_limit <= 0xFFFFFFFF:
+            raise RuntimeError(
+                "NPU static launcher physical block limit must fit uint32"
+            )
+        self.physical_block_limit = physical_block_limit
         # The existing NPU launcher generator expects binary.metadata, while
         # binary.launch_metadata is reserved for Triton's callable hook API.
         self.metadata = launch_metadata
@@ -128,6 +134,7 @@ class NPUStaticallyLaunchedTritonKernel:
             metadata.is_pure_simt,
             metadata.target_support_ffts,
             metadata.trailing_pointer_count,
+            self.physical_block_limit,
         )
         self.loaded_kernel = loaded_kernel
         # Expose an opaque owning object, not a second raw handle lifetime.
@@ -163,6 +170,8 @@ class NPUStaticallyLaunchedTritonKernel:
 
     def __setstate__(self, state: dict[str, Any]) -> None:
         self.__dict__.update(state)
+        if not hasattr(self, "physical_block_limit"):
+            self.physical_block_limit = 0
         # Older snapshots used name for both the symbol and the artifact stem.
         if not hasattr(self, "npubin_filename"):
             self.npubin_filename = f"{self.name}.npubin"

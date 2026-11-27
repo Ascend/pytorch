@@ -106,6 +106,21 @@ class NPUStaticTritonCompileResult(
             except (NPUStaticArtifactError, RuntimeError, TypeError, ValueError) as exc:
                 raise CannotStaticallyLaunchNPUKernel(str(exc)) from exc
 
+            a5_direct_dispatch = (
+                device_props.is_a5()
+                and bool(inductor_meta.get("npu_dispatch_recipe"))
+                and inductor_meta.get("te_combo_meta") is None
+                and inductor_meta.get("npu_linearize", True) is not False
+            )
+            compiler_metadata = getattr(binary, "metadata", {})
+            auto_blockify_enabled = (
+                compiler_metadata.get("auto_blockify_enabled", False)
+                if isinstance(compiler_metadata, dict)
+                else getattr(compiler_metadata, "auto_blockify_enabled", False)
+            )
+            if a5_direct_dispatch and auto_blockify_enabled:
+                static_kernel.physical_block_limit = get_npu_vector_core_count()
+
             metadata = static_kernel.npu_launch_metadata
             if metadata.workspace_size != 0:
                 raise CannotStaticallyLaunchNPUKernel("workspace is required")

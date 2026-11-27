@@ -50,7 +50,8 @@ class StaticNpuKernel : public std::enable_shared_from_this<StaticNpuKernel> {
       uint64_t sharedMemDynamicSize,
       bool isPureSimt,
       bool targetSupportFfts,
-      uint64_t trailingPointerCount);
+      uint64_t trailingPointerCount,
+      uint32_t physicalBlockLimit);
 
   ~StaticNpuKernel();
 
@@ -83,6 +84,7 @@ class StaticNpuKernel : public std::enable_shared_from_this<StaticNpuKernel> {
   bool isPureSimt_ = false;
   bool targetSupportFfts_ = false;
   size_t trailingPointerCount_ = 0;
+  uint32_t physicalBlockLimit_ = 0;
   void* fftsAddress_ = nullptr;
   std::mutex mutex_;
   bool closed_ = false;
