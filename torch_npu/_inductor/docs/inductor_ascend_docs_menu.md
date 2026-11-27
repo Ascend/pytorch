@@ -6,6 +6,7 @@
 - [torch.compile API 详解](./torch_compile_api/torch_compile_api.md)
 - [特性与调优配置](./feature)
   - [环境变量列表](./feature/environment_variables_summary.md)
+  - [Inductor特性支持情况](./feature/inductor_feature_support.md)
   - [Catlass](./feature/catlass/catlass.md)
     - [快速入门](./feature/catlass/overview.md)
     - [CATLASS_EPILOGUE_FUSION](./feature/catlass/CATLASS_EPILOGUE_FUSION.md)

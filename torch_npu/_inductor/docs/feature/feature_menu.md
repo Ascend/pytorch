@@ -1,6 +1,7 @@
 # 特性与调优配置
 
 - [环境变量列表](./environment_variables_summary.md)
+- [Inductor特性支持情况](./inductor_feature_support.md)
 - [Catlass](./catlass/catlass.md)
   - [快速入门](./catlass/overview.md)
   - [CATLASS_EPILOGUE_FUSION](./catlass/CATLASS_EPILOGUE_FUSION.md)
