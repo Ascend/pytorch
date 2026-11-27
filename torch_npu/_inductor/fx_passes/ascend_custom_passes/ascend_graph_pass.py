@@ -823,6 +823,12 @@ def fold_reduce(graph: torch.fx.Graph) -> None:
         shape = get_node_shape(inp, allow_symbolic=True)
         if shape is None or len(shape) == 0:
             continue
+        # A singleton sum can still convert the dtype (for example bool to
+        # float32 in vector_norm(ord=0)); a view cannot preserve that cast.
+        input_dtype = get_node_dtype(inp)
+        output_dtype = get_node_dtype(reduce)
+        if input_dtype is None or output_dtype is None or input_dtype != output_dtype:
+            continue
         dims = get_input_kw_node(reduce, "dim") or list(range(len(shape)))
         if not isinstance(dims, list):
             dims = [dims]
