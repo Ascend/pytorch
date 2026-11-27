@@ -419,3 +419,23 @@
 **限制与说明**：仅支持NPU fused SDPA路径；`q`/`k`/`v`仅支持BNSD布局；暂不支持`pse`、`padding_mask`、`prefix`、`actual_seq_qlen`、`actual_seq_kvlen`、`sink`以及任意非causal的attention mask；启用load balance时要求使用causal attention；暂不支持通过`torch.compile`编译为计算图
 
 </div>
+
+### torch.distributed.tensor.experimental.register_sharding
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.tensor.experimental.register_sharding](https://docs.pytorch.org/docs/2.14/distributed.tensor.html#torch.distributed.tensor.experimental.register_sharding)
+
+**产品支持情况**：
+
+<!-- npu="910b" id2003 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id2003 -->
+<!-- npu="A3" id2004 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id2004 -->
+<!-- npu="950" id2005 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id2005 -->
+
+</div>

@@ -111,6 +111,26 @@
 
 </div>
 
+##### torch.nn.attention.flex_attention.and_masks
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.nn.attention.flex_attention.and_masks](https://docs.pytorch.org/docs/2.12/nn.attention.flex_attention.html#torch.nn.attention.flex_attention.and_masks)
+
+**产品支持情况**：
+
+<!-- npu="910b" id28 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id28 -->
+<!-- npu="A3" id29 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id29 -->
+<!-- npu="950" id30 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id30 -->
+
+</div>
+
 ##### torch.nn.attention.flex_attention.or_masks
 
 <div style="margin-left: 2em">

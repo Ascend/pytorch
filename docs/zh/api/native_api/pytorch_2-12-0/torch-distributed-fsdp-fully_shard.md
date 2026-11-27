@@ -346,3 +346,23 @@
 </div>
 
 </div>
+
+### torch.distributed.fsdp.register_fsdp_forward_method
+
+<div style="margin-left: 2em">
+
+**原生文档**：[torch.distributed.fsdp.register_fsdp_forward_method](https://docs.pytorch.org/docs/2.12/distributed.fsdp.fully_shard.html#torch.distributed.fsdp.register_fsdp_forward_method)
+
+**产品支持情况**：
+
+<!-- npu="910b" id2003 -->
+- <term>Atlas A2训练系列产品</term>：支持
+<!-- end id2003 -->
+<!-- npu="A3" id2004 -->
+- <term>Atlas A3训练系列产品</term>：支持
+<!-- end id2004 -->
+<!-- npu="950" id2005 -->
+- <term>Ascend 950DT系列产品</term>：支持
+<!-- end id2005 -->
+
+</div>
