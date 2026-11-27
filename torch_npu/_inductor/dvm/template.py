@@ -254,7 +254,6 @@ def _register_dvm_mm_template_decompositions():
 
 def patch_dvm_matmul_template_fusion() -> None:
     _register_dvm_mm_template_decompositions()
-    _keep_addmm_for_dvm_template()
     npu_ir.subtract_graph = _subtract_dvm_template_graph
     _register_dvm_mm_template_lowerings()
 
