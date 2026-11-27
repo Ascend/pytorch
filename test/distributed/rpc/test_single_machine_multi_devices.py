@@ -74,7 +74,9 @@ class TestRpc(TestCase):
                 fut = rpc.rpc_async('worker1', TestRpc.echo, args=(inputs[i], inputs[i]))
                 rets = fut.wait()
                 times.append(time.time() - start)
-            print('test_async_call_for_cpu_1M cost:', times[0], 's test_async_call_for_cpu_1G cost:', times[1], 's')
+                assert torch.equal(rets[0], inputs[i]), f"async_call_for_cpu: rets[0] tensor {i} mismatch after RPC"
+                assert torch.equal(rets[1], inputs[i]), f"async_call_for_cpu: rets[1] tensor {i} mismatch after RPC"
+            print('test_async_call_for_cpu_1M cost:', times[0], 's test_async_call_for_cpu_4M cost:', times[1], 's')
         else:
             rpc.init_rpc(worker_name_, rank=pid, world_size=world_size,
                          backend=rpc.backend_registry.BackendType.NPU_TENSORPIPE)
@@ -93,7 +95,9 @@ class TestRpc(TestCase):
                 start = time.time()
                 rets = rpc.rpc_sync('worker1', TestRpc.echo, args=(inputs[i], inputs[i]))
                 times.append(time.time() - start)
-            print('test_sync_call_for_cpu_1M cost:', times[0], 's test_sync_call_for_cpu_1G cost:', times[1], 's')
+                assert torch.equal(rets[0], inputs[i]), f"sync_call_for_cpu: rets[0] tensor {i} mismatch after RPC"
+                assert torch.equal(rets[1], inputs[i]), f"sync_call_for_cpu: rets[1] tensor {i} mismatch after RPC"
+            print('test_sync_call_for_cpu_1M cost:', times[0], 's test_sync_call_for_cpu_4M cost:', times[1], 's')
         else:
             rpc.init_rpc(worker_name_, rank=pid, world_size=world_size,
                          backend=rpc.backend_registry.BackendType.NPU_TENSORPIPE)
@@ -113,7 +117,9 @@ class TestRpc(TestCase):
                 fut = rpc.rpc_async('worker1', TestRpc.echo, args=(input1, input1))
                 rets = fut.wait()
                 times.append(time.time() - start)
-            print('test_async_call_for_npu_1M cost:', times[0], 's test_async_call_for_npu_1G cost:', times[1], 's')
+                assert torch.equal(rets[0].cpu(), inputs[i]), f"async_call_for_npu: rets[0] tensor {i} mismatch after RPC"
+                assert torch.equal(rets[1].cpu(), inputs[i]), f"async_call_for_npu: rets[1] tensor {i} mismatch after RPC"
+            print('test_async_call_for_npu_1M cost:', times[0], 's test_async_call_for_npu_4M cost:', times[1], 's')
         else:
             rpc.init_rpc(worker_name_, rank=pid, world_size=world_size,
                          backend=rpc.backend_registry.BackendType.NPU_TENSORPIPE)
@@ -133,7 +139,9 @@ class TestRpc(TestCase):
                 start = time.time()
                 rets = rpc.rpc_sync('worker1', TestRpc.echo, args=(input1, input1))
                 times.append(time.time() - start)
-            print('test_sync_call_for_npu_1M cost:', times[0], 's test_sync_call_for_npu_1G cost:', times[1], 's')
+                assert torch.equal(rets[0].cpu(), inputs[i]), f"sync_call_for_npu: rets[0] tensor {i} mismatch after RPC"
+                assert torch.equal(rets[1].cpu(), inputs[i]), f"sync_call_for_npu: rets[1] tensor {i} mismatch after RPC"
+            print('test_sync_call_for_npu_1M cost:', times[0], 's test_sync_call_for_npu_4M cost:', times[1], 's')
         else:
             rpc.init_rpc(worker_name_, rank=pid, world_size=world_size,
                          backend=rpc.backend_registry.BackendType.NPU_TENSORPIPE)
@@ -154,10 +162,14 @@ class TestRpc(TestCase):
                 start = time.time()
                 rref1 = rpc.remote('worker1', TestRpc.echo, args=(input1, inputs[2]))
                 rref2 = rpc.remote('worker2', TestRpc.echo, args=(input1, inputs[3]))
-                rref1.to_here()
-                rref2.to_here()
+                r1 = rref1.to_here()
+                r2 = rref2.to_here()
                 times.append(time.time() - start)
-            print('test_remote_rref_1M cost:', times[0], 's test_remote_rref_1G cost:', times[1], 's')
+                assert torch.equal(r1[0].cpu(), inputs[i]), f"remote_rref: r1 tensor {i} mismatch after RPC"
+                assert torch.equal(r2[0].cpu(), inputs[i]), f"remote_rref: r2 tensor {i} mismatch after RPC"
+                assert r1[1] == inputs[2], "remote_rref: worker1 param mismatch"
+                assert r2[1] == inputs[3], "remote_rref: worker2 param mismatch"
+            print('test_remote_rref_1M cost:', times[0], 's test_remote_rref_4M cost:', times[1], 's')
         else:
             rpc.init_rpc(worker_name_, rank=pid, world_size=world_size,
                          backend=rpc.backend_registry.BackendType.NPU_TENSORPIPE)
@@ -179,7 +191,9 @@ class TestRpc(TestCase):
                 ret = rpc.rpc_sync('worker1', TestRpc.async_add_chained,
                                    args=('worker2', input1, inputs[2], inputs[3]))
                 times.append(time.time() - start)
-            print('test_async_execution_1M cost:', times[0], 's test_async_execution_1G cost:', times[1], 's')
+                assert torch.equal(ret[0].cpu(), inputs[i]), f"async_execution: tensor {i} mismatch after RPC"
+                assert ret[1] == inputs[2]
+            print('test_async_execution_1M cost:', times[0], 's test_async_execution_4M cost:', times[1], 's')
         elif pid == 1:
             options = NPUTensorPipeRpcBackendOptions(num_worker_threads=8, device_maps={'worker2': {'npu:1': 'npu:2'}})
             rpc.init_rpc(worker_name_, rank=pid, world_size=world_size,
@@ -330,38 +344,36 @@ class TestRpc(TestCase):
 
         for p in ps:
             p.join()
+            self.assertEqual(p.exitcode, 0, "subprocess exit with abnormal code.")
 
     @skipIfUnsupportMultiNPU(2)
     def test_async_call_for_cpu(self):
         inputs = [torch.rand(1024, 1024).cpu(), torch.rand(1024, 1024, 4).cpu()]
         self._test_multiprocess(TestRpc._test_async_call_for_cpu, inputs, self.world_size_2p)
 
-    @unittest.skip("pending #6065: RPC NPU tensor deserialize fix; re-enable together with the fix and a smaller input")
     @skipIfUnsupportMultiNPU(2)
     def test_sync_call_for_cpu(self):
-        inputs = [torch.rand(1024, 1024).cpu(), torch.rand(1024, 1024, 1024).cpu()]
+        inputs = [torch.rand(1024, 1024).cpu(), torch.rand(1024, 1024, 4).cpu()]
         self._test_multiprocess(TestRpc._test_sync_call_for_cpu, inputs, self.world_size_2p)
 
-    @unittest.skip("pending #6065: RPC NPU tensor deserialize fix; re-enable together with the fix and a smaller input")
     @skipIfUnsupportMultiNPU(2)
     def test_async_call_for_npu(self):
-        inputs = [torch.rand(1024, 1024), torch.rand(1024, 1024, 1024)]
+        inputs = [torch.rand(1024, 1024), torch.rand(1024, 1024, 4)]
         self._test_multiprocess(TestRpc._test_async_call_for_npu, inputs, self.world_size_2p)
 
-    @unittest.skip("pending #6065: RPC NPU tensor deserialize fix; re-enable together with the fix and a smaller input")
     @skipIfUnsupportMultiNPU(2)
     def test_sync_call_for_npu(self):
-        inputs = [torch.rand(1024, 1024), torch.rand(1024, 1024, 1024)]
+        inputs = [torch.rand(1024, 1024), torch.rand(1024, 1024, 4)]
         self._test_multiprocess(TestRpc._test_sync_call_for_npu, inputs, self.world_size_2p)
 
     @skipIfUnsupportMultiNPU(3)
     def test_remote_rref(self):
-        inputs = [torch.rand(1024, 1024), torch.rand(1024, 1024, 1024), 3, 1]
+        inputs = [torch.rand(1024, 1024), torch.rand(1024, 1024, 4), 3, 1]
         self._test_multiprocess(TestRpc._test_remote_rref, inputs, self.world_size_3p)
 
     @skipIfUnsupportMultiNPU(3)
     def test_async_execution(self):
-        inputs = [torch.rand(1024, 1024), torch.rand(1024, 1024, 1024), 1, 1]
+        inputs = [torch.rand(1024, 1024), torch.rand(1024, 1024, 4), 1, 1]
         self._test_multiprocess(TestRpc._test_async_execution, inputs, self.world_size_3p)
 
     @skipIfUnsupportMultiNPU(3)

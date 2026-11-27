@@ -4,10 +4,9 @@
 
 #include <c10/util/irange.h>
 #include <tensorpipe/tensorpipe.h>
-#include <torch_npu/csrc/aten/NPUNativeFunctions.h>
-#include <torch_npu/csrc/core/NPUBridge.h>
+#include <torch/csrc/jit/serialization/storage_context.h>
 #include <torch_npu/csrc/core/NPUStorageImpl.h>
-#include <torch_npu/csrc/framework/StorageDescHelper.h>
+#include <torch_npu/csrc/framework/FormatHelper.h>
 
 namespace torch_npu {
 namespace distributed {
@@ -138,6 +137,21 @@ std::tuple<tensorpipe_npu::Message, TensorpipeWriteBuffers> tensorpipeSerialize(
     const std::vector<c10::Stream>& streams) {
   tensorpipe_npu::Message tpMessage;
   TensorpipeWriteBuffers buffers;
+
+  // Internal formats (e.g. NZ) are not supported over RPC;
+  // operator precision may be affected.
+  for (const auto& t : rpcMessage->tensors()) {
+    if (t.device().type() != c10::DeviceType::PrivateUse1) {
+      continue;
+    }
+    auto* npu_storage = dynamic_cast<torch_npu::NPUStorageImpl*>(t.storage().unsafeGetStorageImpl());
+    if (npu_storage != nullptr && !at_npu::native::FormatHelper::IsBaseFormatType(npu_storage->npu_desc_.npu_format_)) {
+      TORCH_WARN_ONCE(
+          "TensorPipe RPC serialization and deserialization do not support internal formats, "
+          "such as the NZ format; this may affect operator precision. "
+          "Convert to ND format first.");
+    }
+  }
 
   // Metadata
   buffers.type = std::make_unique<MessageType>(rpcMessage->type());
@@ -290,31 +304,47 @@ c10::intrusive_ptr<Message> tensorpipeDeserialize(
   };
   auto tensorReadFunc = [&](const std::string& ename) -> at::DataPtr {
     unsigned long index = std::stoul(ename);
-    return std::move(buffers.tensors.at(index));
+    at::DataPtr& dataPtr = buffers.tensors.at(index);
+    TORCH_CHECK(
+        dataPtr,
+        "TensorPipe RPC: storage ",
+        ename,
+        " already consumed when building the deserialization storage context",
+        DIST_ERROR(ErrCode::INTERNAL));
+    return std::move(dataPtr);
   };
+
+  auto storageContext = std::make_shared<torch::jit::DeserializationStorageContext>();
+  for (const auto i : c10::irange(tpDescriptor.tensors.size())) {
+    const tensorpipe_npu::Descriptor::Tensor& tensor = tpDescriptor.tensors[i];
+    TORCH_INTERNAL_ASSERT(tensor.targetDevice.has_value(), DIST_ERROR(ErrCode::PARAM));
+    if (tensor.targetDevice->type != tensorpipe_npu::kNpuDeviceType) {
+      continue;
+    }
+    auto npuStorageImpl = c10::make_intrusive<NPUStorageImpl>(
+        c10::StorageImpl::use_byte_size_t(),
+        tensor.length,
+        std::move(buffers.tensors[i]),
+        /*allocator=*/nullptr,
+        /*resizable=*/false);
+    storageContext->addStorage(std::to_string(i), c10::Storage(std::move(npuStorageImpl)));
+  }
 
   // No need to pass typeResolver here, as it always processes string and
   // tensors only
-  torch::jit::Unpickler unpickler(pickleReadFunc, nullptr, nullptr, tensorReadFunc, {}, true);
+  torch::jit::Unpickler unpickler(
+      pickleReadFunc,
+      nullptr,
+      nullptr,
+      tensorReadFunc,
+      {},
+      true,
+      torch::jit::Unpickler::defaultTypeParser,
+      std::move(storageContext));
 
   auto ival = unpickler.parse_ivalue();
   for (auto&& t : ival.toTensorList()) {
     tensors.emplace_back(std::move(t));
-  }
-
-  for (at::Tensor tensor : tensors) {
-    if (tensor.device().type() == c10::DeviceType::PrivateUse1) {
-      c10::StorageImpl* storageImpl = tensor.storage().unsafeGetStorageImpl();
-      c10::intrusive_ptr<c10::StorageImpl> npu_storage_impl = c10::make_intrusive<NPUStorageImpl>(
-          c10::StorageImpl::use_byte_size_t(),
-          storageImpl->sym_nbytes().as_int_unchecked(),
-          std::move(storageImpl->mutable_data_ptr()),
-          storageImpl->allocator(),
-          storageImpl->resizable());
-      auto storage = c10::Storage(npu_storage_impl);
-      at_npu::native::NPUNativeFunctions::set_(tensor, storage, 0, tensor.sizes(), tensor.strides());
-      at_npu::native::StorageDescHelper::SetDesc(tensor, tensor.sizes(), tensor.strides(), ACL_FORMAT_ND);
-    }
   }
 
   for (const auto i : c10::irange(tpDescriptor.tensors.size())) {
