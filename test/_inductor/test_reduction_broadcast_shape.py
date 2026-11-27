@@ -13,16 +13,8 @@ from version_mark import runIfVersion
 
 @unittest.skipUnless(torch.npu.is_available(), "NPU is not available")
 class TestReductionBroadcastShape(TestCase):
-    def setUp(self):
-        super().setUp()
-        # A kernel cached by an earlier run would hide the regression, and the
-        # persistent layout is the one that produced tl.full([1], 5, tl.int64).
-        self.enterContext(config.patch({
-            "force_disable_caches": True,
-            "triton.persistent_reductions": True,
-        }))
-
     @runIfVersion(max="2.13")
+    @config.patch({"force_disable_caches": True, "triton.persistent_reductions": True})
     def test_div_by_int64_ones_count(self):
         def fn(value):
             # ones_like keeps the count in the graph; torch.ones(value.shape)
