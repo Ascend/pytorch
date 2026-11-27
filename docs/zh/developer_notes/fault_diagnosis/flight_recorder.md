@@ -53,6 +53,7 @@ FR配置按“记录与输出”和“触发转储”两类划分。记录与输
 转储文件位置由`TORCH_FR_DUMP_TEMP_FILE`控制。默认使用静态模式，兼容旧变量`TORCH_HCCL_DEBUG_INFO_TEMP_FILE`，文件名为`<prefix><rank>`。
 
 - 两个前缀变量均未设置时，文件通常位于`~/.cache/torch/comm_lib_trace_rank_<rank>`。如果设置了`XDG_CACHE_HOME`，文件位于`$XDG_CACHE_HOME/torch/comm_lib_trace_rank_<rank>`。
+- 较早的发布版本可能默认写入`/tmp/hccl_trace_rank_<rank>`。可显式设置前缀，或在WatchDog日志中的`dumping hccl trace to`消息确认实际路径。
 - 设置其中一个前缀变量时，在指定前缀后追加rank。两者均设置时使用`TORCH_FR_DUMP_TEMP_FILE`。例如设置`TORCH_FR_DUMP_TEMP_FILE=/tmp/comm_lib_trace_rank_`后，rank 0和rank 1分别写入`/tmp/comm_lib_trace_rank_0`和`/tmp/comm_lib_trace_rank_1`。
 
 设置`TORCH_FR_DUMP_DYNAMIC_FILE_NAME=1`可切换为动态模式。每次转储都写入`TORCH_FR_DUMP_TEMP_FILE`指定的精确路径，不追加rank。请为每个rank配置不同的路径。路径为空时转储失败，不回退到默认前缀。离线分析前，按各文件对应的全局rank将文件复制为统一的`<prefix><rank>`命名格式。
@@ -135,13 +136,13 @@ python -m torch.distributed.flight_recorder.fr_trace ./fr_analysis
 
 | 字段 | 说明 |
 | --- | --- |
-| `version` | FR数据schema版本，当前记录格式为`2.10`。 |
+| `version` | FR数据的schema版本，由写出转储的TorchNPU版本决定。当前主线写出`2.10`，较早版本可能写出`2.4`。 |
 | `pg_config` | 进程组名称、描述和成员rank信息，用于重建PG关系。 |
 | `entries` | 环形缓冲区中本次导出的通信条目列表。 |
 | `process_group`、`pg_id` | 条目所属进程组的名称、描述和标识。 |
 | `record_id` | 记录编号，用于排列缓冲区内条目。 |
 | `collective_seq_id`、`p2p_seq_id`、`is_p2p` | 集合通信和点对点通信各自的序列信息及操作类别，不能将两类序列混为同一计数。 |
-| `profiling_name` | 包含后端前缀的操作名称，例如`hccl:all_reduce`。 |
+| `profiling_name` | 包含后端前缀的操作名称，例如`hccl:all_reduce`。较早版本的转储可能留空，依赖该字段的社区分析器无法解析这类条目。 |
 | `input_sizes`、`output_sizes` | 输入输出张量的形状列表。 |
 | `input_dtypes`、`output_dtypes` | 输入输出张量的数据类型列表。 |
 | `state` | 记录器观测到的状态：`scheduled`、`started`或`completed`。 |
@@ -184,6 +185,8 @@ export TORCH_HCCL_DUMP_ON_TIMEOUT=1
 export TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC=600
 export TORCH_FR_DUMP_TEMP_FILE="$PWD/trace_dir/comm_lib_trace_rank_"
 ```
+
+在仅支持旧变量名的TorchNPU版本上，将示例中的`TORCH_FR_BUFFER_SIZE`和`TORCH_FR_DUMP_TEMP_FILE`分别替换为`TORCH_HCCL_TRACE_BUFFER_SIZE`和`TORCH_HCCL_DEBUG_INFO_TEMP_FILE`。
 
 如需设备执行时长或C++调用栈，可额外配置：
 

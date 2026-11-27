@@ -120,19 +120,19 @@ DVM编译后会生成对应的融合算子代码。两种模式的输出示例�
 # 声明算子
 @dvm.kernel(ktype='vector', dyn_shape=True)
 def dvm_fused_add_mul_sum_0_build(k):
-    arg0_1 = k.load([-1, 1], torch.bfloat16)
+    arg0_1 = k.load([-1, 1], dvm.bfloat16)
     arg1_1 = k.intref()
     arg2_1 = k.intref()
     arg3_1 = k.intref()
-    arg4_1 = k.view_load([-1, -1, -1], [-1, -1, 1], torch.bfloat16)
-    arg5_1 = k.load([1, -1], torch.bfloat16)
+    arg4_1 = k.view_load([-1, -1, -1], [-1, -1, 1], dvm.bfloat16)
+    arg5_1 = k.load([1, -1], dvm.bfloat16)
     expand = k.broadcast(arg0_1, [arg1_1, arg2_1, arg3_1])
     mul = k.mul(expand, arg4_1)
     expand_1 = k.broadcast(arg5_1, [arg1_1, arg2_1, arg3_1])
     add = k.add(mul, expand_1)
-    _npu_dtype_cast = k.cast(add, torch.float32)
+    _npu_dtype_cast = k.cast(add, dvm.float32)
     sum_1 = k.sum(_npu_dtype_cast, [0, 2], True)
-    k.store(sum_1, torch.float32)
+    k.store(sum_1, dvm.float32)
     k.set_kernel_info(
         'dvm_fused_add_mul_sum',
         'dvm_fused_add_mul_sum_0',
@@ -145,21 +145,31 @@ stream0 = get_raw_stream(0)
 dvm_fused_add_mul_sum_0.run(arg4_1, s1, s0, s2, buf1, arg5_1, buf2, stream=stream0)
 ```
 
+当前源码提供`DvmGraphFusionPatch`上下文供图融合调试使用。对上例的`op_calc`和输入`x`、`y`，可在上下文内执行编译和首次调用：
+
+```python
+from torch_npu._inductor.dvm.graph_fusion import DvmGraphFusionPatch
+
+with DvmGraphFusionPatch():
+    compiled = torch.compile(op_calc, backend="inductor", dynamic=False)
+    output = compiled(x, y)
+```
+
 **graph_fusion模式输出：**
 
 ```python
 # 声明算子
 @dvm.kernel(ktype='split', dyn_shape=True)
 def dvm_graph_fused_0(k):
-    arg4_1 = k.load([-1, 1], torch.bfloat16)
-    permute = k.view_load([-1, -1, -1], [-1, -1, 1], torch.bfloat16)
+    arg4_1 = k.load([-1, 1], dvm.bfloat16)
+    permute = k.view_load([-1, -1, -1], [-1, -1, 1], dvm.bfloat16)
     mul_3 = k.mul(arg4_1, permute)
-    arg5_1 = k.load([1, -1], torch.bfloat16)
+    arg5_1 = k.load([1, -1], dvm.bfloat16)
     add_8 = k.add(mul_3, arg5_1)
-    convert_element_type_default = k.cast(add_8, torch.float32)
+    convert_element_type_default = k.cast(add_8, dvm.float32)
     sum_1 = k.sum(convert_element_type_default, [0, 2], True)
-    convert_element_type_default_1 = k.cast(sum_1, torch.bfloat16)
-    k.store(convert_element_type_default_1, torch.bfloat16)
+    convert_element_type_default_1 = k.cast(sum_1, dvm.bfloat16)
+    k.store(convert_element_type_default_1, dvm.bfloat16)
 
 # 使用
 buf0 = dvm_graph_fused_0(arg4_1, reinterpret_tensor(arg3_1, (s1, s0, s2), (s2, s1*s2, 1), 0), arg5_1)
@@ -229,7 +239,7 @@ def call(self, args):
 `mode="reduce-overhead"` 是降低开销的优化策略，核心对应**NPUGraph Tree**的逻辑：
 
 - **动态形状路由**：管理多个有关联的NPUGraphs，让NPUGraph的优化收益能覆盖动态形状场景，而非仅局限于固定形状。
-- **子图内存优化**：优化段图场景多个子图的内存使用。
+- **子图内存优化**：优化段图场景（图中断后分段执行）中各子图的内存使用。
 - **工作原理**：在多次不同形状的输入下，Tree会缓存多个捕获的图版本，根据输入形状自动路由到最匹配的子图进行重放。
 
 更多详情可参见[CUDAGraph Trees](https://docs.pytorch.org/docs/stable/user_guide/torch_compiler/torch.compiler_cudagraph_trees.html)。

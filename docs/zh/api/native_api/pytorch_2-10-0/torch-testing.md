@@ -31,7 +31,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id3 -->
 
-**限制与说明**：`input`仅支持fp32
+**限制与说明**：待比较的NPU张量`actual`和`expected`支持fp32。
 
 </div>
 
@@ -53,7 +53,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id6 -->
 
-**限制与说明**：`input`仅支持fp32、bool
+**限制与说明**：生成NPU张量的`dtype`支持fp32、bool。
 
 </div>
 
@@ -75,6 +75,6 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id9 -->
 
-**限制与说明**：已验证`actual`和`expected`的NPU Tensor输入支持float16、float32、bfloat16、int32、int64和bool；float64在不相等比较场景下暂不支持。
+**限制与说明**：已验证`actual`和`expected`的NPU Tensor输入支持fp16、fp32、bf16、int32、int64和bool；fp64在不相等比较场景下暂不支持。
 
 </div>

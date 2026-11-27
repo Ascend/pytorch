@@ -71,13 +71,15 @@ if __name__ == "__main__":
     main()
 ```
 
+<!-- npu="A3,950" id2 -->
 > [!NOTE]
 >
-> 需在已完成CANN环境初始化且具备至少两张可用NPU的环境中执行：
+> 需在已初始化CANN、且有至少两张可用NPU的<term>Atlas A3系列产品</term>或<term>Ascend 950PR&950DT系列产品</term>环境中执行。
 >
 > ```bash
 > torchrun --standalone --nproc_per_node=2 hccl_mem_pool_example.py
 > ```
+<!-- end id2 -->
 
 ## 约束说明
 

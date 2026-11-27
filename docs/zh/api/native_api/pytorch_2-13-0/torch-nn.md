@@ -2129,7 +2129,7 @@
 - `input`仅支持bf16，fp16，fp32
 
 <!-- npu="910b" id277 -->
-- <term>Atlas A2训练系列产品</term>，默认场景下，如果频繁触发编译，建议手动设置`torch.npu.config.allow_internal_format`为False，控制入参不开启内部格式，避免在线编译，例如：
+- <term>Atlas A2训练系列产品</term>，默认场景下，如果频繁触发编译，建议手动设置`torch_npu.npu.config.allow_internal_format`为False，控制入参不开启内部格式，避免在线编译，例如：
 
   ```python
   import torch_npu
@@ -3131,7 +3131,7 @@
 **限制与说明**：
 
 - `input`仅支持bf16，fp16，fp32，fp64，complex64，complex128
-- 支持2-3维
+- 输入`input`支持2维或3维
 
 </div>
 
@@ -4789,7 +4789,7 @@
 <!-- end id572 -->
 
 <!-- npu="910b,A3" id1027 -->
-**限制与说明**： 接口暂不支持`jit_compile=False`，如需在该模式下使用，请将"DynamicGRUV2"添加至"NPU_FUZZY_COMPILE_BLACKLIST"选项内，具体操作可参考[添加二进制黑名单示例](../appendixes/example_of_adding_a_binary_blocklist.md)
+**限制与说明**：接口暂不支持`jit_compile=False`，如需在该模式下使用，请将`DynamicRNNV2`添加至`NPU_FUZZY_COMPILE_BLACKLIST`中，具体操作可参考[添加二进制黑名单示例](../appendixes/example_of_adding_a_binary_blocklist.md)
 <!-- end id1027 -->
 
 </div>

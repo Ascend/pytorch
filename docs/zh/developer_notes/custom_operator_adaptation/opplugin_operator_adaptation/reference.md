@@ -108,10 +108,10 @@ TorchNPU算子操作基础接口可参见[OpPreparation.h接口头文件](https:
      #endif
      ```
 
-- **`FLOP_COUNT`**  
+- **`TORCH_NPU_FLOP_COUNT`**
    - 功能：统计算子的浮点运算次数（FLOPs），用于性能分析和优化。  
    - 示例（参考逻辑）：
 
      ```cpp
-     FLOP_COUNT(FlopCounter::mm_flop, input, weight_t);
+     TORCH_NPU_FLOP_COUNT(FlopCounter::mm_flop, input, weight_t);
      ```

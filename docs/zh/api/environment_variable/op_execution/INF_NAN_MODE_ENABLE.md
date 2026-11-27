@@ -18,7 +18,7 @@
 针对<term>Ascend 950DT系列产品</term>，仅支持INF\_NAN模式，该环境变量不生效。
 <!-- end id5 -->
 
-饱和模式：Inf置为max，NaN置为0。
+饱和模式：正负Inf分别置为该数据类型的正负最大有限值，NaN置为0。
 
 Inf示例
 

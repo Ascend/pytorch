@@ -43,4 +43,4 @@ export MULTI_STREAM_MEMORY_REUSE=0
 
 ## 约束说明
 
-无
+使用默认值`MULTI_STREAM_MEMORY_REUSE=2`时，返回Work对象的异步集合通信须调用`wait()`。使用非默认流时的额外约束见 [MULTI_STREAM_MEMORY_REUSE](../../api/environment_variable/memory_management/MULTI_STREAM_MEMORY_REUSE.md)。

@@ -982,15 +982,18 @@
 
 - 采集NPU上的profiling数据时，`use_device`需设置为`"npu"`。以下示例使用`use_kineto=False`
 
-例如：
+以下示例采集一次NPU张量乘法的性能数据，并打印算子统计表。
 
 ```python
 import torch
+import torch_npu
 
 x = torch.ones(64, 64, device="npu")
 with torch.autograd.profiler.profile(use_device="npu", use_kineto=False) as prof:
     y = x * x
     torch.npu.synchronize()
+
+print(prof.key_averages().table())
 ```
 
 ### profile.export_chrome_trace

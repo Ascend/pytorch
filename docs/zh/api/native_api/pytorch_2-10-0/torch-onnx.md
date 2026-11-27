@@ -9,7 +9,7 @@
 > - 注：当前文档包含的模块及部分API位于独立页面内，相关说明可查看文档：
 >    - [torch.onnx.verification](https://docs.pytorch.org/docs/2.10/onnx_verification.html)
 >
-> - 2.9起已移除旧版Dynamo导出和ONNX Runtime后端接口；`torch.onnx.export`默认使用`dynamo=True`。旧版TorchScript辅助接口已废弃，请优先使用新导出流程。
+> - 从PyTorch 2.9起，`torch.onnx.dynamo_export`和实验性`torch.compile(backend="onnxrt")`后端已移除。请通过`torch.onnx.export`使用默认的`dynamo=True`导出流程。
 
 <div style="border:1px solid #d1d5da;margin:10px 0;padding:16px 20px;background-color:#f3f4f5;border-radius:.25rem">
 <div style="margin: 8px 0"><font size="5"><b>目录</b></font></div>

@@ -48,7 +48,7 @@
         4. 安装whl包。
 
             ```shell
-            pip install torch_npu-*.whl --force-reinstall --no-deps
+            python3 -m pip install dist/torch_npu-*.whl --force-reinstall --no-deps
             ```
 
     - LTO+PGO优化
@@ -71,7 +71,7 @@
         - 安装一次编译后的TorchNPU的whl包，执行如下命令：
 
             ```shell
-            pip3 install /path/to/*.whl --force-reinstall --no-deps
+            python3 -m pip install dist/torch_npu-*.whl --force-reinstall --no-deps
             ```
 
             - 配置环境变量LLVM\_PROFILE\_FILE指定profraw数据生成文件。
@@ -93,20 +93,21 @@
             执行如下命令：
 
             ```shell
-            llvm-profdata merge /path/to/profile -o default.profdata
+            llvm-profdata merge /path/to/profile -o /path/to/profile/default.profdata
             ```
 
             该命令可以合并/path/to/profile目录下所有的profraw文件，profile数据文件不受机器环境影响，可以迁移到其他机器上使用。
 
         - 二次编译（使用Profile数据）。
 
-            配置profdata文件：将前一步骤中生成的default.profdata文件拷贝到TorchNPU目录下。请将profdata文件命名为default.profdata。
+            在源码目录之外保留上一步生成的`default.profdata`，清理上次构建后再将它复制到源码根目录。
 
             执行编译命令：
 
             ```shell
             cd torch_npu
             git clean -dfx
+            cp /path/to/profile/default.profdata ./default.profdata
             bash ci/build.sh --python=3.8 --enable_lto --enable_pgo=2
             ```
 

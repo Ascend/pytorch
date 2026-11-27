@@ -19,7 +19,7 @@ TorchNPU完整继承了PyTorch的并行策略，这些高层API可直接组合�
 
 |名称|介绍|适配说明|
 |--|--|--|
-|**DTensor**|表示分片或复制的分布式张量，记录数据在多卡上的分布方式（整卡复制`Replicate`或按维度切分`Shard`）。开发者可将其视为普通`Tensor`进行操作，跨卡的数据搬运由框架在需要时自动完成。TorchNPU提供与原生PyTorch一致的DTensor能力，API使用方式与原生一致。|具体请参见[PyTorch DTensor教程](https://docs.pytorch.org/docs/2.15/distributed.tensor.html)。|
+|**DTensor**|表示分片或复制的分布式张量，记录数据在多卡上的分布方式（整卡复制`Replicate`或按维度切分`Shard`）。开发者可将其视为普通`Tensor`进行操作，跨卡的数据搬运由框架在需要时自动完成。TorchNPU提供与原生PyTorch一致的DTensor能力，API使用方式与原生一致。|具体请参见[PyTorch DTensor API 参考](https://docs.pytorch.org/docs/2.15/distributed.tensor.html)。|
 |**DeviceMesh**|一种分布式通信域的抽象，将加速器集群拓扑表示为一个多维数组，并管理其背后对应的ProcessGroup实例。它支撑多维并行组合（如TP+PP+DP的3D并行），为上层提供统一的设备视图与通信接口。TorchNPU只需设置`device_type="npu"`，其余与原生一致。|具体请参见[PyTorch DeviceMesh教程](https://docs.pytorch.org/tutorials/recipes/distributed_device_mesh.html)。|
 
 ## 分布式启动与容错

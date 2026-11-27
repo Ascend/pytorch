@@ -123,19 +123,19 @@ After DVM compilation, the corresponding fused operator code is generated. Examp
 # Declare the operator
 @dvm.kernel(ktype='vector', dyn_shape=True)
 def dvm_fused_add_mul_sum_0_build(k):
-    arg0_1 = k.load([-1, 1], torch.bfloat16)
+    arg0_1 = k.load([-1, 1], dvm.bfloat16)
     arg1_1 = k.intref()
     arg2_1 = k.intref()
     arg3_1 = k.intref()
-    arg4_1 = k.view_load([-1, -1, -1], [-1, -1, 1], torch.bfloat16)
-    arg5_1 = k.load([1, -1], torch.bfloat16)
+    arg4_1 = k.view_load([-1, -1, -1], [-1, -1, 1], dvm.bfloat16)
+    arg5_1 = k.load([1, -1], dvm.bfloat16)
     expand = k.broadcast(arg0_1, [arg1_1, arg2_1, arg3_1])
     mul = k.mul(expand, arg4_1)
     expand_1 = k.broadcast(arg5_1, [arg1_1, arg2_1, arg3_1])
     add = k.add(mul, expand_1)
-    _npu_dtype_cast = k.cast(add, torch.float32)
+    _npu_dtype_cast = k.cast(add, dvm.float32)
     sum_1 = k.sum(_npu_dtype_cast, [0, 2], True)
-    k.store(sum_1, torch.float32)
+    k.store(sum_1, dvm.float32)
     k.set_kernel_info(
         'dvm_fused_add_mul_sum',
         'dvm_fused_add_mul_sum_0',
@@ -154,15 +154,15 @@ dvm_fused_add_mul_sum_0.run(arg4_1, s1, s0, s2, buf1, arg5_1, buf2, stream=strea
 # Declare the operator
 @dvm.kernel(ktype='split', dyn_shape=True)
 def dvm_graph_fused_0(k):
-    arg4_1 = k.load([-1, 1], torch.bfloat16)
-    permute = k.view_load([-1, -1, -1], [-1, -1, 1], torch.bfloat16)
+    arg4_1 = k.load([-1, 1], dvm.bfloat16)
+    permute = k.view_load([-1, -1, -1], [-1, -1, 1], dvm.bfloat16)
     mul_3 = k.mul(arg4_1, permute)
-    arg5_1 = k.load([1, -1], torch.bfloat16)
+    arg5_1 = k.load([1, -1], dvm.bfloat16)
     add_8 = k.add(mul_3, arg5_1)
-    convert_element_type_default = k.cast(add_8, torch.float32)
+    convert_element_type_default = k.cast(add_8, dvm.float32)
     sum_1 = k.sum(convert_element_type_default, [0, 2], True)
-    convert_element_type_default_1 = k.cast(sum_1, torch.bfloat16)
-    k.store(convert_element_type_default_1, torch.bfloat16)
+    convert_element_type_default_1 = k.cast(sum_1, dvm.bfloat16)
+    k.store(convert_element_type_default_1, dvm.bfloat16)
 
 # Usage
 buf0 = dvm_graph_fused_0(arg4_1, reinterpret_tensor(arg3_1, (s1, s0, s2), (s2, s1*s2, 1), 0), arg5_1)
@@ -232,7 +232,7 @@ Here, `autofused_mul_da488cd9dfe43526f023de214ab2ff6a` is the core execution int
 `mode="reduce-overhead"` is an optimization strategy for reducing overhead, corresponding in essence to the logic of **NPUGraph Tree**:
 
 - **Dynamic shape routing**: Manages multiple associated NPUGraphs so that the optimization benefits of NPUGraphs can cover dynamic shape scenarios rather than being limited to fixed shapes.
-- **Subgraph memory optimization**: Optimizes the memory usage of multiple subgraphs in segment graph scenarios.
+- **Subgraph memory optimization**: Optimizes the memory usage of multiple subgraphs in segment graph scenarios (when graph breaks split model execution).
 - **Working principle**: With multiple inputs of different shapes, the Tree caches multiple captured graph versions and automatically routes to the best-matching subgraph for replay based on the input shape.
 
 For more details, see [CUDAGraph Trees](https://docs.pytorch.org/docs/stable/user_guide/torch_compiler/torch.compiler_cudagraph_trees.html).

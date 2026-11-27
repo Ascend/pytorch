@@ -122,7 +122,7 @@
 <!-- npu="910b,A3,950" id34 -->
 <a class="method_anchor" id="torch_Tensor_align_to"></a>
 
-> <font size="3">align_to</font>
+> <font size="3">align_to()</font>
 
 <div style="margin-left: 2em">
 

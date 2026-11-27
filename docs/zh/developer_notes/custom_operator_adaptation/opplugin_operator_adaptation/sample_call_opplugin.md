@@ -8,7 +8,7 @@
 2. 适配前需执行如下命令拉取TorchNPU仓对应分支的代码并进入OpPlugin目录：
 
     ```bash
-    git clone https://gitcode.com/ascend/pytorch.git -b master --recursive
+    git clone --branch v2.7.1 --recursive https://gitcode.com/Ascend/pytorch.git
     cd pytorch/third_party/op-plugin
     ```
 
@@ -240,10 +240,10 @@
    2. 执行命令如下验证新增算子功能是否正常：
       > [!CAUTION]  
       >
-      > 注意运行该脚本的时候不要在TorchNPU仓的根目录下，否则可能会出现找不到torch\_npu.\_C的报错。
+      > 请从适配前进入的`pytorch/third_party/op-plugin`目录运行该脚本。避免使用TorchNPU仓根目录作为Python工作目录，否则可能会出现找不到torch\_npu.\_C的报错。
 
       ```bash
-      python op-plugin/test/test_custom_ops/test_npu_add_custom.py -v
+      python test/test_custom_ops/test_npu_add_custom.py -v
       ```
 
       打印输出如下，说明执行正确：

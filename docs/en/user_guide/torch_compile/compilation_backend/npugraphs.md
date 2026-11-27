@@ -14,17 +14,10 @@ When using this backend, Dynamo hands the FX Graph to NPUGraph, which automatica
 ## How to Enable
 
 ```python
-compiled_model = torch.compile(model, backend="npugraphs", options=None)
+compiled_model = torch.compile(model, backend="npugraphs")
 ```
 
-Description of the `options` parameter:
-
-| Option | Description |
-| - | - |
-| `triton.cudagraphs` | Triton-related configuration |
-| `trace.enabled` | Tracing switch |
-| `enable_shape_handling` | Shape handling configuration |
-| `npu_backend` | Specifies the operator compiler (`"dvm"` or `"ascendc"`; Triton by default) |
+The NPUGraphs backend entry point ignores the backend options in `options`. Dynamo handles frontend options such as `guard_filter_fn`.
 
 ## Calling Example
 

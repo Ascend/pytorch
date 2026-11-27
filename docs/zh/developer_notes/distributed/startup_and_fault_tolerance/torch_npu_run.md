@@ -35,12 +35,25 @@ torch\_npu\_run和torchrun的使用方式类似。torch\_npu\_run的部分可选
 - rdzv\_endpoint：用于集合点的后端服务地址，格式为 <主机名\>:<端口号\>。
 - rdzv\_id：用户定义的ID，用于唯一标识作业的工作组。每个节点都使用此ID加入特定工作组。
 - standalone：表示在单机上运行分布式训练任务，适用于单节点多进程作业。
-- master\_addr：主节点（排名为0）的网络地址，仅用于静态集合点。
-- master\_port：主节点（排名为0）的端口，仅用于静态集合点。
+- master\_addr：未显式设置`--rdzv_endpoint`时，用作parallel集合点的主节点地址。
+- master\_port：未显式设置`--rdzv_endpoint`时，用作parallel集合点的主节点端口。
 - local\_addr：当前节点的IP地址。
 - enable\_tiered\_parallel\_tcpstore：是否开启分层建链进一步提升建链性能，即是否区分节点内和节点间建链。推荐在大规模集群场景下使用。支持的值有true和false，默认为false（不开启）。
 
 ## 使用样例
+
+以下命令由启动器为各worker设置`LOCAL_RANK`、`RANK`和`WORLD_SIZE`。在训练脚本中导入`torch_npu`，用本地rank绑定NPU，再使用环境变量初始化HCCL进程组：
+
+```python
+import os
+import torch
+import torch_npu
+import torch.distributed as dist
+
+local_rank = int(os.environ["LOCAL_RANK"])
+torch.npu.set_device(local_rank)
+dist.init_process_group(backend="hccl", init_method="env://")
+```
 
 拉起单机8卡训练任务示例：
 

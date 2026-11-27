@@ -12,7 +12,7 @@ Docker镜像中已预装PyTorch框架、TorchNPU插件及配套的CANN软件，�
         --name torch-npu \
         --privileged \
         -v /dev:/dev \
-        -v $(pwd):/home/pytorch \
+        -v "$(pwd):/home/pytorch" \
         -v /usr/local/Ascend/driver:/usr/local/Ascend/driver \
         -v /usr/local/Ascend/add-ons:/usr/local/Ascend/add-ons \
         -v /usr/local/sbin/npu-smi:/usr/local/bin/npu-smi \
@@ -32,6 +32,7 @@ Docker镜像中已预装PyTorch框架、TorchNPU插件及配套的CANN软件，�
     |`--name torch-npu`|指定容器名称为`torch-npu`|
     |`--privileged`|特权模式，使容器拥有宿主机设备访问权限|
     |`-v /dev:/dev`|挂载宿主机设备目录，使容器可访问NPU设备|
+    |`-v "$(pwd):/home/pytorch"`|将宿主机运行命令时所在的目录挂载到容器内的`/home/pytorch`。|
     |`-v /usr/local/Ascend/driver:/usr/local/Ascend/driver`|挂载Ascend驱动目录|
     |`-v /usr/local/Ascend/add-ons:/usr/local/Ascend/add-ons`|挂载Ascend附加组件目录|
     |`-v /usr/local/sbin/npu-smi:/usr/local/bin/npu-smi`|挂载NPU管理工具`npu-smi`|

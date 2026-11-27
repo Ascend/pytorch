@@ -34,7 +34,7 @@
 **限制与说明**：
 
 - `input`仅支持bf16，fp16，fp32
-- 在昇腾NPU场景中使用FSDP，推荐传入`device_id=torch.device("npu:0")`设备相关参数
+- 在昇腾NPU上使用FSDP时，将`device_id`指向当前进程绑定的NPU。使用`torchrun`启动时，可先读取本地进程编号`LOCAL_RANK`，调用`torch.npu.set_device(local_rank)`并向FSDP传入`torch.device("npu", local_rank)`。
 
 <a class="method_anchor" id="torch_distributed_fsdp_FullyShardedDataParallel_apply"></a>
 

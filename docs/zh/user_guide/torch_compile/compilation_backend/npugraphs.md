@@ -14,48 +14,37 @@
 ## 开启方法
 
 ```python
-compiled_model = torch.compile(model, backend="npugraphs", options=None)
+compiled_model = torch.compile(model, backend="npugraphs")
 ```
 
-`options`参数说明：
-
-| 选项 | 说明 |
-| - | - |
-| `triton.cudagraphs` | Triton相关配置 |
-| `trace.enabled` | 跟踪开关 |
-| `enable_shape_handling` | 形状处理配置 |
-| `npu_backend` | 指定算子编译器（`"dvm"`或`"ascendc"`，默认Triton） |
+NPUGraphs后端没有专用的`options`配置项，传入的后端选项会被忽略。`guard_filter_fn`等前端选项由Dynamo处理。
 
 ## 调用样例
+
+以两层MLP的推理为例。输入为32条128维样本，输出形状为`(32, 10)`。
 
 ```python
 import torch
 import torch.nn as nn
+import torch_npu
 
-class SimpleMLP(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.fc1 = nn.Linear(128, 256)
-        self.fc2 = nn.Linear(256, 10)
+model = nn.Sequential(nn.Linear(128, 256), nn.ReLU(), nn.Linear(256, 10))
+model = model.eval().to("npu")
+compiled_model = torch.compile(model, backend="npugraphs")
+fixed_input = torch.randn(32, 128, device="npu")
 
-    def forward(self, x):
-        return self.fc2(torch.relu(self.fc1(x)))
-
-model = SimpleMLP().npu()
-compiled_model = torch.compile(
-    model,
-    backend="npugraphs"
-)
-
-fixed_input = torch.randn(32, 128).npu()
-fixed_target = torch.randint(0, 10, (32,)).npu()
-
-for _ in range(1000):
-    output = compiled_model(fixed_input)
+with torch.no_grad():
+    expected = model(fixed_input)
+    for _ in range(4):
+        # 每次前向开始新一轮推理，允许图树复用上一轮输出所占用的内存。
+        torch.compiler.cudagraph_mark_step_begin()
+        output = compiled_model(fixed_input)
+        torch.testing.assert_close(output, expected)
+        del output
 ```
 
 ## 约束说明
 
-- **必须固定输入形状**：捕获后无法修改batch_size、序列长度等。
-- **仅支持NN算子**：所有算子必须为aclnn算子方可入图。
-- 如需动态形状支持，请考虑使用Inductor后端的`reduce-overhead`模式（NPUGraph Tree）。
+- 已捕获的图按捕获时的输入形状回放。输入形状变化时，后端可能为新形状编译或捕获新图，也可能回退执行。尽量减少重复出现的形状种类。
+- 只有支持图捕获的NPU算子才能入图。可用`TORCH_LOGS=cudagraphs`查看预热、捕获和回放情况。
+- 使用Inductor的`mode="reduce-overhead"`前，按 [Inductor 后端](inductor.md) 中的对应编译器模式准备依赖。该模式同样需要为不同输入形状管理捕获的图。

@@ -9810,7 +9810,7 @@
 
 **限制与说明**：
 
-- `tensor`、`index`、`src`参数不能为空且不能为scalar
+- `tensor`、`index`、`src`参数不能为空且不能为标量
 - 可能回退至CPU执行
 
 <!-- npu="950,A3,910b" id1070 -->
@@ -9925,7 +9925,7 @@
 
 <!-- npu="A3,910b" id1082 -->
 - 仅在<term>Atlas A2训练系列产品</term>/<term>Atlas A3训练系列产品</term>上，且同时满足以下条件时，启用NPU加速：
-  - `including_self`为True。
+  - `include_self`为True。
   - `reduce`为"sum"或"add"。
   - 输入数据类型为fp32。
 <!-- end id1082 -->
@@ -10817,7 +10817,7 @@
 **限制与说明**：
 
 - `self`仅支持bf16，fp16，fp32
-- `input`不支持标量`tensor`
+- `self`不支持标量张量
 - `correction`参数值不能超过int32的最大值
 
 </div>

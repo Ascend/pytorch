@@ -2,7 +2,7 @@
 
 ## 简介
 
-`aot_eager`是PyTorch原生的`torch.compile()`后端之一。AOT_Eager将`torch.compile`捕获的FX Graph通过Ahead-of-Time（AOT）自动微分机制进行编译，但最终回退到Eager模式执行，不做额外的算子融合或代码生成优化。
+`aot_eager`是PyTorch原生的`torch.compile()`后端之一。AOT_Eager将`torch.compile`捕获的FX Graph（由`torch.fx`表示的算子及其依赖关系）通过Ahead-of-Time（AOT）自动微分机制进行编译，但最终回退到Eager模式执行，不做额外的算子融合或代码生成优化。
 
 AOT_Eager特点如下：
 
@@ -29,6 +29,7 @@ compiled_model = torch.compile(model, backend="aot_eager")
 ```python
 import torch
 import torch.nn as nn
+import torch_npu
 
 class SimpleMLP(nn.Module):
     def __init__(self):

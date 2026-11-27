@@ -3,7 +3,13 @@
 本文档介绍自定义算子适配完成后的编译验证流程，包括TorchNPU包的编译安装与新增算子接口的UT测试验证，适用于进行自定义算子适配的开发者。
 
 1. 算子适配完成后，需编译TorchNPU包，推荐使用容器场景进行编译安装，具体操作可参考[源码安装](../../../installation_guide/building_from_source.md)章节的“方式一（推荐）：容器场景”。
-2. TorchNPU安装完成后进行新增算子接口的测试验证。单元测试（UT）通过功能正确性验证、边界条件覆盖等，确保算子实现符合预期，降低联调成本，同时作为长期维护的质量基线，保障算子适配全生命周期的稳定性。自定义算子适配的test目录为test/test\_custom\_ops。
+2. TorchNPU安装完成后，在运行UT的同一Python环境中安装测试依赖。以下命令从任意目录执行，请替换源码路径并选择与PyTorch版本匹配的测试依赖文件：
+
+    ```bash
+    python -m pip install -r /path/to/pytorch/test/requirements.txt
+    ```
+
+3. 进行新增算子接口的测试验证。单元测试（UT）通过功能正确性验证、边界条件覆盖等，确保算子实现符合预期，降低联调成本，同时作为长期维护的质量基线，保障算子适配全生命周期的稳定性。自定义算子适配的test目录为test/test\_custom\_ops。
   以npu_reshape为例，需要实现以下用例：
 
     ```python
@@ -68,3 +74,11 @@
     if __name__ == "__main__":
         run_tests()
     ```
+
+4. 将示例保存到OpPlugin源码目录的`test/test_custom_ops/test_npu_reshape.py`，从该仓根目录执行：
+
+    ```bash
+    python test/test_custom_ops/test_npu_reshape.py -v
+    ```
+
+    两个用例均通过时，输出包含`OK`。

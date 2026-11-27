@@ -123,7 +123,7 @@
             执行如下命令：
 
             ```shell
-            llvm-profdata merge /path/to/profile -o default.profdata
+            llvm-profdata merge /path/to/profile -o /path/to/profile/default.profdata
             ```
 
             该命令可以合并/path/to/profile目录下所有的profraw文件，profile数据文件不受机器环境影响，可以迁移到其他机器上使用。

@@ -6007,7 +6007,7 @@
 - `input`仅支持bf16，fp16，fp32，fp64
 
 <!-- npu="950" id1025 -->
-- 在<term>Ascend 950DT系列产品</term>上，不支持`double`数据类型。
+- 在<term>Ascend 950DT系列产品</term>上，不支持fp64数据类型。
 <!-- end id1025 -->
 
 </div>

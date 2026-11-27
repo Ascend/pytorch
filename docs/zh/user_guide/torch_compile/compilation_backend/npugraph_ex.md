@@ -33,6 +33,7 @@ NPUGraph_EX支持的编译选项（`options`参数）和详细使用指导请参
 ```python
 import torch
 import torch.nn as nn
+import torch_npu
 
 # 1. 定义模型
 class SimpleMLP(nn.Module):
@@ -52,17 +53,20 @@ compiled_model = torch.compile(
     backend="npugraph_ex"  # 核心：启用 NPUGraph_EX 优化
 )
 
-# 3. 训练/推理
-input_data = torch.randn(32, 128).npu()
+# 3. 固定形状的前向推理，输出形状为 (32, 10)。
+input_data = torch.randn(32, 128, device="npu")
 
-for _ in range(1000):  # 高迭代次数场景（复跑收益更明显）
-    output = compiled_model(input_data)
+with torch.no_grad():
+    for _ in range(1000):
+        torch.compiler.cudagraph_mark_step_begin()
+        output = compiled_model(input_data)
+        del output
 ```
 
 ## 约束说明
 
 1. 优化器（optimizer）通常不入图，优化器的`step()`包含Python侧动态逻辑（如学习率调度、梯度累积、自适应更新规则），难以被静态图捕获。
-2. 使用NPUGraph_EX时需要判断算子在replay时是否需要更新，如需更新，启用update机制。
+2. 如需在图回放时更新算子参数，请按 [NPUGraph_EX 使用指导](https://gitcode.com/Ascend/torchair/blob/master/docs/zh/npugraph_ex/npugraph_ex.md) 核对当前版本支持的图更新接口和算子。
 3. 主要面向在线推理场景，暂不支持反向流程capture成图、随机数算子capture。
 4. 与torch.cuda.CUDAGraph原生接口的约束保持一致，例如不支持stream sync、动态控制流等。
 5. 建议将`fullgraph`参数设置为True。若编译器遇到无法追踪到单一计算图中的代码（即“图中断”），则会引发错误。

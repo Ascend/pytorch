@@ -95,7 +95,7 @@ git checkout <commit_id>
 
 ```text
 ci/build.sh: line 2: $'\r': command not found
-: invalid optione 3: set: -
+ci/build.sh: line 3: set: -: invalid option
 set: usage: set [-abefhkmnptuvxBCHP] [-o option-name] [--] [arg ...]
 ci/build.sh: line 4: $'\r': command not found
 ci/build.sh: line 9: $'\r': command not found
@@ -181,7 +181,7 @@ done
 
 或尝试用实际内容替换：
 
-譬如，用`third_party\torchair\torchair\third_party\ascend\include\air\external\ge\ge_error_codes.h`中的内容替换`third_party\torchair\torchair\third_party\ascend\include\ascend/include/ascendcl/external/acl/error_codes/rt_error_codes.h`中的内容。
+譬如，用`third_party/torchair/torchair/third_party/ascend/include/air/external/ge/ge_error_codes.h`中的内容替换`third_party/torchair/torchair/third_party/ascend/include/ascendcl/external/acl/error_codes/rt_error_codes.h`中的内容。
 
 ### 问题6：fatal error: 'filesystem' file not found
 

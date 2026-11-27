@@ -8,11 +8,11 @@
 
     可以迁移，注意glibc版本，低版本glibc上编译的Python可以迁移到高版本，反之不行。
 
-- Error while loading shared libraries: libomp.so: cannot open shared object file: No such file or directory.
+- “Error while loading shared libraries: libomp.so: cannot open shared object file: No such file or directory.”
 
     PyTorch构建时默认使用了OpenMP。PyTorch运行环境需要安装毕昇编译器包，并设置LD\_LIBRARY\_PATH环境变量，以便可以正确找到动态库libomp.so。
 
-- “fatal error: 'filesystem' file not found.”
+- 编译时出现错误“fatal error: 'filesystem' file not found.”。
 
     gcc版本过低，请执行gcc --version命令查询版本，并升级至gcc 8及以上版本，具体请参考[安装GCC](https://ubuntu.com/developers/docs/howto/gcc-setup/)。
 

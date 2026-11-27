@@ -119,7 +119,7 @@
 
 **限制与说明**：
 
-- 支持的输入类型为`torch.nn.Optimizer`对象
+- 参数`optimizer_class`接收`torch.optim.Optimizer`的子类，例如`torch.optim.SGD`。
 - 不支持NPU融合优化器对象
 
 <a class="method_anchor" id="torch_distributed_optim_ZeroRedundancyOptimizer_add_param_group"></a>

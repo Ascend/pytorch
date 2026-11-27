@@ -858,7 +858,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id84 -->
 
-**限制与说明**： `input`仅支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
+**限制与说明**：`dtype`支持bf16，fp16，fp32，fp64，uint8，int8，int16，int32，int64，bool
 
 </div>
 

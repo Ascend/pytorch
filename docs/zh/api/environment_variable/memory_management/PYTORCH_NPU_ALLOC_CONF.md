@@ -105,11 +105,11 @@
 
     与segment\_size\_mb同时配置时，仅large\_segment\_size\_mb生效。与page\_size同时配置时，仅page\_size生效。与max\_split\_size\_mb同时配置时，要求max\_split\_size\_mb >= large\_segment\_size\_mb。
 
-- per\_process\_memory\_fraction:<value\>，限制当前进程可使用的NPU显存比例。
+- per\_process\_memory\_fraction:<value\>，限制当前进程可使用的NPU内存比例。
 
-    取值范围为\[0.0,1.0\]，表示可用的设备显存比例，默认值为1.0，即不限制进程显存使用。配置后，框架在初始化时会根据设备总显存和配置的比例计算当前进程可使用的最大显存，超出限制的内存申请将触发OOM（Out of Memory，内存不足）错误。
+    取值范围为\[0.0,1.0\]，表示可用的设备内存比例，默认值为1.0，即不限制进程内存使用。配置后，框架在初始化时会根据设备总内存和配置的比例计算当前进程可使用的最大内存，超出限制的内存申请将触发OOM（Out of Memory，内存不足）错误。
 
-    该配置项适用于多进程共享同一NPU设备的场景，通过限制进程的可用显存的比例，避免单个进程占用过多显存导致其他进程OOM。
+    该配置项适用于多进程共享同一NPU设备的场景，通过限制进程的可用内存的比例，避免单个进程占用过多内存导致其他进程OOM。
 
 - throw\_on\_npumalloc\_oom:<value\>，在发生内存OOM之前预防式拒绝内存申请，跳过内存分配重试流程。
 
@@ -131,19 +131,19 @@
 
     取值为正整数，单位为MB。默认不开启，即所有释放的pinned memory块都进入free list缓存复用。设置后，块大小若大于此阈值，则在释放时立即归还给OS，不再进入free list缓存（也不再执行向上取整），从而降低大块pinned memory使用频率较低场景下的峰值内存占用。
 
-- max\_non\_split\_rounding\_mb:<value\>，显存复用控制项，结合max\_split\_size\_mb控制显存块大小和复用。
+- max\_non\_split\_rounding\_mb:<value\>，内存复用控制项，结合max\_split\_size\_mb控制内存块大小和复用。
 
-    取值为正整数，单位为MB，默认20MB。显存块free后物理上不一定释放，假定保留给下次分配使用，该块保留的显存大小为A、max\_non\_split\_rounding\_mb为B、max\_split\_size\_mb为C，需要新分配一个内存D。
+    取值为正整数，单位为MB，默认20MB。内存块free后物理上不一定释放，假定保留给下次分配使用，该块保留的内存大小为A、max\_non\_split\_rounding\_mb为B、max\_split\_size\_mb为C，需要新分配一个内存D。
 
     当D大于C，计算A-D：
     - 如果A-D小于等于B，则不需要重新分配，复用A。
-    - 如果A-D大于B，则需要重新分配新的显存。
+    - 如果A-D大于B，则需要重新分配新的内存。
 
     当D小于等于C，当前变量不生效。
 
-- release\_lock\_on\_npumalloc:<value\>，显存分配锁控制项，决定是否在分配显存时释放部分锁，控制的项保持与原生社区一致。
+- release\_lock\_on\_npumalloc:<value\>，内存分配锁控制项，决定是否在分配内存时释放部分锁，控制的项保持与原生社区一致。
 
-    取值为bool类型，True或False，默认为False。设置后，显存分配会释放部分锁，可缓解Host计算开销压力，但是可能造成更多资源占用，自定义开发显存管理可能存在不兼容问题，需谨慎使用。
+    取值为bool类型，True或False，默认为False。设置后，内存分配会释放部分锁，可缓解Host计算开销压力，但是可能造成更多资源占用，自定义开发内存管理可能存在不兼容问题，需谨慎使用。
 
 > [!NOTE]  
 >
