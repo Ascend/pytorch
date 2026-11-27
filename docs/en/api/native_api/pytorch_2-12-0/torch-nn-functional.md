@@ -1774,7 +1774,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id223 -->
 
-**Constraints & Notes**: `x1` and `x2` only support fp16 and fp32.
+**Constraints & Notes**: `x1` and `x2` support bf16, fp16, and fp32, and if either input is an integer tensor, the other must have one of these floating-point types.
 
 </div>
 

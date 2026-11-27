@@ -5423,6 +5423,8 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1045 -->
 
+**限制与说明**：`x1` 和 `x2` 支持bf16、fp16、fp32，若其中一个输入为整数类型，另一个须为上述浮点类型。
+
 </div>
 
 ### <code><i>class</i></code> torch.nn.PairwiseDistance
@@ -5442,6 +5444,8 @@
 <!-- npu="950" id1069 -->
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id1069 -->
+
+**限制与说明**：`x1` 和 `x2` 相减并加上 `eps` 后，结果的数据类型须为bf16、fp16或fp32。
 
 </div>
 
