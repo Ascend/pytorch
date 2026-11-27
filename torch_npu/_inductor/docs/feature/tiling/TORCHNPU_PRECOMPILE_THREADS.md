@@ -2,7 +2,7 @@
 
 ## 功能
 
-控制多线程编译线程数量，默认为最大核数的一半（max_precompiled_thread_num = os.cpu_count() // 2），大于1时，使用并发编译。
+设置预编译线程数。未设置时，默认值为`max(os.cpu_count() // max(compile_threads, 2), 32)`，其中`compile_threads`是Inductor的编译进程数。
 
 ## 配置示例
 

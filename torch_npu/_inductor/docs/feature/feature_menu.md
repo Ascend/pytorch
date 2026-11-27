@@ -1,6 +1,7 @@
 # 特性与调优配置
 
 - [环境变量列表](./environment_variables_summary.md)
+- [Inductor 特性支持情况](./inductor_feature_support.md)
 - [AOTInductor](./aoti/aoti.md)
     - [快速入门](./aoti/overview.md)
 - [Catlass](./catlass/catlass.md)

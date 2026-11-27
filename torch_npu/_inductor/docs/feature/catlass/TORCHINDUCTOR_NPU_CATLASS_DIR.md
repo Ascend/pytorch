@@ -6,7 +6,7 @@
 
 若路径配置错误，会有WARNING信息提示，并跳过尝试引入catlass后端的功能。
 
-默认配置为TORCHINDUCTOR_NPU_CATLASS_DIR=""。
+未设置时，默认使用`torch`安装目录上一级的`third_party/catlass`。
 
 ## 配置示例
 
