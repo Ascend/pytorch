@@ -1,4 +1,5 @@
 import logging
+from contextlib import contextmanager
 
 import torch
 import torch_npu
@@ -928,6 +929,158 @@ def _npu_fa_grad_v3_cp_strategy(op_schema):
     return _expand(mesh, op_schema, flat, input_index=input_index)
 
 
+# Single-dim (3-arg) CP strategies for torch >= 2.14; 2.13 uses the legacy
+# single-arg convention. Selected at enable time by _torch_has_single_dim_infra().
+
+def _cp_seq_dim(layout, pse, padding_mask, prefix, actual_seq_qlen,
+                actual_seq_kvlen, sink, keep_prob):
+    """Return the seq tensor dim if the call is CP-eligible, else None."""
+    if not isinstance(layout, str):
+        return None
+    if 'S' in layout:
+        seq_dim = layout.index('S')
+    elif 'T' in layout:
+        seq_dim = layout.index('T')
+    else:
+        return None
+    unused = [pse, padding_mask, prefix, actual_seq_qlen, actual_seq_kvlen, sink]
+    if not all(arg is None for arg in unused):
+        return None
+    if keep_prob is not None and keep_prob < 1.0:
+        return None
+    return seq_dim
+
+
+class _Layer1TensorMeta:
+    """DTensorSpec-like view over a TensorMeta (which lacks ``.ndim``)."""
+
+    __slots__ = ("shape", "ndim", "dtype")
+
+    def __init__(self, meta):
+        self.shape = meta.shape
+        self.ndim = len(meta.shape)
+        self.dtype = meta.dtype
+
+
+def _to_layer1_arg(item):
+    """Convert a single-dim TensorMeta arg into a layer-1-compatible object."""
+    from torch.distributed.tensor._dtensor_spec import TensorMeta
+
+    if isinstance(item, TensorMeta):
+        return _Layer1TensorMeta(item)
+    return item
+
+
+def _single_dim_rows_from_layer1(op, args, kwargs, layer1_fn):
+    """Convert layer-1 (out, in) strategy pairs to single-dim flat rows."""
+    from torch.distributed.tensor import Replicate
+
+    layer1_args = tuple(_to_layer1_arg(a) for a in args)
+    layer1_kwargs = {k: _to_layer1_arg(v) for k, v in kwargs.items()}
+
+    rows = []
+    for out, inp in layer1_fn(*layer1_args, **layer1_kwargs):
+        flat_in = []
+        for i, arg in enumerate(op._schema.arguments):
+            if "Tensor" not in str(arg.type):
+                continue
+            meta = args[i] if i < len(args) else kwargs.get(arg.name)
+            if meta is None:
+                continue  # absent optional tensor
+            p = inp[i] if i < len(inp) else None
+            flat_in.append(p if p is not None else Replicate())
+        rows.append(list(out) + flat_in)
+    return rows
+
+
+def _npu_fa_v3_cp_single_dim_strategy(op, args_meta, kwargs_meta):
+    """Single-dim CP strategy for npu_fusion_attention_v3 (forward)."""
+    from torch.distributed.tensor import Replicate
+    from torch.distributed.tensor._ops.single_dim_strategy import _ShardingPlaceholder
+
+    args = tuple(args_meta)
+    kwargs = dict(kwargs_meta)
+
+    seq_dim = _cp_seq_dim(
+        _get_kw(args, kwargs, _FWD_IX, "input_layout", "BNSD"),
+        _get_kw(args, kwargs, _FWD_IX, "pse"),
+        _get_kw(args, kwargs, _FWD_IX, "padding_mask"),
+        _get_kw(args, kwargs, _FWD_IX, "prefix"),
+        _get_kw(args, kwargs, _FWD_IX, "actual_seq_qlen"),
+        _get_kw(args, kwargs, _FWD_IX, "actual_seq_kvlen"),
+        _get_kw(args, kwargs, _FWD_IX, "sink"),
+        _get_kw(args, kwargs, _FWD_IX, "keep_prob", 1.0),
+    )
+    rows = _single_dim_rows_from_layer1(op, args, kwargs, _layer1_fwd_strategy)
+    if seq_dim is None:
+        return rows
+
+    ph = _ShardingPlaceholder(seq_dim)
+    # 6 outputs: out, softmax_max, softmax_sum, unused, seed, offset
+    cp_out = [ph, ph, ph, Replicate(), Replicate(), Replicate()]
+
+    cp_in = []
+    for i, arg in enumerate(op._schema.arguments):
+        if "Tensor" not in str(arg.type):
+            continue
+        meta = args[i] if i < len(args) else kwargs.get(arg.name)
+        if meta is None:
+            continue  # absent optional tensor
+        if i in (0, 1, 2):  # query, key, value
+            cp_in.append(ph)
+        else:  # atten_mask and other present tensors are global
+            cp_in.append(Replicate())
+    rows.append(cp_out + cp_in)
+    return rows
+
+
+def _npu_fa_grad_v3_cp_single_dim_strategy(op, args_meta, kwargs_meta):
+    """Single-dim CP strategy for npu_fusion_attention_grad_v3 (backward)."""
+    from torch.distributed.tensor import Replicate
+    from torch.distributed.tensor._ops.single_dim_strategy import _ShardingPlaceholder
+
+    args = tuple(args_meta)
+    kwargs = dict(kwargs_meta)
+
+    seq_dim = _cp_seq_dim(
+        _get_kw(args, kwargs, _BWD_IX, "input_layout", "BNSD"),
+        _get_kw(args, kwargs, _BWD_IX, "pse"),
+        _get_kw(args, kwargs, _BWD_IX, "padding_mask"),
+        _get_kw(args, kwargs, _BWD_IX, "prefix"),
+        _get_kw(args, kwargs, _BWD_IX, "actual_seq_qlen"),
+        _get_kw(args, kwargs, _BWD_IX, "actual_seq_kvlen"),
+        _get_kw(args, kwargs, _BWD_IX, "sink"),
+        _get_kw(args, kwargs, _BWD_IX, "keep_prob", 1.0),
+    )
+    rows = _single_dim_rows_from_layer1(op, args, kwargs, _layer1_bwd_strategy)
+    if seq_dim is None:
+        return rows
+
+    ph = _ShardingPlaceholder(seq_dim)
+    # 5 outputs: dq, dk, dv, grad_pse, grad_sink
+    cp_out = [ph, ph, ph, Replicate(), Replicate()]
+
+    cp_in = []
+    seq_sharded_args = (0, 1, 2, 3) + (
+        _BWD_IX["softmax_max"],
+        _BWD_IX["softmax_sum"],
+        _BWD_IX["attention_in"],
+    )
+    for i, arg in enumerate(op._schema.arguments):
+        if "Tensor" not in str(arg.type):
+            continue
+        meta = args[i] if i < len(args) else kwargs.get(arg.name)
+        if meta is None:
+            continue  # absent optional tensor
+        if i in seq_sharded_args:
+            # q, k, v, dy; softmax_max, softmax_sum, attention_in
+            cp_in.append(ph)
+        else:  # pse/padding_mask/atten_mask/softmax_in/seed/offset
+            cp_in.append(Replicate())
+    rows.append(cp_out + cp_in)
+    return rows
+
+
 _npu_fa = torch.ops.npu.npu_fusion_attention_v3.default
 _npu_fa_grad = torch.ops.npu.npu_fusion_attention_grad_v3.default
 
@@ -947,31 +1100,47 @@ _cp_prev_handlers = {}
 _npu_cp_strategy_contexts = {}
 
 
-_strategy_context_cache = None
+@contextmanager
+def _single_dim_op_strategy_context(op_overload, strategy_func, schema_info=None):
+    """Wrap torch's single-dim context and restore its schema-info dict.
 
-
-def _get_strategy_context_compat():
-    """Return the strategy context manager, compatible across torch versions.
-
-    torch <= 2.13: _op_strategy_context
-    torch >= 2.14: _single_dim_strategy_context (renamed)
-
-    Cached after first call to avoid repeated import attempts.
+    torch restores ``op_single_dim_strategy_funcs`` and legacy ``op_to_schema_info``
+    on exit but leaves ``op_to_schema_info_for_single_dim_strategy`` behind.
     """
-    global _strategy_context_cache
-    if _strategy_context_cache is not None:
-        return _strategy_context_cache
+    from torch.distributed.tensor import DTensor
+    from torch.distributed.tensor.experimental._context_parallel._sharding_rules import (
+        _single_dim_strategy_context as torch_sd_ctx,
+    )
 
+    propagator = DTensor._op_dispatcher.sharding_propagator
+    sd_infos = getattr(propagator, "op_to_schema_info_for_single_dim_strategy", None)
+    saved_sd_info = sd_infos.get(op_overload) if sd_infos is not None else None
+    ctx = torch_sd_ctx(op_overload, strategy_func, schema_info)
     try:
-        from torch.distributed.tensor.experimental._context_parallel._sharding_rules import (
-            _single_dim_strategy_context as _ctx,
+        ctx.__enter__()
+        yield
+    finally:
+        ctx.__exit__(None, None, None)
+        if saved_sd_info is None:
+            if sd_infos is not None:
+                sd_infos.pop(op_overload, None)
+        else:
+            sd_infos[op_overload] = saved_sd_info
+
+
+def _torch_has_single_dim_infra() -> bool:
+    """True if this torch exposes the single-dim (3-arg) strategy infra."""
+    try:
+        from torch.distributed.tensor import DTensor
+        from torch.distributed.tensor.experimental._context_parallel import _sharding_rules
+
+        _prop = DTensor._op_dispatcher.sharding_propagator
+        return (
+            hasattr(_prop, "op_single_dim_strategy_funcs")
+            and hasattr(_sharding_rules, "_single_dim_strategy_context")
         )
-    except ImportError:
-        from torch.distributed.tensor.experimental._context_parallel._sharding_rules import (
-            _op_strategy_context as _ctx,
-        )
-    _strategy_context_cache = _ctx
-    return _ctx
+    except Exception:  # pragma: no cover - defensive only
+        return False
 
 
 def _register_npu_cp_sharding_rules() -> None:
@@ -981,10 +1150,23 @@ def _register_npu_cp_sharding_rules() -> None:
 
     from torch.distributed.tensor._op_schema import RuntimeSchemaInfo
 
-    _strategy_context = _get_strategy_context_compat()
+    # Use the single-dim (3-arg) convention when the running torch provides it
+    # (>= 2.14); otherwise fall back to the legacy single-arg convention (2.13).
+    if _torch_has_single_dim_infra():
+        _strategy_context = _single_dim_op_strategy_context
+        fwd_strategy = _npu_fa_v3_cp_single_dim_strategy
+        bwd_strategy = _npu_fa_grad_v3_cp_single_dim_strategy
+    else:
+        from torch.distributed.tensor.experimental._context_parallel._sharding_rules import (
+            _op_strategy_context as _strategy_context,
+        )
+
+        fwd_strategy = _npu_fa_v3_cp_strategy
+        bwd_strategy = _npu_fa_grad_v3_cp_strategy
+
     npu_cp_strategies = [
-        (_npu_fa, _npu_fa_v3_cp_strategy, RuntimeSchemaInfo(1)),
-        (_npu_fa_grad, _npu_fa_grad_v3_cp_strategy, RuntimeSchemaInfo(1)),
+        (_npu_fa, fwd_strategy, RuntimeSchemaInfo(1)),
+        (_npu_fa_grad, bwd_strategy, RuntimeSchemaInfo(1)),
     ]
     for op_overload, strategy_func, schema_info in npu_cp_strategies:
         ctx = _strategy_context(op_overload, strategy_func, schema_info)
