@@ -34,14 +34,14 @@ else:
                 global _native_library
                 _native_library = ctypes.CDLL(spec.origin, mode=os.RTLD_NOW | os.RTLD_LOCAL)
                 return self.loader.create_module(spec)
-            except (ImportError, OSError, RuntimeError):
-                raise ImportError(_GERT_IMPORT_ERROR) from None
+            except (ImportError, OSError, RuntimeError) as exc:
+                raise ImportError(f"{_GERT_IMPORT_ERROR} {type(exc).__name__}: {exc}") from exc
 
         def exec_module(self, module):
             try:
                 self.loader.exec_module(module)
-            except (ImportError, OSError, RuntimeError):
-                raise ImportError(_GERT_IMPORT_ERROR) from None
+            except (ImportError, OSError, RuntimeError) as exc:
+                raise ImportError(f"{_GERT_IMPORT_ERROR} {type(exc).__name__}: {exc}") from exc
 
     class _GertAliasLoader(importlib.abc.Loader):
         def __init__(self, canonical_name):

@@ -3378,7 +3378,7 @@ def backend(gm: GraphModule, example_inputs: List[torch.Tensor]):
 
             converter_backend = load_backend()
         except (ImportError, OSError, RuntimeError) as exc:
-            raise RuntimeError(f"GERT not support: {exc}") from None
+            raise RuntimeError(f"GERT not support: {exc}") from exc
         return converter_backend(gm, example_inputs)
     if executor != "default":
         raise ValueError(
