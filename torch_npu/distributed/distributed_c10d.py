@@ -1,4 +1,4 @@
-__all__ = ["is_hccl_available", "reinit_process_group"]
+__all__ = ["is_hccl_available", "reinit_process_group", "fused_isend_irecv"]
 
 import logging
 import os
@@ -222,6 +222,65 @@ def _batch_isend_irecv(p2p_op_list):
             if work:
                 reqs.append(work)
     return reqs
+
+
+def fused_isend_irecv(p2p_op_list):
+    """
+    Send and receive a batch of NPU tensors asynchronously.
+
+    Submit the operations in ``p2p_op_list`` through HcclBatchSendRecv rather
+    than group send/recv. Only the HCCL backend is supported.
+
+    Args:
+        p2p_op_list (list[torch.distributed.P2POp]): Operations to submit.
+            Send and receive operations must be ordered consistently with
+            their matching operations on each peer.
+
+    Returns:
+        A list containing one distributed work object for the entire batch.
+
+    Examples:
+        >>> # xdoctest: +SKIP("requires an initialized two-rank HCCL process group")
+        >>> import torch.distributed as dist
+        >>> peer = 1 - dist.get_rank()
+        >>> send_tensor = torch.arange(2, dtype=torch.float32, device="npu")
+        >>> recv_tensor = torch.empty_like(send_tensor)
+        >>> send_op = dist.P2POp(dist.isend, send_tensor, peer)
+        >>> recv_op = dist.P2POp(dist.irecv, recv_tensor, peer)
+        >>> works = torch_npu.distributed.fused_isend_irecv([send_op, recv_op])
+        >>> for work in works:
+        ...     work.wait()
+
+    .. note::
+        Select the current NPU with ``torch.npu.set_device`` before calling
+        this function. Call ``wait()`` on the returned work before consuming
+        received tensors on the current stream.
+    """
+    group = p2p_op_list[0].group
+    device = p2p_op_list[0].tensor.device
+    is_multi_pg = True
+    if group is None:
+        group = _get_default_group()
+        is_multi_pg = False
+    _group = group._get_backend(device)
+
+    op_type = []
+    tensors = []
+    remote_rank_list = []
+    for p2p_op in p2p_op_list:
+        if p2p_op.tensor.device.type != "npu":
+            deviceType = p2p_op.tensor.device.type
+            raise RuntimeError(
+                f"No backend type associated with device type {deviceType}"
+                + dist_error(ErrCode.PARAM)
+            )
+        op_type.append(p2p_op.op.__name__)
+        tensors.append(p2p_op.tensor)
+        rank_for_op = (
+            get_group_rank(group, p2p_op.peer) if is_multi_pg else p2p_op.peer
+        )
+        remote_rank_list.append(rank_for_op)
+    return [_group.batch_isend_irecv(op_type, tensors, remote_rank_list)]
 
 
 def _gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
