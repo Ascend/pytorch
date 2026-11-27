@@ -312,11 +312,25 @@ NPU_BATCH_SIZE = {
 NPU_MFUSION_NO_ACLGRAPH = set(_NPU_NO_ACLGRAPH_MODELS)
 
 
+# Models whose eager execution is known non-bitwise-reproducible on NPU
+# (torch_npu generator philox offset does not reset cleanly after a full-model
+# forward -> two eager runs draw different random streams; e.g. fastNLP_Bert).
+# Mirrors the upstream dynamobench contract; the eager two-run tol=0 gate is
+# skipped for these models while downstream numerical comparisons still run.
+EAGER_NONDETERMINISTIC_MODELS = {
+    "fastNLP_Bert",
+}
+
+
 class TorchBenchmarkRunner(BenchmarkRunner):
     def __init__(self):
         super().__init__()
         self.suite_name = "torchbench"
         self.optimizer = None
+
+    @property
+    def skip_accuracy_check_as_eager_non_deterministic(self):
+        return set(EAGER_NONDETERMINISTIC_MODELS)
 
     @property
     def skip_models(self):
@@ -527,12 +541,12 @@ class TorchBenchmarkRunner(BenchmarkRunner):
             os.path.basename(m) for m in torchbenchmark_models
         }
 
+        script_dir = os.path.dirname(os.path.abspath(__file__))
         if args.model_list:
             list_file = os.path.abspath(args.model_list)
             if not os.path.isfile(list_file):
                 raise FileNotFoundError(f"model list not found: {list_file}")
         else:
-            script_dir = os.path.dirname(os.path.abspath(__file__))
             list_file = os.path.join(script_dir, "torchbench_models_list.txt")
         file_model_names = self._get_models_from_file(list_file)
 
