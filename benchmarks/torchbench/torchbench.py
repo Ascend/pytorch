@@ -306,6 +306,10 @@ NPU_BATCH_SIZE = {
     "dcgan": 4096,
     "lennard_jones": 4096,
     "nvidia_deeprecommender": 256,
+    "dlrm": 32,
+    "vgg16": 32,
+    "squeezenet1_1": 256,
+    "pytorch_stargan": 17,
 }
 
 

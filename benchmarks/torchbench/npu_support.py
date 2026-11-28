@@ -930,6 +930,41 @@ def _patch_lennard_jones():
     Model.__init__ = init
 
 
+@register_patch("pytorch_stargan")
+@cache
+def _patch_pytorch_stargan():
+    from torchbenchmark.models.pytorch_stargan import Model
+
+    Model.ALLOW_CUSTOMIZE_BSIZE = True
+
+
+@register_patch("basic_gnn_gcn", "basic_gnn_sage")
+@cache
+def _patch_basic_gnn_batch():
+    from torchbenchmark.models.basic_gnn_gcn import Model as GCNModel
+    from torchbenchmark.models.basic_gnn_sage import Model as SageModel
+
+    for model_cls in (GCNModel, SageModel):
+        original_init = model_cls.__init__
+
+        def init(self, *args, _original_init=original_init, **kwargs):
+            _original_init(self, *args, **kwargs)
+            if torch.device(self.device).type != "npu":
+                return
+            x, edge_index = self.example_inputs
+            nodes, edges, batch = x.shape[0], edge_index.shape[1], 10
+            x = torch.randn((nodes * batch, *x.shape[1:]), device=x.device, dtype=x.dtype)
+            offsets = torch.arange(batch, device=edge_index.device, dtype=edge_index.dtype)
+            offsets = offsets.repeat_interleave(edges) * nodes
+            edge_index = torch.randint(
+                nodes, (2, edges * batch), device=edge_index.device, dtype=edge_index.dtype
+            ) + offsets
+            self.example_inputs = (x, edge_index)
+            self.batch_size = batch
+
+        model_cls.__init__ = init
+
+
 def patch_model(model_name):
     if model_name not in _patch_table:
         return

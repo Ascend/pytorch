@@ -197,7 +197,8 @@ def _gelu_use_tanh_approx(approximate: str) -> bool:
     if approximate == "tanh":
         return True
     if approximate == "none":
-        return not _npu_use_compatible_gelu_v2()
+        # ACLNN-only devices use GeluV2 regardless of the compatibility flag.
+        return not (dvm_config.is_ascend950 or _npu_use_compatible_gelu_v2())
     raise RuntimeError(
         f"approximate argument must be either none or tanh, but got {approximate!r}."
     )
