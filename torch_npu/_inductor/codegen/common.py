@@ -18,6 +18,8 @@ def patch_cache_base_get_system():
     # patch function CacheBase.get_system with get_system_npu, add logic to support CANN
     @staticmethod
     def get_system():
+        from .. import config as npu_config
+
         try:
             try:
                 from triton.runtime.cache import triton_key  # type: ignore[attr-defined]
@@ -55,6 +57,8 @@ def patch_cache_base_get_system():
             # If deivce is not installed, none of the above config is relevant.
             system = {}
 
+        # The same FX graph generates different kernels for the two block modes.
+        system["combo_kernel_per_subkernel_blocks"] = npu_config.combo_kernel_per_subkernel_blocks
         system["hash"] = hashlib.sha256(
             json.dumps(system, sort_keys=True).encode("utf-8")
         ).hexdigest()

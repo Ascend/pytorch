@@ -132,6 +132,8 @@ def __getattr__(name):
 
 # Shared by combo dispatch-axis selection and all tiling wave budgets.
 combo_kernel_max_waves = 8
+# Give each ComboKernel member its own block sizes when enabled.
+combo_kernel_per_subkernel_blocks = True
 
 
 def _obtain_precompile_thread_num() -> int:

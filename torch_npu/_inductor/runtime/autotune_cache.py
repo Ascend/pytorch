@@ -18,6 +18,12 @@ def _load_cached_autotuning(
     # Remove time taken for comparison
     best_config.pop("time_taken_ms", None)
 
+    if inductor_meta.get("npu_combo_groups"):
+        from torch._inductor.runtime.triton_heuristics import config_from_dict
+        best_config.pop("triton_cache_hash", None)
+        best_config.pop("found_by_coordesc", None)
+        return config_from_dict(best_config)
+
     num_warps = best_config.pop("num_warps")
     num_stages = best_config.pop("num_stages")
     triton_config = Config(best_config, num_warps=num_warps, num_stages=num_stages)

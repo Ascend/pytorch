@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 import sympy
 
+from torch.utils._ordered_set import OrderedSet
 from torch._inductor import metrics
 from torch._inductor.codegen.cuda_combined_scheduling import CUDACombinedScheduling
 from torch._inductor.codegen.triton import TritonScheduling
@@ -217,26 +218,48 @@ class NPUCombinedScheduling(CUDACombinedScheduling, TritonScheduling):
                     subkernel_node.group = max(
                         subnodes, key=lambda snode: int(snode.is_reduction())
                     ).group
-                return self._triton_scheduling.codegen_combo_kernel(node)
+                partitions = self._triton_scheduling.prepare_combo_kernel(node, allow_partition_fallback=True)
             except Exception:
                 metrics.generated_kernel_count = kernel_count
-                for snode, group in original_groups:
-                    snode.group = group
-                log.debug(
-                    "linear combo codegen for node %s raise error, "
-                    "fallback to individual kernels",
-                    node,
-                    exc_info=True,
-                )
+                log.debug("Combo preparation failed for %s", node, exc_info=True)
+                partitions = [(None, None, subkernel_nodes)]
+        else:
+            original_groups = []
+            partitions = [(None, None, subkernel_nodes)]
 
-        # Ordinary codegen retains its own linear-to-nonlinear fallback.
-        # The scheduler queued last_usage for the whole combo. Do not let the
-        # first ordinary kernel free inputs still needed by later subkernels.
-        pending_frees = self.scheduler.buffer_names_to_free.copy()
-        self.scheduler.buffer_names_to_free.clear()
-        try:
-            for subkernel_node in subkernel_nodes:
-                self.codegen_node(subkernel_node)
-        finally:
-            self.scheduler.buffer_names_to_free.update(pending_frees)
-        self.free_buffers_in_scheduler()
+        backend = self._triton_scheduling
+        if all(kernel is not None for _, kernel, _ in partitions):
+            for src_code, kernel, members in partitions:
+                backend.emit_combo_partition(node, src_code, kernel, members)
+            return backend.free_buffers_in_scheduler()
+
+        fallback_nodes = {
+            snode for _, kernel, members in partitions if kernel is None
+            for member in members for snode in (member, *member.get_nodes())
+        }
+        for snode, group in original_groups:
+            if snode in fallback_nodes:
+                snode.group = group
+
+        # A regular kernel can free buffers immediately. Assign last uses in
+        # actual partition order before emitting the first such kernel.
+        scheduler = self.scheduler
+        future_used_buffers = OrderedSet(
+            scheduler.mutation_real_name.get(name, name)
+            for name in node.used_or_aliased_buffer_names()
+        ) - node.last_usage
+        for _, _, members in reversed(partitions):
+            for member in reversed(members):
+                member.set_last_usage(future_used_buffers, scheduler.mutation_real_name)
+                future_used_buffers.update(member.last_usage)
+        scheduler.buffer_names_to_free.difference_update(node.last_usage)
+        for src_code, kernel, members in partitions:
+            if kernel is None:
+                for member in members:
+                    scheduler.buffer_names_to_free.update(member.last_usage)
+                    self.codegen_node(member)
+            else:
+                for member in members:
+                    scheduler.buffer_names_to_free.update(member.last_usage)
+                backend.emit_combo_partition(node, src_code, kernel, members)
+        backend.free_buffers_in_scheduler()

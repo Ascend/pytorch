@@ -704,8 +704,9 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
 
         if self.is_split_axis:
             if self.is_sub_kernel:
+                pid = f"pid_offset_{self.name}" if getattr(V.kernel, "combo_multi_axis", False) else "pid_offset"
                 lines.append(
-                    f"{self.symbol()}_offset = pid_offset{dtype_cast_str} * {BLOCK_NAME}"
+                    f"{self.symbol()}_offset = {pid}{dtype_cast_str} * {BLOCK_NAME}"
                 )
             else:
                 lines.append(

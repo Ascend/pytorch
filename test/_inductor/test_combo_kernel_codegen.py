@@ -14,6 +14,7 @@ from torch._inductor.virtualized import V
 from torch_npu._inductor import config as npu_config
 from torch_npu._inductor.codegen import triton_combo_kernel as combo_codegen
 from torch_npu._inductor.codegen.npu_combined_scheduling import NPUCombinedScheduling
+from torch_npu._inductor.codegen.scheduling import NPUTritonScheduling
 from torch_npu._inductor.codegen.split_tiling import SplitTiling
 from torch_npu._inductor.codegen.triton import (
     IterationRangesRootNPUIndex,
@@ -158,7 +159,7 @@ class TestComboKernelCodegen(unittest.TestCase):
             _nolinear_triton_scheduling=SimpleNamespace(
                 group_fn=lambda sizes: tuple(sympy.prod(s) for s in sizes)
             ),
-            _triton_scheduling=SimpleNamespace(codegen_combo_kernel=Mock()),
+            _triton_scheduling=Mock(prepare_combo_kernel=Mock(return_value=[])),
         )
         NPUCombinedScheduling.codegen_combo_kernel(backend, combo)
         self.assertEqual(fused.group, ("npu", (1456, 113)))
@@ -193,6 +194,18 @@ class TestComboKernelCodegen(unittest.TestCase):
             result = IterationRangesRootNPUIndex.lookup(root, 1, 16)
         self.assertIs(result, removed)
         self.assertTrue(result.is_sub_kernel)
+
+    def test_independent_grid_matches_isolated_and_whole_dispatch(self):
+        metadata = {"subkernel_grids": [
+            [(11, "XBLOCK_0"), ("y_numel_0", "YBLOCK_0")],
+            [(9, "ZBLOCK_1")],
+            [],
+        ]}
+        for selector, expected in [(-1, 19), (0, 15), (1, 3), (2, 1)]:
+            grid = SequentialComboKernelGrid(inductor_meta={"combo_grid_meta": metadata})
+            grid.generate({"NPU_SUBKERNEL": selector, "XBLOCK_0": 4,
+                           "YBLOCK_0": 3, "ZBLOCK_1": 4})
+            self.assertEqual(grid.eval_slow({"y_numel_0": 14}), (expected, 1, 1))
 
     def test_y_axis_grid_is_one_dimensional(self):
         grid = SequentialComboKernelGrid(
@@ -338,6 +351,7 @@ class TestComboKernelCodegen(unittest.TestCase):
         member.mutations = set()
         other_member.mutations = {"buf1"}
         combo = object.__new__(NPUComboKernel)
+        combo.per_subkernel_blocks = False
         combo.sub_kernels = [member, other_member]
         combo.block_args = ["Y0BLOCK"]
         combo.dispatch_class = NPUComboKernel.SIMDDispatch
@@ -368,6 +382,48 @@ class TestComboKernelNPU(unittest.TestCase):
         torch._dynamo.reset()
         super().tearDown()
 
+    def test_combo_fallback_only_splits_failed_partition(self):
+        from torch._inductor.utils import run_and_get_code
+
+        def model(xs):
+            torch._foreach_mul_(xs, 2.0)
+            return xs
+
+        check_ttir = NPUTritonScheduling.make_ttir_for_check
+        normal_calls = []
+        for fail_second in (False, True):
+            partition_sizes = []
+
+            def check(backend, src):
+                if isinstance(V.kernel, NPUComboKernel):
+                    partition_sizes.append(len(V.kernel.sub_kernels))
+                    if fail_second and len(partition_sizes) == 2:
+                        raise RuntimeError("injected TTIR failure in second combo partition")
+                return check_ttir(backend, src)
+
+            torch._dynamo.reset()
+            inputs = [torch.full((n,), 3.0, device="npu") for n in (64, 64, 64, 65536, 65536)]
+            expected = model([x.clone() for x in inputs])
+            with (
+                config.patch(combo_kernels=True, force_disable_caches=True),
+                # Exercise partition-local fallback independently of the tiling heuristic.
+                patch.object(NPUComboKernel, "horizontal_partition",
+                             side_effect=lambda nodes, **kwargs: [nodes[:3], nodes[3:]]),
+                patch.object(NPUTritonScheduling, "make_ttir_for_check", check),
+            ):
+                result, wrappers = run_and_get_code(torch.compile(model, fullgraph=True), inputs)
+            self.assertEqual(partition_sizes, [3, 2])
+            for actual, mutated, ref in zip(result, inputs, expected):
+                torch.testing.assert_close(actual, ref)
+                torch.testing.assert_close(mutated, ref)
+            calls = [line.strip() for code in wrappers for line in code.splitlines() if ".run(" in line]
+            if fail_second:
+                self.assertEqual(len(calls), 3)
+                self.assertEqual(calls[0], normal_calls[0])
+            else:
+                self.assertEqual(len(calls), 2)
+                normal_calls = calls
+
     def test_explicit_foreach_without_automatic_combos(self):
         from torch._inductor.utils import run_and_get_code
 
@@ -379,14 +435,22 @@ class TestComboKernelNPU(unittest.TestCase):
         xs = [torch.randn(n, device="npu") for n in (1024, 4096)]
         ys = [torch.randn_like(x) for x in xs]
         expected = fn([x.clone() for x in xs], ys)
-        with config.patch(combo_kernels=False):
-            actual, sources = run_and_get_code(torch.compile(fn, fullgraph=True), xs, ys)
-        torch.testing.assert_close(actual, expected)
-        torch.testing.assert_close(xs, expected)
-        source = "\n".join(sources)
-        self.assertIn("'num_kernels': 2", source)
-        self.assertIn("'combo_subkernel_meta'", source)
-        self.assertEqual(source.count(".run("), 1)
+        self.assertTrue(npu_config.combo_kernel_per_subkernel_blocks)
+        for per_subkernel in (False, True):
+            with (
+                self.subTest(per_subkernel=per_subkernel),
+                config.patch(combo_kernels=False),
+                patch.object(npu_config, "combo_kernel_per_subkernel_blocks", per_subkernel),
+            ):
+                inputs = [x.clone() for x in xs]
+                actual, sources = run_and_get_code(torch.compile(fn, fullgraph=True), inputs, ys)
+                torch.testing.assert_close(actual, expected)
+                torch.testing.assert_close(inputs, expected)
+                source = "\n".join(sources)
+                self.assertIn("'num_kernels': 2", source)
+                self.assertIn("'combo_subkernel_meta'", source)
+                self.assertIn(f"'npu_combo_per_subkernel': {per_subkernel}", source)
+                self.assertEqual(source.count(".run("), 1)
 
     @unittest.skipUnless(npu_config.is_ascend950, "requires Ascend950")
     def test_reduction_cat_runtime_blocks(self):

@@ -25,6 +25,7 @@ class TestComboKernelIndexDtype(unittest.TestCase):
         from torch_npu._inductor.codegen import triton_combo_kernel
         kernel = SimpleNamespace(
             sub_kernels=subs, num_warps=1,
+            per_subkernel_blocks=False,
             min_x_blocks_sub_kernel=lambda *args: None,
             select_dispatch_strategy=lambda: None,
             dispatch_class=SimpleNamespace(grid_expr=SimpleNamespace(__name__="Grid")),
@@ -83,6 +84,7 @@ class TestComboKernelIndexDtype(unittest.TestCase):
                     for dtype in dtypes]
             kernel = SimpleNamespace(
                 sub_kernels=subs, num_warps=1,
+                per_subkernel_blocks=False,
                 min_x_blocks_sub_kernel=lambda *args: None,
                 select_dispatch_strategy=lambda: None,
                 dispatch_class=SimpleNamespace(grid_expr=SimpleNamespace(__name__="Grid")),

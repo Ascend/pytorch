@@ -4,6 +4,7 @@ import functools
 from functools import lru_cache
 import importlib
 import logging
+import json
 import dataclasses
 import math
 import os
@@ -112,6 +113,18 @@ class SequentialComboKernelGrid(BaseSequentialComboKernelGrid):
 
     def generate(self, meta):
         combo = self.inductor_meta["combo_grid_meta"]
+        if "subkernel_grids" in combo:
+            grids = []
+            for axes in combo["subkernel_grids"]:
+                factors = [self.ceildiv(n, meta.get(block, block)) for n, block in axes]
+                if all(isinstance(value, int) for value in factors):
+                    grids.append(math.prod(factors))
+                else:
+                    grids.append(" * ".join(f"({value})" for value in factors))
+            index = meta.get("NPU_SUBKERNEL", -1)
+            self.x_grid = grids[index] if index >= 0 else self.summation(grids)
+            self.y_grid = self.z_grid = 1
+            return
         if "split_numels" not in combo:
             return super().generate(meta)
         block = combo["split_block"]
@@ -1002,27 +1015,53 @@ class NPUCachingAutotuner(CachingAutotuner):
             )
         self.compile_results = compile_results
 
-    def _precompile_configs(self, configs):
+    def _precompile_configs_once(self, configs):
+        compile_results = [None] * len(configs)
+        compile_exceptions = [None] * len(configs)
+        compile_exception_stacks = [""] * len(configs)
+        for index, candidate_config in enumerate(configs):
+            try:
+                compile_results[index] = self._precompile_config(candidate_config)
+            except Exception as exc:
+                import traceback
+                compile_exception_stacks[index] = traceback.format_exc()
+                compile_exceptions[index] = exc
+        return compile_results, compile_exceptions, compile_exception_stacks
+
+    def _precompile_configs_with(self, configs, compile_once):
         if not configs:
             raise NoTritonConfigsError("No triton configs are available")
 
-        compile_results = []
-        exc = None
-        exc_stack = ""
         compile_start_time = time.perf_counter()
-        for c in configs:
-            try:
-                compile_results.append(self._precompile_config(c))
-            except Exception as e:
-                import traceback
-                exc_stack = traceback.format_exc()
-                exc = e
-        if len(compile_results) == 0:
-            raise NoTritonConfigsError(
-                f"No valid triton configs. {type(exc).__name__}: {exc} \nStack trace:{exc_stack}"
+        compile_results, exceptions, exception_stacks = compile_once(configs)
+        successful_results = [
+            result for result in compile_results if result is not None
+        ]
+        if not successful_results:
+            exc, exc_stack = next(
+                (
+                    (exc, stack)
+                    for exc, stack in zip(exceptions, exception_stacks)
+                    if exc is not None
+                ),
+                (None, ""),
             )
-        log.info(f"kernel: {self.get_fn_name()} compile cost time: {time.perf_counter() - compile_start_time}s")
-        return compile_results
+            error = NoTritonConfigsError(
+                f"No valid triton configs for kernel {self.get_fn_name()}. "
+                f"{type(exc).__name__}: {exc} \nStack trace:{exc_stack}"
+            )
+            raise error
+        log.debug(
+            "kernel: %s config compile elapsed time: %ss",
+            self.get_fn_name(),
+            time.perf_counter() - compile_start_time,
+        )
+        return successful_results
+
+    def _precompile_configs(self, configs):
+        return self._precompile_configs_with(
+            configs, self._precompile_configs_once
+        )
 
     def _precompile_current_configs(self, compile_fn):
         configs = self.configs
@@ -1032,8 +1071,8 @@ class NPUCachingAutotuner(CachingAutotuner):
         compile_configs = self._precompile_variant_configs(configs)
         compile_results = compile_fn(compile_configs)
         self.compile_results = compile_results
-        self.configs = configs
-        self.candidate_plan = plan
+        if self.configs is configs:
+            self.candidate_plan = plan
 
     def _precompile_worker(self):
         if self.compile_results:
@@ -1299,46 +1338,37 @@ class NPUCachingAutotuner(CachingAutotuner):
 
         self.cuda_kernel_saved = True
 
-    def _precompile_configs_parallel(self, configs):
-        if not configs:
-            raise NoTritonConfigsError("No triton configs are available")
+    def _precompile_configs_parallel_once(self, configs):
+        compile_results = [None] * len(configs)
+        compile_exceptions = [None] * len(configs)
+        compile_exception_stacks = [""] * len(configs)
 
-        config_len = len(configs)
-        compile_exc_results = [None for _ in range(config_len)]
-        compile_exc_stack_results = ["" for _ in range(config_len)]
-
-        def worker(i, kernel_config):
+        def worker(index, config):
             try:
-                return self._precompile_config(kernel_config)
-            except Exception as e:
+                return self._precompile_config(config)
+            except Exception as exc:
                 import traceback
-                compile_exc_stack_results[i] = traceback.format_exc()
-                compile_exc_results[i] = e
+                compile_exception_stacks[index] = traceback.format_exc()
+                compile_exceptions[index] = exc
                 return None
 
-        tasks = []
-        for i, c in enumerate(configs):
-            task_handler = compile_thread_pool.submit(worker, i, c)
-            tasks.append(task_handler)
+        tasks = [
+            compile_thread_pool.submit(worker, index, config)
+            for index, config in enumerate(configs)
+        ]
 
-        from torch._dynamo.device_interface import DeviceGuard
-        device_interface = self.get_device_interface()
-        # load binary to the correct device
-        compile_results = []
-        with DeviceGuard(device_interface, self.triton_meta["device"]):
-            # need to initialize context
-            device_interface.synchronize(device_interface.current_device())
-            for future in as_completed(tasks):
-                compiled_kernel = future.result()
-                if compiled_kernel is None:
-                    continue
-                compile_results.append(compiled_kernel)
+        # Warm-cache compilation also runs in forked workers, where NPU runtime
+        # initialization is forbidden. Device setup belongs in _make_launchers,
+        # after compilation, when the binaries are actually loaded.
+        for index, future in enumerate(tasks):
+            compile_results[index] = future.result()
 
-        if len(compile_results) == 0:
-            raise NoTritonConfigsError(
-                f"No valid triton configs for kernel {self.get_fn_name()}. {type(compile_exc_results[0]).__name__}: {compile_exc_results[0]} \nStack trace:{compile_exc_stack_results[0]}"
-            )
-        return compile_results
+        return compile_results, compile_exceptions, compile_exception_stacks
+
+    def _precompile_configs_parallel(self, configs):
+        return self._precompile_configs_with(
+            configs, self._precompile_configs_parallel_once
+        )
 
     def _precompile_worker_parallel(self):
         if self.compile_results:
@@ -1498,8 +1528,41 @@ class NPUCachingAutotuner(CachingAutotuner):
         plan = self.candidate_plan
         if not self.variant_launcher_map:
             self._refresh_variant_launchers()
+        timings = self._benchmark_candidate_plan(plan, self.compiled_candidate_entries, args, kwargs)
+        candidate_map = {
+            candidate["candidate_id"]: candidate
+            for candidate in plan["candidate_entries"]
+        }
+        for candidate_id, timing in timings.items():
+            candidate = candidate_map.get(candidate_id)
+            if candidate is None:
+                continue
+            self.coordesc_tuner.cache_benchmark_result(
+                config_from_dict(candidate["full_config"]), timing
+            )
+
+        if not timings or all(value == float("inf") for value in timings.values()):
+            raise RuntimeError(
+                f"All runtime block candidates for [{self.fn.__name__}] are not runnable."
+            )
+        if log.isEnabledFor(logging.DEBUG):
+            sorted_timings = sorted(timings.items(), key=lambda item: item[1])
+            for candidate_id, timing in sorted_timings:
+                candidate = candidate_map[candidate_id]
+                log.debug(
+                    "[%s] [%s] runtime_blocks=%s benchmark time: [%f] us",
+                    self.fn.__name__,
+                    candidate["full_config"],
+                    candidate["runtime_blocks"],
+                    timing,
+                )
+        return timings
+
+    def _benchmark_candidate_plan(self, plan, compiled_entries, args, kwargs, benchmark_label="candidate"):
         log.info(
-            f"{self.get_fn_name()} candidate entry count = {len(plan['candidate_entries'])}"
+            "%s candidate entry count = %s",
+            self.get_fn_name(),
+            len(plan['candidate_entries'])
         )
         device_interface = self.get_device_interface()
         stream = device_interface.get_raw_stream(device_interface.current_device())
@@ -1509,13 +1572,9 @@ class NPUCachingAutotuner(CachingAutotuner):
         }
         runnable_candidates = []
         prerun_timings = []
-        candidate_map = {
-            candidate["candidate_id"]: candidate
-            for candidate in plan["candidate_entries"]
-        }
         compiled_candidate_ids = {
             entry["candidate"]["candidate_id"]
-            for entry in self.compiled_candidate_entries
+            for entry in compiled_entries
         }
         for candidate in plan["candidate_entries"]:
             candidate_id = candidate["candidate_id"]
@@ -1530,7 +1589,7 @@ class NPUCachingAutotuner(CachingAutotuner):
 
         # Benchmarking stays at candidate granularity even when several candidates
         # share the same compiled launcher through variant deduplication.
-        for entry in self.compiled_candidate_entries:
+        for entry in compiled_entries:
             candidate = entry["candidate"]
             launcher = entry["launcher"]
             runtime_blocks = tuple(value for _, value in candidate["runtime_blocks"])
@@ -1569,9 +1628,14 @@ class NPUCachingAutotuner(CachingAutotuner):
                     }
                 )
                 log.debug(
-                    f"PreRun [{self.fn.__name__}], candidate: {candidate_id}\n"
-                    f" variant [{launcher.config}] runtime_blocks [{runtime_blocks}] "
-                    f"success, elapsed: {prerun_ms:.3f} ms"
+                    "PreRun [%s], candidate: %s\n"
+                    " variant [%s] runtime_blocks [%s] "
+                    "success, elapsed: %.3f ms",
+                    self.fn.__name__,
+                    candidate_id,
+                    launcher.config,
+                    runtime_blocks,
+                    prerun_ms,
                 )
             except Exception as e:
                 prerun_log_str = (
@@ -1581,7 +1645,7 @@ class NPUCachingAutotuner(CachingAutotuner):
                 if autotune_continue_on_failure:
                     log.warning(prerun_log_str)
                 else:
-                    raise RuntimeError(prerun_log_str)
+                    raise RuntimeError(prerun_log_str) from e
 
         selected_candidate_ids = _select_prerun_top_candidates(prerun_timings)
         selected_runnable_candidates = [
@@ -1608,7 +1672,7 @@ class NPUCachingAutotuner(CachingAutotuner):
         )
 
         kernel_funcs = [entry["prerun"] for entry in selected_runnable_candidates]
-        batch_timings = self._benchmark_kernel_funcs_batch(kernel_funcs, "candidate")
+        batch_timings = self._benchmark_kernel_funcs_batch(kernel_funcs, benchmark_label)
         if batch_timings is not None:
             for entry, timing in zip(selected_runnable_candidates, batch_timings):
                 timings[entry["candidate_id"]] = timing
@@ -1621,29 +1685,6 @@ class NPUCachingAutotuner(CachingAutotuner):
                     **kwargs,
                 )
 
-        for candidate_id, timing in timings.items():
-            candidate = candidate_map.get(candidate_id)
-            if candidate is None:
-                continue
-            self.coordesc_tuner.cache_benchmark_result(
-                config_from_dict(candidate["full_config"]), timing
-            )
-
-        if not timings or all(value == float("inf") for value in timings.values()):
-            raise RuntimeError(
-                f"All runtime block candidates for [{self.fn.__name__}] are not runnable."
-            )
-        if log.isEnabledFor(logging.DEBUG):
-            sorted_timings = sorted(timings.items(), key=lambda item: item[1])
-            for candidate_id, timing in sorted_timings:
-                candidate = candidate_map[candidate_id]
-                log.debug(
-                    "[%s] [%s] runtime_blocks=%s benchmark time: [%f] us",
-                    self.fn.__name__,
-                    candidate["full_config"],
-                    candidate["runtime_blocks"],
-                    timing,
-                )
         return timings
 
     def benchmark_all_configs(self, *args, **kwargs):
@@ -2009,6 +2050,13 @@ class NPUCachingAutotuner(CachingAutotuner):
             if "_numel" in arg
         ]
         runtime_blocks = runtime_blocks or ()
+        if self.inductor_meta.get("npu_combo_per_subkernel"):
+            grid = GridExprNpu.from_meta_and_set_numel(self.inductor_meta, cfg, numels)
+            non_positional = set(self.inductor_meta["declared_constexpr_names"]) | set(self.runtime_block_arg_names)
+            names = [name for name in self.fn.arg_names if name not in non_positional]
+            values = dict(zip(names, args))
+            values.update(zip(self.runtime_block_arg_names, runtime_blocks))
+            return args, grid.eval_slow(values)
         if self.inductor_meta.get("group_enabled", False):
             runtime_block_names = tuple(
                 self.inductor_meta.get("runtime_block_arg_names", ())
@@ -3166,6 +3214,7 @@ def cached_autotune(
         raise RuntimeError("assert len(configs) == 1 or filename")
 
     inductor_meta = {} if inductor_meta is None else inductor_meta
+    combo_groups = inductor_meta.get("npu_combo_groups")
     disabled = inductor_meta.get("force_disable_caches", False)
 
     # on disk caching logic and/or remote caching
@@ -3173,16 +3222,24 @@ def cached_autotune(
     if (
             not disabled
             and filename is not None
-            and (len(configs) > 1 or inductor_meta.get("coordinate_descent_tuning"))
+            and (len(configs) > 1 or inductor_meta.get("coordinate_descent_tuning") or combo_groups)
             and not os.environ.get("TRITON_INTERPRET", "0") == "1"
     ):
         configs_hash = hash_configs(configs)
+        if combo_groups:
+            search_space = (inductor_meta["npu_combo_strategy"], combo_groups,
+                            inductor_meta["npu_combo_mode_seeds"], inductor_meta["npu_combo_vector_cores"])
+            configs_hash = hashlib.sha256(
+                (configs_hash + json.dumps(search_space, sort_keys=True)).encode()
+            ).hexdigest()
 
         autotune_cache = AutotuneCache.create(inductor_meta, filename, configs_hash)
         if autotune_cache:
             best_config = autotune_cache.read_best(inductor_meta, configs)
             if best_config:
                 configs = [best_config]
+                if combo_groups:
+                    inductor_meta["npu_combo_cache_hit"] = True
     else:
         if disabled:
             log.debug("autotune caching is disabled by config.force_disable_caches")
@@ -3199,7 +3256,7 @@ def cached_autotune(
 
     def decorator(fn):
 
-        if inductor_meta.get("profile_bandwidth"):
+        if not combo_groups and inductor_meta.get("profile_bandwidth"):
             return NPUDebugAutotuner(
                 fn,
                 triton_meta=triton_meta,
@@ -3220,7 +3277,7 @@ def cached_autotune(
                 with_bandwidth_info=True,
             )
 
-        if _use_fasta_autotune(
+        if not combo_groups and _use_fasta_autotune(
             inductor_meta,
             heuristic_type in (HeuristicType.REDUCTION, HeuristicType.PERSISTENT_REDUCTION),
         ):
@@ -3256,11 +3313,13 @@ def cached_autotune(
                 filename=filename,
             )
 
-        autotuner_cls = (
-            NPUCostModelAutotuner
-            if npu_config.enable_costmodel_prefilter
-            else NPUCachingAutotuner
-        )
+        if combo_groups:
+            from .combo_subkernel_autotune import NPUComboSubkernelAutotuner
+            autotuner_cls = NPUComboSubkernelAutotuner
+        elif npu_config.enable_costmodel_prefilter:
+            autotuner_cls = NPUCostModelAutotuner
+        else:
+            autotuner_cls = NPUCachingAutotuner
         return autotuner_cls(
             fn,
             triton_meta=triton_meta,
@@ -3356,6 +3415,9 @@ def triton_config_npu_index(
 
 def _triton_config_npu_index_combo(size_hints, inductor_meta, triton_meta):
     """Generate candidates for one launch containing all combo subkernels."""
+    if inductor_meta.get("npu_combo_per_subkernel"):
+        from .combo_subkernel_autotune import make_subkernel_configs
+        return make_subkernel_configs(inductor_meta, triton_meta)
     subkernels = inductor_meta["combo_subkernel_meta"]
     axis_names = inductor_meta["axis_names"]
     input_signature = (triton_meta or {}).get("signature", {})
@@ -4097,6 +4159,23 @@ def _measure_prerun_ms(kernel_call_fn):
     end_event.record()
     torch.npu.synchronize()
     return start_event.elapsed_time(end_event)
+
+
+def _ub_overflow_failures(configs, exceptions):
+    """Return compiler feedback only when every variant failed with UB overflow."""
+    failures = []
+    for cfg, error in zip(configs, exceptions):
+        match = re.search(
+            r"ub overflow.*?requires (\d+) bits while (\d+) bits available",
+            str(error), re.IGNORECASE,
+        )
+        if match is None:
+            return ()
+        required, available = map(int, match.groups())
+        if not required > available > 0:
+            return ()
+        failures.append((cfg, required, available))
+    return tuple(failures)
 
 
 def _select_prerun_top_candidates(
