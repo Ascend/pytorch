@@ -175,7 +175,11 @@ def register_jagged_ops():
     if _registered:
         return
 
-    op_names = [name for name in (_JAGGED_TO_PADDED, _PADDED_TO_JAGGED) if hasattr(torch.ops.aten, name)]
+    op_names = [
+        name
+        for name in (_JAGGED_TO_PADDED, _PADDED_TO_JAGGED)
+        if hasattr(torch.ops.aten, name)
+    ]
     op_names = [name for name in op_names if not _has_npu_kernel(name)]
     if not op_names:
         _registered = True
