@@ -401,6 +401,7 @@ NPU_EXTRA_FALLBACK_LIST = [
     prims.reciprocal.default,
     prims.remainder,
     prims.remainder.default,
+    prims.rev.default,
     prims.sign,
     prims.sign.default,
     prims.signbit,

@@ -345,7 +345,7 @@ def patch_scheduler():
             node1 = self.get_fused_node(node1)
             node2 = self.get_fused_node(node2)
 
-            if self.can_fuse(node1, node2, is_reorder_round) and not self.will_fusion_create_cycle(
+            if self.can_fuse(node1, node2) and not self.will_fusion_create_cycle(
                 node1, node2
             ):
                 speedup = self.speedup_by_fusion(node1, node2)

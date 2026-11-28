@@ -388,6 +388,32 @@ class TestComboKernelNPU(unittest.TestCase):
         self.assertIn("'combo_subkernel_meta'", source)
         self.assertEqual(source.count(".run("), 1)
 
+    @unittest.skipUnless(npu_config.is_ascend950, "requires Ascend950")
+    def test_reduction_cat_runtime_blocks(self):
+        aten = torch.ops.aten
+
+        def fn(x, y, pad):
+            a = aten.reshape.default(aten.mean.dim(x, [2]), [199, 640])
+            b = aten.reshape.default(aten.mean.dim(y, [2]), [199, 640])
+            # Five inputs select ConcatKernel and preserve the strided cat writes.
+            return a, b, aten.cat.default([pad, a, b, pad, pad], 1)
+
+        generator = torch.Generator().manual_seed(0)
+        inputs = tuple(
+            torch.randn(shape, dtype=torch.float16, generator=generator).to("npu")
+            for shape in ((199, 10, 6, 64), (199, 10, 10, 64), (199, 640))
+        )
+        expected = fn(*inputs)
+        with config.patch(
+            combo_kernels=True,
+            max_autotune=True,
+            cpp_wrapper=False,
+            compile_threads=1,
+            force_disable_caches=True,
+        ):
+            actual = torch.compile(fn, fullgraph=True, dynamic=False)(*inputs)
+        torch.testing.assert_close(actual, expected, atol=1e-3, rtol=1e-3)
+
     def test_dynamic_combo_ignores_global_grouped_autotune(self):
         torch.npu.set_device(0)
         torch._dynamo.reset()
