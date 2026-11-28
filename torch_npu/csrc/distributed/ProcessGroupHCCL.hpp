@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdlib>
 #include <mutex>
 #include <thread>
 #include <unordered_map>
@@ -9,6 +10,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <c10/util/StringUtil.h>
 #include <c10d/ProcessGroup.hpp>
 #include <c10d/Store.hpp>
 #include <c10d/Utils.hpp>
@@ -1279,6 +1281,35 @@ protected:
     uint32_t tcpMasterPort;
 
 private:
+    inline static const std::shared_ptr<npu_logging::Logger> loggerHccl = npu_logging::logging().getLogger("torch_npu.hccl");
+
+    std::string hcclRankPrefixForLog(const char* role = nullptr, int64_t targetRank = -1) const
+    {
+        const auto pgRank = getRank();
+        const auto& ranks = options_->global_ranks_in_group;
+        int globalRank = -1;
+        if (pgRank >= 0 && (ranks.empty() || static_cast<size_t>(pgRank) < ranks.size())) {
+            globalRank = ranks.empty() ? pgRank : static_cast<int>(ranks[pgRank]);
+        }
+
+        const auto* rankEnv = std::getenv("RANK");
+        char* end = nullptr;
+        const bool rankInLogger = rankEnv != nullptr && globalRank >= 0 && std::strtol(rankEnv, &end, 10) == globalRank &&
+            end != rankEnv && *end == '\0';
+        auto prefix = rankInLogger ? c10::str("[", pg_name_, " pg_rank=", pgRank, "] ")
+            : c10::str("[", pg_name_, " global_rank=", globalRank, " pg_rank=", pgRank, "] ");
+        if (role == nullptr) {
+            return prefix;
+        }
+
+        const auto rankCount = ranks.empty() ? static_cast<size_t>(getSize()) : ranks.size();
+        int64_t targetGlobalRank = -1;
+        if (static_cast<uint64_t>(targetRank) < rankCount) {
+            targetGlobalRank = ranks.empty() ? targetRank : ranks[targetRank];
+        }
+        return c10::str(prefix, "[", role, " global rank ", targetGlobalRank, ", ", role, " PG rank ", targetRank, "] ");
+    }
+
     // Helper that encapsulates work shared across all collective communication
     // primitives.
     template <typename Fn>
