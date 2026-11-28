@@ -80,6 +80,21 @@ on:
           deterministic npu_utils build failure against torch master's
           C++20-only ATen headers. Remove once triton-ascend follows
           torch's C++ standard.
+      warmup_triton_npu_utils:
+        required: false
+        type: boolean
+        default: false
+        description: >-
+          Import torch_npu._inductor once per shard container before any
+          test case runs: torch_npu's built-in _apply_common_patches
+          monkey-patches the triton-ascend host-extension builder to
+          -std=c++20 and _warm_triton_npu_utils_cache prebuilds
+          npu_utils.so into Triton's on-disk cache. Every later worker
+          process (including CPU-mode torch.compile cases that never
+          load the NPU backend) then hits the cache instead of failing
+          the cold-cache c++17 build against torch >= 2.15's C++20-only
+          ATen headers. Lighter alternative to patch_triton_cxx20: no
+          on-disk wheel rewrite.
       retry_failed_cases:
         required: false
         type: boolean
@@ -414,6 +429,45 @@ jobs:
           target = driver.active.get_current_target()
           print('triton driver initialized:', target)
           print('npu_utils.so prebuilt OK')
+          "
+
+      # Warmup triton npu_utils (warmup_triton_npu_utils): import
+      # torch_npu._inductor once per shard container BEFORE any test case
+      # runs. Its module-level _load_backend() -> _apply_common_patches()
+      # (torch_npu/_inductor/__init__.py, run_once) monkey-patches the
+      # triton-ascend host-extension builder to -std=c++20
+      # (torch_npu/_inductor/triton_compat.py) and
+      # _warm_triton_npu_utils_cache() builds npu_utils.so into Triton's
+      # on-disk cache right away. Every later worker process then hits the
+      # cache on NPUUtils init instead of failing the cold-cache c++17
+      # build against torch >= 2.15's C++20-only ATen headers — including
+      # CPU-mode torch.compile cases whose processes never load the NPU
+      # inductor backend and cannot self-warm. Unlike patch_triton_cxx20
+      # this rewrites nothing on disk, so the two can coexist.
+      # The import-time warm is best-effort (exceptions swallowed), so the
+      # explicit NPUUtils() call below re-attempts it with the monkey
+      # patch active in this process and fails the step loudly if the
+      # .so cannot be produced — a silent cold cache would otherwise just
+      # move the failures back into the nightly.
+      # Same proven step form as "Patch triton cxx20" above (plain ASCII
+      # name, run: | block, same preamble, no bashisms, no script file).
+      - name: Warmup triton npu_utils
+        if: ${{ inputs.warmup_triton_npu_utils }}
+        run: |
+          source /usr/local/Ascend/cann/set_env.sh 2>/dev/null || true
+          source /usr/local/Ascend/nnal/atb/set_env.sh 2>/dev/null || true
+          export LD_LIBRARY_PATH="$(python3 -c 'import sys; print(sys.prefix)')/lib:${LD_LIBRARY_PATH:-}"
+
+          time python3 -W ignore -c "
+          import torch
+          import torch_npu
+          import torch_npu._inductor
+          from triton.runtime.driver import driver
+          target = driver.active.get_current_target()
+          print('triton driver initialized:', target)
+          from triton.backends.ascend.driver import NPUUtils
+          NPUUtils()
+          print('npu_utils.so cached OK')
           "
 
       - name: Run ${{ inputs.category }} shard ${{ matrix.shard }}/${{ inputs.num_shards }}

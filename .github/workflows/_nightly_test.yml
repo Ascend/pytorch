@@ -128,6 +128,21 @@ on:
           Experimental workaround for the deterministic npu_utils build
           failure against torch master's C++20-only ATen headers; see the
           patch step in _nightly_test-category.yml for details.
+      warmup_triton_npu_utils:
+        required: false
+        type: boolean
+        default: false
+        description: >-
+          Forwarded to every test-category job: import torch_npu._inductor
+          once per shard container before any test case runs, so
+          torch_npu's built-in _apply_common_patches monkey-patches the
+          triton-ascend host-extension builder to -std=c++20 and
+          _warm_triton_npu_utils_cache prebuilds npu_utils.so into
+          Triton's on-disk cache. Every later worker process then hits
+          the cache instead of failing the cold-cache c++17 build against
+          torch >= 2.15's C++20-only ATen headers. Lighter alternative to
+          patch_triton_cxx20 (no on-disk wheel rewrite); see the warmup
+          step in _nightly_test-category.yml for details.
       retry_failed_cases:
         required: false
         type: boolean
@@ -261,6 +276,7 @@ jobs:
       runner_label: ${{ matrix.runner_label }}
       device_env: ${{ inputs.device_env }}
       patch_triton_cxx20: ${{ inputs.patch_triton_cxx20 }}
+      warmup_triton_npu_utils: ${{ inputs.warmup_triton_npu_utils }}
       retry_failed_cases: ${{ inputs.retry_failed_cases }}
       retry_max_cases: ${{ inputs.retry_max_cases }}
       retry_skip_threshold: ${{ inputs.retry_skip_threshold }}
