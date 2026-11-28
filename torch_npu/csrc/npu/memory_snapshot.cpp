@@ -364,6 +364,7 @@ std::string _memory_snapshot_pickled() {
   c10::IValue device_free_s = "device_free";
   c10::IValue pool_id_s = "pool_id";
   c10::IValue compile_context_s = "compile_context";
+  c10::IValue internal_metadata_s = "internal_metadata";
 
   using namespace c10_npu::NPUCachingAllocator;
 
@@ -425,6 +426,9 @@ std::string _memory_snapshot_pickled() {
       trace_entry.insert(stream_s, int64_t(te.stream_));
       trace_entry.insert(pool_id_s, std::tuple<int64_t, int64_t>(te.mempool_));
       trace_entry.insert(compile_context_s, te.compile_context_);
+      if (!te.internal_metadata_.empty()) {
+        trace_entry.insert(internal_metadata_s, te.internal_metadata_);
+      }
       if (te.context_) {
         auto sc = getFromContext(te.context_);
         frame_tracebacks.push_back(sc);

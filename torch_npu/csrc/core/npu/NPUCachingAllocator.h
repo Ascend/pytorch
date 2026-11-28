@@ -178,6 +178,11 @@ struct TraceEntry {
   MempoolId_t mempool_;
   trace_time_ time_{};
   std::string compile_context_;
+  // Tag attached by allocator internals for events the allocator generates on
+  // its own behalf while serving a request, kept apart from any metadata the
+  // caller sets. Empty unless an internal path tags the event; the snapshot
+  // only emits the key when it is non-empty.
+  std::string internal_metadata_;
 };
 
 inline TraceEntry::Action parseTraceEntryAction(const std::string& action) {

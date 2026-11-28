@@ -1457,6 +1457,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* arg) {
   py::str pool_id_s = "pool_id";
   py::str time_us_s = "time_us";
   py::str compile_context_s = "compile_context";
+  py::str internal_metadata_s = "internal_metadata";
 
   using namespace c10_npu::NPUCachingAllocator;
 
@@ -1524,6 +1525,9 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* arg) {
         to_gather_dest.emplace_back(trace_entry);
       }
       trace_entry[compile_context_s] = te.compile_context_;
+      if (!te.internal_metadata_.empty()) {
+        trace_entry[internal_metadata_s] = te.internal_metadata_;
+      }
       trace_entry[action_s] = action_to_str(te.action_);
       trace_entry[te.action_ == TraceEntry::OOM ? device_free_s : addr_s] = te.addr_;
       trace_entry[size_s] = te.size_;

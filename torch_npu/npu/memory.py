@@ -1045,6 +1045,9 @@ def _snapshot(device=None, augment_with_fx_traces=False):
             time_us: int # absolute timestamp of the event in microseconds since unix epoch
             pool_id: Tuple[int, int] # id of the memory pool for this entry
             compile_context: str # innermost Torch-Compiled Region, or "N/A"
+            internal_metadata: str # reserved for allocator-internal tags, kept
+                            # apart from caller metadata; NPU currently has
+                            # no producer, so the key is normally absent
             device_free: int # only present for OOM, the amount of
                             # memory npu still reports to be free
 

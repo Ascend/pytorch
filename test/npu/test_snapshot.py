@@ -301,5 +301,39 @@ class TestMemoryAnnotations(TestCase):
             self.assertEqual(self.stages(), [("worker", "END"), ("main", "START"), ("main", "END")])
 
 
+@unittest.skipIf(not torch_npu.npu.is_available(), "NPU is required")
+class TestMemoryInternalMetadata(TestCase):
+    def setUp(self):
+        super().setUp()
+        torch.empty(1, device="npu")
+        torch_npu.npu.synchronize()
+        self.device = torch_npu.npu.current_device()
+        self.memory = torch_npu.npu.memory
+        self.memory._record_memory_history(None)
+
+    def tearDown(self):
+        self.memory._record_memory_history(None)
+        super().tearDown()
+
+    def test_snapshot_entries_omit_internal_metadata(self):
+        memory = self.memory
+        memory._record_memory_history(context=None, stacks="python", max_entries=1000)
+        tensor = torch.empty(64, 64, dtype=torch.float, device="npu")
+        torch_npu.npu.synchronize()
+        traces = memory._snapshot()["device_traces"][self.device]
+        entries = [event for event in traces if event.get("addr") == tensor.data_ptr()]
+        self.assertTrue(entries)
+        # the fields already exported by the trace entry stay intact
+        self.assertIn("alloc", {event["action"] for event in entries})
+        for event in entries:
+            self.assertIsInstance(event["compile_context"], str)
+            for key in ("size", "stream", "time_us", "pool_id"):
+                self.assertIn(key, event)
+        # The key is emitted only when allocator internals tag an event; NPU
+        # has no such producer, so regular entries never carry it.
+        for event in traces:
+            self.assertNotIn("internal_metadata", event)
+
+
 if __name__ == "__main__":
     run_tests()
