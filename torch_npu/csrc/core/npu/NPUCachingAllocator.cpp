@@ -1,4 +1,8 @@
 #include <algorithm>
+#include <atomic>
+#include <cerrno>
+#include <cstdio>
+#include <limits>
 #include <bitset>
 #include <deque>
 #include <fstream>
@@ -978,7 +982,210 @@ struct handle_str {
 // handle for ptr
 ska::flat_hash_map<void*, handle_str> ipc_handle_map;
 
+namespace {
+size_t tlsCacheLimit(const char* name, size_t fallback, size_t scale = 1) {
+  const char* value = std::getenv(name);
+  if (!value || value[0] < '0' || value[0] > '9') {
+    return fallback * scale;
+  }
+  char* end = nullptr;
+  errno = 0;
+  const auto parsed = std::strtoull(value, &end, 10);
+  if (errno || *end || parsed > std::numeric_limits<size_t>::max() / scale) {
+    return fallback * scale;
+  }
+  return static_cast<size_t>(parsed) * scale;
+}
+
+struct TlsAllocatorConfig {
+  const bool enabled = tlsCacheLimit("TORCH_NPU_TLS_ALLOC_CACHE", 0) != 0;
+  const bool stats = tlsCacheLimit("TORCH_NPU_TLS_STATS", 0) != 0;
+  const size_t blocks = tlsCacheLimit("TORCH_NPU_TLS_MAX_BLOCKS", 256);
+  const size_t bytes = tlsCacheLimit("TORCH_NPU_TLS_MAX_BYTES", 64, 1024 * 1024);
+  const size_t block_size = tlsCacheLimit("TORCH_NPU_TLS_MAX_BLOCK_SIZE", 4, 1024 * 1024);
+};
+
+const TlsAllocatorConfig& tlsAllocatorConfig() {
+  static const TlsAllocatorConfig config;
+  return config;
+}
+} // namespace
+
 class DeviceCachingAllocator {
+  struct TlsBlockCache;
+  struct TlsRegistry {
+    explicit TlsRegistry(DeviceCachingAllocator* allocator) : owner(allocator) {}
+    std::mutex lifetime_mutex;
+    DeviceCachingAllocator* owner;
+    std::vector<TlsBlockCache*> caches;
+  };
+
+  struct TlsBlockCache {
+    explicit TlsBlockCache(std::shared_ptr<TlsRegistry> state) : registry(std::move(state)) {}
+    ~TlsBlockCache() noexcept;
+
+    std::shared_ptr<TlsRegistry> registry;
+    std::mutex mutex;
+    std::vector<Block*> blocks;
+    size_t bytes = 0;
+    size_t hits = 0;
+    size_t misses = 0;
+    size_t admissions = 0;
+    size_t overflow = 0;
+    size_t cross_stream = 0;
+  };
+
+  std::shared_ptr<TlsRegistry> tls_registry_;
+  std::atomic<unsigned> tls_pauses_{0};
+  std::atomic<bool> tls_instrumented_{false};
+
+  bool tlsEligible() const {
+    if (!tls_registry_ || tls_pauses_.load(std::memory_order_acquire) != 0 ||
+        tls_instrumented_.load(std::memory_order_acquire)) {
+      return false;
+    }
+#ifndef BUILD_LIBTORCH
+    return !torch_npu::profiler::ProfilerMgr::GetInstance()->ReportMemEnable().load() &&
+        !torch_npu::profiler::MstxMgr::GetInstance()->isMsleaksEnable();
+#else
+    return true;
+#endif
+  }
+
+  TlsBlockCache* tlsCache(bool create) {
+    static thread_local std::vector<std::unique_ptr<TlsBlockCache>> caches;
+    for (const auto& cache : caches) {
+      if (cache->registry == tls_registry_) {
+        return cache.get();
+      }
+    }
+    if (!create) {
+      return nullptr;
+    }
+
+    try {
+      auto cache = std::make_unique<TlsBlockCache>(tls_registry_);
+      auto* result = cache.get();
+      caches.reserve(caches.size() + 1);
+      std::lock_guard<std::recursive_mutex> lock(mutex);
+      tls_registry_->caches.push_back(result);
+      caches.push_back(std::move(cache));
+      return result;
+    } catch (const std::bad_alloc&) {
+      return nullptr;
+    }
+  }
+
+  Block* tlsTryMalloc(size_t requested, size_t rounded, aclrtStream stream) {
+    auto* cache = tlsCache(false);
+    if (!cache) {
+      return nullptr;
+    }
+    std::unique_lock<std::mutex> lock(cache->mutex, std::try_to_lock);
+    if (!lock.owns_lock() || !tlsEligible()) {
+      return nullptr;
+    }
+    for (auto it = cache->blocks.rbegin(); it != cache->blocks.rend(); ++it) {
+      Block* block = *it;
+      // Keep the original requested size for allocator accounting and snapshots.
+      if (block->stream == stream && block->size == rounded && block->requested_size == requested) {
+        *it = cache->blocks.back();
+        cache->blocks.pop_back();
+        cache->bytes -= block->size;
+        if (tlsAllocatorConfig().stats) {
+          ++cache->hits;
+        }
+        return block;
+      }
+    }
+    if (tlsAllocatorConfig().stats) {
+      ++cache->misses;
+    }
+    return nullptr;
+  }
+
+  bool tlsTryFree(Block* block) {
+    const auto& config = tlsAllocatorConfig();
+    if (block->size > config.block_size || block->size > config.bytes ||
+        config.blocks == 0 || block->pool->owner_PrivatePool || block->hccl_work_ptr) {
+      return false;
+    }
+    if (block->event_count != 0 || !block->stream_uses.empty()) {
+      if (config.stats) {
+        if (auto* cache = tlsCache(false)) {
+          ++cache->cross_stream;
+        }
+      }
+      return false;
+    }
+
+    auto* cache = tlsCache(true);
+    if (!cache) {
+      return false;
+    }
+    {
+      std::unique_lock<std::mutex> lock(cache->mutex, std::try_to_lock);
+      if (!lock.owns_lock() || !tlsEligible()) {
+        return false;
+      }
+      if (cache->blocks.size() < config.blocks && block->size <= config.bytes - cache->bytes) {
+        try {
+          cache->blocks.push_back(block);
+        } catch (const std::bad_alloc&) {
+          return false;
+        }
+        cache->bytes += block->size;
+        if (config.stats) {
+          ++cache->admissions;
+        }
+        return true;
+      }
+    }
+
+    // No cache lock is held while acquiring the allocator lock.
+    std::lock_guard<std::recursive_mutex> lock(mutex);
+    if (tlsEligible()) {
+      if (config.stats) {
+        ++cache->overflow;
+      }
+      tlsDrainCacheLocked(*cache, nullptr);
+    }
+    return false;
+  }
+
+  void tlsDrainCacheLocked(TlsBlockCache& cache, const std::shared_ptr<c10::GatheredContext>& context) {
+    std::vector<Block*> blocks;
+    {
+      std::lock_guard<std::mutex> lock(cache.mutex);
+      blocks.swap(cache.blocks);
+      cache.bytes = 0;
+    }
+    for (auto* block : blocks) {
+      free_locked(block, context, 0);
+    }
+  }
+
+  void tlsDrainAllLocked(const std::shared_ptr<c10::GatheredContext>& context = nullptr) {
+    if (!tls_registry_) {
+      return;
+    }
+    tls_pauses_.fetch_add(1, std::memory_order_acq_rel);
+    auto resume = c10::make_scope_exit([&] { tls_pauses_.fetch_sub(1, std::memory_order_release); });
+    for (auto* cache : tls_registry_->caches) {
+      tlsDrainCacheLocked(*cache, context);
+    }
+  }
+
+  void tlsUnregister(TlsBlockCache& cache) {
+    std::lock_guard<std::recursive_mutex> lock(mutex);
+    auto& caches = tls_registry_->caches;
+    auto it = std::find(caches.begin(), caches.end(), &cache);
+    if (it != caches.end()) {
+      caches.erase(it);
+      tlsDrainCacheLocked(cache, nullptr);
+    }
+  }
+
  private:
   // lock around all operations
   mutable std::recursive_mutex mutex;
@@ -1074,6 +1281,16 @@ class DeviceCachingAllocator {
     setMemoryFraction(NPUAllocatorConfig::per_process_memory_fraction());
     stats.max_split_size = static_cast<int64_t>(NPUAllocatorConfig::max_split_size());
     context_recorder_.store(nullptr);
+    if (tlsAllocatorConfig().enabled) {
+      tls_registry_ = std::make_shared<TlsRegistry>(this);
+    }
+  }
+
+  ~DeviceCachingAllocator() {
+    if (tls_registry_) {
+      std::lock_guard<std::mutex> lock(tls_registry_->lifetime_mutex);
+      tls_registry_->owner = nullptr;
+    }
   }
 
   void pushCompileContext(std::string& md) {
@@ -1095,6 +1312,10 @@ class DeviceCachingAllocator {
       const std::vector<std::string>& skip_actions) {
     std::unique_lock<std::recursive_mutex> lock(mutex);
     TORCH_CHECK(when == RecordContext::NEVER || context_recorder, PTA_ERROR(ErrCode::INTERNAL));
+    if (enabled) {
+      tls_instrumented_.store(true, std::memory_order_release);
+      tlsDrainAllLocked();
+    }
     record_history = enabled;
     skip_actions_list.clear();
     for (const auto& action_str : skip_actions) {
@@ -1148,6 +1369,8 @@ class DeviceCachingAllocator {
 
   void attachAllocatorTraceTracker(AllocatorTraceTracker tracker) {
     std::unique_lock<std::recursive_mutex> lock(mutex);
+    tls_instrumented_.store(true, std::memory_order_release);
+    tlsDrainAllLocked();
     trace_trackers_.emplace_back(std::move(tracker));
   }
 
@@ -1222,6 +1445,12 @@ class DeviceCachingAllocator {
 
   Block* malloc(int device, size_t orig_size, aclrtStream stream, uint8_t allocator_type = 0) {
     TORCH_NPU_MEMORY_LOGD("Allocating memory: size=%zu, device=%d", orig_size, device);
+    if (allocator_type == 0 && device == device_id && tlsEligible() &&
+        orig_size <= tlsAllocatorConfig().block_size) {
+      if (auto* block = tlsTryMalloc(orig_size, round_size(orig_size), stream)) {
+        return block;
+      }
+    }
     // done outside the lock because we don't know what locks the recorder needs
     // to have...
     auto context = maybeGatherContext(RecordContext::STATE);
@@ -1612,8 +1841,15 @@ class DeviceCachingAllocator {
   void free(Block* block, uint8_t allocator_type = 0) {
     TORCH_NPU_MEMORY_LOGD("Freeing memory block: size=%zu, ptr=%p, device=%d", block->size, block->ptr, block->device);
     std::shared_ptr<c10::GatheredContext> context = maybeGatherContext(RecordContext::ALL);
+    if (allocator_type == 0 && tlsEligible() && tlsTryFree(block)) {
+      return;
+    }
     std::lock_guard<std::recursive_mutex> lock(mutex);
+    free_locked(block, context, allocator_type);
+  }
 
+ private:
+  void free_locked(Block* block, const std::shared_ptr<c10::GatheredContext>& context, uint8_t allocator_type) {
     block->allocated = false;
 
     // following logic might modifying underlying Block, causing the size
@@ -1683,6 +1919,7 @@ class DeviceCachingAllocator {
 #endif
   }
 
+ public:
   void* getBaseAllocation(Block* block, size_t* outSize) {
     std::lock_guard<std::recursive_mutex> lock(mutex);
     while (block->prev) {
@@ -2359,6 +2596,8 @@ class DeviceCachingAllocator {
       TORCH_CHECK(it2->first != mempool_id, "beginAllocateToPool: already recording to mempool_id");
     }
     allocation_scopes_.emplace_back(mempool_id, std::move(filter));
+    tls_pauses_.fetch_add(1, std::memory_order_acq_rel);
+    tlsDrainAllLocked();
   }
 
   // Called by NPUGraph::capture_end
@@ -2367,6 +2606,7 @@ class DeviceCachingAllocator {
     for (auto it = allocation_scopes_.begin(); it != allocation_scopes_.end(); ++it) {
       if (it->first == mempool_id) {
         allocation_scopes_.erase(it);
+        tls_pauses_.fetch_sub(1, std::memory_order_release);
         TORCH_NPU_MEMORY_LOGD(
             "NPUCachingAllocator endAllocateToPool: mempool_id=(%lu,%lu)", mempool_id.first, mempool_id.second);
         return;
@@ -2383,6 +2623,7 @@ class DeviceCachingAllocator {
   // begin/end for one capture are not racing each other.
   void markCaptureBegin() {
     std::lock_guard<std::recursive_mutex> lock(mutex);
+    tls_pauses_.fetch_add(1, std::memory_order_acq_rel);
     num_active_captures_++;
   }
 
@@ -2391,6 +2632,7 @@ class DeviceCachingAllocator {
     std::lock_guard<std::recursive_mutex> lock(mutex);
     TORCH_INTERNAL_ASSERT(num_active_captures_ > 0);
     num_active_captures_--;
+    tls_pauses_.fetch_sub(1, std::memory_order_release);
   }
 
   // Device-wide on purpose: the only caller is NPUEvent::block(), which asks
@@ -3218,6 +3460,8 @@ class DeviceCachingAllocator {
       // If no graph capture is underway, we can release *all* default pool
       // blocks.
 
+      tlsDrainAllLocked(context);
+
       // First ensure that all blocks that can't currently be allocated due to
       // outstanding events are returned to the pool.
       synchronize_and_free_events(check_error, context);
@@ -3630,6 +3874,21 @@ class DeviceCachingAllocator {
     }
   }
 };
+
+DeviceCachingAllocator::TlsBlockCache::~TlsBlockCache() noexcept {
+  std::lock_guard<std::mutex> lock(registry->lifetime_mutex);
+  if (registry->owner) {
+    try {
+      registry->owner->tlsUnregister(*this);
+    } catch (const std::exception& error) {
+      TORCH_NPU_MEMORY_LOGE("Failed to drain an exiting thread's NPU TLS cache: %s", error.what());
+    }
+  }
+  if (tlsAllocatorConfig().stats) {
+    std::fprintf(stderr, "[TlsAllocCache] hits=%zu misses=%zu admits=%zu overflow=%zu cross_stream=%zu\n",
+        hits, misses, admissions, overflow, cross_stream);
+  }
+}
 
 thread_local std::stack<std::string> DeviceCachingAllocator::compile_context;
 
