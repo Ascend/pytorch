@@ -40,7 +40,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id3 -->
 
-**Constraints & Notes**: Currently, nested tensors only support creation and do not support other operations.
+**Constraints & Notes**: Nested tensors support creation and the jagged layout padded / depadded conversions (`torch.nested.to_padded_tensor`, `torch.nested.nested_tensor_from_jagged` and their backward); other operations are not supported yet.
 
 </div>
 
@@ -62,7 +62,7 @@
 - <term>Ascend 950DT products</term>: Supported
 <!-- end id6 -->
 
-**Constraints & Notes**: Currently, nested tensors only support creation and do not support other operations.
+**Constraints & Notes**: Nested tensors support creation and the jagged layout padded / depadded conversions (`torch.nested.to_padded_tensor`, `torch.nested.nested_tensor_from_jagged` and their backward); other operations are not supported yet.
 
 </div>
 

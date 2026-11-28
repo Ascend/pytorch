@@ -40,7 +40,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id3 -->
 
-**限制与说明**：目前嵌套张量只支持创建，不支持其他操作
+**限制与说明**：目前嵌套张量支持创建，以及 jagged 布局的补齐与去补齐转换（`torch.nested.to_padded_tensor`、`torch.nested.nested_tensor_from_jagged` 及其反向），其他操作暂不支持
 
 </div>
 
@@ -82,7 +82,7 @@
 - <term>Ascend 950DT系列产品</term>：支持
 <!-- end id6 -->
 
-**限制与说明**：目前嵌套张量只支持创建，不支持其他操作
+**限制与说明**：目前嵌套张量支持创建，以及 jagged 布局的补齐与去补齐转换（`torch.nested.to_padded_tensor`、`torch.nested.nested_tensor_from_jagged` 及其反向），其他操作暂不支持
 
 </div>
 

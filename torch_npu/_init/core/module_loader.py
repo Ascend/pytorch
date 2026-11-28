@@ -214,6 +214,7 @@ def _load_registration_modules():
     import torch_npu.optim  # noqa: F401
 
     from torch_npu.op_plugin.meta import _meta_registrations  # noqa: F401
+    from torch_npu.utils import _jagged_ops  # noqa: F401
     from torch_npu.utils import custom_ops  # noqa: F401
     from torch_npu.utils._afd_ops import initialize_afd_bindings
 

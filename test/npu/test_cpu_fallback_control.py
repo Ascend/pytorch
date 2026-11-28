@@ -22,6 +22,7 @@ _CHILD_SCRIPT = r"""
 import sys
 
 import torch
+import torch_npu  # noqa: F401  (registers the npu device and its kernels)
 
 
 def assert_npu_tensor(tensor, name):
@@ -68,6 +69,65 @@ def run_normal_npu():
         torch.testing.assert_close(result.cpu(), expected)
 
 
+def run_jagged_nested_ops():
+    # to_padded_tensor on a jagged NestedTensor used to fall back to the CPU
+    # through aten::_jagged_to_padded_dense_forward.
+    lengths = (5, 9, 3)
+    offsets = torch.tensor([0, 5, 14, 17], dtype=torch.int64)
+    for op_name in ("aten::_jagged_to_padded_dense_forward", "aten::_padded_dense_to_jagged_forward"):
+        if not torch._C._dispatch_has_kernel_for_dispatch_key(op_name, "PrivateUse1"):
+            raise AssertionError(f"{op_name} has no NPU kernel and would fall back to the CPU")
+    nested = torch.nested.as_nested_tensor(
+        [torch.randn(length, 3) for length in lengths], layout=torch.jagged
+    )
+    # CPU references are computed before the target ops, on CPU tensors only.
+    expected_padded = torch.nested.to_padded_tensor(nested, padding=0.0)
+    expected_values = nested.values().clone()
+    expected_dense = torch.ops.aten._jagged_to_padded_dense_forward(expected_values, [offsets], [9], 0.0)
+
+    nested_npu = nested.to("npu:0")
+    for _ in range(2):
+        padded = torch.nested.to_padded_tensor(nested_npu, padding=0.0)
+        assert_npu_tensor(padded, "to_padded_tensor result")
+        torch.testing.assert_close(padded.cpu(), expected_padded)
+
+    values_npu = expected_values.npu()
+    offsets_npu = offsets.npu()
+    dense = torch.ops.aten._jagged_to_padded_dense_forward(values_npu, [offsets_npu], [9], 0.0)
+    assert_npu_tensor(dense, "jagged_to_padded_dense result")
+    torch.testing.assert_close(dense.cpu(), expected_dense)
+    jagged = torch.ops.aten._padded_dense_to_jagged_forward(dense, [offsets_npu], 17)
+    assert_npu_tensor(jagged, "padded_dense_to_jagged result")
+    torch.testing.assert_close(jagged.cpu(), expected_values)
+
+    # sequences longer than max_lengths are truncated, and bool data must not be
+    # silently routed through the CUDA half workaround or the CPU fallback
+    truncated = torch.ops.aten._jagged_to_padded_dense_forward(values_npu, [offsets_npu], [4], -1.0)
+    assert_npu_tensor(truncated, "truncated jagged_to_padded_dense result")
+    torch.testing.assert_close(
+        truncated.cpu(),
+        torch.ops.aten._jagged_to_padded_dense_forward(expected_values, [offsets], [4], -1.0),
+    )
+    bool_values = expected_values.gt(0)
+    bool_padded = torch.ops.aten._jagged_to_padded_dense_forward(
+        bool_values.npu(), [offsets_npu], [9], 0.0)
+    assert_npu_tensor(bool_padded, "bool jagged_to_padded_dense result")
+    torch.testing.assert_close(
+        bool_padded.cpu(),
+        torch.ops.aten._jagged_to_padded_dense_forward(bool_values, [offsets], [9], 0.0),
+    )
+
+    # backward of to_padded_tensor goes through the padded -> jagged kernel
+    grad_values = torch.randn(17, 3, device="npu:0", requires_grad=True)
+    grad_nested = torch.nested.nested_tensor_from_jagged(grad_values, offsets_npu, max_seqlen=9)
+    padded_grad = torch.nested.to_padded_tensor(grad_nested, padding=0.0)
+    grad = torch.randn_like(padded_grad)
+    padded_grad.backward(grad)
+    assert_npu_tensor(grad_values.grad, "to_padded_tensor grad")
+    expected_grad = torch.cat([grad.cpu()[index, :length] for index, length in enumerate(lengths)])
+    torch.testing.assert_close(grad_values.grad.cpu(), expected_grad)
+
+
 torch.npu.set_device(0)
 case = sys.argv[1]
 if case == "dispatcher_special_zeta":
@@ -76,6 +136,8 @@ elif case == "sparse_csr_sum":
     run_sparse_csr("sum")
 elif case == "sparse_csr_prod":
     run_sparse_csr("prod")
+elif case == "jagged_nested_ops":
+    run_jagged_nested_ops()
 elif case == "normal_npu":
     run_normal_npu()
 else:
@@ -205,6 +267,22 @@ class TestCpuFallbackControl(TestCase):
         self.assertIn("CASE_SUCCESS", output)
         self.assertNotIn("will fall back", output.lower())
         self.assertNotIn("fallback to run on the cpu", output.lower())
+
+    def test_jagged_nested_ops_do_not_fall_back(self):
+        # Runs jagged to_padded_tensor, the two underlying packing ops and the
+        # backward pass in strict mode: any CPU fallback would make the child
+        # process fail. The default environment must stay warning-free too.
+        for env_value in (None, "1"):
+            with self.subTest(env_value=env_value):
+                result = self._run_case("jagged_nested_ops", env_value)
+                output = self._output(result)
+                self.assertEqual(
+                    result.returncode,
+                    0,
+                    f"jagged nested ops must run on NPU, env={env_value!r}\n{output}",
+                )
+                self.assertIn("CASE_SUCCESS", output)
+                self.assertNotIn("will fall back", output.lower())
 
 
 if __name__ == "__main__":
