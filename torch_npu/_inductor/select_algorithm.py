@@ -1007,6 +1007,21 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
         self.manual_output_buffer = manual_output_buffer
         self.reset_to_zero_arg_names = reset_to_zero_arg_names
         self.compile_option_keys = compile_option_keys
+        self.has_fused_epilogue = False
+        self._register_extra_template_env_fns(
+            self.npu_has_fused_epilogue, self.npu_bind_output_axes
+        )
+
+    def npu_has_fused_epilogue(self) -> bool:
+        return self.has_fused_epilogue
+
+    def npu_bind_output_axes(self, name: str, start: int, stop: int) -> str:
+        """Use a template coordinate when the scheduler merges these output axes."""
+        shape = self.output_node.get_size()
+        divisor = sympy_product(shape[stop:])
+        length = sympy_product(shape[start:stop])
+        self.range_trees[0].lookup(divisor, length).set_name(name)
+        return ""
 
     def create_cse_var(self, name=None, bounds=None, dtype=None, shape=None, **kwargs):
         # torch>=2.8 added an assertion in TritonCSEVariable.__init__ requiring

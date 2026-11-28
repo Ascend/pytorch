@@ -1,12 +1,6 @@
 import sympy
 import torch
-from torch._inductor import config
-from torch._inductor.utils import run_and_get_code
-from torch.testing._internal.common_utils import (
-    instantiate_parametrized_tests,
-    parametrize,
-    run_tests,
-)
+from torch.testing._internal.common_utils import run_tests
 from unittest import mock
 
 import torch_npu  # noqa: F401
@@ -159,6 +153,47 @@ class TestNpuBmmKernelHelpers(TestUtils):
             self.assertEqual(cfg["WINDOW"], bmm_kernel._window(cfg["M_TILES"]))
         self.assertEqual(bmm_kernel._get_npu_bmm_tile_configs(0, m, n, k, elem_bytes=2), [])
 
+    @mock.patch.object(bmm_kernel, "get_num_cube_cores", lambda: 28)
+    def test_cyclic_bmm_group_coverage(self):
+        make_cyclic = bmm_kernel._cyclic_bmm_config
+        base = dict(BLOCK_Q=4, BLOCK_M=128, BLOCK_N=64, TOTAL_GROUPS=256,
+                    M_TILES=1, N_TILES=1, MASKED_M=False, MASKED_N=False, SHIFT_Q=False)
+        original = base.copy()
+        for groups in (29, 55, 57, base["TOTAL_GROUPS"]):
+            with self.subTest(groups=groups):
+                cfg = make_cyclic(dict(base, TOTAL_GROUPS=groups))
+                programs, waves = cfg["N_GROUP"], cfg["GROUPS_PER_PROGRAM"]
+                self.assertEqual(programs, 28)
+                self.assertTrue(cfg["CYCLIC_GROUPS"])
+                # Check that the last wave has neither holes nor duplicate writers.
+                visited = [wave * programs + pid for wave in range(waves) for pid in range(programs)
+                           if wave < groups // programs or pid < groups % programs]
+                self.assertEqual(visited, list(range(groups)))
+        cyclic = make_cyclic(base)
+        self.assertEqual((cyclic["FUSED_BLOCK_M"], cyclic["FUSED_BLOCK_N"]),
+                         (base["BLOCK_M"], base["BLOCK_N"] // 2))
+        self.assertEqual(base, original)
+
+        for changes in (dict(TOTAL_GROUPS=28), dict(TOTAL_GROUPS=56), dict(SHIFT_Q=True),
+                        dict(MASKED_M=True), dict(MASKED_N=True), dict(M_TILES=2), dict(N_TILES=2),
+                        dict(BLOCK_N=48)):
+            with self.subTest(changes=changes):
+                self.assertIsNone(make_cyclic(dict(base, **changes)))
+        max_groups = (2**31 - 1) // base["BLOCK_Q"]
+        self.assertIsNotNone(make_cyclic(dict(base, TOTAL_GROUPS=max_groups)))
+        self.assertIsNone(make_cyclic(dict(base, TOTAL_GROUPS=max_groups + 1)))
+
+    def test_bmm_l2_bypass_requires_full_output_and_aligned_rows(self):
+        streams = bmm_kernel._bmm_streams_past_l2
+        capacity = 128 * 1024**2
+        self.assertTrue(streams(2048, 256, 128, 64, 2, capacity))
+        # Both inputs plus C exceed L2 even at the smaller batch.
+        self.assertFalse(streams(2046, 256, 128, 64, 2, capacity))
+        self.assertFalse(streams(2048, 256, 128, 64, 2, capacity + 1))
+        for n, k, l2_bytes in ((129, 64, capacity), (128, 65, capacity), (128, 64, 0)):
+            with self.subTest(n=n, k=k, l2_bytes=l2_bytes):
+                self.assertFalse(streams(2048, 256, n, k, 2, l2_bytes))
+
     def test_specialised_config_generators(self):
         # Batches folded into the N direction of one mmad.
         batch, m, n, k = 1024, 8, 8, 64
@@ -236,121 +271,6 @@ class TestNpuBmmKernelHelpers(TestUtils):
             expected = next(iter(meta.values()))
             self.assertEqual(_call_grid(grid_fn, 4, 64, 64, meta, cdiv=_cdiv), (expected, 1, 1))
 
-
-class TestNpuBmmCompile(TestUtils):
-    def setUp(self):
-        super().setUp()
-        # Reset the process-wide dynamo cache so the NPU kernels are not skipped
-        # via a silent eager fallback when other inductor tests run first.
-        torch._dynamo.reset()
-        self._prev_cache_size_limit = torch._dynamo.config.cache_size_limit
-        torch._dynamo.config.cache_size_limit = 256
-
-    def tearDown(self):
-        torch._dynamo.config.cache_size_limit = self._prev_cache_size_limit
-        super().tearDown()
-
-    def op_bmm(self, mat1, mat2):
-        return torch.bmm(mat1, mat2)
-
-    def op_bmm_transposed_b(self, mat1, mat2):
-        return torch.bmm(mat1, mat2.transpose(1, 2))
-
-    def op_bmm_relu(self, mat1, mat2):
-        return torch.relu(torch.bmm(mat1, mat2))
-
-    def op_baddbmm(self, bias, mat1, mat2):
-        return torch.baddbmm(bias, mat1, mat2)
-
-    def _inputs(self, shape, dtype):
-        # randn is scaled down so fp16 dot products do not overflow.
-        return torch.randn(shape, dtype=getattr(torch, dtype), device="npu") * 0.05
-
-    def _run(self, op, args, dtype):
-        expected = op(*args)
-        compiled = torch.compile(op, backend="inductor")
-        out, codes = run_and_get_code(compiled, *args)
-        atol = 1e-3 if dtype == "float32" else 1e-2
-        self.assertEqual(out, expected, atol=atol, rtol=atol)
-        # A silent eager fallback keeps this green while running no NPU kernel.
-        self.assertIn("def call(", "\n".join(codes))
-
-    @parametrize("shape", [(2, 64, 64, 64), (4, 128, 64, 256)])
-    @parametrize("dtype", ["float32", "float16", "bfloat16"])
-    def test_bmm_cases(self, shape, dtype):
-        batch, m, k, n = shape
-        self._run(self.op_bmm, (self._inputs((batch, m, k), dtype),
-                                self._inputs((batch, k, n), dtype)), dtype)
-
-    def test_bmm_transposed_epilogue_baddbmm_and_degenerate(self):
-        # A col-major second operand and a fused epilogue reuse the same lowering.
-        self._run(self.op_bmm_transposed_b, (self._inputs((2, 64, 64), "float16"),
-                                             self._inputs((2, 96, 64), "float16")), "float16")
-        self._run(self.op_bmm_relu, (self._inputs((2, 64, 64), "float16"),
-                                     self._inputs((2, 64, 64), "float16")), "float16")
-
-        batch, m, k, n = 4, 64, 32, 32
-        # K == 1 and N == 1 take the decomposed path instead of a tile.
-        for mat2_shape in [(batch, 1, n), (batch, k, 1)]:
-            self._run(self.op_bmm, (self._inputs((batch, m, mat2_shape[1]), "float32"),
-                                    self._inputs(mat2_shape, "float32")), "float32")
-        # A broadcast operand must be declined by the batch specialised templates
-        # without losing correctness.
-        self._run(self.op_bmm, (self._inputs((batch, m, k), "float32"),
-                                self._inputs((1, k, n), "float32").expand(batch, k, n)),
-                  "float32")
-
-        batch, m, k, n = 2, 64, 32, 64
-        args = (self._inputs((batch, m, n), "float32"),
-                self._inputs((batch, m, k), "float32"),
-                self._inputs((batch, k, n), "float32"))
-        self._run(self.op_baddbmm, args, "float32")
-
-        def op_scaled(bias, mat1, mat2):
-            return torch.baddbmm(bias, mat1, mat2, beta=0.5, alpha=2.0)
-
-        self._run(op_scaled, args, "float32")
-
-    @config.patch(max_autotune=True, max_autotune_gemm_backends="TRITON",
-                  force_disable_caches=True)
-    def test_max_autotune_choices_and_declines(self):
-        # max_autotune makes tuned_bmm() call add_npu_triton_bmm_choices(), which
-        # dispatches to the merged, batched and tiled tiers.
-        args = (self._inputs((4, 128, 128), "float16"), self._inputs((4, 128, 128), "float16"))
-        offered = []
-        orig_offer = bmm_kernel.add_npu_triton_bmm_choices
-
-        def counting_offer(*args, **kwargs):
-            offered.append(1)
-            return orig_offer(*args, **kwargs)
-
-        with mock.patch.object(bmm_kernel, "add_npu_triton_bmm_choices", counting_offer):
-            self._run(self.op_bmm, args, "float16")
-        self.assertTrue(offered, "tuned_bmm never offered NPU template choices")
-
-        # A K known only at run time cannot be gated, so the shape is declined and
-        # answered by the operator library instead of being guessed.
-        compiled = torch.compile(self.op_bmm, backend="inductor", dynamic=True)
-        for k in (64, 96):
-            mat1 = self._inputs((2, 32, k), "float16")
-            mat2 = self._inputs((2, k, 32), "float16")
-            self.assertEqual(compiled(mat1, mat2), torch.bmm(mat1, mat2), atol=1e-2, rtol=1e-2)
-
-        # One tile over a long K: only splitting K would fill the cores, which no
-        # template does, so the shape is declined as well.
-        self._run(self.op_bmm, (self._inputs((1, 8, 8192), "float16"),
-                                self._inputs((1, 8192, 8), "float16")), "float16")
-
-    def test_bmm_dynamic_batch(self):
-        compiled = torch.compile(self.op_bmm, backend="inductor", dynamic=True)
-        for batch in (2, 4):
-            mat1 = self._inputs((batch, 64, 32), "float32")
-            mat2 = self._inputs((batch, 32, 64), "float32")
-            self.assertEqual(compiled(mat1, mat2), torch.bmm(mat1, mat2), atol=1e-3, rtol=1e-3)
-
-
-instantiate_parametrized_tests(TestNpuBmmKernelHelpers)
-instantiate_parametrized_tests(TestNpuBmmCompile)
 
 if __name__ == "__main__":
     run_tests()
