@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import inspect
 
 import sympy
 
@@ -28,12 +27,11 @@ from torch._inductor.decomposition import decompositions
 from torch._inductor.ir import ExpandView, TensorBox
 from torch._inductor.ir import Reduction, Pointwise
 
-# `strict_reduction` only exists in newer upstream `Reduction.create`.
-# The torch 2.13 lane has no such parameter, so forwarding it unconditionally
-# raises `TypeError: unexpected keyword argument 'strict_reduction'` there.
-_SUPPORTS_STRICT_REDUCTION = (
-    "strict_reduction" in inspect.signature(Reduction.create).parameters
+from torch_npu._compat.inductor import (
+    compat_reduction_create_kwargs,
+    compat_wrap_make_reduction,
 )
+
 from torch._inductor.lowering import (
     lowerings,
     make_fallback,
@@ -143,12 +141,16 @@ if npu_config.dump_fx_graph:
     scheduler._prune_redundant_deps = _npu_prune_redundant_deps
     Scheduler._get_unmet_dep_nodes = _npu_get_unmet_dep_nodes
 
-def make_reduction(
+def _make_reduction(
     reduction_type: ReductionType,
     override_return_dtype=None,
     *,
     strict_reduction: bool = False,
 ):
+    strict_kwargs = compat_reduction_create_kwargs(
+        Reduction.create, reduction_type, strict_reduction
+    )
+
     def inner(x, axis=None, keepdims=False, *, dtype=None):
         kwargs = _make_reduction_inner(
             x,
@@ -158,36 +160,39 @@ def make_reduction(
             override_return_dtype=override_return_dtype,
             reduction_type=reduction_type,
         )
-        strict_kwargs = (
-            {"strict_reduction": strict_reduction}
-            if _SUPPORTS_STRICT_REDUCTION
-            else {}
-        )
         if npu_config.dump_fx_graph:
-            node_name = f'reduction_{next(node_id)}'
-            input_graphs = fetch_graphs([x, axis if axis is not None else list(range(len(x.get_size())))])
-            new_graph = merge_traced_graphs(input_graphs, reduction_type_to_aten_fn[reduction_type],
-                                            node_name, keepdim=keepdims)
-            result = Reduction.create(reduction_type=reduction_type,
-                                      input_node=x,
-                                      node_name=node_name,
-                                      traced_graph=new_graph,
-                                      **strict_kwargs,
-                                      **kwargs)
+            node_name = f"reduction_{next(node_id)}"
+            input_graphs = fetch_graphs(
+                [x, axis if axis is not None else list(range(len(x.get_size())))]
+            )
+            new_graph = merge_traced_graphs(
+                input_graphs,
+                reduction_type_to_aten_fn[reduction_type],
+                node_name,
+                keepdim=keepdims,
+            )
+            result = Reduction.create(
+                reduction_type=reduction_type,
+                input_node=x,
+                node_name=node_name,
+                traced_graph=new_graph,
+                **strict_kwargs,
+                **kwargs,
+            )
         else:
-            result = Reduction.create(reduction_type=reduction_type,
-                                      input_node=x,
-                                      **strict_kwargs,
-                                      **kwargs)
-        if isinstance(
-            result.data.data,  # type: ignore[attr-defined]
-            Reduction,
-        ):  # Only realize if reduction isn't unrolled
+            result = Reduction.create(
+                reduction_type=reduction_type,
+                input_node=x,
+                **strict_kwargs,
+                **kwargs,
+            )
+        if isinstance(result.data.data, Reduction):
             result.realize()
         return result
 
     return inner
 
+make_reduction = compat_wrap_make_reduction(_make_reduction)
 lowering.make_reduction = make_reduction
 
 aten = torch.ops.aten

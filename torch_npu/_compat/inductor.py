@@ -1,11 +1,13 @@
 # Copyright (c) 2026, Huawei Technologies Co., Ltd
 
 import functools
+import inspect
 import sys
 
 from torch_npu._compat._impl import compat_impl, compat_impl_container
 
 __all__ = [
+    "compat_wrap_make_reduction",
     "patch_codegen_with_cpp_wrapper",
     "patch_create_device_properties",
     "patch_cache_base_get_system",
@@ -826,3 +828,44 @@ def make_multi_template_buffer(layout, input_nodes, choice_timings_fn, choices):
     return ir.MultiTemplateBuffer(
         layout, input_nodes, choice_timings_fn, choices, prologue_inputs
     )
+
+
+@compat_impl(key="compat_wrap_make_reduction", ge=(2, 15))
+def compat_wrap_make_reduction_upstream(implementation):
+    def make_reduction(
+        reduction_type, override_return_dtype=None, *, strict_reduction: bool = False
+    ):
+        return implementation(
+            reduction_type, override_return_dtype, strict_reduction=strict_reduction
+        )
+
+    return make_reduction
+
+
+@compat_impl(key="compat_wrap_make_reduction", lt=(2, 15))
+def compat_wrap_make_reduction_local(implementation):
+    def make_reduction(
+        reduction_type, override_return_dtype=None, *, strict_sum: bool = False
+    ):
+        return implementation(
+            reduction_type, override_return_dtype, strict_reduction=strict_sum
+        )
+
+    return make_reduction
+
+
+compat_wrap_make_reduction = compat_impl_container["compat_wrap_make_reduction"].resolve()
+
+
+def compat_reduction_create_kwargs(reduction_create, reduction_type, strict_reduction=False):
+    # The FX dump backend patches create independently of the Torch version.
+    parameters = inspect.signature(reduction_create).parameters
+    if "strict_reduction" in parameters:
+        return {"strict_reduction": strict_reduction}
+    if "strict_sum" in parameters:
+        if strict_reduction and reduction_type != "sum":
+            raise NotImplementedError("this Reduction.create only supports strict sum reductions")
+        return {"strict_sum": strict_reduction}
+    if strict_reduction:
+        raise NotImplementedError("this Reduction.create does not support strict reductions")
+    return {}
