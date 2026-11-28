@@ -1935,6 +1935,11 @@ def run(runner, args, original_dir=None):
         torch.backends.cudnn.allow_tf32 = False
         torch.backends.cudnn.benchmark = False
         torch.backends.cuda.matmul.allow_tf32 = False
+        # Align with the CUDA settings above: on NPU the equivalent switch is
+        # HF32 for conv. It truncates the mantissa and breaks accuracy on
+        # conv-heavy models (Inception / MobileNet), so turn it off here too.
+        if is_npu_available and hasattr(torch, "npu"):
+            torch.npu.conv.allow_hf32 = False
 
         # Remove randomness when torch manual seed is called
         patch_torch_manual_seed()
