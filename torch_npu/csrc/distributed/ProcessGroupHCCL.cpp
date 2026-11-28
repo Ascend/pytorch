@@ -15,6 +15,8 @@
 #include <cstring>
 
 #include <c10/util/Optional.h>
+#include <c10/util/ArrayRef.h>
+#include <c10/util/StringUtil.h>
 #include <c10/util/hash.h>
 #include <c10/util/irange.h>
 #include <c10d/ParamCommsUtils.hpp>
@@ -56,7 +58,6 @@
 #include "torch_npu/csrc/logging/LogContext.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
-#include "torch_npu/csrc/distributed/ProcessGroupHCCLLog.hpp"
 
 #include "torch_npu/csrc/distributed/PythonDebugBridge.h"
 
@@ -68,6 +69,8 @@
 
 namespace c10d_npu {
 namespace {
+constexpr size_t kHcclLogListLimit = 8;
+
 using MemPoolSet = std::unordered_set<
     std::tuple<c10_npu::MempoolId_t, bool>,
     c10::hash<std::tuple<c10_npu::MempoolId_t, bool>>>;
@@ -2538,20 +2541,20 @@ void ProcessGroupHCCL::broadcastMasterID(
         auto vec = std::vector<uint8_t>(
             reinterpret_cast<uint8_t*>(hcclID), reinterpret_cast<uint8_t*>(hcclID) + HCCL_ROOT_INFO_BYTES);
         TORCH_NPU_LOGI(
-            hccl_log::loggerHccl, "%s[SET] Publishing HCCL RootInfo and version to Store, RootInfo key %s.",
-            hccl_log::hcclRankPrefixForLog(pg_name_, *this).c_str(), storeKey.c_str());
+            loggerHccl, "%s[comm init] [SET] Publishing HCCL RootInfo and version to Store, RootInfo key %s.",
+            hcclRankPrefixForLog().c_str(), storeKey.c_str());
         store_->set(storeKey, vec);
         store_->set(ver_key, ver_list);
         TCPStoreKeyList_.emplace(storeKey);
     } else {
         try {
             TORCH_NPU_LOGI(
-                hccl_log::loggerHccl, "%s[GET] Waiting for HCCL RootInfo from Store, key %s.",
-                hccl_log::hcclRankPrefixForLog(pg_name_, *this).c_str(), storeKey.c_str());
+                loggerHccl, "%s[comm init] [GET] Waiting for HCCL RootInfo from Store, key %s.",
+                hcclRankPrefixForLog().c_str(), storeKey.c_str());
             auto vec = store_->get(storeKey);
             TORCH_NPU_LOGI(
-                hccl_log::loggerHccl, "%s[GET] Received HCCL RootInfo from Store, key %s.",
-                hccl_log::hcclRankPrefixForLog(pg_name_, *this).c_str(), storeKey.c_str());
+                loggerHccl, "%s[comm init] [GET] Received HCCL RootInfo from Store, key %s.",
+                hcclRankPrefixForLog().c_str(), storeKey.c_str());
             TORCH_CHECK(vec.size() == HCCL_ROOT_INFO_BYTES, DIST_ERROR(ErrCode::PARAM));
             TCPStoreKeyList_.emplace(storeKey);
             std::memcpy(hcclID, vec.data(), vec.size());
@@ -2611,8 +2614,8 @@ void ProcessGroupHCCL::allgatherScalableRootInfos(
         auto rootInfoBytes = std::vector<uint8_t>(
             reinterpret_cast<uint8_t*>(rootInfo), reinterpret_cast<uint8_t*>(rootInfo) + HCCL_ROOT_INFO_BYTES);
         TORCH_NPU_LOGI(
-            hccl_log::loggerHccl, "%s[SET] Publishing scalable HCCL RootInfo to Store, key %s.",
-            hccl_log::hcclRankPrefixForLog(pg_name_, *this).c_str(), storeKeys[rootIdx].c_str());
+            loggerHccl, "%s[comm init] [SET] Publishing scalable HCCL RootInfo to Store, key %s.",
+            hcclRankPrefixForLog().c_str(), storeKeys[rootIdx].c_str());
         store_->set(storeKeys[rootIdx], rootInfoBytes);
         TCPStoreKeyList_.emplace(storeKeys[rootIdx]);
         TORCH_NPU_HCCL_LOGI(
@@ -2628,14 +2631,14 @@ void ProcessGroupHCCL::allgatherScalableRootInfos(
     std::vector<std::vector<uint8_t>> rootInfoResults;
     try {
         TORCH_NPU_LOGI(
-            hccl_log::loggerHccl,
-            "%s[GET] Waiting for scalable HCCL RootInfo from Store, key prefix %s, root count %zu.",
-            hccl_log::hcclRankPrefixForLog(pg_name_, *this).c_str(), keyPrefix.c_str(), numRoots);
+            loggerHccl,
+            "%s[comm init] [GET] Waiting for scalable HCCL RootInfo from Store, key prefix %s, root count %zu.",
+            hcclRankPrefixForLog().c_str(), keyPrefix.c_str(), numRoots);
         rootInfoResults = store_->multiGet(storeKeys);
       TORCH_NPU_LOGI(
-          hccl_log::loggerHccl,
-          "%s[GET] Received scalable HCCL RootInfo from Store, key prefix %s, root count %zu.",
-          hccl_log::hcclRankPrefixForLog(pg_name_, *this).c_str(), keyPrefix.c_str(), rootInfoResults.size());
+          loggerHccl,
+          "%s[comm init] [GET] Received scalable HCCL RootInfo from Store, key prefix %s, root count %zu.",
+          hcclRankPrefixForLog().c_str(), keyPrefix.c_str(), rootInfoResults.size());
     } catch (const std::exception& e) {
         C10_THROW_ERROR(
             DistBackendError,
@@ -3047,25 +3050,23 @@ void ProcessGroupHCCL::createHCCLCommScalable(
         if (commConfig != nullptr) {
             checkHcclCommConfigValid(commConfig);
             TORCH_NPU_LOGI(
-                hccl_log::loggerHccl,
-                "%sStarting hcclCommInitRootInfoScalable, path scalable rootinfo, device %d, HCCL rank %d, size %d, root count %zu, config source caller.",
-                hccl_log::hcclRankPrefixForLog(pg_name_, *this).c_str(), devices[i].index(), rank, numRanks, rootInfoList.size());
+                loggerHccl,
+                "%s[comm init] Starting hcclCommInitRootInfoScalable, path scalable rootinfo, device %d, HCCL rank %d, size %d, root count %zu, config source caller.",
+                hcclRankPrefixForLog().c_str(), devices[i].index(), rank, numRanks, rootInfoList.size());
             hcclComms[i] = HCCLComm::create_scalable_config(numRanks, rank, rootInfoList, commConfig);
           TORCH_NPU_LOGI(
-              hccl_log::loggerHccl, "%sHCCL communicator created, path scalable rootinfo, comm name %s.",
-              hccl_log::hcclRankPrefixForLog(pg_name_, *this).c_str(),
-              hccl_log::hcclCommNameForLog(hcclComms[i]->getHcclComm()).c_str());
+              loggerHccl, "%s[comm init] HCCL communicator created, path scalable rootinfo.",
+              hcclRankPrefixForLog().c_str());
         } else {
             config = createHcclCommConfigWithOptions();
             TORCH_NPU_LOGI(
-                hccl_log::loggerHccl,
-                "%sStarting hcclCommInitRootInfoScalable, path scalable rootinfo, device %d, HCCL rank %d, size %d, root count %zu, config source PG options.",
-                hccl_log::hcclRankPrefixForLog(pg_name_, *this).c_str(), devices[i].index(), rank, numRanks, rootInfoList.size());
+                loggerHccl,
+                "%s[comm init] Starting hcclCommInitRootInfoScalable, path scalable rootinfo, device %d, HCCL rank %d, size %d, root count %zu, config source PG options.",
+                hcclRankPrefixForLog().c_str(), devices[i].index(), rank, numRanks, rootInfoList.size());
             hcclComms[i] = HCCLComm::create_scalable_config(numRanks, rank, rootInfoList, &config);
           TORCH_NPU_LOGI(
-              hccl_log::loggerHccl, "%sHCCL communicator created, path scalable rootinfo, comm name %s.",
-              hccl_log::hcclRankPrefixForLog(pg_name_, *this).c_str(),
-              hccl_log::hcclCommNameForLog(hcclComms[i]->getHcclComm()).c_str());
+              loggerHccl, "%s[comm init] HCCL communicator created, path scalable rootinfo.",
+              hcclRankPrefixForLog().c_str());
         }
         hcclComms[i]->hcclCommType = static_cast<int>(HcclCommType::DEFAULT);
         streamVal.push_back(getHcclNPUStream(devices[i]));
@@ -3139,25 +3140,23 @@ void ProcessGroupHCCL::createHCCLCommOrigin(
                 if (commConfig != nullptr) {
                     checkHcclCommConfigValid(commConfig);
                     TORCH_NPU_LOGI(
-                        hccl_log::loggerHccl,
-                        "%sStarting hcclCommInitRootInfoConfig, path rootinfo, device %d, HCCL rank %d, size %d, config source caller.",
-                        hccl_log::hcclRankPrefixForLog(pg_name_, *this).c_str(), devices[i].index(), rank, numRanks);
+                        loggerHccl,
+                        "%s[comm init] Starting hcclCommInitRootInfoConfig, path rootinfo, device %d, HCCL rank %d, size %d, config source caller.",
+                        hcclRankPrefixForLog().c_str(), devices[i].index(), rank, numRanks);
                     hcclComms[i] = HCCLComm::create_config(numRanks, rank, hcclID, commConfig);
                   TORCH_NPU_LOGI(
-                      hccl_log::loggerHccl, "%sHCCL communicator created, path rootinfo, comm name %s.",
-                      hccl_log::hcclRankPrefixForLog(pg_name_, *this).c_str(),
-                      hccl_log::hcclCommNameForLog(hcclComms[i]->getHcclComm()).c_str());
+                      loggerHccl, "%s[comm init] HCCL communicator created, path rootinfo.",
+                      hcclRankPrefixForLog().c_str());
                 } else {
                     config = createHcclCommConfigWithOptions();
                     TORCH_NPU_LOGI(
-                        hccl_log::loggerHccl,
-                        "%sStarting hcclCommInitRootInfoConfig, path rootinfo, device %d, HCCL rank %d, size %d, config source PG options.",
-                        hccl_log::hcclRankPrefixForLog(pg_name_, *this).c_str(), devices[i].index(), rank, numRanks);
+                        loggerHccl,
+                        "%s[comm init] Starting hcclCommInitRootInfoConfig, path rootinfo, device %d, HCCL rank %d, size %d, config source PG options.",
+                        hcclRankPrefixForLog().c_str(), devices[i].index(), rank, numRanks);
                     hcclComms[i] = HCCLComm::create_config(numRanks, rank, hcclID, &config);
                   TORCH_NPU_LOGI(
-                      hccl_log::loggerHccl, "%sHCCL communicator created, path rootinfo, comm name %s.",
-                      hccl_log::hcclRankPrefixForLog(pg_name_, *this).c_str(),
-                      hccl_log::hcclCommNameForLog(hcclComms[i]->getHcclComm()).c_str());
+                      loggerHccl, "%s[comm init] HCCL communicator created, path rootinfo.",
+                      hcclRankPrefixForLog().c_str());
                 }
                 hcclComms[i]->hcclCommType = static_cast<int>(HcclCommType::DEFAULT);
                 break;
@@ -3166,14 +3165,13 @@ void ProcessGroupHCCL::createHCCLCommOrigin(
                 rank = p2pRank;
                 getHcclCommConfig(&config, true);
                 TORCH_NPU_LOGI(
-                    hccl_log::loggerHccl,
-                    "%sStarting hcclCommInitRootInfoConfig, path p2p, device %d, HCCL rank %d, size %d, config source P2P defaults.",
-                    hccl_log::hcclRankPrefixForLog(pg_name_, *this).c_str(), devices[i].index(), rank, numRanks);
+                    loggerHccl,
+                    "%s[comm init] Starting hcclCommInitRootInfoConfig, path p2p, device %d, HCCL rank %d, size %d, config source P2P defaults.",
+                    hcclRankPrefixForLog().c_str(), devices[i].index(), rank, numRanks);
                 hcclComms[i] = HCCLComm::create_config(numRanks, rank, hcclID, &config);
                 TORCH_NPU_LOGI(
-                    hccl_log::loggerHccl, "%sHCCL communicator created, path p2p, comm name %s.",
-                    hccl_log::hcclRankPrefixForLog(pg_name_, *this).c_str(),
-                    hccl_log::hcclCommNameForLog(hcclComms[i]->getHcclComm()).c_str());
+                    loggerHccl, "%s[comm init] HCCL communicator created, path p2p.",
+                    hcclRankPrefixForLog().c_str());
                 hcclComms[i]->hcclCommType = static_cast<int>(HcclCommType::P2P);
                 hcclComms[i]->p2pPeer = getP2pPeer();
                 break;
@@ -5352,7 +5350,14 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
     std::vector<at::Tensor>& tensors,
     const c10d::AllreduceOptions& opts)
 {
-    TORCH_NPU_HCCL_ENTRY_LOGD(", reduce op %s%s", hccl_log::reduceOpNameForLog(opts.reduceOp.op_), opts.asyncOp ? ", async true" : "");
+    TORCH_NPU_LOGD(
+        loggerHccl,
+        "%s[comm op] Entering %s, group size %d, reduce op %d%s.",
+        hcclRankPrefixForLog().c_str(),
+        __func__,
+        getSize(),
+        static_cast<int>(opts.reduceOp.op_),
+        opts.asyncOp ? ", async true" : "");
     check_npu_tensors_different_devices(tensors);
 
     if (C10_UNLIKELY(at_npu::native::env::CheckOpHookEnable())) {
@@ -5373,7 +5378,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(input);
             auto hcclReduceOp = getHcclReduceOp(opts.reduceOp, input);
-            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream, is_dispatched]() -> int {
+            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream, is_dispatched,
+                              pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                 torch_npu::profiler::MstxRange range(
                     getMstxHcclMsg("HcclAllreduce", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
@@ -5382,14 +5388,24 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
                 if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                std::string commName;
-                TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                    hcclAllReduce, comm, commName, stream, "numel %llu, dtype %s, reduce op %s",
-                    static_cast<unsigned long long>(numel), hccl_log::hcclDataTypeNameForLog(hcclType),
-                    hccl_log::reduceOpNameForLog(hcclReduceOp));
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] Calling hcclAllReduce, device %d, stream %lld, numel %llu, dtype %d, reduce op %d.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<unsigned long long>(numel),
+                    static_cast<int>(hcclType),
+                    static_cast<int>(hcclReduceOp));
                 auto hccl_result = hcclAllReduce(
                     inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream.stream(false));
-                TORCH_NPU_HCCL_API_AFTER_LOGD(hcclAllReduce, commName, stream, hccl_result);
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] hcclAllReduce returned, device %d, stream %lld, result %d.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<int>(hccl_result));
                 *is_dispatched = true;
                 return hccl_result;
             };
@@ -5677,7 +5693,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv_inner(
                 }
                 remote_rank_list_cast.push_back(static_cast<uint32_t>(remote_rank_list[i]));
             }
-            auto hccl_call = [tensor_ptr_list, numel_list, type_list, remote_rank_list_cast, op_type, itemNum, comm, stream, is_dispatched]() -> int {
+            auto hccl_call = [tensor_ptr_list, numel_list, type_list, remote_rank_list_cast, op_type, itemNum, comm, stream, is_dispatched,
+                              pg_name_ = pg_name_]() -> int {
                 HcclSendRecvItem sendRecvInfo[itemNum];
                 HcclSendRecvType currType;
                 for (size_t i = 0; i < op_type.size(); ++i) {
@@ -5703,10 +5720,21 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv_inner(
                 if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                std::string commName;
-                TORCH_NPU_HCCL_API_BEFORE_LOGD(hcclBatchIsendIrecv, comm, commName, stream, "item count %u", itemNum);
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] Calling hcclBatchIsendIrecv, device %d, stream %lld, item count %u.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    itemNum);
                 auto hccl_result = hcclBatchIsendIrecv(sendRecvInfo, itemNum, comm, stream.stream(false));
-                TORCH_NPU_HCCL_API_AFTER_LOGD(hcclBatchIsendIrecv, commName, stream, hccl_result);
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] hcclBatchIsendIrecv returned, device %d, stream %lld, result %d.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<int>(hccl_result));
                 *is_dispatched = true;
                 return hccl_result;
             };
@@ -5758,7 +5786,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv(
     std::vector<at::Tensor>& tensors,
     std::vector<int64_t> remote_rank_list)
 {
-    TORCH_NPU_HCCL_ENTRY_LOGD(", peer PG ranks %s", hccl_log::hcclLogList(remote_rank_list).c_str());
+    TORCH_NPU_LOGD(
+        loggerHccl,
+        "%s[comm op] Entering %s, group size %d, peer PG ranks preview %s.",
+        hcclRankPrefixForLog().c_str(),
+        __func__,
+        getSize(),
+        c10::str(c10::ArrayRef(remote_rank_list).slice(0, std::min(remote_rank_list.size(), kHcclLogListLimit))).c_str());
     static auto op = c10::Dispatcher::singleton()
                          .findSchemaOrThrow("npu_custom_dist::wrap_batch_isend_irecv_inner", "")
                          .typed<c10::intrusive_ptr<::c10d::Work>(
@@ -5784,10 +5818,12 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::broadcast(
     std::vector<at::Tensor>& tensors,
     const c10d::BroadcastOptions& opts)
 {
-    TORCH_NPU_HCCL_ENTRY_LOGD(
-        ", root global rank %lld, root PG rank %lld%s",
-        hccl_log::hcclGlobalRankForLog(options_->global_ranks_in_group, opts.rootRank),
-        static_cast<long long>(opts.rootRank),
+    TORCH_NPU_LOGD(
+        loggerHccl,
+        "%s[comm op] Entering %s, group size %d%s.",
+        hcclRankPrefixForLog("root", opts.rootRank).c_str(),
+        __func__,
+        getSize(),
         opts.asyncOp ? ", async true" : "");
     check_npu_tensors_different_devices(tensors);
 
@@ -5804,7 +5840,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::broadcast(
             auto inputDataPtr = input.data_ptr();
             auto numel = getNumelForHCCL(input);
             auto hcclType = getHcclDataType(input.scalar_type());
-            auto hccl_call = [inputDataPtr, numel, hcclType, root, comm, stream, is_dispatched]() -> int {
+            auto hccl_call = [inputDataPtr, numel, hcclType, root, comm, stream, is_dispatched,
+                              pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                 torch_npu::profiler::MstxRange range(
                     getMstxHcclMsg("HcclBroadcast", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
@@ -5813,13 +5850,23 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::broadcast(
                 if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                std::string commName;
-                TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                    hcclBroadcast, comm, commName, stream, "numel %llu, dtype %s, HCCL root rank %u",
-                    static_cast<unsigned long long>(numel), hccl_log::hcclDataTypeNameForLog(hcclType),
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] Calling hcclBroadcast, device %d, stream %lld, numel %llu, dtype %d, HCCL root rank %u.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<unsigned long long>(numel),
+                    static_cast<int>(hcclType),
                     static_cast<uint32_t>(root));
                 auto hccl_result = hcclBroadcast(inputDataPtr, numel, hcclType, root, comm, stream.stream(false));
-                TORCH_NPU_HCCL_API_AFTER_LOGD(hcclBroadcast, commName, stream, hccl_result);
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] hcclBroadcast returned, device %d, stream %lld, result %d.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<int>(hccl_result));
                 *is_dispatched = true;
                 return hccl_result;
             };
@@ -5849,7 +5896,14 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce_coalesced(
     std::vector<at::Tensor>& tensors,
     const c10d::AllreduceCoalescedOptions& opts)
 {
-    TORCH_NPU_HCCL_ENTRY_LOGD(", reduce op %s%s", hccl_log::reduceOpNameForLog(opts.reduceOp.op_), opts.asyncOp ? ", async true" : "");
+    TORCH_NPU_LOGD(
+        loggerHccl,
+        "%s[comm op] Entering %s, group size %d, reduce op %d%s.",
+        hcclRankPrefixForLog().c_str(),
+        __func__,
+        getSize(),
+        static_cast<int>(opts.reduceOp.op_),
+        opts.asyncOp ? ", async true" : "");
     check_npu_tensors_same_device(tensors);
     std::vector<at::Tensor> tensors_cp = tensors;
     std::string functionName = __FUNCTION__;
@@ -5865,7 +5919,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce_coalesced(
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(input);
             auto hcclReduceOp = getHcclReduceOp(opts.reduceOp, input);
-            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream, is_dispatched]() -> int {
+            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream, is_dispatched,
+                              pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                 torch_npu::profiler::MstxRange range(
                     getMstxHcclMsg("HcclAllreduce", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
@@ -5874,14 +5929,24 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce_coalesced(
                 if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                std::string commName;
-                TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                    hcclAllReduce, comm, commName, stream, "numel %llu, dtype %s, reduce op %s",
-                    static_cast<unsigned long long>(numel), hccl_log::hcclDataTypeNameForLog(hcclType),
-                    hccl_log::reduceOpNameForLog(hcclReduceOp));
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] Calling hcclAllReduce, device %d, stream %lld, numel %llu, dtype %d, reduce op %d.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<unsigned long long>(numel),
+                    static_cast<int>(hcclType),
+                    static_cast<int>(hcclReduceOp));
                 auto hccl_result = hcclAllReduce(
                     inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream.stream(false));
-                TORCH_NPU_HCCL_API_AFTER_LOGD(hcclAllReduce, commName, stream, hccl_result);
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] hcclAllReduce returned, device %d, stream %lld, result %d.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<int>(hccl_result));
                 *is_dispatched = true;
                 return hccl_result;
             };
@@ -5930,11 +5995,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce(
     std::vector<at::Tensor>& tensors,
     const c10d::ReduceOptions& opts)
 {
-    TORCH_NPU_HCCL_ENTRY_LOGD(
-        ", root global rank %lld, root PG rank %lld, reduce op %s%s",
-        hccl_log::hcclGlobalRankForLog(options_->global_ranks_in_group, opts.rootRank),
-        static_cast<long long>(opts.rootRank),
-        hccl_log::reduceOpNameForLog(opts.reduceOp.op_),
+    TORCH_NPU_LOGD(
+        loggerHccl,
+        "%s[comm op] Entering %s, group size %d, reduce op %d%s.",
+        hcclRankPrefixForLog("root", opts.rootRank).c_str(),
+        __func__,
+        getSize(),
+        static_cast<int>(opts.reduceOp.op_),
         opts.asyncOp ? ", async true" : "");
     check_npu_tensors_different_devices(tensors);
 
@@ -5957,7 +6024,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce(
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(input);
             auto reduceOp = getHcclReduceOp(opts.reduceOp, input);
-            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, reduceOp, rank, comm, stream, is_dispatched]() -> int {
+            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, reduceOp, rank, comm, stream, is_dispatched,
+                              pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                 torch_npu::profiler::MstxRange range(
                     getMstxHcclMsg("HcclReduce", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
@@ -5966,14 +6034,25 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce(
                 if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                std::string commName;
-                TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                    hcclReduce, comm, commName, stream, "numel %llu, dtype %s, reduce op %s, HCCL root rank %u",
-                    static_cast<unsigned long long>(numel), hccl_log::hcclDataTypeNameForLog(hcclType),
-                    hccl_log::reduceOpNameForLog(reduceOp), static_cast<uint32_t>(rank));
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] Calling hcclReduce, device %d, stream %lld, numel %llu, dtype %d, reduce op %d, HCCL root rank %u.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<unsigned long long>(numel),
+                    static_cast<int>(hcclType),
+                    static_cast<int>(reduceOp),
+                    static_cast<uint32_t>(rank));
                 auto hccl_result = hcclReduce(
                     inputDataPtr, outputDataPtr, numel, hcclType, reduceOp, rank, comm, stream.stream(false));
-                TORCH_NPU_HCCL_API_AFTER_LOGD(hcclReduce, commName, stream, hccl_result);
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] hcclReduce returned, device %d, stream %lld, result %d.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<int>(hccl_result));
                 *is_dispatched = true;
                 return hccl_result;
             };
@@ -6024,11 +6103,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_oop(
     at::Tensor& inputTensor,
     const c10d::ReduceOptions& opts)
 {
-    TORCH_NPU_HCCL_ENTRY_LOGD(
-        ", root global rank %lld, root PG rank %lld, reduce op %s%s",
-        hccl_log::hcclGlobalRankForLog(options_->global_ranks_in_group, opts.rootRank),
-        static_cast<long long>(opts.rootRank),
-        hccl_log::reduceOpNameForLog(opts.reduceOp.op_),
+    TORCH_NPU_LOGD(
+        loggerHccl,
+        "%s[comm op] Entering %s, group size %d, reduce op %d%s.",
+        hcclRankPrefixForLog("root", opts.rootRank).c_str(),
+        __func__,
+        getSize(),
+        static_cast<int>(opts.reduceOp.op_),
         opts.asyncOp ? ", async true" : "");
     check_npu_single_tensor(outputTensor);
     if (outputTensor.numel() != inputTensor.numel()) {
@@ -6050,7 +6131,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_oop(
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(input);
             auto reduceOp = getHcclReduceOp(opts.reduceOp, input);
-            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, reduceOp, rank, comm, stream, is_dispatched]() -> int {
+            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, reduceOp, rank, comm, stream, is_dispatched,
+                              pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                 torch_npu::profiler::MstxRange range(
                     getMstxHcclMsg("HcclReduce", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
@@ -6059,14 +6141,25 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_oop(
                 if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                std::string commName;
-                TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                    hcclReduce, comm, commName, stream, "numel %llu, dtype %s, reduce op %s, HCCL root rank %u",
-                    static_cast<unsigned long long>(numel), hccl_log::hcclDataTypeNameForLog(hcclType),
-                    hccl_log::reduceOpNameForLog(reduceOp), static_cast<uint32_t>(rank));
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] Calling hcclReduce, device %d, stream %lld, numel %llu, dtype %d, reduce op %d, HCCL root rank %u.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<unsigned long long>(numel),
+                    static_cast<int>(hcclType),
+                    static_cast<int>(reduceOp),
+                    static_cast<uint32_t>(rank));
                 auto hccl_result = hcclReduce(
                     inputDataPtr, outputDataPtr, numel, hcclType, reduceOp, rank, comm, stream.stream(false));
-                TORCH_NPU_HCCL_API_AFTER_LOGD(hcclReduce, commName, stream, hccl_result);
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] hcclReduce returned, device %d, stream %lld, result %d.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<int>(hccl_result));
                 *is_dispatched = true;
                 return hccl_result;
             };
@@ -6195,7 +6288,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base_uneven_inn
                 numel,
                 comm,
                 stream,
-                is_dispatched]() -> int {
+                is_dispatched,
+                pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                     torch_npu::profiler::MstxRange range(
                         getMstxHcclMsg("HcclReduceScatterV", numel, hcclType, comm, stream.id(), -1, -1),
@@ -6204,16 +6298,17 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base_uneven_inn
                     if (c10_npu::is_core_control_enabled()) {
                         c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                     }
-                    std::string commName;
-                    TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                        hcclReduceScatterV, comm, commName, stream,
-                        "send counts %s, send displacements %s, recv count %llu, dtype %s, "
-                        "reduce op %s",
-                        hccl_log::hcclLogList(inputCounts).c_str(),
-                        hccl_log::hcclLogList(inputSpl).c_str(),
+                    TORCH_NPU_LOGD(
+                        loggerHccl,
+                        "[%s] [comm op] Calling hcclReduceScatterV, device %d, stream %lld, send counts preview %s, recv count %llu, dtype %d, "
+                        "reduce op %d.",
+                        pg_name_.c_str(),
+                        static_cast<int>(stream.device_index()),
+                        static_cast<long long>(stream.id()),
+                        c10::str(c10::ArrayRef(inputCounts).slice(0, std::min(inputCounts.size(), kHcclLogListLimit))).c_str(),
                         static_cast<unsigned long long>(outputCount),
-                        hccl_log::hcclDataTypeNameForLog(hcclType),
-                        hccl_log::reduceOpNameForLog(hcclReduceOp));
+                        static_cast<int>(hcclType),
+                        static_cast<int>(hcclReduceOp));
                     auto hccl_result = hcclReduceScatterV(
                         inputDataPtr,
                         inputCounts.data(),
@@ -6224,7 +6319,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base_uneven_inn
                         hcclReduceOp,
                         comm,
                         stream.stream(false));
-                    TORCH_NPU_HCCL_API_AFTER_LOGD(hcclReduceScatterV, commName, stream, hccl_result);
+                    TORCH_NPU_LOGD(
+                        loggerHccl,
+                        "[%s] [comm op] hcclReduceScatterV returned, device %d, stream %lld, result %d.",
+                        pg_name_.c_str(),
+                        static_cast<int>(stream.device_index()),
+                        static_cast<long long>(stream.id()),
+                        static_cast<int>(hccl_result));
                     *is_dispatched = true;
                     return hccl_result;
             };
@@ -6262,7 +6363,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base_uneven(
     std::vector<int64_t>& inputSplitSizes,
     const c10d::ReduceScatterOptions& opts)
 {
-    TORCH_NPU_HCCL_ENTRY_LOGD(", reduce op %s", hccl_log::reduceOpNameForLog(opts.reduceOp.op_));
+    TORCH_NPU_LOGD(
+        loggerHccl,
+        "%s[comm op] Entering %s, group size %d, reduce op %d.",
+        hcclRankPrefixForLog().c_str(),
+        __func__,
+        getSize(),
+        static_cast<int>(opts.reduceOp.op_));
     static auto op = c10::Dispatcher::singleton()
                          .findSchemaOrThrow("npu_custom_dist::wrap_reduce_scatter_base_uneven_inner", "")
                          .typed<c10::intrusive_ptr<::c10d::Work>(
@@ -6336,7 +6443,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base_uneven_inner(
                 numel,
                 comm,
                 stream,
-                is_dispatched]() -> int {
+                is_dispatched,
+                pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                     torch_npu::profiler::MstxRange range(
                         getMstxHcclMsg("HcclAllGatherV", numel, hcclType, comm, stream.id(), -1, -1),
@@ -6345,14 +6453,15 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base_uneven_inner(
                     if (c10_npu::is_core_control_enabled()) {
                         c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                     }
-                    std::string commName;
-                    TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                        hcclAllGatherV, comm, commName, stream,
-                        "send count %llu, recv counts %s, recv displacements %s, dtype %s",
+                    TORCH_NPU_LOGD(
+                        loggerHccl,
+                        "[%s] [comm op] Calling hcclAllGatherV, device %d, stream %lld, send count %llu, recv counts preview %s, dtype %d.",
+                        pg_name_.c_str(),
+                        static_cast<int>(stream.device_index()),
+                        static_cast<long long>(stream.id()),
                         static_cast<unsigned long long>(inputCount),
-                        hccl_log::hcclLogList(outputCounts).c_str(),
-                        hccl_log::hcclLogList(outputSpl).c_str(),
-                        hccl_log::hcclDataTypeNameForLog(hcclType));
+                        c10::str(c10::ArrayRef(outputCounts).slice(0, std::min(outputCounts.size(), kHcclLogListLimit))).c_str(),
+                        static_cast<int>(hcclType));
                     auto hccl_result = hcclAllGatherV(
                         inputDataPtr,
                         inputCount,
@@ -6362,7 +6471,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base_uneven_inner(
                         hcclType,
                         comm,
                         stream.stream(false));
-                    TORCH_NPU_HCCL_API_AFTER_LOGD(hcclAllGatherV, commName, stream, hccl_result);
+                    TORCH_NPU_LOGD(
+                        loggerHccl,
+                        "[%s] [comm op] hcclAllGatherV returned, device %d, stream %lld, result %d.",
+                        pg_name_.c_str(),
+                        static_cast<int>(stream.device_index()),
+                        static_cast<long long>(stream.id()),
+                        static_cast<int>(hccl_result));
                     *is_dispatched = true;
                     return hccl_result;
             };
@@ -6382,7 +6497,12 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base_uneven(
     std::vector<int64_t>& outputSplitSizes,
     const c10d::AllgatherOptions& opts)
 {
-    TORCH_NPU_HCCL_ENTRY_LOGD("");
+    TORCH_NPU_LOGD(
+        loggerHccl,
+        "%s[comm op] Entering %s, group size %d.",
+        hcclRankPrefixForLog().c_str(),
+        __func__,
+        getSize());
     static auto op = c10::Dispatcher::singleton()
                          .findSchemaOrThrow("npu_custom_dist::wrap_allgather_base_uneven_inner", "")
                          .typed<c10::intrusive_ptr<::c10d::Work>(
@@ -6408,7 +6528,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
     std::vector<at::Tensor>& inputTensors,
     const c10d::AllgatherOptions& opts)
 {
-    TORCH_NPU_HCCL_ENTRY_LOGD("%s", opts.asyncOp ? ", async true" : "");
+    TORCH_NPU_LOGD(
+        loggerHccl,
+        "%s[comm op] Entering %s, group size %d%s.",
+        hcclRankPrefixForLog().c_str(),
+        __func__,
+        getSize(),
+        opts.asyncOp ? ", async true" : "");
     check_npu_tensors_same_device(outputTensors.back());
     check_npu_tensors_different_devices(inputTensors);
 
@@ -6471,7 +6597,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                 auto outputDataPtr = output.data_ptr();
                 auto numel = getNumelForHCCL(input);
                 auto hcclType = getHcclDataType(input.scalar_type());
-                auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream, is_dispatched]() -> int {
+                auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream, is_dispatched,
+                                  pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                     torch_npu::profiler::MstxRange range(
                         getMstxHcclMsg("HcclAllGather", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
@@ -6480,12 +6607,22 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                     if (c10_npu::is_core_control_enabled()) {
                         c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                     }
-                    std::string commName;
-                    TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                        hcclAllGather, comm, commName, stream, "send numel %llu, dtype %s",
-                        static_cast<unsigned long long>(numel), hccl_log::hcclDataTypeNameForLog(hcclType));
+                    TORCH_NPU_LOGD(
+                        loggerHccl,
+                        "[%s] [comm op] Calling hcclAllGather, device %d, stream %lld, send numel %llu, dtype %d.",
+                        pg_name_.c_str(),
+                        static_cast<int>(stream.device_index()),
+                        static_cast<long long>(stream.id()),
+                        static_cast<unsigned long long>(numel),
+                        static_cast<int>(hcclType));
                     auto hccl_result = hcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
-                    TORCH_NPU_HCCL_API_AFTER_LOGD(hcclAllGather, commName, stream, hccl_result);
+                    TORCH_NPU_LOGD(
+                        loggerHccl,
+                        "[%s] [comm op] hcclAllGather returned, device %d, stream %lld, result %d.",
+                        pg_name_.c_str(),
+                        static_cast<int>(stream.device_index()),
+                        static_cast<long long>(stream.id()),
+                        static_cast<int>(hccl_result));
                     *is_dispatched = true;
                     return hccl_result;
                 };
@@ -6559,7 +6696,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                     numel,
                     comm,
                     stream,
-                    is_dispatched]() -> int {
+                    is_dispatched,
+                    pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                         torch_npu::profiler::MstxRange range(
                             getMstxHcclMsg("HcclAllGatherV", numel, hcclType, comm, stream.id(), -1, -1),
@@ -6568,14 +6706,15 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                         if (c10_npu::is_core_control_enabled()) {
                             c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                         }
-                        std::string commName;
-                        TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                            hcclAllGatherV, comm, commName, stream,
-                            "send count %llu, recv counts %s, recv displacements %s, dtype %s",
+                        TORCH_NPU_LOGD(
+                            loggerHccl,
+                            "[%s] [comm op] Calling hcclAllGatherV, device %d, stream %lld, send count %llu, recv counts preview %s, dtype %d.",
+                            pg_name_.c_str(),
+                            static_cast<int>(stream.device_index()),
+                            static_cast<long long>(stream.id()),
                             static_cast<unsigned long long>(inputCount),
-                            hccl_log::hcclLogList(outputCounts).c_str(),
-                            hccl_log::hcclLogList(outputSpl).c_str(),
-                            hccl_log::hcclDataTypeNameForLog(hcclType));
+                            c10::str(c10::ArrayRef(outputCounts).slice(0, std::min(outputCounts.size(), kHcclLogListLimit))).c_str(),
+                            static_cast<int>(hcclType));
                         auto hccl_result = hcclAllGatherV(
                             inputDataPtr,
                             inputCount,
@@ -6585,7 +6724,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                             hcclType,
                             comm,
                             stream.stream(false));
-                        TORCH_NPU_HCCL_API_AFTER_LOGD(hcclAllGatherV, commName, stream, hccl_result);
+                        TORCH_NPU_LOGD(
+                            loggerHccl,
+                            "[%s] [comm op] hcclAllGatherV returned, device %d, stream %lld, result %d.",
+                            pg_name_.c_str(),
+                            static_cast<int>(stream.device_index()),
+                            static_cast<long long>(stream.id()),
+                            static_cast<int>(hccl_result));
                         *is_dispatched = true;
                         return hccl_result;
                 };
@@ -6655,13 +6800,23 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                     getMstxHcclMsg("HcclBroadcast", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
                     torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                std::string commName;
-                TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                    hcclBroadcast, comm, commName, stream, "numel %llu, dtype %s, HCCL root rank %u",
-                    static_cast<unsigned long long>(numel), hccl_log::hcclDataTypeNameForLog(hcclType),
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] Calling hcclBroadcast, device %d, stream %lld, numel %llu, dtype %d, HCCL root rank %u.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<unsigned long long>(numel),
+                    static_cast<int>(hcclType),
                     static_cast<uint32_t>(root));
                 auto hccl_result = hcclBroadcast(inputDataPtr, numel, hcclType, root, comm, stream.stream());
-                TORCH_NPU_HCCL_API_AFTER_LOGD(hcclBroadcast, commName, stream, hccl_result);
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] hcclBroadcast returned, device %d, stream %lld, result %d.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<int>(hccl_result));
                 *is_dispatched = true;
                 return hccl_result;
                 },
@@ -6684,7 +6839,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_into_tensor_coalesced
     std::vector<at::Tensor>& inputs,
     const c10d::AllgatherOptions& opts)
 {
-    TORCH_NPU_HCCL_ENTRY_LOGD("%s", opts.asyncOp ? ", async true" : "");
+    TORCH_NPU_LOGD(
+        loggerHccl,
+        "%s[comm op] Entering %s, group size %d%s.",
+        hcclRankPrefixForLog().c_str(),
+        __func__,
+        getSize(),
+        opts.asyncOp ? ", async true" : "");
     auto inputTensors_ = cast_to_origin_format(inputs);
     return collectiveCoalesced(
         inputTensors_,
@@ -6698,7 +6859,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_into_tensor_coalesced
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(input);
             auto hcclType = getHcclDataType(input.scalar_type());
-            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream, is_dispatched]() -> int {
+            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream, is_dispatched,
+                              pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                 torch_npu::profiler::MstxRange range(
                     getMstxHcclMsg("HcclAllGather", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
@@ -6707,12 +6869,22 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_into_tensor_coalesced
                 if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                std::string commName;
-                TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                    hcclAllGather, comm, commName, stream, "send numel %llu, dtype %s",
-                    static_cast<unsigned long long>(numel), hccl_log::hcclDataTypeNameForLog(hcclType));
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] Calling hcclAllGather, device %d, stream %lld, send numel %llu, dtype %d.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<unsigned long long>(numel),
+                    static_cast<int>(hcclType));
                 auto hccl_result = hcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
-                TORCH_NPU_HCCL_API_AFTER_LOGD(hcclAllGather, commName, stream, hccl_result);
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] hcclAllGather returned, device %d, stream %lld, result %d.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<int>(hccl_result));
                 *is_dispatched = true;
                 return hccl_result;
             };
@@ -6731,7 +6903,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_togather(
     std::vector<at::Tensor>& inputTensors,
     const c10d::AllgatherOptions& opts)
 {
-    TORCH_NPU_HCCL_ENTRY_LOGD("%s", opts.asyncOp ? ", async true" : "");
+    TORCH_NPU_LOGD(
+        loggerHccl,
+        "%s[comm op] Entering %s, group size %d%s.",
+        hcclRankPrefixForLog().c_str(),
+        __func__,
+        getSize(),
+        opts.asyncOp ? ", async true" : "");
     check_npu_tensors_different_devices(inputTensors);
     check_npu_tensors_different_devices(outputTensors);
 
@@ -6752,7 +6930,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_togather(
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(input);
             auto hcclType = getHcclDataType(input.scalar_type());
-            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream, is_dispatched]() -> int {
+            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream, is_dispatched,
+                              pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                 torch_npu::profiler::MstxRange range(
                     getMstxHcclMsg("HcclAllGather", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
@@ -6761,12 +6940,22 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_togather(
                 if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                std::string commName;
-                TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                    hcclAllGather, comm, commName, stream, "send numel %llu, dtype %s",
-                    static_cast<unsigned long long>(numel), hccl_log::hcclDataTypeNameForLog(hcclType));
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] Calling hcclAllGather, device %d, stream %lld, send numel %llu, dtype %d.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<unsigned long long>(numel),
+                    static_cast<int>(hcclType));
                 auto hccl_result = hcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
-                TORCH_NPU_HCCL_API_AFTER_LOGD(hcclAllGather, commName, stream, hccl_result);
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] hcclAllGather returned, device %d, stream %lld, result %d.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<int>(hccl_result));
                 *is_dispatched = true;
                 return hccl_result;
             };
@@ -6785,7 +6974,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base(
     at::Tensor& inputTensor,
     const c10d::AllgatherOptions& opts)
 {
-    TORCH_NPU_HCCL_ENTRY_LOGD("%s", opts.asyncOp ? ", async true" : "");
+    TORCH_NPU_LOGD(
+        loggerHccl,
+        "%s[comm op] Entering %s, group size %d%s.",
+        hcclRankPrefixForLog().c_str(),
+        __func__,
+        getSize(),
+        opts.asyncOp ? ", async true" : "");
     if (inputTensor.dtype() != outputTensor.dtype()) {
         TORCH_CHECK(false, "output tensor must have the same type as input tensor", DIST_ERROR(ErrCode::PARAM));
     }
@@ -6815,7 +7010,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base(
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(input);
             auto hcclType = getHcclDataType(input.scalar_type());
-            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream, is_dispatched]() -> int {
+            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream, is_dispatched,
+                              pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                 torch_npu::profiler::MstxRange range(
                     getMstxHcclMsg("HcclAllGather", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
@@ -6824,12 +7020,22 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base(
                 if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                std::string commName;
-                TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                    hcclAllGather, comm, commName, stream, "send numel %llu, dtype %s",
-                    static_cast<unsigned long long>(numel), hccl_log::hcclDataTypeNameForLog(hcclType));
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] Calling hcclAllGather, device %d, stream %lld, send numel %llu, dtype %d.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<unsigned long long>(numel),
+                    static_cast<int>(hcclType));
                 auto hccl_result = hcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
-                TORCH_NPU_HCCL_API_AFTER_LOGD(hcclAllGather, commName, stream, hccl_result);
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] hcclAllGather returned, device %d, stream %lld, result %d.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<int>(hccl_result));
                 *is_dispatched = true;
                 return hccl_result;
             };
@@ -6848,7 +7054,14 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
     std::vector<std::vector<at::Tensor>>& inputTensors,
     const c10d::ReduceScatterOptions& opts)
 {
-    TORCH_NPU_HCCL_ENTRY_LOGD(", reduce op %s%s", hccl_log::reduceOpNameForLog(opts.reduceOp.op_), opts.asyncOp ? ", async true" : "");
+    TORCH_NPU_LOGD(
+        loggerHccl,
+        "%s[comm op] Entering %s, group size %d, reduce op %d%s.",
+        hcclRankPrefixForLog().c_str(),
+        __func__,
+        getSize(),
+        static_cast<int>(opts.reduceOp.op_),
+        opts.asyncOp ? ", async true" : "");
     check_npu_tensors_different_devices(outputTensors);
     check_npu_tensors_same_device(inputTensors.back());
 
@@ -6893,7 +7106,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(output);
             auto hcclReduceOp = getHcclReduceOp(opts.reduceOp, input);
-            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream, is_dispatched]() -> int {
+            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream, is_dispatched,
+                              pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                 torch_npu::profiler::MstxRange range(
                     getMstxHcclMsg("HcclReduceScatter", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
@@ -6902,14 +7116,24 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
                 if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                std::string commName;
-                TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                    hcclReduceScatter, comm, commName, stream, "recv numel %llu, dtype %s, reduce op %s",
-                    static_cast<unsigned long long>(numel), hccl_log::hcclDataTypeNameForLog(hcclType),
-                    hccl_log::reduceOpNameForLog(hcclReduceOp));
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] Calling hcclReduceScatter, device %d, stream %lld, recv numel %llu, dtype %d, reduce op %d.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<unsigned long long>(numel),
+                    static_cast<int>(hcclType),
+                    static_cast<int>(hcclReduceOp));
                 auto hccl_result = hcclReduceScatter(
                     inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream.stream(false));
-                TORCH_NPU_HCCL_API_AFTER_LOGD(hcclReduceScatter, commName, stream, hccl_result);
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] hcclReduceScatter returned, device %d, stream %lld, result %d.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<int>(hccl_result));
                 *is_dispatched = true;
                 return hccl_result;
             };
@@ -7006,7 +7230,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
                     numel,
                     comm,
                     stream,
-                    is_dispatched]() -> int {
+                    is_dispatched,
+                    pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                         torch_npu::profiler::MstxRange range(
                             getMstxHcclMsg("HcclReduceScatterV", numel, hcclType, comm, stream.id(), -1, -1),
@@ -7015,16 +7240,17 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
                         if (c10_npu::is_core_control_enabled()) {
                             c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                         }
-                        std::string commName;
-                        TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                            hcclReduceScatterV, comm, commName, stream,
-                            "send counts %s, send displacements %s, recv count %llu, dtype %s, "
-                            "reduce op %s",
-                            hccl_log::hcclLogList(inputCounts).c_str(),
-                            hccl_log::hcclLogList(inputSpl).c_str(),
+                        TORCH_NPU_LOGD(
+                            loggerHccl,
+                            "[%s] [comm op] Calling hcclReduceScatterV, device %d, stream %lld, send counts preview %s, recv count %llu, dtype %d, "
+                            "reduce op %d.",
+                            pg_name_.c_str(),
+                            static_cast<int>(stream.device_index()),
+                            static_cast<long long>(stream.id()),
+                            c10::str(c10::ArrayRef(inputCounts).slice(0, std::min(inputCounts.size(), kHcclLogListLimit))).c_str(),
                             static_cast<unsigned long long>(outputCount),
-                            hccl_log::hcclDataTypeNameForLog(hcclType),
-                            hccl_log::reduceOpNameForLog(hcclReduceOp));
+                            static_cast<int>(hcclType),
+                            static_cast<int>(hcclReduceOp));
                         auto hccl_result = hcclReduceScatterV(
                             inputDataPtr,
                             inputCounts.data(),
@@ -7035,7 +7261,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
                             hcclReduceOp,
                             comm,
                             stream.stream(false));
-                        TORCH_NPU_HCCL_API_AFTER_LOGD(hcclReduceScatterV, commName, stream, hccl_result);
+                        TORCH_NPU_LOGD(
+                            loggerHccl,
+                            "[%s] [comm op] hcclReduceScatterV returned, device %d, stream %lld, result %d.",
+                            pg_name_.c_str(),
+                            static_cast<int>(stream.device_index()),
+                            static_cast<long long>(stream.id()),
+                            static_cast<int>(hccl_result));
                         *is_dispatched = true;
                         return hccl_result;
                 };
@@ -7123,7 +7355,14 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
     at::Tensor& inputTensor,
     const c10d::ReduceScatterOptions& opts)
 {
-    TORCH_NPU_HCCL_ENTRY_LOGD(", reduce op %s%s", hccl_log::reduceOpNameForLog(opts.reduceOp.op_), opts.asyncOp ? ", async true" : "");
+    TORCH_NPU_LOGD(
+        loggerHccl,
+        "%s[comm op] Entering %s, group size %d, reduce op %d%s.",
+        hcclRankPrefixForLog().c_str(),
+        __func__,
+        getSize(),
+        static_cast<int>(opts.reduceOp.op_),
+        opts.asyncOp ? ", async true" : "");
     check_npu_single_tensor(inputTensor);
     if (inputTensor.dtype() != outputTensor.dtype()) {
         TORCH_CHECK(false, "input tensor must be the same type as the output tensor.", DIST_ERROR(ErrCode::TYPE));
@@ -7154,7 +7393,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(output);
             auto hcclReduceOp = getHcclReduceOp(opts.reduceOp, input);
-            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream, is_dispatched]() -> int {
+            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream, is_dispatched,
+                              pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                 torch_npu::profiler::MstxRange range(
                     getMstxHcclMsg("HcclReduceScatter", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
@@ -7163,14 +7403,24 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
                 if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                std::string commName;
-                TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                    hcclReduceScatter, comm, commName, stream, "recv numel %llu, dtype %s, reduce op %s",
-                    static_cast<unsigned long long>(numel), hccl_log::hcclDataTypeNameForLog(hcclType),
-                    hccl_log::reduceOpNameForLog(hcclReduceOp));
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] Calling hcclReduceScatter, device %d, stream %lld, recv numel %llu, dtype %d, reduce op %d.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<unsigned long long>(numel),
+                    static_cast<int>(hcclType),
+                    static_cast<int>(hcclReduceOp));
                 auto hccl_result = hcclReduceScatter(
                     inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream.stream(false));
-                TORCH_NPU_HCCL_API_AFTER_LOGD(hcclReduceScatter, commName, stream, hccl_result);
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] hcclReduceScatter returned, device %d, stream %lld, result %d.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<int>(hccl_result));
                 *is_dispatched = true;
                 return hccl_result;
             };
@@ -7212,7 +7462,14 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter_tensor_coalesced
     std::vector<at::Tensor>& inputTensors,
     const c10d::ReduceScatterOptions& opts)
 {
-    TORCH_NPU_HCCL_ENTRY_LOGD(", reduce op %s%s", hccl_log::reduceOpNameForLog(opts.reduceOp.op_), opts.asyncOp ? ", async true" : "");
+    TORCH_NPU_LOGD(
+        loggerHccl,
+        "%s[comm op] Entering %s, group size %d, reduce op %d%s.",
+        hcclRankPrefixForLog().c_str(),
+        __func__,
+        getSize(),
+        static_cast<int>(opts.reduceOp.op_),
+        opts.asyncOp ? ", async true" : "");
     check_npu_tensors_same_device(outputTensors);
     check_npu_tensors_same_device(inputTensors);
     std::string functionName = __FUNCTION__;
@@ -7230,7 +7487,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter_tensor_coalesced
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(output);
             auto hcclReduceOp = getHcclReduceOp(opts.reduceOp, input);
-            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream, is_dispatched]() -> int {
+            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream, is_dispatched,
+                              pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                 torch_npu::profiler::MstxRange range(
                     getMstxHcclMsg("HcclReduceScatter", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
@@ -7239,14 +7497,24 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter_tensor_coalesced
                 if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                std::string commName;
-                TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                    hcclReduceScatter, comm, commName, stream, "recv numel %llu, dtype %s, reduce op %s",
-                    static_cast<unsigned long long>(numel), hccl_log::hcclDataTypeNameForLog(hcclType),
-                    hccl_log::reduceOpNameForLog(hcclReduceOp));
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] Calling hcclReduceScatter, device %d, stream %lld, recv numel %llu, dtype %d, reduce op %d.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<unsigned long long>(numel),
+                    static_cast<int>(hcclType),
+                    static_cast<int>(hcclReduceOp));
                 auto hccl_result = hcclReduceScatter(
                     inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream.stream(false));
-                TORCH_NPU_HCCL_API_AFTER_LOGD(hcclReduceScatter, commName, stream, hccl_result);
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] hcclReduceScatter returned, device %d, stream %lld, result %d.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<int>(hccl_result));
                 *is_dispatched = true;
                 return hccl_result;
             };
@@ -7280,7 +7548,12 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter_tensor_coalesced
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::barrier(const c10d::BarrierOptions& opts)
 {
-    TORCH_NPU_HCCL_ENTRY_LOGD("");
+    TORCH_NPU_LOGD(
+        loggerHccl,
+        "%s[comm op] Entering %s, group size %d.",
+        hcclRankPrefixForLog().c_str(),
+        __func__,
+        getSize());
     std::vector<at::Device> devices;
     if (!opts.device_ids.empty()) {
         // Validate the original integer before narrowing to DeviceIndex.
@@ -7335,7 +7608,12 @@ void ProcessGroupHCCL::eagerConnectSingleDevice(at::Device device)
 
 void ProcessGroupHCCL::startCoalescing()
 {
-    TORCH_NPU_HCCL_ENTRY_LOGD("");
+    TORCH_NPU_LOGD(
+        loggerHccl,
+        "%s[comm op] Entering %s, group size %d.",
+        hcclRankPrefixForLog().c_str(),
+        __func__,
+        getSize());
     coalescedDevice_.set_index(-1);
     coalescedComm_ = nullptr;
     coalescedTensors_.clear();
@@ -7351,7 +7629,13 @@ void ProcessGroupHCCL::startCoalescing()
 // REDUCE_SCATTER
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::endCoalescing(c10d::OpType optype)
 {
-    TORCH_NPU_HCCL_ENTRY_LOGD(", op type %s", opTypeToString(optype).c_str());
+    TORCH_NPU_LOGD(
+        loggerHccl,
+        "%s[comm op] Entering %s, group size %d, op type %s.",
+        hcclRankPrefixForLog().c_str(),
+        __func__,
+        getSize(),
+        opTypeToString(optype).c_str());
     if (coalescedComm_ == nullptr) {
         // There is no actual work being coalesced, return here
         groupEnd();
@@ -7463,10 +7747,12 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::gather(
     std::vector<at::Tensor>& inputTensors,
     const c10d::GatherOptions& opts)
 {
-    TORCH_NPU_HCCL_ENTRY_LOGD(
-        ", root global rank %lld, root PG rank %lld%s",
-        hccl_log::hcclGlobalRankForLog(options_->global_ranks_in_group, opts.rootRank),
-        static_cast<long long>(opts.rootRank),
+    TORCH_NPU_LOGD(
+        loggerHccl,
+        "%s[comm op] Entering %s, group size %d%s.",
+        hcclRankPrefixForLog("root", opts.rootRank).c_str(),
+        __func__,
+        getSize(),
         opts.asyncOp ? ", async true" : "");
     static auto invalidArgument = [](const std::string& msg) {
         C10_THROW_ERROR(ValueError, "ProcessGroupHCCL::gather: " + msg);
@@ -7547,7 +7833,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::gather(
                             auto outputDataPtr = outputs[r].data_ptr();
                             auto numel = getNumelForHCCL(outputs[r]);
                             auto hcclType = getHcclDataType(outputs[r].scalar_type());
-                            auto hccl_call = [outputDataPtr, numel, hcclType, r, comm, stream, is_dispatched]() -> int {
+                            auto hccl_call = [outputDataPtr, numel, hcclType, r, comm, stream, is_dispatched,
+                                              pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                                 torch_npu::profiler::MstxRange range(
                                     getMstxHcclMsg("HcclRecv", numel, hcclType, comm, stream.id(),
@@ -7555,14 +7842,24 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::gather(
                                     stream.stream(false),
                                     torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                                std::string commName;
-                                TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                                    hcclRecv, comm, commName, stream, "numel %llu, dtype %s, HCCL peer rank %u",
-                                    static_cast<unsigned long long>(numel), hccl_log::hcclDataTypeNameForLog(hcclType),
+                                TORCH_NPU_LOGD(
+                                    loggerHccl,
+                                    "[%s] [comm op] Calling hcclRecv, device %d, stream %lld, numel %llu, dtype %d, HCCL peer rank %u.",
+                                    pg_name_.c_str(),
+                                    static_cast<int>(stream.device_index()),
+                                    static_cast<long long>(stream.id()),
+                                    static_cast<unsigned long long>(numel),
+                                    static_cast<int>(hcclType),
                                     static_cast<uint32_t>(r));
                                 auto hccl_result = hcclRecv(outputDataPtr, numel, hcclType,
                                     static_cast<uint32_t>(r), comm, stream.stream(false));
-                                TORCH_NPU_HCCL_API_AFTER_LOGD(hcclRecv, commName, stream, hccl_result);
+                                TORCH_NPU_LOGD(
+                                    loggerHccl,
+                                    "[%s] [comm op] hcclRecv returned, device %d, stream %lld, result %d.",
+                                    pg_name_.c_str(),
+                                    static_cast<int>(stream.device_index()),
+                                    static_cast<long long>(stream.id()),
+                                    static_cast<int>(hccl_result));
                                 *is_dispatched = true;
                                 return hccl_result;
                             };
@@ -7577,7 +7874,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::gather(
                     auto inputDataPtr = inputTensors[0].data_ptr();
                     auto numel = getNumelForHCCL(inputTensors[0]);
                     auto hcclType = getHcclDataType(inputTensors[0].scalar_type());
-                    auto hccl_call = [inputDataPtr, numel, hcclType, root, comm, stream, is_dispatched]() -> int {
+                    auto hccl_call = [inputDataPtr, numel, hcclType, root, comm, stream, is_dispatched,
+                                      pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                         torch_npu::profiler::MstxRange range(
                             getMstxHcclMsg("HcclSend", numel, hcclType, comm, stream.id(), -1,
@@ -7585,14 +7883,24 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::gather(
                             stream.stream(false),
                             torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                        std::string commName;
-                        TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                            hcclSend, comm, commName, stream, "numel %llu, dtype %s, HCCL peer rank %u",
-                            static_cast<unsigned long long>(numel), hccl_log::hcclDataTypeNameForLog(hcclType),
+                        TORCH_NPU_LOGD(
+                            loggerHccl,
+                            "[%s] [comm op] Calling hcclSend, device %d, stream %lld, numel %llu, dtype %d, HCCL peer rank %u.",
+                            pg_name_.c_str(),
+                            static_cast<int>(stream.device_index()),
+                            static_cast<long long>(stream.id()),
+                            static_cast<unsigned long long>(numel),
+                            static_cast<int>(hcclType),
                             static_cast<uint32_t>(root));
                         auto hccl_result = hcclSend(inputDataPtr, numel, hcclType,
                             static_cast<uint32_t>(root), comm, stream.stream(false));
-                        TORCH_NPU_HCCL_API_AFTER_LOGD(hcclSend, commName, stream, hccl_result);
+                        TORCH_NPU_LOGD(
+                            loggerHccl,
+                            "[%s] [comm op] hcclSend returned, device %d, stream %lld, result %d.",
+                            pg_name_.c_str(),
+                            static_cast<int>(stream.device_index()),
+                            static_cast<long long>(stream.id()),
+                            static_cast<int>(hccl_result));
                         *is_dispatched = true;
                         return hccl_result;
                     };
@@ -7637,10 +7945,12 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
     std::vector<std::vector<at::Tensor>>& inputTensors,
     const c10d::ScatterOptions& opts)
 {
-    TORCH_NPU_HCCL_ENTRY_LOGD(
-        ", root global rank %lld, root PG rank %lld%s",
-        hccl_log::hcclGlobalRankForLog(options_->global_ranks_in_group, opts.rootRank),
-        static_cast<long long>(opts.rootRank),
+    TORCH_NPU_LOGD(
+        loggerHccl,
+        "%s[comm op] Entering %s, group size %d%s.",
+        hcclRankPrefixForLog("root", opts.rootRank).c_str(),
+        __func__,
+        getSize(),
         opts.asyncOp ? ", async true" : "");
     static auto invalidArgument = [](const std::string& msg) {
         C10_THROW_ERROR(ValueError, "ProcessGroupHCCL::scatter: " + msg);
@@ -7737,7 +8047,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
                                 auto inputDataPtr = sendTensor.data_ptr();
                                 auto numel = getNumelForHCCL(sendTensor);
                                 auto hcclType = getHcclDataType(sendTensor.scalar_type());
-                                auto hccl_call = [inputDataPtr, numel, hcclType, r, comm, stream, is_dispatched]() -> int {
+                                auto hccl_call = [inputDataPtr, numel, hcclType, r, comm, stream, is_dispatched,
+                                                  pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                                     torch_npu::profiler::MstxRange range(
                                         getMstxHcclMsg("HcclSend", numel, hcclType, comm, stream.id(), -1,
@@ -7745,14 +8056,24 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
                                         stream.stream(false),
                                         torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                                    std::string commName;
-                                    TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                                        hcclSend, comm, commName, stream, "numel %llu, dtype %s, HCCL peer rank %u",
-                                        static_cast<unsigned long long>(numel), hccl_log::hcclDataTypeNameForLog(hcclType),
+                                    TORCH_NPU_LOGD(
+                                        loggerHccl,
+                                        "[%s] [comm op] Calling hcclSend, device %d, stream %lld, numel %llu, dtype %d, HCCL peer rank %u.",
+                                        pg_name_.c_str(),
+                                        static_cast<int>(stream.device_index()),
+                                        static_cast<long long>(stream.id()),
+                                        static_cast<unsigned long long>(numel),
+                                        static_cast<int>(hcclType),
                                         static_cast<uint32_t>(r));
                                     auto hccl_result = hcclSend(inputDataPtr, numel, hcclType,
                                         static_cast<uint32_t>(r), comm, stream.stream(false));
-                                    TORCH_NPU_HCCL_API_AFTER_LOGD(hcclSend, commName, stream, hccl_result);
+                                    TORCH_NPU_LOGD(
+                                        loggerHccl,
+                                        "[%s] [comm op] hcclSend returned, device %d, stream %lld, result %d.",
+                                        pg_name_.c_str(),
+                                        static_cast<int>(stream.device_index()),
+                                        static_cast<long long>(stream.id()),
+                                        static_cast<int>(hccl_result));
                                     *is_dispatched = true;
                                     return hccl_result;
                                 };
@@ -7768,7 +8089,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
                         auto outputDataPtr = output.data_ptr();
                         auto numel = getNumelForHCCL(output);
                         auto hcclType = getHcclDataType(output.scalar_type());
-                        auto hccl_call = [outputDataPtr, numel, hcclType, root, comm, stream, is_dispatched]() -> int {
+                        auto hccl_call = [outputDataPtr, numel, hcclType, root, comm, stream, is_dispatched,
+                                          pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                             torch_npu::profiler::MstxRange range(
                                 getMstxHcclMsg("HcclRecv", numel, hcclType, comm, stream.id(),
@@ -7776,14 +8098,24 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
                                 stream.stream(false),
                                 torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                            std::string commName;
-                            TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                                hcclRecv, comm, commName, stream, "numel %llu, dtype %s, HCCL peer rank %u",
-                                static_cast<unsigned long long>(numel), hccl_log::hcclDataTypeNameForLog(hcclType),
+                            TORCH_NPU_LOGD(
+                                loggerHccl,
+                                "[%s] [comm op] Calling hcclRecv, device %d, stream %lld, numel %llu, dtype %d, HCCL peer rank %u.",
+                                pg_name_.c_str(),
+                                static_cast<int>(stream.device_index()),
+                                static_cast<long long>(stream.id()),
+                                static_cast<unsigned long long>(numel),
+                                static_cast<int>(hcclType),
                                 static_cast<uint32_t>(root));
                             auto hccl_result = hcclRecv(outputDataPtr, numel, hcclType,
                                 static_cast<uint32_t>(root), comm, stream.stream(false));
-                            TORCH_NPU_HCCL_API_AFTER_LOGD(hcclRecv, commName, stream, hccl_result);
+                            TORCH_NPU_LOGD(
+                                loggerHccl,
+                                "[%s] [comm op] hcclRecv returned, device %d, stream %lld, result %d.",
+                                pg_name_.c_str(),
+                                static_cast<int>(stream.device_index()),
+                                static_cast<long long>(stream.id()),
+                                static_cast<int>(hccl_result));
                             *is_dispatched = true;
                             return hccl_result;
                         };
@@ -7805,7 +8137,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
                 auto outputDataPtr = output.data_ptr();
                 auto numel = getNumelForHCCL(output);
                 auto hcclType = getHcclDataType(input.scalar_type());
-                auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, root, comm, stream, is_dispatched]() -> int {
+                auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, root, comm, stream, is_dispatched,
+                                  pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                     torch_npu::profiler::MstxRange range(
                         getMstxHcclMsg("HcclScatter", numel, hcclType, comm, stream.id(), -1, -1), stream.stream(false),
@@ -7814,13 +8147,23 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
                     if (c10_npu::is_core_control_enabled()) {
                         c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                     }
-                    std::string commName;
-                    TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                        hcclScatter, comm, commName, stream, "recv numel %llu, dtype %s, HCCL root rank %u",
-                        static_cast<unsigned long long>(numel), hccl_log::hcclDataTypeNameForLog(hcclType),
+                    TORCH_NPU_LOGD(
+                        loggerHccl,
+                        "[%s] [comm op] Calling hcclScatter, device %d, stream %lld, recv numel %llu, dtype %d, HCCL root rank %u.",
+                        pg_name_.c_str(),
+                        static_cast<int>(stream.device_index()),
+                        static_cast<long long>(stream.id()),
+                        static_cast<unsigned long long>(numel),
+                        static_cast<int>(hcclType),
                         static_cast<uint32_t>(root));
                     auto hccl_result = hcclScatter(inputDataPtr, outputDataPtr, numel, hcclType, root, comm, stream.stream(false));
-                    TORCH_NPU_HCCL_API_AFTER_LOGD(hcclScatter, commName, stream, hccl_result);
+                    TORCH_NPU_LOGD(
+                        loggerHccl,
+                        "[%s] [comm op] hcclScatter returned, device %d, stream %lld, result %d.",
+                        pg_name_.c_str(),
+                        static_cast<int>(stream.device_index()),
+                        static_cast<long long>(stream.id()),
+                        static_cast<int>(hccl_result));
                     *is_dispatched = true;
                     return hccl_result;
                 };
@@ -7889,10 +8232,12 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::send(std::vector<at::Tensor>& tensors, int dstRank, int tag)
 {
-    TORCH_NPU_HCCL_ENTRY_LOGD(
-        ", peer global rank %lld, peer PG rank %d, tag %d",
-        hccl_log::hcclGlobalRankForLog(options_->global_ranks_in_group, dstRank),
-        dstRank,
+    TORCH_NPU_LOGD(
+        loggerHccl,
+        "%s[comm op] Entering %s, group size %d, tag %d.",
+        hcclRankPrefixForLog("peer", dstRank).c_str(),
+        __func__,
+        getSize(),
         tag);
     check_npu_tensors_different_devices(tensors);
 
@@ -7907,7 +8252,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::send(std::vector<at::Tensor>& t
             auto inputDataPtr = input.data_ptr();
             auto numel = getNumelForHCCL(input);
             auto hcclType = getHcclDataType(input.scalar_type());
-            auto hccl_call = [inputDataPtr, numel, hcclType, dst_rank, comm, stream, is_dispatched]() -> int {
+            auto hccl_call = [inputDataPtr, numel, hcclType, dst_rank, comm, stream, is_dispatched,
+                              pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                 torch_npu::profiler::MstxRange range(
                     getMstxHcclMsg("HcclSend", numel, hcclType, comm, stream.id(), -1, dst_rank), stream.stream(false),
@@ -7916,13 +8262,23 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::send(std::vector<at::Tensor>& t
                 if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                std::string commName;
-                TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                    hcclSend, comm, commName, stream, "numel %llu, dtype %s, HCCL peer rank %u",
-                    static_cast<unsigned long long>(numel), hccl_log::hcclDataTypeNameForLog(hcclType),
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] Calling hcclSend, device %d, stream %lld, numel %llu, dtype %d, HCCL peer rank %u.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<unsigned long long>(numel),
+                    static_cast<int>(hcclType),
                     static_cast<uint32_t>(dst_rank));
                 auto hccl_result = hcclSend(inputDataPtr, numel, hcclType, static_cast<uint32_t>(dst_rank), comm, stream.stream(false));
-                TORCH_NPU_HCCL_API_AFTER_LOGD(hcclSend, commName, stream, hccl_result);
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] hcclSend returned, device %d, stream %lld, result %d.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<int>(hccl_result));
                 *is_dispatched = true;
                 return hccl_result;
             };
@@ -7936,10 +8292,12 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::send(std::vector<at::Tensor>& t
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& tensors, int srcRank, int tag)
 {
-    TORCH_NPU_HCCL_ENTRY_LOGD(
-        ", peer global rank %lld, peer PG rank %d, tag %d",
-        hccl_log::hcclGlobalRankForLog(options_->global_ranks_in_group, srcRank),
-        srcRank,
+    TORCH_NPU_LOGD(
+        loggerHccl,
+        "%s[comm op] Entering %s, group size %d, tag %d.",
+        hcclRankPrefixForLog("peer", srcRank).c_str(),
+        __func__,
+        getSize(),
         tag);
     check_npu_tensors_different_devices(tensors);
 
@@ -7955,7 +8313,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& t
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(output);
             auto hcclType = getHcclDataType(output.scalar_type());
-            auto hccl_call = [outputDataPtr, numel, hcclType, src_rank, comm, stream, is_dispatched]() -> int {
+            auto hccl_call = [outputDataPtr, numel, hcclType, src_rank, comm, stream, is_dispatched,
+                              pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                 torch_npu::profiler::MstxRange range(
                     getMstxHcclMsg("HcclRecv", numel, hcclType, comm, stream.id(), src_rank, -1), stream.stream(false),
@@ -7964,13 +8323,23 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& t
                 if (c10_npu::is_core_control_enabled()) {
                     c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                 }
-                std::string commName;
-                TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                    hcclRecv, comm, commName, stream, "numel %llu, dtype %s, HCCL peer rank %u",
-                    static_cast<unsigned long long>(numel), hccl_log::hcclDataTypeNameForLog(hcclType),
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] Calling hcclRecv, device %d, stream %lld, numel %llu, dtype %d, HCCL peer rank %u.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<unsigned long long>(numel),
+                    static_cast<int>(hcclType),
                     static_cast<uint32_t>(src_rank));
                 auto hccl_result = hcclRecv(outputDataPtr, numel, hcclType, static_cast<uint32_t>(src_rank), comm, stream.stream(false));
-                TORCH_NPU_HCCL_API_AFTER_LOGD(hcclRecv, commName, stream, hccl_result);
+                TORCH_NPU_LOGD(
+                    loggerHccl,
+                    "[%s] [comm op] hcclRecv returned, device %d, stream %lld, result %d.",
+                    pg_name_.c_str(),
+                    static_cast<int>(stream.device_index()),
+                    static_cast<long long>(stream.id()),
+                    static_cast<int>(hccl_result));
                 *is_dispatched = true;
                 return hccl_result;
             };
@@ -8019,7 +8388,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
     std::vector<int64_t>& inputSplitSizes,
     const c10d::AllToAllOptions& opts)
 {
-    TORCH_NPU_HCCL_ENTRY_LOGD("%s", opts.asyncOp ? ", async true" : "");
+    TORCH_NPU_LOGD(
+        loggerHccl,
+        "%s[comm op] Entering %s, group size %d%s.",
+        hcclRankPrefixForLog().c_str(),
+        __func__,
+        getSize(),
+        opts.asyncOp ? ", async true" : "");
     check_npu_single_tensor(outputTensor);
     check_npu_single_tensor(inputTensor);
     int ranks = getSize();
@@ -8074,7 +8449,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
                                   outputhcclDataType,
                                   comm,
                                   stream,
-                                  is_dispatched]() -> int {
+                                  is_dispatched,
+                                  pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                         torch_npu::profiler::MstxRange range(
                             getMstxHcclMsg("HcclAlltoAll", input_counts, inputhcclDataType, comm, stream.id(), -1, -1),
@@ -8083,14 +8459,16 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
                         if (c10_npu::is_core_control_enabled()) {
                             c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                         }
-                        std::string commName;
-                        TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                            hcclAlltoAll, comm, commName, stream,
-                            "send count %llu, send dtype %s, recv count %llu, recv dtype %s",
+                        TORCH_NPU_LOGD(
+                            loggerHccl,
+                            "[%s] [comm op] Calling hcclAlltoAll, device %d, stream %lld, send count %llu, send dtype %d, recv count %llu, recv dtype %d.",
+                            pg_name_.c_str(),
+                            static_cast<int>(stream.device_index()),
+                            static_cast<long long>(stream.id()),
                             static_cast<unsigned long long>(input_counts),
-                            hccl_log::hcclDataTypeNameForLog(inputhcclDataType),
+                            static_cast<int>(inputhcclDataType),
                             static_cast<unsigned long long>(output_counts),
-                            hccl_log::hcclDataTypeNameForLog(outputhcclDataType));
+                            static_cast<int>(outputhcclDataType));
                         auto hccl_result = hcclAlltoAll(
                             inputDataPtr,
                             input_counts,
@@ -8100,7 +8478,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
                             outputhcclDataType,
                             comm,
                             stream.stream(false));
-                        TORCH_NPU_HCCL_API_AFTER_LOGD(hcclAlltoAll, commName, stream, hccl_result);
+                        TORCH_NPU_LOGD(
+                            loggerHccl,
+                            "[%s] [comm op] hcclAlltoAll returned, device %d, stream %lld, result %d.",
+                            pg_name_.c_str(),
+                            static_cast<int>(stream.device_index()),
+                            static_cast<long long>(stream.id()),
+                            static_cast<int>(hccl_result));
                         *is_dispatched = true;
                         return hccl_result;
                     };
@@ -8186,7 +8570,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
                                   outputhcclDataType,
                                   comm,
                                   stream,
-                                  is_dispatched]() -> int {
+                                  is_dispatched,
+                                  pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                     torch_npu::profiler::MstxRange range(
                         getMstxHcclMsg("HcclAlltoAllV", static_cast<uint64_t>(inputCounts.size()),
@@ -8196,17 +8581,17 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
                     if (c10_npu::is_core_control_enabled()) {
                         c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                     }
-                    std::string commName;
-                    TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                        hcclAlltoAllV, comm, commName, stream,
-                        "send counts %s, send displacements %s, send dtype %s, "
-                        "recv counts %s, recv displacements %s, recv dtype %s",
-                        hccl_log::hcclLogList(inputCounts).c_str(),
-                        hccl_log::hcclLogList(inputSpl).c_str(),
-                        hccl_log::hcclDataTypeNameForLog(inputhcclDataType),
-                        hccl_log::hcclLogList(outputCounts).c_str(),
-                        hccl_log::hcclLogList(outputSpl).c_str(),
-                        hccl_log::hcclDataTypeNameForLog(outputhcclDataType));
+                    TORCH_NPU_LOGD(
+                        loggerHccl,
+                        "[%s] [comm op] Calling hcclAlltoAllV, device %d, stream %lld, send counts preview %s, send dtype %d, "
+                        "recv counts preview %s, recv dtype %d.",
+                        pg_name_.c_str(),
+                        static_cast<int>(stream.device_index()),
+                        static_cast<long long>(stream.id()),
+                        c10::str(c10::ArrayRef(inputCounts).slice(0, std::min(inputCounts.size(), kHcclLogListLimit))).c_str(),
+                        static_cast<int>(inputhcclDataType),
+                        c10::str(c10::ArrayRef(outputCounts).slice(0, std::min(outputCounts.size(), kHcclLogListLimit))).c_str(),
+                        static_cast<int>(outputhcclDataType));
                     auto hccl_result = hcclAlltoAllV(
                         inputDataPtr,
                         inputCounts.data(),
@@ -8218,7 +8603,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
                         outputhcclDataType,
                         comm,
                         stream.stream(false));
-                    TORCH_NPU_HCCL_API_AFTER_LOGD(hcclAlltoAllV, commName, stream, hccl_result);
+                    TORCH_NPU_LOGD(
+                        loggerHccl,
+                        "[%s] [comm op] hcclAlltoAllV returned, device %d, stream %lld, result %d.",
+                        pg_name_.c_str(),
+                        static_cast<int>(stream.device_index()),
+                        static_cast<long long>(stream.id()),
+                        static_cast<int>(hccl_result));
                     *is_dispatched = true;
                     return hccl_result;
                 };
@@ -8420,7 +8811,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
     std::vector<at::Tensor>& input_tensors,
     const c10d::AllToAllOptions& opts)
 {
-    TORCH_NPU_HCCL_ENTRY_LOGD("%s", opts.asyncOp ? ", async true" : "");
+    TORCH_NPU_LOGD(
+        loggerHccl,
+        "%s[comm op] Entering %s, group size %d%s.",
+        hcclRankPrefixForLog().c_str(),
+        __func__,
+        getSize(),
+        opts.asyncOp ? ", async true" : "");
     TORCH_CHECK(output_tensors.size() == size_,
         "the size of output_tensors and worldsize must equal", DIST_ERROR(ErrCode::PARAM));
     TORCH_CHECK(output_tensors.size() == input_tensors.size(),
@@ -8549,7 +8946,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
                         auto inputDataPtr = input_tensors[r].data_ptr();
                         auto numel = getNumelForHCCL(input_tensors[r]);
                         auto hcclType = getHcclDataType(input_tensors[r].scalar_type());
-                        auto hccl_call = [inputDataPtr, numel, hcclType, r, comm, stream, is_dispatched]() -> int {
+                        auto hccl_call = [inputDataPtr, numel, hcclType, r, comm, stream, is_dispatched,
+                                          pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                             torch_npu::profiler::MstxRange range(
                                 getMstxHcclMsg("HcclSend", numel, hcclType, comm, stream.id(), -1,
@@ -8557,14 +8955,24 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
                                 stream.stream(false),
                                 torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                            std::string commName;
-                            TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                                hcclSend, comm, commName, stream, "numel %llu, dtype %s, HCCL peer rank %u",
-                                static_cast<unsigned long long>(numel), hccl_log::hcclDataTypeNameForLog(hcclType),
+                            TORCH_NPU_LOGD(
+                                loggerHccl,
+                                "[%s] [comm op] Calling hcclSend, device %d, stream %lld, numel %llu, dtype %d, HCCL peer rank %u.",
+                                pg_name_.c_str(),
+                                static_cast<int>(stream.device_index()),
+                                static_cast<long long>(stream.id()),
+                                static_cast<unsigned long long>(numel),
+                                static_cast<int>(hcclType),
                                 static_cast<uint32_t>(r));
                             auto hccl_result = hcclSend(inputDataPtr, numel, hcclType,
                                 static_cast<uint32_t>(r), comm, stream.stream(false));
-                            TORCH_NPU_HCCL_API_AFTER_LOGD(hcclSend, commName, stream, hccl_result);
+                            TORCH_NPU_LOGD(
+                                loggerHccl,
+                                "[%s] [comm op] hcclSend returned, device %d, stream %lld, result %d.",
+                                pg_name_.c_str(),
+                                static_cast<int>(stream.device_index()),
+                                static_cast<long long>(stream.id()),
+                                static_cast<int>(hccl_result));
                             *is_dispatched = true;
                             return hccl_result;
                         };
@@ -8575,7 +8983,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
                         auto outputDataPtr = output_tensors[r].data_ptr();
                         auto numel = getNumelForHCCL(output_tensors[r]);
                         auto hcclType = getHcclDataType(output_tensors[r].scalar_type());
-                        auto hccl_call = [outputDataPtr, numel, hcclType, r, comm, stream, is_dispatched]() -> int {
+                        auto hccl_call = [outputDataPtr, numel, hcclType, r, comm, stream, is_dispatched,
+                                          pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                             torch_npu::profiler::MstxRange range(
                                 getMstxHcclMsg("HcclRecv", numel, hcclType, comm, stream.id(),
@@ -8583,14 +8992,24 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
                                 stream.stream(false),
                                 torch_npu::profiler::DOMAIN_COMMUNICATION);
 #endif
-                            std::string commName;
-                            TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                                hcclRecv, comm, commName, stream, "numel %llu, dtype %s, HCCL peer rank %u",
-                                static_cast<unsigned long long>(numel), hccl_log::hcclDataTypeNameForLog(hcclType),
+                            TORCH_NPU_LOGD(
+                                loggerHccl,
+                                "[%s] [comm op] Calling hcclRecv, device %d, stream %lld, numel %llu, dtype %d, HCCL peer rank %u.",
+                                pg_name_.c_str(),
+                                static_cast<int>(stream.device_index()),
+                                static_cast<long long>(stream.id()),
+                                static_cast<unsigned long long>(numel),
+                                static_cast<int>(hcclType),
                                 static_cast<uint32_t>(r));
                             auto hccl_result = hcclRecv(outputDataPtr, numel, hcclType,
                                 static_cast<uint32_t>(r), comm, stream.stream(false));
-                            TORCH_NPU_HCCL_API_AFTER_LOGD(hcclRecv, commName, stream, hccl_result);
+                            TORCH_NPU_LOGD(
+                                loggerHccl,
+                                "[%s] [comm op] hcclRecv returned, device %d, stream %lld, result %d.",
+                                pg_name_.c_str(),
+                                static_cast<int>(stream.device_index()),
+                                static_cast<long long>(stream.id()),
+                                static_cast<int>(hccl_result));
                             *is_dispatched = true;
                             return hccl_result;
                         };
@@ -8618,7 +9037,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
                                   outputhcclDataType,
                                   comm,
                                   stream,
-                                  is_dispatched]() -> int {
+                                  is_dispatched,
+                                  pg_name_ = pg_name_]() -> int {
 #ifndef BUILD_LIBTORCH
                     torch_npu::profiler::MstxRange range(
                         getMstxHcclMsg("HcclAlltoAllV", static_cast<uint64_t>(input_counts.size()),
@@ -8628,17 +9048,17 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
                     if (c10_npu::is_core_control_enabled()) {
                         c10_npu::UseStreamResInCurrentThread(stream.stream(false));
                     }
-                    std::string commName;
-                    TORCH_NPU_HCCL_API_BEFORE_LOGD(
-                        hcclAlltoAllV, comm, commName, stream,
-                        "send counts %s, send displacements %s, send dtype %s, "
-                        "recv counts %s, recv displacements %s, recv dtype %s",
-                        hccl_log::hcclLogList(input_counts).c_str(),
-                        hccl_log::hcclLogList(input_spl).c_str(),
-                        hccl_log::hcclDataTypeNameForLog(inputhcclDataType),
-                        hccl_log::hcclLogList(output_counts).c_str(),
-                        hccl_log::hcclLogList(output_spl).c_str(),
-                        hccl_log::hcclDataTypeNameForLog(outputhcclDataType));
+                    TORCH_NPU_LOGD(
+                        loggerHccl,
+                        "[%s] [comm op] Calling hcclAlltoAllV, device %d, stream %lld, send counts preview %s, send dtype %d, "
+                        "recv counts preview %s, recv dtype %d.",
+                        pg_name_.c_str(),
+                        static_cast<int>(stream.device_index()),
+                        static_cast<long long>(stream.id()),
+                        c10::str(c10::ArrayRef(input_counts).slice(0, std::min(input_counts.size(), kHcclLogListLimit))).c_str(),
+                        static_cast<int>(inputhcclDataType),
+                        c10::str(c10::ArrayRef(output_counts).slice(0, std::min(output_counts.size(), kHcclLogListLimit))).c_str(),
+                        static_cast<int>(outputhcclDataType));
                     auto hccl_result = hcclAlltoAllV(
                         inputDataPtr,
                         input_counts.data(),
@@ -8650,7 +9070,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
                         outputhcclDataType,
                         comm,
                         stream.stream(false));
-                    TORCH_NPU_HCCL_API_AFTER_LOGD(hcclAlltoAllV, commName, stream, hccl_result);
+                    TORCH_NPU_LOGD(
+                        loggerHccl,
+                        "[%s] [comm op] hcclAlltoAllV returned, device %d, stream %lld, result %d.",
+                        pg_name_.c_str(),
+                        static_cast<int>(stream.device_index()),
+                        static_cast<long long>(stream.id()),
+                        static_cast<int>(hccl_result));
                     *is_dispatched = true;
                     return hccl_result;
                 };
