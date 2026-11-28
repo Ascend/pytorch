@@ -38,7 +38,10 @@ def npu(self, device=None):
         device = torch.device("npu")
     if torch_npu.npu.is_available():
         with torch.no_grad():
-            self.cast_weight(device)
+            # Call the module level helper directly: frameworks such as ComfyUI
+            # define their own `cast_weight(self, input)` hook on nn.Module
+            # subclasses, so attribute dispatch would hit that hook instead.
+            cast_weight(self, device)
     return self._apply(lambda t: t.npu(device))
 
 
@@ -60,7 +63,7 @@ def to(self, *args, **kwargs):
             )
     if torch_npu.npu.is_available():
         with torch.no_grad():
-            self.cast_weight(device)
+            cast_weight(self, device)
 
     def convert(t):
         try:
@@ -88,7 +91,15 @@ def to(self, *args, **kwargs):
     return self._apply(convert)
 
 
-def cast_weight(self, device):
+def cast_weight(module, device):
+    """Cast the weights of ``module`` and of its children to the NPU friendly formats.
+
+    Internal helper, always call it as ``cast_weight(module, device)``.  It is
+    intentionally not installed on ``torch.nn.Module`` because upstream
+    frameworks (e.g. ComfyUI) reuse the generic ``cast_weight`` name for their
+    own module hooks.
+    """
+
     def _format_cast(module, class_name):
         if (
             issubclass(class_name, torch.nn.Linear)
@@ -168,15 +179,15 @@ def cast_weight(self, device):
     if device is None or "npu" not in str(device):
         return
 
-    current_class = self.__class__
-    _format_cast(self, current_class)
+    current_class = module.__class__
+    _format_cast(module, current_class)
 
-    if not self.children:
+    if not module.children:
         return
 
-    for sub_module in self.children():
+    for sub_module in module.children():
         if isinstance(sub_module, torch.nn.Module):
-            sub_module.cast_weight(device)
+            cast_weight(sub_module, device)
 
 
 def _ddp_init_helper(
@@ -292,7 +303,11 @@ def _mpdl_iter_init(self, *args, **kwargs):
 def _apply_module_patch():
     torch.nn.Module.npu = npu
     torch.nn.Module.to = to
-    torch.nn.Module.cast_weight = cast_weight
+    # `cast_weight` used to be installed on torch.nn.Module as well. That generic
+    # name collides with framework level hooks (ComfyUI, for example, defines its
+    # own `cast_weight(self, input)` on its nn.Module subclasses), so it is no
+    # longer added to the torch namespace; torch_npu calls the module level
+    # function directly instead of dispatching through the module instance.
     torch.utils.data.dataloader._MultiProcessingDataLoaderIter.__init__ = (
         _mpdl_iter_init
     )
