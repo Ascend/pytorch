@@ -190,8 +190,8 @@ void RegisterNPUDeviceProperties(PyObject* module) {
           size_t,
           bool,
           bool,
-          const std::vector<std::string>&,
           bool,
+          const std::vector<std::string>&,
           bool,
           bool)>(torch_npu::_record_memory_history));
 

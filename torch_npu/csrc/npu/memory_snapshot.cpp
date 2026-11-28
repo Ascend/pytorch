@@ -134,8 +134,8 @@ void _record_memory_history(
     size_t max_entries,
     bool clearHistory,
     bool compileContext,
-    const std::vector<std::string>& skip_actions,
     bool globalRecordAnnotations,
+    const std::vector<std::string>& skip_actions,
     bool record_pinned_host_memory,
     bool record_npu) {
   TORCH_CHECK(

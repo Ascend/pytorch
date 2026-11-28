@@ -956,7 +956,7 @@ def _record_memory_history_impl(
     torch_npu.npu._lazy_init()
     torch_npu._C._npu_record_memory_history(
         enabled, context, stacks, max_entries, clear_history, compile_context,
-        skip_actions if skip_actions is not None else [], global_record_annotations,
+        global_record_annotations, skip_actions if skip_actions is not None else [],
         record_pinned_host_memory, record_npu,
     )
 

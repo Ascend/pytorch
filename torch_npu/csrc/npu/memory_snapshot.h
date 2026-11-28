@@ -14,8 +14,8 @@ TORCH_NPU_API void _record_memory_history(
     size_t max_entries = UINT64_MAX,
     bool clearHistory = false,
     bool compileContext = false,
-    const std::vector<std::string>& skip_actions = {},
     bool globalRecordAnnotations = false,
+    const std::vector<std::string>& skip_actions = {},
     bool record_pinned_host_memory = false,
     bool record_npu = true);
 
