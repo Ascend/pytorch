@@ -110,23 +110,29 @@ def padded_dense_to_jagged(dense, offsets, total_L=None):
             f"{batch} does not match offsets ({lengths.numel()})"
         )
 
-    if lengths.numel() == 0 or max_len == 0:
+    if lengths.numel() == 0:
         values = dense.new_zeros((0, *tail))
     else:
         flat = dense[: lengths.numel()].reshape(lengths.numel() * max_len, *tail)
         values = flat[_dense_mask(lengths, max_len).reshape(-1)]
 
-    # The masked read above already sizes the result, so this validation costs
-    # no extra device synchronisation when total_L is supplied.
-    if total_L is not None:
-        if values.shape[0] != int(total_L):
+    # Same checks and order as the CPU kernel: total_L against the offset sum
+    # first, then the per-sequence length.  Reading both scalars in one go keeps
+    # the validation down to a single device synchronisation.
+    if lengths.numel():
+        total, max_length = torch.stack((lengths.sum(), lengths.max())).tolist()
+        if total_L is not None and total != int(total_L):
             raise RuntimeError(
                 "_padded_dense_to_jagged_forward(): final offset should match total_L value"
             )
-    elif lengths.numel() and int(lengths.max()) > max_len:
+        if max_length > max_len:
+            raise RuntimeError(
+                "_padded_dense_to_jagged_forward(): found batch item of length "
+                f"{max_length} when max length specified by padded input is {max_len}"
+            )
+    elif total_L is not None and int(total_L) != 0:
         raise RuntimeError(
-            "_padded_dense_to_jagged_forward(): found batch item of length "
-            f"{int(lengths.max())} when max length specified by padded input is {max_len}"
+            "_padded_dense_to_jagged_forward(): final offset should match total_L value"
         )
     return values
 

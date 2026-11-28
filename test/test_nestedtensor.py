@@ -125,7 +125,7 @@ class TestNestedTensor(TestCase):
         self.assertEqual(nt.size(0), 1)
 
 
-JAGGED_LENGTHS = ([5, 9, 3], [0], [0, 0], [4, 4], [0, 3, 0, 6], [2, 5])
+JAGGED_LENGTHS = ([5, 9, 3], [7], [0], [0, 0], [4, 4], [0, 3, 0, 6], [2, 5])
 JAGGED_DTYPES = (torch.float32, torch.bfloat16, torch.int64, torch.bool)
 PADDING = {torch.float32: 0.0, torch.bfloat16: 0.0, torch.int64: -1.0, torch.bool: False}
 
@@ -387,14 +387,17 @@ class TestJaggedOpsComposition(TestCase):
                 torch.testing.assert_close(got, expected, rtol=0, atol=0)
 
         # The reverse direction rejects a ragged length the padded input cannot
-        # hold, and the total_L check wins when both are supplied.
+        # hold and reports a total_L mismatch, in the same order as the CPU
+        # kernel.
         padded = torch.randn(2, 2, 1)
         with self.assertRaisesRegex(RuntimeError, "found batch item of length 4"):
             _jagged_ops.padded_dense_to_jagged(padded, [offsets])
         with self.assertRaisesRegex(RuntimeError, "final offset should match total_L"):
+            _jagged_ops.padded_dense_to_jagged(padded, [offsets], 5)
+        with self.assertRaisesRegex(RuntimeError, "found batch item of length 4"):
             _jagged_ops.padded_dense_to_jagged(padded, [offsets], 6)
         self.assertEqual(
-            _jagged_ops.padded_dense_to_jagged(padded, [offsets], 4).shape, (4, 1))
+            _jagged_ops.padded_dense_to_jagged(torch.randn(2, 4, 1), [offsets], 6).shape, (6, 1))
 
     def test_empty_batch_matches_cpu_reference(self):
         offsets = torch.tensor([0], dtype=torch.int64)
