@@ -125,7 +125,7 @@ def npu_bbox_coder_decode_xywh2xyxy(bboxes,
         and the second input should be the same.
 
     Args:
-        anchors (torch.Tensor): Basic boxes, shape (N, 4). Support dtype: float, half.
+        bboxes (torch.Tensor): Basic boxes, shape (N, 4). Support dtype: float, half.
         pred_bboxes (torch.Tensor): Encoded boxes with shape, shape (N, 4). Support dtype: float, half.
         means (List[float]): Denormalizing means of target for delta coordinates.
             This parameter needs to be aligned with the encoding parameter.
