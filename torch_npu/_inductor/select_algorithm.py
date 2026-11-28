@@ -873,13 +873,26 @@ class NPUTritonTemplateKernel(TritonTemplateKernel):
         # Value: (1d_variable, 1d_mask_or_None)  e.g. ("rm", "m_mask")
         # Populated by {{npu_register_1d(...)}} in the jinja template.
         self.npu_1d_index_map: Dict[str, Tuple[str, Optional[str]]] = {}
-        # Expose npu_register_1d to the jinja template renderer.
-        self._register_extra_template_env_fns(self.npu_register_1d)
+        self.has_fused_epilogue = False
+        self._register_extra_template_env_fns(
+            self.npu_register_1d, self.npu_has_fused_epilogue, self.npu_bind_output_axes
+        )
         # When non-None, ``index_to_str`` replaces the first element with the
         # second so that the generated code uses the 1-D variable name while
         # the sympy expression (and its range-tree type info) stays intact.
         self._npu_1d_replacement: Optional[Tuple[str, str]] = None
         self.compile_option_keys = compile_option_keys
+
+    def npu_has_fused_epilogue(self) -> bool:
+        return self.has_fused_epilogue
+
+    def npu_bind_output_axes(self, name: str, start: int, stop: int) -> str:
+        """Use a template coordinate when the scheduler merges these output axes."""
+        shape = self.output_node.get_size()
+        divisor = sympy_product(shape[stop:])
+        length = sympy_product(shape[start:stop])
+        self.range_trees[0].lookup(divisor, length).set_name(name)
+        return ""
 
     def npu_register_1d(
         self,

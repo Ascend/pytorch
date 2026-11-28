@@ -16,6 +16,7 @@ from torch._inductor.utils import (
     use_ck_template,
     use_cpp_bmm_template,
     sympy_product,
+    triton_type,
 )
 from torch._inductor.virtualized import V
 from torch._inductor.kernel.mm_common import (
@@ -26,6 +27,7 @@ from torch._inductor.kernel import bmm as inductor_bmm
 
 from .mm import is_contiguous_striding
 from .optimize_tiling import get_optimized_tiling
+from ..config import is_ascend950
 from ..select_algorithm import NPUTritonTemplate, NPUTemplateCompileOption
 from ..utils import use_catlass_template, use_triton_template
 from torch_npu.npu import matmul
@@ -34,6 +36,7 @@ from .mm_common import (
     DEFAULT_ELEM_BYTES,
     dtype_to_bytes,
     L0A_BYTES,
+    L0B_BYTES,
     L0C_BUFFERING_KEY,
     L0C_BYTES,
     L0C_DOUBLE_BUFFERED,
@@ -610,7 +613,7 @@ _BMM_TEMPLATE = """{{def_kernel("A", "B")}}
     # Whole K steps only; a ragged K overhangs on its last step alone, which is
     # peeled out below rather than masking every iteration.
     for k_start in range(0, K_MAIN, BLOCK_K):
-        offs_k = k_start + tl.arange(0, BLOCK_K)
+        offs_k = k_start + tl.arange(0, BLOCK_K).to(INDEX_DTYPE)
         a_ptrs = A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak
                       + a_batch_off)
         b_ptrs = B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn
@@ -627,7 +630,7 @@ _BMM_TEMPLATE = """{{def_kernel("A", "B")}}
 
     {% if not EVEN_K %}
     # The peeled tail, K_MAIN .. K, which runs once and unconditionally.
-    offs_k = K_MAIN + tl.arange(0, BLOCK_K)
+    offs_k = K_MAIN + tl.arange(0, BLOCK_K).to(INDEX_DTYPE)
     k_mask = offs_k < K
     a_ptrs = A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak
                   + a_batch_off)
@@ -670,6 +673,10 @@ _BMM_TEMPLATE = """{{def_kernel("A", "B")}}
     mask = idx_n < N
     {% else %}
     mask = None
+    {% endif %}
+    {% if npu_has_fused_epilogue() and OUT_DTYPE != ACC_TYPE %}
+    # The epilogue consumes the BMM result after its output dtype rounding.
+    acc = acc.to(OUT_DTYPE).to(ACC_TYPE)
     {% endif %}
 
     # inductor generates a suffix
@@ -859,7 +866,16 @@ _BMM_TILE_TEMPLATE = r"""{{def_kernel("A", "B")}}
 {% else %}
     n_base = pid_n * BLOCK_N
 {% endif %}
-    rm = m_base + tl.arange(0, BLOCK_M)
+{%- set dual_rows = FUSED_BLOCK_M is defined and npu_has_fused_epilogue() %}
+{% set split_m = dual_rows and FUSED_BLOCK_M < BLOCK_M %}
+{% set tile_m = "FUSED_BLOCK_M" if split_m else "BLOCK_M" %}
+{% if split_m %}
+    # Reduce each row strip over all of K before running its epilogue.
+    for part in range(BLOCK_M // FUSED_BLOCK_M):
+{% endif %}
+{% filter indent(4 if split_m else 0, true) %}
+    row_start = m_base{% if split_m %} + part * FUSED_BLOCK_M{% endif %}
+    rm = row_start + tl.arange(0, {{tile_m}})
     rn = n_base + tl.arange(0, BLOCK_N)
 {% if MASK_M %}
     m_mask = rm < M
@@ -870,9 +886,9 @@ _BMM_TILE_TEMPLATE = r"""{{def_kernel("A", "B")}}
     a_batch_off = idx_q * stride_aq
     b_batch_off = idx_q * stride_bq
 
-    acc = tl.zeros((BLOCK_M, BLOCK_N), dtype=ACC_TYPE)
+    acc = tl.zeros(({{tile_m}}, BLOCK_N), dtype=ACC_TYPE)
     for k_start in range(0, K_MAIN, BLOCK_K):
-        offs_k = k_start + tl.arange(0, BLOCK_K)
+        offs_k = k_start + tl.arange(0, BLOCK_K).to(INDEX_DTYPE)
         a_ptrs = A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak
                       + a_batch_off)
         b_ptrs = B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn
@@ -885,13 +901,22 @@ _BMM_TILE_TEMPLATE = r"""{{def_kernel("A", "B")}}
 {% endif %}
         acc = tl.dot(a, b, acc=acc{% if ALLOW_HF32 %}, input_precision="tf32"{% endif %}, out_dtype=ACC_TYPE)
 {% if not EVEN_K %}
-    # The peeled tail, K_MAIN .. K, masked on K and zero-filled.
-    offs_k = K_MAIN + tl.arange(0, BLOCK_K)
+    # Use the exact tail width when it covers whole K fractals.
+{% if EVEN_K_TAIL is defined %}
+    # The final K panel already fills whole Cube fractals.
+    offs_k = K_MAIN + tl.arange(0, EVEN_K_TAIL).to(INDEX_DTYPE)
+{% else %}
+    offs_k = K_MAIN + tl.arange(0, BLOCK_K).to(INDEX_DTYPE)
     k_mask = offs_k < K
+{% endif %}
     a_ptrs = A + (rm[:, None] * stride_am + offs_k[None, :] * stride_ak
                   + a_batch_off)
     b_ptrs = B + (offs_k[:, None] * stride_bk + rn[None, :] * stride_bn
                   + b_batch_off)
+{% if EVEN_K_TAIL is defined %}
+    a = tl.load(a_ptrs{% if MASK_M %}, mask=m_mask[:, None], other=0.0{% endif %})
+    b = tl.load(b_ptrs{% if MASK_N %}, mask=n_mask[None, :], other=0.0{% endif %})
+{% else %}
     a = tl.load(
         a_ptrs,
         mask={% if MASK_M %}m_mask[:, None] & {% endif %}k_mask[None, :],
@@ -902,11 +927,24 @@ _BMM_TILE_TEMPLATE = r"""{{def_kernel("A", "B")}}
         mask=k_mask[:, None]{% if MASK_N %} & n_mask[None, :]{% endif %},
         other=0.0,
     )
+{% endif %}
     acc = tl.dot(a, b, acc=acc{% if ALLOW_HF32 %}, input_precision="tf32"{% endif %}, out_dtype=ACC_TYPE)
 {% endif %}
 
+{% if dual_rows %}
+    acc = extension.fixpipe(acc, dual_dst_mode=extension.FixpipeDualDstMode.ROW_SPLIT)
+    vec_row = row_start + extension.sub_vec_id().to(INDEX_DTYPE) * ({{tile_m}} // 2)
+    idx_m = (vec_row + tl.arange(0, {{tile_m}} // 2))[:, None]
+{% else %}
     idx_m = rm[:, None]
+{% endif %}
     idx_n = rn[None, :]
+{% if (MASK_M or MASK_N) and npu_has_fused_epilogue() %}
+    # Broadcast epilogue addresses to the same tile as their shared load mask.
+    idx_q = tl.broadcast_to(idx_q, (BLOCK_M, BLOCK_N))
+    idx_m = tl.broadcast_to(idx_m, (BLOCK_M, BLOCK_N))
+    idx_n = tl.broadcast_to(idx_n, (BLOCK_M, BLOCK_N))
+{% endif %}
 {% if MASK_M and MASK_N %}
     mask = (idx_m < M) & (idx_n < N)
 {% elif MASK_M %}
@@ -916,8 +954,13 @@ _BMM_TILE_TEMPLATE = r"""{{def_kernel("A", "B")}}
 {% else %}
     mask = None
 {% endif %}
-    {{store_output(("idx_q", "idx_m", "idx_n"), "acc", "mask",
-                   val_shape=("BLOCK_M", "BLOCK_N"))}}
+{% if npu_has_fused_epilogue() and OUT_DTYPE != ACC_TYPE %}
+    # The epilogue consumes the BMM result after its output dtype rounding.
+    acc = acc.to(OUT_DTYPE).to(ACC_TYPE)
+{% endif %}
+{% endfilter %}
+{{ " " * (8 if split_m else 4) }}{{store_output(("idx_q", "idx_m", "idx_n"), "acc", "mask",
+                   val_shape=((tile_m ~ " // 2") if dual_rows else tile_m, "BLOCK_N"), indent_width=8 if split_m else 4)}}
 """
 
 npu_triton_bmm_tile_template = _WideIndexNPUTritonTemplate(
@@ -942,6 +985,8 @@ def _get_npu_bmm_tile_configs(
     k: int,
     elem_bytes: int = DEFAULT_ELEM_BYTES,
     dtype=None,
+    *,
+    allow_whole_k: bool = False,
 ) -> List[Dict[str, Any]]:
     """Configs for T3, the template that hands tiles out by core.
 
@@ -1020,6 +1065,24 @@ def _get_npu_bmm_tile_configs(
         solver_config = config(*plan)
         if solver_config not in configs:
             configs.append(solver_config)
+
+    # A whole output tile per batch already fills the cores. When that tile
+    # spends a separate dot on less than one K fractal, also try staging the
+    # whole reduction in one masked dot.
+    if allow_whole_k and batch >= get_num_cube_cores() and k % MMAD_K_FRACTAL:
+        block_m = -(-m // MMAD_M_FRACTAL) * MMAD_M_FRACTAL
+        block_n = -(-n // MMAD_M_FRACTAL) * MMAD_M_FRACTAL
+        block_k = -(-k // MMAD_K_FRACTAL) * MMAD_K_FRACTAL
+        has_short_tail = any(
+            cfg["BLOCK_M"] == block_m and cfg["BLOCK_N"] == block_n
+            and cfg["K_MAIN"] > 0 and 0 < k - cfg["K_MAIN"] < MMAD_K_FRACTAL
+            for cfg in configs
+        )
+        if (has_short_tail and block_m * block_n * ACCUM_BYTES <= L0C_BYTES
+                and _k_step(block_m, block_n, k, elem_bytes) == block_k):
+            whole_config = config(block_m, block_n, block_k, 0)
+            if whole_config not in configs:
+                configs.append(whole_config)
     return configs
 
 
@@ -1106,6 +1169,10 @@ _BMM_MERGED_TEMPLATE = r"""{{def_kernel("A", "B")}}
         idx_m = a_m[:, None]
         idx_n = b_n[None, :]
         mask = diagonal
+{% if npu_has_fused_epilogue() and OUT_DTYPE != ACC_TYPE %}
+        # The epilogue consumes the BMM result after its output dtype rounding.
+        acc = acc.to(OUT_DTYPE).to(ACC_TYPE)
+{% endif %}
         # No val_shape.  Given one, inductor checks every epilogue load against
         # it and reads idx_q -- a column here, not the scalar the other
         # templates pass -- as one XBLOCK-long vector it cannot broadcast
@@ -1237,8 +1304,8 @@ def _get_npu_bmm_merged_configs(
 # buffers so the compiler double-buffers across groups.
 #
 # Inside a group the output is cut into M_TILES x N_TILES tiles only as far as
-# the accumulator needs to fit L0C; every tile reduces the whole of K in one
-# mmad, so no partial sum ever leaves the core.
+# the accumulator needs to fit L0C. Small matrices reduce K in one dot. For
+# larger rows, the Q=1 configuration reuses A's K panels across all N tiles.
 
 @SymbolicGridFn
 def npu_bmm_batched_grid(b, m, n, meta, *, cdiv):
@@ -1247,6 +1314,11 @@ def npu_bmm_batched_grid(b, m, n, meta, *, cdiv):
 
 
 _BMM_BATCHED_TEMPLATE = r"""{{def_kernel("A", "B")}}
+{% set tile_m, tile_n, m_tiles, n_tiles = "BLOCK_M", "BLOCK_N", "M_TILES", "N_TILES" %}
+{% if FUSED_BLOCK_M is defined and npu_has_fused_epilogue() %}
+{% set tile_m, tile_n = FUSED_BLOCK_M | string, FUSED_BLOCK_N | string %}
+{% set m_tiles, n_tiles = M_TILES * (BLOCK_M // FUSED_BLOCK_M), N_TILES * (BLOCK_N // FUSED_BLOCK_N) %}
+{% endif %}
     M = {{size("A", -2)}}
     N = {{size("B", -1)}}
     K = {{size("A", -1)}}
@@ -1260,11 +1332,21 @@ _BMM_BATCHED_TEMPLATE = r"""{{def_kernel("A", "B")}}
     stride_bk = {{stride("B", 1)}}
     stride_bn = {{stride("B", 2)}}
 
-    offs_m0 = tl.arange(0, BLOCK_M)
-    offs_n0 = tl.arange(0, BLOCK_N)
+{# Ascend950 ND2NZ encodes persistent reads as 2 and L2 bypass as 4.
+   A fused epilogue can split the tile and reuse an operand. #}
+{% set input_l2_mode = 4 if BYPASS_INPUT_L2 is defined and not npu_has_fused_epilogue() else 2 %}
+    offs_m0 = tl.arange(0, {{ tile_m }})
+    offs_n0 = tl.arange(0, {{ tile_n }})
     offs_k = tl.arange(0, BLOCK_K)
     offs_q = tl.arange(0, BLOCK_Q)
 
+{% if CYCLIC_GROUPS is defined %}
+    # Neighbouring cores take neighbouring batch groups. Only the final
+    # iteration can have idle cores, and every output has one writer.
+    pid = tl.program_id(0)
+    for g in range(GROUPS_PER_PROGRAM):
+        q = (pid + g * N_GROUP) * BLOCK_Q + offs_q
+{% else %}
     # Contiguous rather than strided by the program count, so one program walks
     # one slab of A and B instead of revisiting the whole tensor
     # GROUPS_PER_PROGRAM times.
@@ -1289,14 +1371,29 @@ _BMM_BATCHED_TEMPLATE = r"""{{def_kernel("A", "B")}}
 {% else %}
         q = (first_group + g) * BLOCK_Q + offs_q
 {% endif %}
+{% endif %}
         # In the index dtype, not q's: every offset below scales with the
         # batch, and past 2^31 elements an int32 product wraps.
         idx_q = q[:, None, None].to(INDEX_DTYPE)
 
-        # K is whole fractals already, checked before this config was offered,
-        # and never split: BLOCK_K is all of it and no load masks it.
-        for m_tile in range(M_TILES):
-            offs_m = m_tile * BLOCK_M + offs_m0
+        # All K panels are aligned and their loads are unmasked.
+{% if CYCLIC_GROUPS is defined %}
+        if g < TOTAL_GROUPS // N_GROUP or pid < TOTAL_GROUPS % N_GROUP:
+            m_tile = 0
+{% else %}
+        for m_tile in range({{ m_tiles }}):
+{% endif %}
+            offs_m = m_tile * {{ tile_m }} + offs_m0
+{% if RESIDENT_K_TILES is defined %}
+            a_base = A + idx_q * stride_aq + offs_m[None, :, None] * stride_am
+            b_base = B + idx_q * stride_bq
+            a_panels = ()
+            for ki in tl.static_range(RESIDENT_K_TILES):
+                k = ki * BLOCK_K + offs_k
+                a = tl.load(a_base + k[None, None, :] * stride_ak)
+                extension.compile_hint(a, "l2_cache_mode", {{ input_l2_mode }})
+                a_panels += (a,)
+{% else %}
             a_ptrs = A + idx_q * stride_aq + offs_m[None, :, None] * stride_am + offs_k[None, None, :] * stride_ak
 {% if MASKED_M %}
             a = tl.load(a_ptrs, mask=offs_m[None, :, None] < M, other=0.0)
@@ -1306,9 +1403,19 @@ _BMM_BATCHED_TEMPLATE = r"""{{def_kernel("A", "B")}}
 {% if L1_COPIES %}
             extension.multibuffer(a, L1_COPIES)
 {% endif %}
+{% endif %}
 
-            for n_tile in range(N_TILES):
-                offs_n = n_tile * BLOCK_N + offs_n0
+            for n_tile in range({{ n_tiles }}):
+                offs_n = n_tile * {{ tile_n }} + offs_n0
+{% if RESIDENT_K_TILES is defined %}
+                acc = tl.zeros((BLOCK_Q, {{ tile_m }}, {{ tile_n }}), dtype=ACC_TYPE)
+                for ki in tl.static_range(RESIDENT_K_TILES):
+                    k = ki * BLOCK_K + offs_k
+                    b = tl.load(b_base + k[None, :, None] * stride_bk + offs_n[None, None, :] * stride_bn)
+                    extension.compile_hint(b, "dot_pad_only_k")
+                    extension.compile_hint(b, "l2_cache_mode", {{ input_l2_mode }})
+                    acc = tl.dot(a_panels[ki], b, acc=acc, out_dtype=ACC_TYPE)
+{% else %}
                 b_ptrs = B + idx_q * stride_bq + offs_k[None, :, None] * stride_bk + offs_n[None, None, :] * stride_bn
 {% if MASKED_N %}
                 b = tl.load(b_ptrs, mask=offs_n[None, None, :] < N, other=0.0)
@@ -1319,11 +1426,33 @@ _BMM_BATCHED_TEMPLATE = r"""{{def_kernel("A", "B")}}
                 extension.multibuffer(b, L1_COPIES)
 {% endif %}
 
-                acc = tl.zeros((BLOCK_Q, BLOCK_M, BLOCK_N), dtype=ACC_TYPE)
+                acc = tl.zeros((BLOCK_Q, {{ tile_m }}, {{ tile_n }}), dtype=ACC_TYPE)
                 acc = tl.dot(a, b, acc=acc{% if ALLOW_HF32 %}, input_precision="tf32"{% endif %}, out_dtype=ACC_TYPE)
-
+{% endif %}
+{% if ROWS_PER_VECTOR > 1 and npu_has_fused_epilogue() %}
+                # Keep the logical (batch, row, column) coordinates for store_output.
+                # Adjacent rows share the vector axis of the physical tile.
+                lane = tl.arange(0, {{ tile_n }} * ROWS_PER_VECTOR)
+                row = tl.arange(0, {{ tile_m }} // ROWS_PER_VECTOR)
+                idx_m = (m_tile * {{ tile_m }} + row * ROWS_PER_VECTOR)[None, :, None] + (lane // {{ tile_n }})[None, None, :]
+                idx_n = (n_tile * {{ tile_n }} + lane % {{ tile_n }})[None, None, :]
+                acc = tl.reshape(acc, (BLOCK_Q, {{ tile_m }} // ROWS_PER_VECTOR, {{ tile_n }} * ROWS_PER_VECTOR))
+{% set output_shape = ("BLOCK_Q", tile_m ~ " // ROWS_PER_VECTOR", tile_n ~ " * ROWS_PER_VECTOR") %}
+{% else %}
                 idx_m = offs_m[None, :, None]
                 idx_n = offs_n[None, None, :]
+{% set output_shape = ("BLOCK_Q", tile_m, tile_n) %}
+{% endif %}
+{% if npu_has_fused_epilogue() %}
+                # Match the rounding performed by a standalone BMM store.
+                acc = acc.to(OUT_DTYPE).to(ACC_TYPE)
+                # Address the two possible pairs of merged axes directly,
+                # including row and per-matrix broadcasts in the epilogue.
+                idx_qm = idx_q * M + idx_m
+                {{npu_bind_output_axes("idx_qm", 0, 2)}}
+                idx_mn = idx_m * N + idx_n
+                {{npu_bind_output_axes("idx_mn", 1, 3)}}
+{% endif %}
 {% if MASKED_M and MASKED_N %}
                 mask = (idx_m < M) & (idx_n < N)
 {% elif MASKED_M %}
@@ -1334,7 +1463,7 @@ _BMM_BATCHED_TEMPLATE = r"""{{def_kernel("A", "B")}}
                 mask = None
 {% endif %}
                 {{store_output(("idx_q", "idx_m", "idx_n"), "acc", "mask",
-                               val_shape=("BLOCK_Q", "BLOCK_M", "BLOCK_N"),
+                               val_shape=output_shape,
                                indent_width=16)}}
 """
 
@@ -1416,8 +1545,6 @@ def _get_npu_bmm_batched_configs(
             block_m = align(-(-whole_m // m_tiles), MMAD_M_FRACTAL)
         else:
             return []
-    m_tiles = -(-m // block_m)
-    n_tiles = -(-n // block_n)
 
     # Capacity is not the binding constraint -- the group loop is.  One group
     # is a single nd2nz -> nd2nz -> mmad -> fixpipe chain with nothing to
@@ -1429,20 +1556,35 @@ def _get_npu_bmm_batched_configs(
                   // (block_m * block_n * ACCUM_BYTES),
                   max(1, batch // (MIN_WAVES * get_num_cube_cores())))
 
-    # Folding several batches into one mmad is the whole of what this template
-    # has over the ones that tile the output, so a group of one batch is not
-    # worth offering: it is a tiled kernel with none of the tiling choices,
-    # and it loses to T3 by a wide margin.  Those shapes go to T3 instead.
+    # Admit T2 only if it can group batches. Otherwise T3 supplies the tilings.
     if block_q < 2:
         return []
 
+    return [_npu_bmm_batched_config(batch, m, n, block_q, block_m, block_n, block_k)]
+
+
+def _npu_bmm_batched_config(
+    batch: int, m: int, n: int, block_q: int, block_m: int, block_n: int,
+    block_k: int,
+) -> Dict[str, Any]:
+    m_tiles = -(-m // block_m)
+    n_tiles = -(-n // block_n)
     total_groups = -(-batch // block_q)
     programs, groups_per_program, ragged = _split_groups(total_groups)
 
-    return [{
+    # One Ascend 950 vector register holds 256 bytes of FP32 accumulators.
+    lanes = 256 // ACCUM_BYTES
+    rows_per_vector = 1
+    if (block_m, block_n) == (m, n) and block_n < lanes and lanes % block_n == 0:
+        rows = lanes // block_n
+        if block_m % rows == 0:
+            rows_per_vector = rows
+
+    return {
         # The group one mmad covers: BLOCK_Q batches of one BLOCK_M by BLOCK_N
         # tile, reduced over the whole of BLOCK_K at once.
         "BLOCK_Q": block_q,
+        "ROWS_PER_VECTOR": rows_per_vector,
         "BLOCK_M": block_m,
         "BLOCK_N": block_n,
         "BLOCK_K": block_k,
@@ -1485,7 +1627,98 @@ def _get_npu_bmm_batched_configs(
         # tl.dot, and without the option its loads lower to a 2-D L1 load the
         # template library has no entry for, so the kernel fails to link.
         "enable_hivm_batch_matmul": True,
-    }]
+    }
+
+
+def _cyclic_bmm_config(cfg: Dict[str, Any]) -> Dict[str, Any] | None:
+    """Offer full, disjoint batch groups across cores on an uneven last wave."""
+    groups = cfg["TOTAL_GROUPS"]
+    num_cores = get_num_cube_cores()
+    if (cfg["SHIFT_Q"] or cfg["MASKED_M"] or cfg["MASKED_N"]
+            or cfg["M_TILES"] != 1 or cfg["N_TILES"] != 1
+            or cfg["BLOCK_N"] % (2 * BATCHED_N_FRACTAL)
+            or groups <= num_cores or groups % num_cores == 0
+            or groups * cfg["BLOCK_Q"] > 2**31 - 1):
+        return None
+    # A full tile with a reused FP32 epilogue operand can exceed UB.
+    # Keep A resident and emit two fractal-aligned N tiles when fused.
+    return dict(cfg, CYCLIC_GROUPS=True, N_GROUP=num_cores,
+                FUSED_BLOCK_M=cfg["BLOCK_M"], FUSED_BLOCK_N=cfg["BLOCK_N"] // 2,
+                GROUPS_PER_PROGRAM=-(-groups // num_cores),
+                L1_COPIES=0, num_stages=2)
+
+
+def _bmm_streams_past_l2(batch: int, m: int, n: int, k: int,
+                         elem_bytes: int, l2_bytes: int) -> bool:
+    """Bypass aligned one-pass reads when the output alone occupies the entire L2."""
+    return (l2_bytes > 0 and k * elem_bytes % 128 == 0 and n * elem_bytes % 128 == 0
+            and batch * m * n * elem_bytes >= l2_bytes)
+
+
+def _get_npu_bmm_resident_a_configs(
+    batch: int, m: int, n: int, k: int, elem_bytes: int,
+) -> List[Dict[str, Any]]:
+    """Keep the A K panels live while visiting all N tiles of one batch row."""
+    batch, m, n, k = map(int, (batch, m, n, k))
+    block_m, block_n, block_k = 128, 256, 128
+    if batch <= get_num_cube_cores() or m <= 0 or n < block_n or k <= block_k:
+        return []
+    if m % block_m or n % block_n or k % block_k:
+        return []
+    if L1_BUFFER_COPIES * (block_m * k + block_k * block_n) * elem_bytes > L1_BYTES:
+        return []
+    num_stages = 2
+    if n == block_n:
+        if k < 4 * block_k:
+            return []
+        # Reuse four or more resident K panels across two column tiles.
+        block_n //= 2
+        num_stages = 4
+    # The batch base is widened separately. The row and column offsets within
+    # A, B and the output are added in int32 before reaching that base.
+    if max(m * k, k * n, m * n) > 2**31:
+        return []
+    cfg = _npu_bmm_batched_config(batch, m, n, 1, block_m, block_n, block_k)
+    cfg.update({
+        "RESIDENT_K_TILES": k // block_k,
+        "L1_COPIES": 0,
+        L0C_BUFFERING_KEY: L0C_SINGLE_BUFFERED,
+        "num_stages": num_stages,
+    })
+    return [cfg]
+
+
+def _get_npu_bmm_single_buffered_pair_configs(
+    batch: int, m: int, n: int, k: int, elem_bytes: int,
+) -> List[Dict[str, Any]]:
+    """Compute two whole matrices in one L0C tile, streaming each input once."""
+    batch, m, n, k = map(int, (batch, m, n, k))
+    q = 2
+    if batch % q or batch < q * MIN_WAVES * get_num_cube_cores() or min(m, n, k, elem_bytes) <= 0:
+        return []
+    if m % MMAD_M_FRACTAL or n % BATCHED_N_FRACTAL or k % MMAD_K_FRACTAL:
+        return []
+    if not L0C_DOUBLE_BUFFERED_BYTES < q * m * n * ACCUM_BYTES <= L0C_BYTES:
+        return []
+    a_bytes, b_bytes = q * m * k * elem_bytes, q * k * n * elem_bytes
+    if a_bytes > L0A_BYTES or b_bytes > L0B_BYTES or L1_BUFFER_COPIES * (a_bytes + b_bytes) > L1_BYTES:
+        return []
+
+    cfg = _npu_bmm_batched_config(batch, m, n, q, m, n, k)
+    # Reusing the rounded result in a pointwise epilogue needed 512 KiB of
+    # vector storage for the full tile (248 KiB available). Quarter tiles
+    # leave space for those live values. Split on a divisor to keep exact
+    # row and column coordinates for broadcast operands.
+    split_m = m >= n
+    extent, fractal = (m, MMAD_M_FRACTAL) if split_m else (n, BATCHED_N_FRACTAL)
+    max_width = extent // (4 * fractal) * fractal
+    fused_width = next(
+        width for width in range(max_width, 0, -fractal) if extent % width == 0
+    )
+    cfg.update(RESIDENT_K_TILES=1, L1_COPIES=0,
+               FUSED_BLOCK_M=fused_width if split_m else m,
+               FUSED_BLOCK_N=n if split_m else fused_width)
+    return [cfg]
 
 
 # ---------------------------------------------------------------------------
@@ -1592,7 +1825,7 @@ def add_npu_triton_bmm_choices(
 
       T1 merged   many batches whose output is under a fractal each
       T2 batched  a small per-batch working set over many batches
-      T3 tile     the rest of the static shapes, cut into tiles
+      T3 tile     the rest of the static shapes, with rank-3 alternatives on Ascend950
       generic     the fallback, which assumes nothing and always answers
 
     The tiers are tried in order and the first one with configs takes the
@@ -1661,13 +1894,38 @@ def add_npu_triton_bmm_choices(
     # the dtypes rather than their size, because the templates accumulate in
     # fp32 and hint the mmad at tf32, which is not what an integer operand of
     # the same width means.
-    if specialised and dtype in _RANK3_DTYPES:
+    rank3 = specialised and dtype in _RANK3_DTYPES
+    use_950_schedules = rank3 and is_ascend950
+    dense_bf16 = (use_950_schedules and dtype == torch.bfloat16
+                  and all(node.get_layout().is_contiguous() for node in input_nodes))
+    if rank3:
         merged_configs = _get_npu_bmm_merged_configs(batch, m, n, k, elem_bytes)
         if merged_configs:
             candidates.append((npu_triton_bmm_merged_template, merged_configs))
 
         batched_configs = _get_npu_bmm_batched_configs(batch, m, n, k, elem_bytes)
         if batched_configs:
+            grouped = batched_configs[0]
+            if (use_950_schedules and dtype == torch.float16 and batch < 2**31
+                    and (grouped["BLOCK_M"], grouped["BLOCK_N"]) == (m, n)):
+                # Smaller groups reduce the vector working set of fused epilogues.
+                # Exact divisors preserve a single writer for every batch.
+                for width in (1, 2):
+                    if width < grouped["BLOCK_Q"] and batch % width == 0:
+                        candidate = _npu_bmm_batched_config(
+                            batch, m, n, width, grouped["BLOCK_M"], grouped["BLOCK_N"], grouped["BLOCK_K"]
+                        )
+                        batched_configs.append(candidate)
+                        if width > 1 and candidate["RAGGED_GROUPS"]:
+                            # A program per complete group avoids idle iterations in the last wave.
+                            batched_configs.append(dict(
+                                candidate, N_GROUP=candidate["TOTAL_GROUPS"],
+                                GROUPS_PER_PROGRAM=1, RAGGED_GROUPS=False,
+                            ))
+            if dense_bf16:
+                cyclic = _cyclic_bmm_config(batched_configs[0])
+                if cyclic is not None:
+                    batched_configs.append(cyclic)
             candidates.append(
                 (npu_triton_bmm_batched_template, batched_configs)
             )
@@ -1677,10 +1935,54 @@ def add_npu_triton_bmm_choices(
     # lowering's, while T3 is rank 2 and matched a double-precision golden on
     # the same shapes.
     if not candidates and specialised and dtype in _TILE_DTYPES:
-        tile_configs = _get_npu_bmm_tile_configs(batch, m, n, k, elem_bytes,
-                                                 dtype)
+        tile_configs = _get_npu_bmm_tile_configs(
+            batch, m, n, k, elem_bytes, dtype,
+            allow_whole_k=use_950_schedules and dtype == torch.float16,
+        )
         if tile_configs:
+            if use_950_schedules and dtype == layout.dtype == torch.float16:
+                for cfg in tile_configs:
+                    tail_k = k - cfg["K_MAIN"]
+                    if tail_k and tail_k % MMAD_K_FRACTAL == 0:
+                        cfg["EVEN_K_TAIL"] = tail_k
+
+                    rows = cfg["BLOCK_M"]
+                    row_bytes = cfg["BLOCK_N"] * ACCUM_BYTES
+                    if (cfg["MASK_M"] or cfg["MASK_N"] or rows % (2 * MMAD_M_FRACTAL)
+                            or rows * row_bytes < L0C_DOUBLE_BUFFERED_BYTES):
+                        continue
+                    # Bound the accumulator before distributing rows to the two vector cores.
+                    while rows % (4 * MMAD_M_FRACTAL) == 0 and rows * row_bytes > L0C_DOUBLE_BUFFERED_BYTES:
+                        rows //= 2
+                    cfg["FUSED_BLOCK_M"] = rows if rows * row_bytes <= L0C_DOUBLE_BUFFERED_BYTES else cfg["BLOCK_M"]
+                # A full wave can also consume the whole accumulator directly.
+                # Offer at most one such layout alongside the row-split choices.
+                full_tile = max(
+                    (cfg for cfg in tile_configs
+                     if cfg.get("FUSED_BLOCK_M", cfg["BLOCK_M"]) < cfg["BLOCK_M"]
+                     and cfg["TOTAL_TILES"] % get_num_cube_cores() == 0),
+                    key=lambda cfg: (cfg["BLOCK_M"] * cfg["BLOCK_N"], cfg["BLOCK_K"]),
+                    default=None,
+                )
+                if full_tile is not None:
+                    full_tile = full_tile.copy()
+                    del full_tile["FUSED_BLOCK_M"]
+                    tile_configs.append(full_tile)
             candidates.append((npu_triton_bmm_tile_template, tile_configs))
+            # This schedule targets the Ascend950 batch-matmul lowering for
+            # contiguous rows. The ordinary T3 choices still compete with it.
+            if (use_950_schedules
+                    and all(node.get_stride()[-1] == 1 for node in input_nodes)):
+                batched_configs = _get_npu_bmm_resident_a_configs(batch, m, n, k, elem_bytes)
+                pair_configs = _get_npu_bmm_single_buffered_pair_configs(batch, m, n, k, elem_bytes)
+                if pair_configs and dense_bf16 and mat1.get_name() != mat2.get_name():
+                    props = torch.npu.get_device_properties(layout.device)
+                    if _bmm_streams_past_l2(batch, m, n, k, elem_bytes,
+                                            getattr(props, "L2_cache_size", 0)):
+                        pair_configs[0]["BYPASS_INPUT_L2"] = True
+                batched_configs.extend(pair_configs)
+                if batched_configs:
+                    candidates.append((npu_triton_bmm_batched_template, batched_configs))
 
     # The fallback, for every shape no tier above claimed.
     if not candidates:
@@ -1695,6 +1997,10 @@ def add_npu_triton_bmm_choices(
         for template, configs in entries:
             for cfg in configs:
                 cfg = dict(cfg)
+                # Every template here stores through {{store_output}} and so
+                # can be handed an epilogue; each one needs the output dtype
+                # to reproduce the rounding a standalone store would do.
+                cfg["OUT_DTYPE"] = triton_type(layout.dtype)
                 num_stages = cfg.pop("num_stages")
                 num_warps = cfg.pop("num_warps")
 
@@ -1797,22 +2103,25 @@ def _register_npu_inductor_bmm():
                 mat2 = may_require_contiguous(mat2, meta_mat2)
         m, n, k, layout, mat1, mat2 = mm_args(mat1, mat2, layout=layout)
 
-        # options to tune from
-        choices = (
-            [aten_bmm.bind((mat1, mat2), layout)] if use_aten_gemm_kernels() else []
-        )
         static_shape, is_nonzero = _is_static_problem(layout)
+        use_triton = is_nonzero and use_triton_template(layout)
+        degenerate = use_triton and _degenerate_axis(mat1, mat2)
 
-        # The extents that leave the cube with nothing to reuse are answered by
-        # decomposing instead of tiling.  Behind the same gate as the templates
-        # below, because it stands in for them: with the Triton path switched
-        # off the caller has asked for the operator library.
-        if is_nonzero and use_triton_template(layout) and _degenerate_axis(
-            mat1, mat2
-        ):
+        # A single K term can be fused as a pointwise outer product. With
+        # multiple K terms, a vector reduction can round differently from BMM
+        # when large products cancel, even with an FP32 accumulator.
+        if degenerate and k == 1:
             mat1 = L.unsqueeze(ir.TensorBox.create(mat1), -1)
             mat2 = L.unsqueeze(ir.TensorBox.create(mat2), 1)
             return L.sum_(L.mul(mat1, mat2), axis=2)
+
+        # Prefer a fusible Cube template for singleton-output dot products.
+        # The common fallback below still handles shapes without a template.
+        choices = (
+            [aten_bmm.bind((mat1, mat2), layout)]
+            if not degenerate and use_aten_gemm_kernels()
+            else []
+        )
 
         batch_stride_largest_or_zero = is_batch_stride_largest_or_zero(mat1, mat2, layout)
         is_contiguous_input = False
@@ -1847,7 +2156,7 @@ def _register_npu_inductor_bmm():
         # Add NPU Triton bmm template choices for CV (Compute/Vector) fusion.
         # The bmm template carries the batch dimension in the linear tile index
         # and supports epilogue fusion via {{store_output}}.
-        if is_nonzero and use_triton_template(layout):
+        if use_triton:
             try:
                 # T2 and T3 bake the batch count into their loops, so they
                 # are only offered on static, contiguous shapes; 0 tells

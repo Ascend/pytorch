@@ -41,7 +41,7 @@ from ..lowering import (
 )
 from ..fx_passes.utils.schedule_node_utils import is_multi_stream
 from ..config import log
-from ..select_algorithm import NPUFlexAttentionDkdvTemplateBuffer
+from ..select_algorithm import NPUFlexAttentionDkdvTemplateBuffer, NPUTritonTemplateKernel
 
 
 # Ascend profiler derived tables keep at most 49 visible kernel-name characters.
@@ -502,6 +502,8 @@ class NPUTritonScheduling(TritonScheduling):
         _, (numel, rnumel) = template_node.group
         assert rnumel == 1
         kernel, render = template_node.node.make_kernel_render(template_node.node)
+        if isinstance(kernel, NPUTritonTemplateKernel):
+            kernel.has_fused_epilogue = bool(epilogue_nodes)
 
         # ---- Prologue fusion: build buf_name_to_prologue_group ----
         buf_name_to_prologue_group = {}
