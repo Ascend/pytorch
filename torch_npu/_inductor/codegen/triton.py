@@ -513,7 +513,9 @@ class IterationRangesEntryNPUIndex(IterationRangesEntry):
         codegen_mask = self.is_tiling_axis and (
             not self.is_no_loop_axis or allow_dynamic
         )
-        if V.kernel.is_unified_simt_kernel():
+        if V.kernel.is_unified_simt_kernel() or (
+            V.kernel.persistent_reduction and self.is_reduction
+        ):
             codegen_mask = self.is_tiling_axis
         if self.is_vectorized_split:
             codegen_mask = True
@@ -4624,18 +4626,11 @@ class NPUIndexTritonKernel(TritonKernel):
                 {str(var) for var in index_vars}  # noqa: set_linter
             )
 
-        # cumsum is codegen'ed as ops.scan, which relies on keeping the axis
-        # masks (including the persistent reduction axis) for its partial
-        # scan / accumulator update.  Other kernels must drop the redundant
-        # persistent reduction axis masks, otherwise the generated
-        # tl.load/tl.store carries useless masks (e.g. Layernorm perf
-        # regression).
-        kernel_features = getattr(self, "features", None)
-        keep_persistent_reduction_mask = (
-            kernel_features is not None and kernel_features.contains_op("scan")
-        )
-
         for node in self.sorted_axis:
+            # Autotuned dynamic reduction blocks can include padded lanes.
+            # Elide the mask only when the emitted static block proves it safe.
+            if self._has_constant_axis_mask(node):
+                continue
             allow_dynamic = get_allow_dynamic()
             is_persistent_reduction_axis = (
                 self.persistent_reduction and node.is_reduction
@@ -4650,10 +4645,10 @@ class NPUIndexTritonKernel(TritonKernel):
                 if (
                     not node.is_tiling_axis
                     or (
-                        is_persistent_reduction_axis
-                        and not keep_persistent_reduction_mask
+                        node.is_no_loop_axis
+                        and not allow_dynamic
+                        and not is_persistent_reduction_axis
                     )
-                    or (node.is_no_loop_axis and not allow_dynamic)
                 ):
                     continue
 
@@ -4716,9 +4711,8 @@ class NPUIndexTritonKernel(TritonKernel):
         redundant_masks = {
             f"{node.symbol()}_mask" for node in self.sorted_axis if not node.is_reduction
         }
-        # 2.10 restores R masks locally for Welford statistics. The proof above
-        # also permits removing these constant R masks here, without changing
-        # the shared load/store mask filtering policy.
+        # Welford statistics restore R masks locally. The proof above also
+        # permits removing those constant masks from the reduction value.
         redundant_masks.update(f"{node.symbol()}_mask" for node in reduction_nodes)
         return [
             mask for mask in masks
@@ -4813,8 +4807,7 @@ class NPUIndexTritonKernel(TritonKernel):
         masks = {f"{node.symbol()}_mask" for node in self.sorted_axis}  # noqa: set_linter
         self.filter_masks(masks)
         if self.persistent_reduction and is_welford_reduction(reduction_type):
-            # 2.10 filters persistent R masks from loads/stores for performance.
-            # Statistics still need emitted R masks to exclude padded samples.
+            # Restore emitted R masks for the dedicated Welford layout.
             # Match _codegen_mask so no undefined axis mask is referenced.
             for node in self.sorted_axis:
                 if node.is_reduction and (
@@ -5016,6 +5009,37 @@ class NPUIndexTritonKernel(TritonKernel):
 
         if self.persistent_reduction:
             masked_value = value
+            if reduction_type != "welford_reduce":
+                default = ir.Reduction.default_value(reduction_type, src_dtype)
+
+                def update_constant_dtype(constant, src_dtype, dst_dtype):
+                    # Integer extrema must match the promoted reduction value.
+                    if src_dtype.is_floating_point or src_dtype == torch.bool:
+                        return constant
+                    if src_dtype == dst_dtype or constant == 0:
+                        return constant
+                    if constant == torch.iinfo(src_dtype).max:
+                        return torch.iinfo(dst_dtype).max
+                    if constant == torch.iinfo(src_dtype).min:
+                        return torch.iinfo(dst_dtype).min
+                    return constant
+
+                def mask_value(current_value, current_default):
+                    current_default = update_constant_dtype(
+                        current_default, src_dtype, current_value.dtype
+                    )
+                    default_str = self._map_tuple_or_scalar(constant_repr, current_default)
+                    return self.cse.generate(
+                        self.compute,
+                        where_cond(current_value, default_str),
+                        dtype=current_value.dtype,
+                        shape=current_value.shape,
+                    )
+
+                if isinstance(value, tuple):
+                    masked_value = [mask_value(v, d) for v, d in zip(value, default)]
+                else:
+                    masked_value = mask_value(value, default)
 
             if reduction_type in {"argmax", "argmin", "max", "min"}:
                 if reduction_type == "argmax" or reduction_type == "argmin":
