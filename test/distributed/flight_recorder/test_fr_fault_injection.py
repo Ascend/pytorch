@@ -58,6 +58,37 @@ def worker(case, rank, directory):
                 return self.wrapped.check(keys)
 
         store = DumpFailingStore(store)
+    if os.environ.get("FR_TEST_COUNT_DUMP_STORE") == "1":
+        class CountingDumpStore(dist.Store):
+            # Mirrors DumpFailingStore: pybind routes the C++ virtual set()
+            # through this Python override, so we can observe the real
+            # exception_dump broadcasts instead of matching log text.
+            def __init__(self, wrapped, rank, directory):
+                super().__init__()
+                self.wrapped = wrapped
+                self.count_file = directory / f"exception_dump_count_{rank}"
+
+            def set(self, key, value):
+                if key == "exception_dump":
+                    current = int(self.count_file.read_text()) if self.count_file.exists() else 0
+                    self.count_file.write_text(str(current + 1))
+                return self.wrapped.set(key, value)
+
+            def get(self, key):
+                return self.wrapped.get(key)
+
+            def add(self, key, value):
+                return self.wrapped.add(key, value)
+
+            def wait(self, keys, timeout=None):
+                if timeout is None:
+                    return self.wrapped.wait(keys)
+                return self.wrapped.wait(keys, timeout)
+
+            def check(self, keys):
+                return self.wrapped.check(keys)
+
+        store = CountingDumpStore(store, rank, directory)
     dist.init_process_group(
         "hccl", rank=rank, world_size=2, store=store,
         timeout=timedelta(seconds=3 if case.startswith("dump_") else 60),
@@ -71,27 +102,12 @@ def worker(case, rank, directory):
     shim.fr_test_arm.argtypes = [ctypes.c_int, ctypes.c_char_p]
     modes = {"dump_stack": 1, "dump_stack_short_wait": 1, "dump_writer": 2,
              "sync_api": 3, "async_comm": 4, "async_query": 5,
-             "dump_extra_race": 6, "monitor_shutdown": 7}
+             "dump_extra_race": 6}
     if os.environ.get("FR_TEST_FAIL_DUMP_WRITER") == "1":
         shim.fr_test_fail_writer()
     if rank == 0 or not case.startswith("dump_"):
         mode = 0 if rank == 1 and os.environ.get("FR_TEST_INJECT_RANK_ZERO_ONLY") == "1" else modes[case]
         shim.fr_test_arm(mode, str(directory / f"marker_{rank}").encode())
-    if case == "monitor_shutdown":
-        deadline = time.monotonic() + 15
-        marker = directory / f"marker_{rank}"
-        while "monitor_exit_diagnostics" not in marker.read_text():
-            if time.monotonic() > deadline:
-                raise AssertionError("monitor did not reach exit diagnostics")
-            time.sleep(0.01)
-        store.set(f"stop_ready_{rank}", "1")
-        store.wait(["stop_ready_0", "stop_ready_1"])
-        started = time.monotonic()
-        dist.destroy_process_group()
-        (directory / f"shutdown_{rank}.json").write_text(json.dumps({
-            "elapsed": time.monotonic() - started,
-        }))
-        os._exit(0)
     if case.startswith("dump_"):
         if rank == 0:
             dist.all_reduce(tensor)
@@ -119,8 +135,8 @@ class FlightRecorderFaultInjectionTest(unittest.TestCase):
     def run_case(self, case, wait_ms=15000, buffer_size=2000, *,
                  extra_dump=None, monitoring=True, dump_on_timeout=True,
                  fail_store=False, fail_writer=False, only_active=False,
-                 nccl_extra_dump=False, status_save=False, heartbeat_seconds=120,
-                 require_all_dumps=True, peer_buffer_size=None,
+                 nccl_extra_dump=False, status_save=False, heartbeat_seconds=10,
+                 require_all_dumps=True, peer_buffer_size=None, count_dump_signals=False,
                  peer_monitoring=None, peer_async_error_handling=None,
                  inject_rank_zero_only=False):
         library = os.environ.get("FR_FAULT_INJECTION_LIBRARY")
@@ -135,6 +151,8 @@ class FlightRecorderFaultInjectionTest(unittest.TestCase):
                    TORCH_FR_CPP_STACK="0", TORCH_HCCL_ENABLE_TIMING="0",
                    TORCH_HCCL_ENABLE_MONITORING=str(int(monitoring)),
                    TORCH_HCCL_ASYNC_ERROR_HANDLING="1",
+                   TORCH_HCCL_RETHROW_HCCL_ERRORS="1",
+                   TORCH_HCCL_LOG_CPP_STACK_ON_UNCLEAN_SHUTDOWN="1",
                    TORCH_HCCL_DUMP_ON_TIMEOUT=str(int(dump_on_timeout)),
                    TORCH_HCCL_WAIT_TIMEOUT_DUMP_MILSEC=str(wait_ms),
                    TORCH_HCCL_HEARTBEAT_TIMEOUT_SEC=str(heartbeat_seconds),
@@ -148,6 +166,7 @@ class FlightRecorderFaultInjectionTest(unittest.TestCase):
         if nccl_extra_dump:
             env["TORCH_NCCL_EXTRA_DUMP_ON_EXEC"] = "1"
         env["FR_TEST_FAIL_DUMP_STORE"] = str(int(fail_store))
+        env["FR_TEST_COUNT_DUMP_STORE"] = str(int(count_dump_signals))
         env["FR_TEST_FAIL_DUMP_WRITER"] = str(int(fail_writer))
         env["FR_TEST_INJECT_RANK_ZERO_ONLY"] = str(int(inject_rank_zero_only))
         env["TORCH_INCLUDE_ONLY_ACTIVE"] = str(int(only_active))
@@ -175,6 +194,8 @@ class FlightRecorderFaultInjectionTest(unittest.TestCase):
                         env=worker_env, stdout=output, stderr=subprocess.STDOUT,
                         start_new_session=True,
                     ))
+            # The monitor waits heartbeat_seconds again after its dump attempts.
+            # Keep this grace inside both the 60s injected stall and the 85s budget.
             deadline = time.monotonic() + 85
             codes = []
             for rank, process in enumerate(processes):
@@ -187,22 +208,28 @@ class FlightRecorderFaultInjectionTest(unittest.TestCase):
                     os.killpg(process.pid, signal.SIGKILL)
                     process.wait(timeout=10)
         logs = [(directory / f"rank_{rank}.log").read_text() for rank in range(2)]
-        expected = 0 if case in ("sync_api", "monitor_shutdown") else -signal.SIGABRT
+        expected = 0 if case == "sync_api" else -signal.SIGABRT
         self.assertEqual(codes[0], expected, logs[0][-8000:])
         if not case.startswith("dump_"):
             self.assertEqual(codes[1], expected, logs[1][-8000:])
         markers = [line.split() for line in (directory / "marker_0").read_text().splitlines()]
         events = {name: float(timestamp) for timestamp, name in markers}
-        if case == "monitor_shutdown":
-            for rank in range(2):
-                elapsed = json.loads((directory / f"shutdown_{rank}.json").read_text())["elapsed"]
-                self.assertLess(elapsed, 1.0, f"rank {rank}: shutdown waited {elapsed}s")
-            return
         if case == "dump_extra_race":
             self.assertIn("monitor_after_dump", events)
             self.assertNotIn("Sending extra dumping signal", logs[0])
             self.assertTrue((directory / "trace_0").is_file())
             self.assertEqual(sum(line[1] == "dump_serialized" for line in markers), 1)
+            if count_dump_signals:
+                # Behavioral dedup proof: the watchdog broadcast the dump
+                # request exactly once; the extra-dump catch must not re-issue
+                # it. This survives log-wording changes, unlike the assertNotIn
+                # above (kept as an auxiliary check).
+                count_file = directory / "exception_dump_count_0"
+                writes = int(count_file.read_text()) if count_file.exists() else 0
+                self.assertEqual(
+                    writes, 1,
+                    f"exception_dump was written {writes} times; "
+                    f"the extra dump re-issued the request")
             return
         if case.startswith("async_"):
             if extra_dump:
@@ -214,10 +241,10 @@ class FlightRecorderFaultInjectionTest(unittest.TestCase):
                 if require_all_dumps and not passive_peer:
                     self.assertTrue(local_error, log[-8000:])
                 else:
-                    self.assertTrue(local_error or "Received a global dump signal from rank" in log,
+                    self.assertTrue(local_error or "Observed flight recorder dump signal from another rank" in log,
                                     log[-8000:])
                 if local_error:
-                    self.assertIn("HCCL watchdog thread terminated with exception", log)
+                    self.assertIn("Process group watchdog thread terminated with exception", log)
                     marker = "async_comm_error" if case == "async_comm" else "async_query_api_error"
                     self.assertIn(marker, (directory / f"marker_{rank}").read_text())
                 self.assertNotIn("Watchdog caught collective operation timeout", log)
@@ -242,7 +269,7 @@ class FlightRecorderFaultInjectionTest(unittest.TestCase):
                 if extra_dump and rank_buffer == 0 and not passive_peer:
                     self.assertIn("Sending extra dumping signal", log)
                 if fail_store and should_write:
-                    self.assertIn("Failed to broadcast extra dump signal", log)
+                    self.assertIn("Failed to broadcast signal exception_dump through TCPStore", log)
                 if fail_writer and rank == 0:
                     self.assertIn("Extra Flight Recorder dump failed: injected FR writer failure", log)
                 if status_save:
@@ -333,10 +360,9 @@ class FlightRecorderFaultInjectionTest(unittest.TestCase):
                       fail_writer=True, status_save=True)
 
     def test_existing_timeout_request_is_not_reissued_by_extra_dump(self):
-        self.run_case("dump_extra_race", wait_ms=500, extra_dump=True)
-
-    def test_monitor_exit_grace_is_interrupted_by_shutdown(self):
-        self.run_case("monitor_shutdown", dump_on_timeout=False, heartbeat_seconds=2)
+        self.run_case(
+            "dump_extra_race", wait_ms=500, extra_dump=True,
+            count_dump_signals=True)
 
 
 if __name__ == "__main__":

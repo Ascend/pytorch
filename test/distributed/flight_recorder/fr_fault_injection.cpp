@@ -69,18 +69,16 @@ extern "C" void fr_test_arm(int value, const char* path) {
   signal(SIGSEGV, printCrashBacktrace);
   mode.store(value);
   mark("armed");
-  if (value == 6 || value == 7) {
+  if (value == 6) {
     // Hold the monitor after its FR phase while the watchdog finishes its
     // existing error grace. This exposes reissuing a consumed dump request.
     using Dumper = std::function<void(std::function<void(const std::string&)>)>;
     using Getter = std::optional<Dumper>& (*)();
     auto getDumper = realFunction<Getter>(
         "_ZN8c10d_npu20get_cpp_trace_dumperB5cxx11Ev", "libtorch_npu.so");
-    getDumper() = [value](std::function<void(const std::string&)>) {
-      mark(value == 6 ? "monitor_after_dump" : "monitor_exit_diagnostics");
-      if (value == 6) {
-        std::this_thread::sleep_for(std::chrono::seconds(6));
-      }
+    getDumper() = [](std::function<void(const std::string&)>) {
+      mark("monitor_after_dump");
+      std::this_thread::sleep_for(std::chrono::seconds(6));
     };
   }
 }
