@@ -579,7 +579,6 @@ LOWERING_FALLBACK_NAMES = frozenset(
         "higher_order.run_and_save_rng_state",
         "higher_order.run_dtensor_rng_op",
         "higher_order.run_with_rng_state",
-        "higher_order.triton_kernel_wrapper_mutation",
         "higher_order.while_loop",
         "higher_order.while_loop_stack_output",
         "higher_order.with_effects",

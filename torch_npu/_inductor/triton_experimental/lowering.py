@@ -89,9 +89,29 @@ def _register_softmax_aclnn_fallback():
 def _register_npu_inductor_fallbacks():
     # Only explicitly blacklisted operators are replaced. In particular, a new
     # upstream lowering no longer needs a matching GENERATE_LIST entry.
+    # A user-defined triton kernel reaches Inductor as the
+    # triton_kernel_wrapper_mutation higher-order op; its upstream lowering builds
+    # ir.UserDefinedTritonKernel, which is what emits the launch (and the kernel's
+    # side effects). Replacing it with a generic aten fallback drops the launch
+    # silently: the AOTI artifact then contains no kernel and the results are wrong
+    # with no error. Keep the upstream lowering.
+    import torch._higher_order_ops.triton_kernel_wrap as _tkw
+    # Resolve defensively: this runs during backend activation, and a torch
+    # build that does not expose one variant must not make registration fail.
+    keep_upstream = {
+        hop
+        for hop in (
+            getattr(_tkw, "triton_kernel_wrapper_mutation", None),
+            getattr(_tkw, "triton_kernel_wrapper_functional", None),
+        )
+        if hop is not None
+    }
+
     packet_overloads_handled = set()
     for op in list(lowerings):
         if op in packet_overloads_handled:
+            continue
+        if op in keep_upstream:
             continue
         if op in decompositions or not isinstance(
             op, (torch._ops.OpOverloadPacket, torch._ops.OpOverload,
