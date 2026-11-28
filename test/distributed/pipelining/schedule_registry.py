@@ -206,16 +206,12 @@ class ScheduleWithReorderedB(_PipelineScheduleRuntime):
             scale_grads=scale_grads,
         )
         # Go through two microbatches
-        self.pipeline_order_with_comms = {
+        actions: dict[int, list[_Action | None]] = {
             0: [
                 _Action(0, F, 0),
                 _Action(0, F, 1),
                 _Action(0, SEND_F, 0),
                 _Action(0, SEND_F, 1),
-                _Action(0, RECV_B, 0),
-                _Action(0, RECV_B, 1),
-                _Action(0, B, 0),
-                _Action(0, B, 1),
             ],
             1: [
                 _Action(1, RECV_F, 0),
@@ -228,3 +224,39 @@ class ScheduleWithReorderedB(_PipelineScheduleRuntime):
                 _Action(1, SEND_B, 1),
             ],
         }
+        self._add_wait_send_actions(actions)
+        actions[0] += [
+            _Action(0, RECV_B, 0),
+            _Action(0, RECV_B, 1),
+            _Action(0, B, 0),
+            _Action(0, B, 1),
+        ]
+        self._prepare_schedule_with_comms(actions, format="compute_comms")
+
+    def _add_wait_send_actions(self, actions: dict[int, list[_Action | None]]) -> None:
+        """Hook for version-specific WAIT_SEND actions; no-op in this schedule."""
+
+
+class ScheduleWithReorderedBWithWaits(ScheduleWithReorderedB):
+    """ScheduleWithReorderedB variant for torch >= 2.15.
+
+    torch >= 2.15 tracks in-flight sends and requires explicit WAIT_SEND actions;
+    this variant is used by the matching version-gated test case.
+    """
+
+    def _add_wait_send_actions(self, actions: dict[int, list[_Action | None]]) -> None:
+        # Imported lazily: WAIT_SEND actions do not exist on torch < 2.15, where
+        # this class is never instantiated (see the runIfVersion-gated test).
+        from torch.distributed.pipelining.schedules import (  # type: ignore[attr-defined]
+            WAIT_SEND_B,
+            WAIT_SEND_F,
+        )
+
+        actions[0] += [
+            _Action(0, WAIT_SEND_F, 0),
+            _Action(0, WAIT_SEND_F, 1),
+        ]
+        actions[1] += [
+            _Action(1, WAIT_SEND_B, 0),
+            _Action(1, WAIT_SEND_B, 1),
+        ]

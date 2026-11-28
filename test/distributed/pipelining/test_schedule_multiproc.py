@@ -5,17 +5,20 @@ import logging
 import os
 import sys
 import tempfile
+import unittest
 
 from model_registry import ModelWithKwargs, MultiMLP, MultiMLPWithDw
 from schedule_registry import (
     ScheduleUnbalanced,
     ScheduleVShaped,
     ScheduleWithReorderedB,
+    ScheduleWithReorderedBWithWaits,
     ScheduleWithW,
 )
 
 import torch
 import torch.distributed as dist
+import torch.distributed.pipelining.schedules as _pipelining_schedules
 from torch.distributed.pipelining import (
     _ScheduleForwardOnly,
     pipeline,
@@ -38,6 +41,20 @@ from torch.testing._internal.common_utils import (
     run_tests,
 )
 
+try:
+    from version_mark import runIfVersion
+except ImportError:
+    # version_mark.py lives in the repo's test/ directory and is only reachable
+    # when running from the repo (CI always does). Fall back to a no-op so this
+    # file can also run standalone (e.g. copied to a test server). The CI-side
+    # file-level filter matches @runIfVersion decorators syntactically, so this
+    # fallback does not affect CI version routing.
+    def runIfVersion(min=None, max=None):
+        def decorator(target):
+            return target
+
+        return decorator
+
 # Single-node multi-process HCCL tests create multiple HCCL communicators
 # (process group + point-to-point groups from batch_isend_irecv) that all bind
 # HCCL's default socket port (16666) for the root-info handshake and collide
@@ -52,6 +69,8 @@ logger = logging.getLogger(__name__)
 d_hid = 512
 batch_size = 256
 device_type = "npu"
+# torch >= 2.15 tracks in-flight sends and requires explicit WAIT_SEND actions.
+HAS_WAIT_SEND = hasattr(_pipelining_schedules, "WAIT_SEND_F")
 
 torch.manual_seed(0)
 
@@ -621,13 +640,7 @@ class ScheduleTest(MultiProcContinuousTest):
                     )
                     raise
 
-    @parametrize(
-        "ScheduleClass",
-        [
-            ScheduleWithReorderedB,
-        ],
-    )
-    def test_pipeline_schedule_runtime_custom_sched(self, ScheduleClass):
+    def _run_pipeline_schedule_runtime_custom_sched(self, ScheduleClass):
         n_stages = 2
         num_microbatches = 2
         stages_per_rank = 1
@@ -725,6 +738,18 @@ class ScheduleTest(MultiProcContinuousTest):
                 except AssertionError:
                     print(f"Gradient test failed for {name}: {p.grad} vs {ref_p.grad}")
                     raise
+
+    @runIfVersion(max="2.14")
+    @unittest.skipIf(HAS_WAIT_SEND, "torch >= 2.15 requires explicit WAIT_SEND actions")
+    @parametrize("ScheduleClass", [ScheduleWithReorderedB])
+    def test_pipeline_schedule_runtime_custom_sched(self, ScheduleClass):
+        self._run_pipeline_schedule_runtime_custom_sched(ScheduleClass)
+
+    @runIfVersion(min="2.15")
+    @unittest.skipUnless(HAS_WAIT_SEND, "WAIT_SEND actions require torch >= 2.15")
+    @parametrize("ScheduleClass", [ScheduleWithReorderedBWithWaits])
+    def test_pipeline_schedule_runtime_custom_sched_with_waits(self, ScheduleClass):
+        self._run_pipeline_schedule_runtime_custom_sched(ScheduleClass)
 
     @parametrize(
         "schedule_class", [ScheduleVShaped, ScheduleUnbalanced, ScheduleZBVZeroBubble]
