@@ -1457,6 +1457,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* arg) {
   py::str pool_id_s = "pool_id";
   py::str time_us_s = "time_us";
   py::str compile_context_s = "compile_context";
+  py::str user_metadata_s = "user_metadata";
   py::str internal_metadata_s = "internal_metadata";
 
   using namespace c10_npu::NPUCachingAllocator;
@@ -1525,6 +1526,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* arg) {
         to_gather_dest.emplace_back(trace_entry);
       }
       trace_entry[compile_context_s] = te.compile_context_;
+      trace_entry[user_metadata_s] = te.user_metadata_;
       if (!te.internal_metadata_.empty()) {
         trace_entry[internal_metadata_s] = te.internal_metadata_;
       }
@@ -1703,6 +1705,20 @@ PyObject* THNPModule_npuCachingAllocator_set_allocator_settings(PyObject* _unuse
 PyObject* THNPModule_getAllocatorBackend(PyObject* _unused, PyObject* noargs) {
   HANDLE_TH_ERRORS
   return THPUtils_packString(c10_npu::NPUCachingAllocator::name());
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_setMemoryMetadata(PyObject* _unused, PyObject* arg) {
+  HANDLE_TH_ERRORS
+  std::string metadata = THPUtils_unpackString(arg);
+  c10_npu::NPUCachingAllocator::setUserMetadata(metadata);
+  END_HANDLE_TH_ERRORS
+  Py_RETURN_NONE;
+}
+
+PyObject* THNPModule_getMemoryMetadata(PyObject* _unused, PyObject* noargs) {
+  HANDLE_TH_ERRORS
+  return THPUtils_packString(c10_npu::NPUCachingAllocator::getUserMetadata());
   END_HANDLE_TH_ERRORS
 }
 
@@ -2470,6 +2486,8 @@ static struct PyMethodDef THNPModule_methods[] = {
      (PyCFunction)THNPModule_npuCachingAllocator_set_allocator_settings,
      METH_O,
      nullptr},
+    {"_npu_setMemoryMetadata", (PyCFunction)THNPModule_setMemoryMetadata, METH_O, nullptr},
+    {"_npu_getMemoryMetadata", (PyCFunction)THNPModule_getMemoryMetadata, METH_NOARGS, nullptr},
     {"_npu_getAllocatorBackend", (PyCFunction)THNPModule_getAllocatorBackend, METH_NOARGS, nullptr},
     {"_npu_lock_mutex", (PyCFunction)THNPModule_npuLockMutex, METH_NOARGS, nullptr},
     {"_npu_unlock_mutex", (PyCFunction)THNPModule_npuUnlockMutex, METH_NOARGS, nullptr},

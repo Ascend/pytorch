@@ -158,7 +158,8 @@ struct TraceEntry {
       MempoolId_t mempool = {0, 0},
       c10::approx_time_t time = 0,
       std::shared_ptr<c10::GatheredContext> context = nullptr,
-      std::string compile_context = "")
+      std::string compile_context = "",
+      std::string user_metadata = "")
       : action_(action),
         device_(device),
         addr_(addr),
@@ -166,7 +167,8 @@ struct TraceEntry {
         stream_(stream),
         size_(size),
         mempool_(std::move(mempool)),
-        compile_context_(std::move(compile_context)) {
+        compile_context_(std::move(compile_context)),
+        user_metadata_(std::move(user_metadata)) {
     time_.approx_t_ = time;
   }
   Action action_;
@@ -178,6 +180,7 @@ struct TraceEntry {
   MempoolId_t mempool_;
   trace_time_ time_{};
   std::string compile_context_;
+  std::string user_metadata_;
   // Tag attached by allocator internals for events the allocator generates on
   // its own behalf while serving a request, kept apart from any metadata the
   // caller sets. Empty unless an internal path tags the event; the snapshot
@@ -371,6 +374,10 @@ class NPUAllocator : public c10::DeviceAllocator {
   }
   virtual void pushCompileContext(std::string& md) {}
   virtual void popCompileContext() {}
+  virtual void setUserMetadata(const std::string& metadata) {}
+  virtual std::string getUserMetadata() {
+    return "";
+  }
   virtual void recordHistory(
       bool enabled,
       CreateContextFn context_recorder,
@@ -657,6 +664,14 @@ inline void setNoSplit(c10::DeviceIndex device, MempoolId_t mempool_id) {
 bool checkConfigExpandableSegments();
 
 bool isConfig1GPageSizeEnable();
+
+inline void setUserMetadata(const std::string& metadata) {
+  get()->setUserMetadata(metadata);
+}
+
+inline std::string getUserMetadata() {
+  return get()->getUserMetadata();
+}
 
 C10_NPU_API void setAllocatorSettings(const std::string& settings);
 

@@ -2,6 +2,7 @@
 # Licensed under the BSD 3-Clause License.
 
 import os
+import json
 import subprocess
 import sys
 import textwrap
@@ -299,6 +300,101 @@ class TestMemoryAnnotations(TestCase):
             executor.submit(self.scope, "worker").result()
             self.scope("main")
             self.assertEqual(self.stages(), [("worker", "END"), ("main", "START"), ("main", "END")])
+
+
+@unittest.skipIf(not torch_npu.npu.is_available(), "NPU is required")
+class TestMemoryUserMetadata(TestCase):
+    def setUp(self):
+        super().setUp()
+        torch.empty(1, device="npu")
+        torch_npu.npu.synchronize()
+        self.device = torch_npu.npu.current_device()
+        self.memory = torch_npu.npu.memory
+        self.memory._record_memory_history(None)
+        self.memory._set_memory_metadata("")
+
+    def tearDown(self):
+        self.memory._set_memory_metadata("")
+        self.memory._record_memory_history(None)
+        super().tearDown()
+
+    def test_set_and_get_metadata(self):
+        self.assertEqual(self.memory._get_memory_metadata(), "")
+        self.memory._set_memory_metadata("metadata test")
+        self.assertEqual(self.memory._get_memory_metadata(), "metadata test")
+        self.memory._set_memory_metadata("")
+        self.assertEqual(self.memory._get_memory_metadata(), "")
+
+    def test_metadata_usable_right_after_import(self):
+        # `import torch_npu` runs _initExtension -> NpuSysCtrl::Initialize ->
+        # NPUCachingAllocator::init, so the allocator exists before any
+        # user-visible NPU operation. Run it in a subprocess so this process's
+        # initialized state cannot mask the ordering.
+        code = (
+            "import torch_npu\n"
+            "from torch_npu.npu import memory as memory\n"
+            "memory._set_memory_metadata('warmup')\n"
+            "assert memory._get_memory_metadata() == 'warmup'\n"
+            "memory._set_memory_metadata('')\n"
+        )
+        result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_metadata_is_thread_local(self):
+        self.memory._set_memory_metadata("main")
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            # another thread starts without the main thread's metadata
+            self.assertEqual(executor.submit(self.memory._get_memory_metadata).result(), "")
+            executor.submit(self.memory._set_memory_metadata, "worker").result()
+        self.assertEqual(self.memory._get_memory_metadata(), "main")
+
+    def test_snapshot_entries_carry_user_metadata(self):
+        memory = self.memory
+        memory._record_memory_history(context=None, stacks="python", max_entries=1000)
+        memory._set_memory_metadata("metadata test")
+        tensor = torch.empty(64, 64, dtype=torch.float, device="npu")
+        torch_npu.npu.synchronize()
+        traces = memory._snapshot()["device_traces"][self.device]
+        # every trace entry carries the key, empty when no metadata was set
+        self.assertTrue(all("user_metadata" in event for event in traces))
+        entries = [event for event in traces if event.get("addr") == tensor.data_ptr()]
+        self.assertTrue(entries)
+        for event in entries:
+            self.assertEqual(event["user_metadata"], "metadata test")
+
+        memory._set_memory_metadata("")
+        tensor2 = torch.empty(64, 64, dtype=torch.float, device="npu")
+        torch_npu.npu.synchronize()
+        traces = memory._snapshot()["device_traces"][self.device]
+        entry = [event for event in traces if event.get("addr") == tensor2.data_ptr()][0]
+        self.assertEqual(entry["user_metadata"], "")
+
+    def test_metadata_dict_serialization(self):
+        memory = self.memory
+        # dicts are serialized to compact JSON; get returns the string form
+        memory._set_memory_metadata({"step": 3, "phase": "fwd"})
+        got = memory._get_memory_metadata()
+        self.assertEqual(got, '{"step":3,"phase":"fwd"}')
+        self.assertEqual(json.loads(got), {"step": 3, "phase": "fwd"})
+        # get/set round-trips the string form unchanged
+        memory._set_memory_metadata(got)
+        self.assertEqual(memory._get_memory_metadata(), got)
+        # serialization errors raise at call time and leave the metadata intact
+        with self.assertRaises(TypeError):
+            memory._set_memory_metadata({"bad": object()})
+        self.assertEqual(memory._get_memory_metadata(), got)
+
+    def test_snapshot_entries_carry_dict_metadata_as_json(self):
+        memory = self.memory
+        memory._record_memory_history(context=None, stacks="python", max_entries=1000)
+        memory._set_memory_metadata({"step": 3, "phase": "fwd"})
+        tensor = torch.empty(64, 64, dtype=torch.float, device="npu")
+        torch_npu.npu.synchronize()
+        traces = memory._snapshot()["device_traces"][self.device]
+        entries = [event for event in traces if event.get("addr") == tensor.data_ptr()]
+        self.assertTrue(entries)
+        for event in entries:
+            self.assertEqual(json.loads(event["user_metadata"]), {"step": 3, "phase": "fwd"})
 
 
 @unittest.skipIf(not torch_npu.npu.is_available(), "NPU is required")

@@ -1040,6 +1040,13 @@ class DeviceCachingAllocator {
 
   static thread_local std::stack<std::string> compile_context;
 
+  // Thread local user metadata recorded on memory history trace entries.
+  // Note: being a static member, this is per-thread process-wide state, NOT
+  // per-device state; setUserMetadata on any DeviceCachingAllocator instance
+  // affects trace entries for all devices used by the calling thread. This is
+  // intentional: metadata labels a region of source code, not a device.
+  static thread_local std::string user_metadata;
+
   std::atomic<CreateContextFn> context_recorder_;
   RecordContext record_context_ = RecordContext::NEVER;
   std::unordered_set<TraceEntry::Action> skip_actions_list;
@@ -1084,6 +1091,14 @@ class DeviceCachingAllocator {
     if (!compile_context.empty()) {
       compile_context.pop();
     }
+  }
+
+  void setUserMetadata(const std::string& metadata) {
+    user_metadata = metadata;
+  }
+
+  std::string getUserMetadata() {
+    return user_metadata;
   }
 
   void recordHistory(
@@ -3615,7 +3630,8 @@ class DeviceCachingAllocator {
         mempool_id,
         c10::getApproximateTime(),
         record_context_ >= RecordContext::ALLOC ? std::move(context) : nullptr,
-        compile_string);
+        compile_string,
+        user_metadata);
 
     // Callbacks should not include any Pytorch call
     for (const auto& cb : trace_trackers_) {
@@ -3632,6 +3648,7 @@ class DeviceCachingAllocator {
 };
 
 thread_local std::stack<std::string> DeviceCachingAllocator::compile_context;
+thread_local std::string DeviceCachingAllocator::user_metadata;
 
 static void uncached_delete(void* ptr) {
   if (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
@@ -3816,6 +3833,18 @@ class NpuCachingAllocator : public NPUAllocator {
     int device = 0;
     NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
     device_allocator[device]->popCompileContext();
+  }
+
+  void setUserMetadata(const std::string& metadata) override {
+    int device = 0;
+    NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
+    device_allocator[device]->setUserMetadata(metadata);
+  }
+
+  std::string getUserMetadata() override {
+    int device = 0;
+    NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
+    return device_allocator[device]->getUserMetadata();
   }
 
   bool isHistoryEnabled() override {
