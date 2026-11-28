@@ -603,6 +603,34 @@ def _patch_model_24():
     _T5.forward = _t5_forward_tuple_cache
 
 
+@register_patch("BartForCausalLM", "MBartForCausalLM")
+@cache
+def _patch_bart_causal_mask():
+    from transformers.models.bart.modeling_bart import BartPreTrainedModel
+    from transformers.models.mbart.modeling_mbart import MBartPreTrainedModel
+
+    def wrap(original):
+        def update_causal_mask(
+            self, attention_mask, input_tensor, cache_position, past_key_values
+        ):
+            # Keep implicit causality instead of materializing a mask during tracing.
+            if (
+                attention_mask is None
+                and past_key_values is None
+                and self.config._attn_implementation == "sdpa"
+                and input_tensor.device.type == "npu"
+            ):
+                return None
+            return original(
+                self, attention_mask, input_tensor, cache_position, past_key_values
+            )
+
+        return update_causal_mask
+
+    BartPreTrainedModel._update_causal_mask = wrap(BartPreTrainedModel._update_causal_mask)
+    MBartPreTrainedModel._update_causal_mask = wrap(MBartPreTrainedModel._update_causal_mask)
+
+
 @register_patch("DistilBertForMaskedLM")
 def _patch_model_26():
     try:
