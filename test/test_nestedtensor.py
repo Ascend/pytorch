@@ -1,11 +1,9 @@
 # Owner(s): ["module: nested tensor"]
 
-from collections import namedtuple, OrderedDict
-from multiprocessing.reduction import ForkingPickler
 import torch
 import numpy as np
 from torch.testing._internal.common_utils import parametrize, instantiate_parametrized_tests
-import torch_npu
+import torch_npu  # noqa: F401  (registers the npu device and its kernels)
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.utils import _jagged_ops
 
@@ -361,8 +359,9 @@ class TestJaggedOpsComposition(TestCase):
     def test_padding_sentinels_match_cpu_reference(self):
         offsets = torch.tensor([0, 2, 6], dtype=torch.int64)
         # inf / -inf are the "pad with dtype max / min" sentinels: they must be
-        # clamped instead of overflowing the float -> int conversion.
-        for dtype in (torch.int64, torch.float32, torch.bfloat16):
+        # clamped instead of overflowing the float -> int conversion.  For bool
+        # that means +inf -> True and -inf -> False (not Python's bool(-inf)).
+        for dtype in (torch.int64, torch.float32, torch.bfloat16, torch.bool):
             for padding in (float("inf"), float("-inf"), -1.0):
                 with self.subTest(dtype=dtype, padding=padding):
                     values = _random_tensor((6, 3), dtype)

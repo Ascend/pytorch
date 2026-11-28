@@ -35,8 +35,16 @@ def _padding_value(padding_value, dtype):
     The schema takes ``padding_value`` as a ``float``, so ``int64`` limits (and
     the infinities upstream uses as "pad with the dtype max/min" sentinels)
     overflow the double -> int conversion; the CPU kernel clamps them instead.
+    ``bool`` needs the same treatment: ``bool(-inf)`` is ``True`` in Python,
+    while the CPU kernel maps ``-inf`` to ``False``.
     """
-    if dtype.is_floating_point or dtype.is_complex or dtype is torch.bool:
+    if dtype is torch.bool:
+        if padding_value == float("inf"):
+            return True
+        if padding_value == float("-inf"):
+            return False
+        return bool(padding_value)
+    if dtype.is_floating_point or dtype.is_complex:
         return padding_value
 
     limits = torch.iinfo(dtype)
