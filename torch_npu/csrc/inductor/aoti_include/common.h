@@ -13,6 +13,8 @@ using half = at::Half;
 using bfloat16 = at::BFloat16;
 
 // Round up to the nearest multiple of 64
+#if !defined(TORCH_INDUCTOR_CPP_WRAPPER) // cpp wrapper compilation takes align() from torch's header
 [[maybe_unused]] inline int64_t align(int64_t nbytes) {
   return (nbytes + 64 - 1) & -64;
 }
+#endif // !defined(TORCH_INDUCTOR_CPP_WRAPPER)
